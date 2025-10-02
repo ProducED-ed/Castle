@@ -814,75 +814,61 @@ void LeftCloudGame() {
 // Добавьте глобальную переменную
 
 void WolfGame() {
+  // This part plays the initial sound for state 4
   if (TRACK_Flag) {
     Serial.println("TRACK_CLOUD_FI started");
     myMP3.stop();
     delay(50);
     myMP3.playMp3Folder(TRACK_CLOUD_FI);
     TRACK_Flag = 0;
-
-    // ЗАПОМИНАЕМ ТОЧНОЕ ВРЕМЯ ЗАПУСКА ТРЕКА
     cloudFiPlaying = true;
-    cloudFiStartTime = millis();  // ← ВОТ ЭТО КЛЮЧЕВОЕ!
+    cloudFiStartTime = millis();
   }
 
-
-  OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
-
-  // ЕСЛИ УЖЕ ИГРАЕТ TRACK_CLOUD_FI - НИЧЕГО НЕ ДЕЛАЕМ
+  // If the sound is playing, wait for it to finish
   if (cloudFiPlaying) {
     return;
   }
 
-  if (millis() - wolfTimer >= 3000) {
-    state = 4;
-    // OUTPUTS.digitalWrite(wolfEyeLed, LOW);
-  }
-
-  lightCircut1 = !rightCloud3Gerk.isHold();
-  lightCircut2 = !leftCloudGerk.isHold();
-  // lightCircut3 = !moonGerk.isHold();
-
-
-  if ((lightCircut1 || lightCircut2)) {
+  // Check if prerequisite cloud is released, and reset if so.
+  if (!rightCloud3Gerk.isHold()) {
     state = 1;
-    if (TRACK_Flag) {
-      Serial.println("TRACK_CLOUD_FI started");
-      myMP3.stop();
-      delay(50);
-      myMP3.playMp3Folder(TRACK_CLOUD_FI);
-      TRACK_Flag = 0;
-      cloudFiPlaying = true;
-      cloudFiStartTime = millis();
-    } else {
-      unsigned long duration = 2000;
-      Serial.println("TRACK_STOP");
-      int initialVolume = 30;
-      int steps = initialVolume;
-      unsigned long stepTime = duration / steps;
-
-      for (int vol = initialVolume; vol >= 0; vol--) {
-        myMP3.volume(vol);
-        unsigned long currentTime = millis();
-        while (millis() - currentTime < stepTime) {
-        }
-      }
-      myMP3.volume(30);
-      myMP3.stop();
-      delay(50);
-      myMP3.playMp3Folder(TRACK_FON_WOLF);
+    // This is the reset sound logic from the original `else` block
+    unsigned long duration = 2000;
+    Serial.println("TRACK_STOP");
+    int initialVolume = 30;
+    int steps = initialVolume;
+    unsigned long stepTime = duration / steps;
+    for (int vol = initialVolume; vol >= 0; vol--) {
+      myMP3.volume(vol);
+      unsigned long currentTime = millis();
+      while (millis() - currentTime < stepTime) {}
     }
+    myMP3.volume(30);
+    myMP3.stop();
+    delay(50);
+    myMP3.playMp3Folder(TRACK_FON_WOLF);
+    return; // Exit to process state change immediately
   }
 
-  if (wolfGerk.isHold()) {
-    state++;
-    doorTimer = millis();
-    auroraEffect();
-    FastLED.show();
-    myMP3.stop();  // Сначала останавливаем
-    delay(50);
-    myMP3.playMp3Folder(TRACK_WOLF_END);
-    cloudFiPlaying = false;  // Сбрасываем защиту
+  // New logic based on user request for leftCloudGerk
+  if (leftCloudGerk.isHold()) {
+    OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
+
+    // Win condition is only possible when the eye is lit
+    if (wolfGerk.isHold()) {
+      state = 5;
+      doorTimer = millis();
+      auroraEffect();
+      FastLED.show();
+      myMP3.stop();
+      delay(50);
+      myMP3.playMp3Folder(TRACK_WOLF_END);
+      cloudFiPlaying = false;
+    }
+  } else {
+    // If the cloud is released, the eye turns off.
+    OUTPUTS.digitalWrite(wolfEyeLed, LOW);
   }
 }
 
