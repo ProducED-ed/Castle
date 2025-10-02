@@ -47,11 +47,16 @@ const uint16_t updateInterval = 30;  // Частота обновления (м�
 unsigned long cloudFiStartTime = 0;
 const unsigned long CLOUD_FI_DURATION = 8000;
 
-unsigned long lockStartTime = 0;
-bool lockActive = false;
-byte lockPin = 0;
-const unsigned long LOCK_DURATION = 500; // 500ms = 0.5 секунды
-const unsigned long LOCK_INTERVAL = 8000; // 8000ms = 8 секунд
+unsigned long lastLockOpenTime = 0;
+const unsigned long LOCK_REPEAT_INTERVAL = 10000; // 10 секунд
+bool repeatingLockStarted = false;
+
+bool lockIsOpening = false;
+unsigned long lockOpenStartTime = 0;
+const unsigned long LOCK_OPEN_DURATION = 500;
+
+bool moonGameWaitingForSound = false;
+unsigned long moonGameWaitStartTime = 0;
 
 
 static unsigned long delayStartTime = 0;
@@ -433,6 +438,9 @@ void setup() {
 
 
 void loop() {
+  if (state != 6) {
+    repeatingLockStarted = false;
+  }
   //Serial.println(state);
   if (cloudFiPlaying) {
     if (millis() - cloudFiStartTime >= CLOUD_FI_DURATION) {
@@ -447,6 +455,7 @@ void loop() {
     delay(2000);
   }
   handlePlayerQueries();
+  handleLock();
 
   helpButton.tick();
   if (helpButton.isPress()) {
@@ -648,6 +657,16 @@ void loop() {
       OpenDoor();
       break;
     case 6:
+      if (!repeatingLockStarted) {
+        repeatingLockStarted = true;
+        lastLockOpenTime = millis();
+      }
+
+      if (millis() - lastLockOpenTime >= LOCK_REPEAT_INTERVAL) {
+        OpenLock(SH1);
+        lastLockOpenTime = millis();
+      }
+
       if (millis() - prevTime >= updateInterval) {
         prevTime = millis();
         auroraEffect();
@@ -660,47 +679,40 @@ void loop() {
 }
 
 void MoonGame() {
-  //static bool
-  //Serial.println(moonGerk.isHold());
   FastLED.clear();
   FastLED.show();
-  OUTPUTS.digitalWrite(moonLed, LOW);
   OUTPUTS.digitalWrite(leftCloudLed, LOW);
   OUTPUTS.digitalWrite(wolfEyeLed, LOW);
-  OUTPUTS.digitalWrite(rightCloudLed, LOW);
   OUTPUTS.digitalWrite(three1Led, LOW);
   OUTPUTS.digitalWrite(three2Led, LOW);
   OUTPUTS.digitalWrite(three3Led, LOW);
   OUTPUTS.digitalWrite(wolfEyeLed, LOW);
+
   if (moonGerk.isHold()) {
     OUTPUTS.digitalWrite(moonLed, HIGH);
     OUTPUTS.digitalWrite(rightCloudLed, HIGH);
     if (!storyFlag1) {
-      //myMP3.pause(); // Ставим фоновую музыку на паузу
-      delay(150);
-      if (language == 1)
-        myMP3.playMp3Folder(TRACK_STORY_9_A_RU);
-      if (language == 2)
-        myMP3.playMp3Folder(TRACK_STORY_9_A_EN);
-      if (language == 3)
-        myMP3.playMp3Folder(TRACK_STORY_9_A_AR);
-      if (language == 4)
-        myMP3.playMp3Folder(TRACK_STORY_9_A_GE);
-      if (language == 5)
-        myMP3.playMp3Folder(TRACK_STORY_9_A_SP);
-      if (language == 6)
-        myMP3.playMp3Folder(TRACK_STORY_9_A_CH);
-      storyFlag1 = 1;
+      if (!moonGameWaitingForSound) {
+        moonGameWaitingForSound = true;
+        moonGameWaitStartTime = millis();
+      } else {
+        if (millis() - moonGameWaitStartTime >= 150) {
+          if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_A_RU);
+          if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_A_EN);
+          if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_A_AR);
+          if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_A_GE);
+          if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_A_SP);
+          if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_A_CH);
+          storyFlag1 = 1;
+          state++;
+          moonGameWaitingForSound = false;
+        }
+      }
     }
-    state++;
   } else {
+    moonGameWaitingForSound = false;
     OUTPUTS.digitalWrite(moonLed, LOW);
     OUTPUTS.digitalWrite(rightCloudLed, LOW);
-    OUTPUTS.digitalWrite(leftCloudLed, LOW);
-    OUTPUTS.digitalWrite(wolfEyeLed, LOW);
-    OUTPUTS.digitalWrite(three1Led, LOW);
-    OUTPUTS.digitalWrite(three2Led, LOW);
-    OUTPUTS.digitalWrite(three3Led, LOW);
   }
 }
 
@@ -892,9 +904,18 @@ void OpenDoor() {
 }
 
 void OpenLock(byte num) {
-  OUTPUTS.digitalWrite(num, HIGH);
-  delay(500);
-  OUTPUTS.digitalWrite(num, LOW);
+  if (!lockIsOpening) {
+    OUTPUTS.digitalWrite(num, HIGH);
+    lockIsOpening = true;
+    lockOpenStartTime = millis();
+  }
+}
+
+void handleLock() {
+  if (lockIsOpening && (millis() - lockOpenStartTime >= LOCK_OPEN_DURATION)) {
+    OUTPUTS.digitalWrite(SH1, LOW);
+    lockIsOpening = false;
+  }
 }
 
 void auroraEffect() {
