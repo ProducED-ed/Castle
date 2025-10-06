@@ -42,6 +42,8 @@ uint8_t hueShift = 0;         // Сдвиг оттенка (0-255)
 unsigned long prevTime = 0;
 unsigned long wolfTimer = 0;
 unsigned long doorTimer = 0;
+unsigned long repeatDoorTimer = 0;
+bool doorRepeatActive = false;
 const uint16_t updateInterval = 30;  // Частота обновления (мс)
 
 unsigned long cloudFiStartTime = 0;
@@ -68,82 +70,93 @@ int language = 1;
 bool cloudFiPlaying = false;
 bool hintFlag = 1;
 
+// --- Системные треки (1-4) ---
 const int TRACK_FON_WOLF = 1;
-const int TRACK_WOLF_END = 12;
-const int TRACK_CLOUD = 3;
-const int TRACK_ghost = 2;
-const int TRACK_CLOUD_FI = 11;
+const int TRACK_CLOUD = 2;
+const int TRACK_ghost = 3;
+const int TRACK_CLOUD_FI = 4;
 
+// --- Истории (5-34) ---
+// Блок Story A
+const int TRACK_STORY_9_A_RU = 12;
+const int TRACK_STORY_9_A_EN = 22;
+const int TRACK_STORY_9_A_AR = 32;
+const int TRACK_STORY_9_A_GE = 5;
+const int TRACK_STORY_9_A_SP = 5;
+const int TRACK_STORY_9_A_CH = 5;
 
-const int TRACK_STORY_9_A_RU = 60;
-const int TRACK_STORY_9_A_EN = 70;
-const int TRACK_STORY_9_A_AR = 80;
-const int TRACK_STORY_9_A_GE = 4;
-const int TRACK_STORY_9_A_SP = 4;
-const int TRACK_STORY_9_A_CH = 4;
+// Блок Story B
+const int TRACK_STORY_9_B_RU = 13;
+const int TRACK_STORY_9_B_EN = 23;
+const int TRACK_STORY_9_B_AR = 33;
+const int TRACK_STORY_9_B_GE = 6;
+const int TRACK_STORY_9_B_SP = 6;
+const int TRACK_STORY_9_B_CH = 6;
 
-const int TRACK_STORY_9_B_RU = 61;
-const int TRACK_STORY_9_B_EN = 71;
-const int TRACK_STORY_9_B_AR = 81;
-const int TRACK_STORY_9_B_GE = 5;
-const int TRACK_STORY_9_B_SP = 5;
-const int TRACK_STORY_9_B_CH = 5;
+// Блок Story C
+const int TRACK_STORY_9_C_RU = 14;
+const int TRACK_STORY_9_C_EN = 24;
+const int TRACK_STORY_9_C_AR = 34;
+const int TRACK_STORY_9_C_GE = 7;
+const int TRACK_STORY_9_C_SP = 7;
+const int TRACK_STORY_9_C_CH = 7;
 
-const int TRACK_STORY_9_C_RU = 62;
-const int TRACK_STORY_9_C_EN = 72;
-const int TRACK_STORY_9_C_AR = 82;
-const int TRACK_STORY_9_C_GE = 6;
-const int TRACK_STORY_9_C_SP = 6;
-const int TRACK_STORY_9_C_CH = 6;
+// --- Подсказки (8-41) ---
+// Блок Hint 1
+const int TRACK_HINT_1_RU = 16;
+const int TRACK_HINT_1_EN = 26;
+const int TRACK_HINT_1_AR = 36;
+const int TRACK_HINT_1_GE = 9;
+const int TRACK_HINT_1_SP = 9;
+const int TRACK_HINT_1_CH = 9;
 
-const int TRACK_HINT_1_RU = 31;
-const int TRACK_HINT_1_EN = 41;
-const int TRACK_HINT_1_AR = 51;
-const int TRACK_HINT_1_GE = 8;
-const int TRACK_HINT_1_SP = 8;
-const int TRACK_HINT_1_CH = 8;
+// Блок Hint 2
+const int TRACK_HINT_2_RU = 17;
+const int TRACK_HINT_2_EN = 27;
+const int TRACK_HINT_2_AR = 37;
+const int TRACK_HINT_2_GE = 10;
+const int TRACK_HINT_2_SP = 10;
+const int TRACK_HINT_2_CH = 10;
 
-const int TRACK_HINT_2_RU = 32;
-const int TRACK_HINT_2_EN = 42;
-const int TRACK_HINT_2_AR = 52;
-const int TRACK_HINT_2_GE = 9;
-const int TRACK_HINT_2_SP = 9;
-const int TRACK_HINT_2_CH = 9;
+// Блок Hint 3
+const int TRACK_HINT_3_RU = 18;
+const int TRACK_HINT_3_EN = 28;
+const int TRACK_HINT_3_AR = 38;
+const int TRACK_HINT_3_GE = 11;
+const int TRACK_HINT_3_SP = 11;
+const int TRACK_HINT_3_CH = 11;
 
-const int TRACK_HINT_3_RU = 33;
-const int TRACK_HINT_3_EN = 43;
-const int TRACK_HINT_3_AR = 53;
-const int TRACK_HINT_3_GE = 10;
-const int TRACK_HINT_3_SP = 10;
-const int TRACK_HINT_3_CH = 10;
+// Блок Hint 4
+const int TRACK_HINT_4_RU = 19;
+const int TRACK_HINT_4_EN = 29;
+const int TRACK_HINT_4_AR = 39;
+const int TRACK_HINT_4_GE = 11;
+const int TRACK_HINT_4_SP = 11;
+const int TRACK_HINT_4_CH = 11;
 
-const int TRACK_HINT_4_RU = 34;
-const int TRACK_HINT_4_EN = 44;
-const int TRACK_HINT_4_AR = 54;
-const int TRACK_HINT_4_GE = 10;
-const int TRACK_HINT_4_SP = 10;
-const int TRACK_HINT_4_CH = 10;
+// Блок Hint 5
+const int TRACK_HINT_5_RU = 20;
+const int TRACK_HINT_5_EN = 30;
+const int TRACK_HINT_5_AR = 40;
+const int TRACK_HINT_5_GE = 11;
+const int TRACK_HINT_5_SP = 11;
+const int TRACK_HINT_5_CH = 11;
 
-const int TRACK_HINT_5_RU = 35;
-const int TRACK_HINT_5_EN = 45;
-const int TRACK_HINT_5_AR = 55;
-const int TRACK_HINT_5_GE = 10;
-const int TRACK_HINT_5_SP = 10;
-const int TRACK_HINT_5_CH = 10;
+// Блок Hint 6
+const int TRACK_HINT_6_RU = 21;
+const int TRACK_HINT_6_EN = 31;
+const int TRACK_HINT_6_AR = 41;
+const int TRACK_HINT_6_GE = 11;
+const int TRACK_HINT_6_SP = 11;
+const int TRACK_HINT_6_CH = 11;
 
-const int TRACK_HINT_6_RU = 36;
-const int TRACK_HINT_6_EN = 46;
-const int TRACK_HINT_6_AR = 56;
-const int TRACK_HINT_6_GE = 10;
-const int TRACK_HINT_6_SP = 10;
-const int TRACK_HINT_6_CH = 10;
-
-const int TRACK_HINT_0_RU = 30;
-const int TRACK_HINT_0_EN = 40;
-const int TRACK_HINT_0_AR = 50;
-const int TRACK_HINT_0_GE = 7;
-const int TRACK_HINT_0_SP = 7;
-const int TRACK_HINT_0_CH = 7;
+// Блок Hint 0
+const int TRACK_HINT_0_RU = 15;
+const int TRACK_HINT_0_EN = 25;
+const int TRACK_HINT_0_AR = 35;
+const int TRACK_HINT_0_GE = 8;
+const int TRACK_HINT_0_SP = 8;
+const int TRACK_HINT_0_CH = 8;
 
 bool storyFlag1;
 bool storyFlag2;
@@ -300,6 +313,7 @@ void setup() {
       String body = server.arg("plain");
       if (body == "\"game\"") {
         state = 1;
+        doorRepeatActive = false;
         myMP3.playMp3Folder(TRACK_FON_WOLF);
         lightCircut1 = 0;
         storyFlag1 = 0;
@@ -316,6 +330,7 @@ void setup() {
       }
       if (body == "\"restart\"") {
         state = 7;
+        doorRepeatActive = false;
         hintFlag = 0;
         myMP3.stop();
         OUTPUTS.digitalWrite(moonLed, HIGH);
@@ -340,11 +355,13 @@ void setup() {
       }
       if (body == "\"start\"") {
         state = 0;
+        doorRepeatActive = false;
         hintFlag = 1;
         myMP3.stop();
       }
       if (body == "\"ready\"") {
         state = 0;
+        doorRepeatActive = false;
         myMP3.stop();
       }
       if (body == "\"language_1\"") {
@@ -383,12 +400,26 @@ void setup() {
         fill_solid(threeLed, 10, CRGB(255, 255, 255));
         FastLED.show();
         delay(50);
-        myMP3.playMp3Folder(TRACK_WOLF_END);
+        if (language == 1)
+          myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
+        if (language == 2)
+          myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
+        if (language == 3)
+          myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
+        if (language == 4)
+          myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
+        if (language == 5)
+          myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
+        if (language == 6)
+          myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
         OpenLock(SH1);
+        doorRepeatActive = true;
+        repeatDoorTimer = millis();
       }
 
       if (body == "\"day_on\"") {
         myMP3.stop();
+        doorRepeatActive = false;
         state = 99;
         OUTPUTS.digitalWrite(moonLed, HIGH);
         OUTPUTS.digitalWrite(leftCloudLed, HIGH);
@@ -404,6 +435,7 @@ void setup() {
 
       if (body == "\"day_off\"") {
         state = 0;
+        doorRepeatActive = false;
       }
 
       if (body == "\"ghost_game\"") {
@@ -648,6 +680,12 @@ void loop() {
       OpenDoor();
       break;
     case 6:
+      if (doorRepeatActive) {
+        if (millis() - repeatDoorTimer >= 10000) {
+          OpenLock(SH1);
+          repeatDoorTimer = millis();
+        }
+      }
       if (millis() - prevTime >= updateInterval) {
         prevTime = millis();
         auroraEffect();
@@ -869,25 +907,30 @@ void WolfGame() {
     FastLED.show();
     myMP3.stop();  // Сначала останавливаем
     delay(50);
-    myMP3.playMp3Folder(TRACK_WOLF_END);
+    if (language == 1)
+      myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
+    if (language == 2)
+      myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
+    if (language == 3)
+      myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
+    if (language == 4)
+      myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
+    if (language == 5)
+      myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
+    if (language == 6)
+      myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
     cloudFiPlaying = false;  // Сбрасываем защиту
   }
 }
 
 void OpenDoor() {
-  if (wolfGerk.isHold()) {
-    if (millis() - prevTime >= updateInterval) {
-      prevTime = millis();
-
-      Serial.println("WolfWIN");
-      WolfSendData();
-    }
-  } else {
-    doorTimer = millis();
-  }
-  if (millis() - doorTimer >= 2000) {
+  if (millis() - doorTimer >= 8000) {
+    Serial.println("WolfWIN");
+    WolfSendData();
     OpenLock(SH1);
     state++;
+    doorRepeatActive = true;
+    repeatDoorTimer = millis();
   }
 }
 
