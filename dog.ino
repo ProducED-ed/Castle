@@ -716,9 +716,10 @@ void loop() {
             periodicFastSpinSoundActive = true;
             lastFastSpinStorySoundTime = currentMillis;
             Serial.println((__FlashStringHelper *)MSG_GROWL);
-            int randomIndex = random(NUM_STORY_SOUNDS);
-            char buffer[MAX_UART_MESSAGE_LENGTH];
-            strcpy_P(buffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[randomIndex])));
+            int firstRandomIndex = random(NUM_STORY_SOUNDS);
+            char firstBuffer[MAX_UART_MESSAGE_LENGTH];
+            strcpy_P(firstBuffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[firstRandomIndex])));
+            Serial.println(firstBuffer);
             vibroPulseState = true;
             digitalWrite(VIBRO_MOTOR_PIN, HIGH);
             analogWrite(LIGHTING_LED_PIN, 255);
@@ -762,7 +763,7 @@ void loop() {
           lastBlinkTime_LEDStrip = currentMillis;
           digitalWrite(LED_STRIP_PIN, !digitalRead(LED_STRIP_PIN));
         }
-        if (periodicFastSpinSoundActive && (currentMillis - lastFastSpinStorySoundTime >= 5000)) {
+        if (periodicFastSpinSoundActive && (currentMillis - lastFastSpinStorySoundTime >= 12000)) {
           int randomIndex = random(NUM_STORY_SOUNDS);
           char buffer[MAX_UART_MESSAGE_LENGTH];
           strcpy_P(buffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[randomIndex])));
@@ -792,12 +793,12 @@ void loop() {
             periodicStorySoundActive = false;
           }
         }
-        if (periodicStorySoundActive && (currentMillis - lastStorySoundPlayTime >= 10000)) {
+        /* if (periodicStorySoundActive && (currentMillis - lastStorySoundPlayTime >= 10000)) {
           int randomIndex = random(NUM_STORY_SOUNDS);
           char buffer[MAX_UART_MESSAGE_LENGTH];
           strcpy_P(buffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[randomIndex])));
           lastStorySoundPlayTime = currentMillis;
-        }
+        } */
       }
       bool shouldGoToSleepCheck = false;
       if (currentCageReedState == LOW) {
