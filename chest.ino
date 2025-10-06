@@ -320,6 +320,9 @@ void setup() {
         myMP3.stop();
         myMP3.playMp3Folder(TRACK_SUITCASE_END);
       }
+      if(body == "\"firework\""){
+        state = 5; // Устанавливаем состояние 5, которое вы создали для эффекта
+      }
       
       Serial.println("Received POST: " + body);
       server.send(200, "application/json", "{\"status\":\"received\"}");
@@ -333,6 +336,22 @@ void setup() {
 }
 
 void loop() {
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim(); // Убираем лишние пробелы и символы переноса строки
+
+    if (command == "firework") {
+      state = 5; // Переключаемся в состояние фейерверка
+    } else {
+      // Если пришла любая другая команда, выключаем светодиоды и переходим в базовое состояние
+      if (state == 5) {
+        for (int i = 0; i < arrayLenght; i++) {
+          analogWrite(ledsSym[i], 0);
+        }
+        state = 0; // Возвращаемся в состояние ожидания
+      }
+    }
+  }
   server.handleClient();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
@@ -488,7 +507,10 @@ void loop() {
        analogWrite(ledsSym[i], 255);
      }
      //digitalWrite(insideLed, LOW);
-     break;  
+     break;
+   case 5: // Состояние для эффекта "firework"
+     randomTwinkleEffect();
+     break;
  }
 
  if(state > 3 && state < 6){
