@@ -587,16 +587,15 @@ void setup() {
       }
 
       if (body == "\"flag_off\"") {
-        DisableLeds[7] = 16;
-        DisableLeds[5] = -1;
-        DisableLeds[10] = 19;
-        DisableLeds[14] = 23;
+        FutureLeds[7] = 16;
+        FutureLeds[5] = 14;
+        FutureLeds[10] = 19;
+        FutureLeds[14] = 23;
 
         ActiveLeds[7] = -1;
         ActiveLeds[5] = -1;
         ActiveLeds[10] = -1;
         ActiveLeds[14] = -1;
-        FutureLeds[5] = 15;
       }
 
       if (body == "\"stage_1\"") {
@@ -1276,8 +1275,31 @@ void MapGerkon() {
 }
 
 void MapLeds() {
+  // --- Новая логика для пульсации ---
+  static unsigned long lastPulsateTime = 0;
+  static int pulsatingBrightness = 100; // Текущая яркость
+  static bool fadeUp = true;             // Направление изменения: true = увеличение, false = уменьшение
+
+  // Обновляем яркость каждые 15 миллисекунд для плавности
+  if (millis() - lastPulsateTime > 15) {
+    lastPulsateTime = millis();
+    if (fadeUp) {
+      pulsatingBrightness += 4; // Скорость увеличения яркости
+      if (pulsatingBrightness >= 255) {
+        pulsatingBrightness = 255;
+        fadeUp = false; // Меняем направление на уменьшение
+      }
+    } else {
+      pulsatingBrightness -= 4; // Скорость уменьшения яркости
+      if (pulsatingBrightness <= 80) {
+        pulsatingBrightness = 80;
+        fadeUp = true; // Меняем направление на увеличение
+      }
+    }
+  }
+
+  // Логика для мигания выбранного светодиода (из ClickLeds)
   if (millis() - lightFlashTimer >= 6) {
-    // Обычные светодиоды
     if (!up) {
       light++;
       if (light >= 255) up = true;
@@ -1285,58 +1307,55 @@ void MapLeds() {
       light--;
       if (light <= 0) up = false;
     }
-
     uint8_t r = map(light, 0, 255, 128, 0);
     uint8_t g = map(light, 0, 255, 0, 128);
     uint8_t b = 255;
-
     for (int i = 0; i <= 20; i++) {
       if (ClickLeds[i] != -1) {
         ledMap[ClickLeds[i]] = CRGB(r, g, b);
       }
     }
 
-    // ПЛАВНОЕ МЕРЦАНИЕ - ИСПРАВЛЕННЫЙ ВАРИАНТ
     if (isStartTimer && blinkLedNumber != -1) {
       static unsigned long blinkTimer = 0;
       static int fadeValue = 0;
-      static bool fadeDirection = true;  // true = увеличиваем, false = уменьшаем
+      static bool fadeDirection = true;
 
-      if (millis() - blinkTimer >= 5) {  // Частое обновление для плавности
+      if (millis() - blinkTimer >= 5) {
         blinkTimer = millis();
-
         if (fadeDirection) {
-          fadeValue += 8;  // Плавное увеличение
+          fadeValue += 8;
           if (fadeValue >= 255) {
             fadeValue = 255;
             fadeDirection = false;
           }
         } else {
-          fadeValue -= 8;  // Плавное уменьшение
+          fadeValue -= 8;
           if (fadeValue <= 0) {
             fadeValue = 0;
             fadeDirection = true;
           }
         }
-
-        // Плавное изменение голубого цвета
-        uint8_t pulseG = map(fadeValue, 0, 255, 0, 128);  // Зеленый: 0-128
-        uint8_t pulseB = map(fadeValue, 0, 255, 0, 255);  // Синий: 0-255
-
+        uint8_t pulseG = map(fadeValue, 0, 255, 0, 128);
+        uint8_t pulseB = map(fadeValue, 0, 255, 0, 255);
         ledMap[blinkLedNumber] = CRGB(0, pulseG, pulseB);
       }
     }
-
-    // Общие операции
-    for (int i = 0; i <= 20; i++) {
-      if (ActiveLeds[i] != -1) ledMap[ActiveLeds[i]] = CRGB(250, 225, 5);
-      if (DisableLeds[i] != -1) ledMap[DisableLeds[i]] = CRGB(0, 0, 0);
-      if (FutureLeds[i] != -1) ledMap[FutureLeds[i]] = CRGB(255, 255, 255);
-    }
-
-    FastLED.show();
-    lightFlashTimer = millis();
   }
+
+  // Общие операции
+  for (int i = 0; i <= 20; i++) {
+    // --- Измененная строка для активных светодиодов ---
+    if (ActiveLeds[i] != -1) {
+      // Устанавливаем желтый цвет (Hue=55) с пульсирующей яркостью
+      ledMap[ActiveLeds[i]] = CHSV(55, 255, pulsatingBrightness);
+    }
+    if (DisableLeds[i] != -1) ledMap[DisableLeds[i]] = CRGB(0, 0, 0);
+    if (FutureLeds[i] != -1) ledMap[FutureLeds[i]] = CRGB(255, 255, 255);
+  }
+
+  FastLED.show();
+  lightFlashTimer = millis();
 }
 
 
