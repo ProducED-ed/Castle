@@ -466,13 +466,6 @@ void setup() {
 
 void loop() {
   //Serial.println(state);
-  if (cloudFiPlaying) {
-    if (millis() - cloudFiStartTime >= CLOUD_FI_DURATION) {
-      cloudFiPlaying = false;
-      Serial.println("TRACK_CLOUD_FI finished");
-    }
-  }
-
   server.handleClient();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
@@ -841,63 +834,51 @@ void LeftCloudGame() {
 
 void WolfGame() {
   if (TRACK_Flag) {
-    Serial.println("TRACK_CLOUD_FI started");
+    Serial.println("Story B started");
     myMP3.stop();
     delay(50);
-    myMP3.playMp3Folder(TRACK_CLOUD_FI);
+    if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_B_RU);
+    if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_B_EN);
+    if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_B_AR);
+    if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_B_GE);
+    if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_B_SP);
+    if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_B_CH);
+    
     TRACK_Flag = 0;
-
-    // ЗАПОМИНАЕМ ТОЧНОЕ ВРЕМЯ ЗАПУСКА ТРЕКА
-    cloudFiPlaying = true;
-    cloudFiStartTime = millis();  // ← ВОТ ЭТО КЛЮЧЕВОЕ!
+    cloudFiPlaying = true; // Включаем "замок"
   }
-
 
   OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
 
-  // ЕСЛИ УЖЕ ИГРАЕТ TRACK_CLOUD_FI - НИЧЕГО НЕ ДЕЛАЕМ
+  // Если аудио играет, мы больше ничего в этой функции не делаем
   if (cloudFiPlaying) {
     return;
   }
 
-  if (millis() - wolfTimer >= 3000) {
-    state = 4;
-    // OUTPUTS.digitalWrite(wolfEyeLed, LOW);
-  }
-
+  // Этот код выполнится только ПОСЛЕ того, как аудио доиграет до конца
+  // и флаг cloudFiPlaying станет false.
+  
   lightCircut1 = !rightCloud3Gerk.isHold();
   lightCircut2 = !leftCloudGerk.isHold();
-  // lightCircut3 = !moonGerk.isHold();
-
 
   if ((lightCircut1 || lightCircut2)) {
     state = 1;
-    if (TRACK_Flag) {
-      Serial.println("TRACK_CLOUD_FI started");
-      myMP3.stop();
-      delay(50);
-      myMP3.playMp3Folder(TRACK_CLOUD_FI);
-      TRACK_Flag = 0;
-      cloudFiPlaying = true;
-      cloudFiStartTime = millis();
-    } else {
-      unsigned long duration = 2000;
-      Serial.println("TRACK_STOP");
-      int initialVolume = 30;
-      int steps = initialVolume;
-      unsigned long stepTime = duration / steps;
-
-      for (int vol = initialVolume; vol >= 0; vol--) {
-        myMP3.volume(vol);
-        unsigned long currentTime = millis();
-        while (millis() - currentTime < stepTime) {
-        }
+    // ... остальная логика возврата в состояние 1 ...
+    unsigned long duration = 2000;
+    Serial.println("TRACK_STOP");
+    int initialVolume = 30;
+    int steps = initialVolume;
+    unsigned long stepTime = duration / steps;
+    for (int vol = initialVolume; vol >= 0; vol--) {
+      myMP3.volume(vol);
+      unsigned long currentTime = millis();
+      while (millis() - currentTime < stepTime) {
       }
-      myMP3.volume(30);
-      myMP3.stop();
-      delay(50);
-      myMP3.playMp3Folder(TRACK_FON_WOLF);
     }
+    myMP3.volume(30);
+    myMP3.stop();
+    delay(50);
+    myMP3.playMp3Folder(TRACK_FON_WOLF);
   }
 
   if (wolfGerk.isHold()) {
@@ -905,21 +886,14 @@ void WolfGame() {
     doorTimer = millis();
     auroraEffect();
     FastLED.show();
-    myMP3.stop();  // Сначала останавливаем
+    myMP3.stop();
     delay(50);
-    if (language == 1)
-      myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
-    if (language == 2)
-      myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
-    if (language == 3)
-      myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
-    if (language == 4)
-      myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-    if (language == 5)
-      myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
-    if (language == 6)
-      myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
-    cloudFiPlaying = false;  // Сбрасываем защиту
+    if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
+    if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
+    if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
+    if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
+    if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
+    if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
   }
 }
 
@@ -1001,7 +975,6 @@ void handlePlayerQueries() {
         break;
       case DFPlayerPlayFinished:
         Serial.println("Трек завершен: " + String(myMP3.read()));
-        // Здесь можно запустить следующий трек
         break;
       case DFPlayerFeedBack:
         Serial.println("Команда выполнена: " + String(myMP3.read()));
@@ -1011,40 +984,28 @@ void handlePlayerQueries() {
         break;
     }
     Serial.println(type);
-    if (type == 11) {
+    if (type == 11) { // 11 - это код завершения трека от плеера
       int finishedTrack = myMP3.read();
       Serial.print("Завершился трек: ");
       Serial.println(finishedTrack);
       hintFlag = 1;
 
-      // ИЗМЕНЕНИЕ 3: Эта логика возобновляет фоновую музыку после окончания любого другого трека.
-      // Она уже была в коде и должна работать правильно.
+      // ДОБАВЛЕННЫЙ БЛОК ДЛЯ СНЯТИЯ "ЗАМКА"
+      if (finishedTrack == TRACK_STORY_9_B_RU ||
+          finishedTrack == TRACK_STORY_9_B_EN ||
+          finishedTrack == TRACK_STORY_9_B_AR ||
+          finishedTrack == TRACK_STORY_9_B_GE) { // Для GE, SP, CH номер трека один - 6
+            cloudFiPlaying = false;
+            Serial.println("Story B finished, unlocking game state.");
+      }
+
+
       if (state == 1 && finishedTrack != TRACK_FON_WOLF) {
         if (!flagTrack) {
           myMP3.playMp3Folder(TRACK_FON_WOLF);
           trackTimer = millis();
           flagTrack = 1;
         }
-        // Возобновляем фоновую музыку с места паузы
-      }
-
-      if (finishedTrack == TRACK_CLOUD && !flagTrack && !storyFlag1) {
-        Serial.println("1234");
-        if (language == 1)
-          myMP3.playMp3Folder(TRACK_STORY_9_B_RU);
-        if (language == 2)
-          myMP3.playMp3Folder(TRACK_STORY_9_B_EN);
-        if (language == 3)
-          myMP3.playMp3Folder(TRACK_STORY_9_B_AR);
-        if (language == 4)
-          myMP3.playMp3Folder(TRACK_STORY_9_B_GE);
-        if (language == 5)
-          myMP3.playMp3Folder(TRACK_STORY_9_B_SP);
-        if (language == 6)
-          myMP3.playMp3Folder(TRACK_STORY_9_B_CH);
-        trackTimer = millis();
-        flagTrack = 1;
-        storyFlag1 = 1;
       }
     }
   }
