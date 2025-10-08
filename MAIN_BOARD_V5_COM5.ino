@@ -728,6 +728,7 @@ void PowerOn() {
       Serial3.println("ready");
       mySerial.println("ready");
     }
+
   }
   if (Serial2.available()) {  // есть что на вход?
     String buff = Serial2.readString();
@@ -3232,7 +3233,11 @@ void CrimeHelp() {
   HelpTowersHandler();
 }
 
-
+void OpenDoor(int pin) {
+  digitalWrite(pin, 1);
+  delay(100);
+  digitalWrite(pin, 0);
+}
 
 
 void FinalPresentation() {
@@ -4612,9 +4617,6 @@ void VoltageDisplay() {
   }
 }
 
-void HelpButton(String help) {
-}
-
 
 void RestOn() {
   static bool _dataQueue = 0;
@@ -4671,6 +4673,45 @@ void RestOn() {
 void Restart() {
   if (Serial.available()) {
     String buff = Serial.readString();
+    if (buff == "open_mansard_door") {
+      OpenDoor(MansardDoor);
+    }
+    if (buff == "open_bank_door") {
+      OpenDoor(BankDoor);
+    }
+    if (buff == "open_potion_door") {
+      OpenDoor(PotionsRoomDoor);
+    }
+    if (buff == "open_owl_door") {
+      mySerial.println("open_door");
+    }
+    if (buff == "open_dog_door") {
+      Serial3.println("open_door");
+    }
+    if (buff == "open_low_tower_door") {
+      OpenDoor(HightTowerDoor);
+    }
+    if (buff == "open_high_tower_door") {
+      OpenDoor(HightTowerDoor2);
+    }
+    if (buff == "open_library_door") {
+      OpenDoor(LibraryDoor);
+    }
+    if (buff == "open_workshop_door") {
+      Serial1.println("open_door");
+    }
+    if (buff == "open_safe_door") {
+      OpenDoor(BankStashDoor);
+    }
+    if (buff == "open_memory_door") {
+      OpenDoor(MemoryRoomDoor);
+    }
+    if (buff == "open_basket_door") {
+      Serial2.println("open_door");
+    }
+    if (buff == "open_mine_door") {
+      Serial2.println("open_mine_door");
+    }
     if (buff == "ready") {
       Serial1.println("ready");
       delay(500);
@@ -4936,6 +4977,7 @@ void BasketEffect() {
       if (!enemyFlag) {
         enemyFlag = 1;
         Serial.println("red_ball");
+        interval = 1;
         additionalTimer = millis();
       }
     }
@@ -4949,6 +4991,9 @@ void BasketEffect() {
     if (millis() - cometTimer1 >= 1000) {
       interval = interval + random(-4, 4);
       if (interval < 2) {
+        interval = 1;
+      }
+      if(enemyFlag){
         interval = 1;
       }
       cometTimer1 = millis();
