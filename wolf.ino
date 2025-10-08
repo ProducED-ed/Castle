@@ -168,6 +168,12 @@ bool TRACK_Flag = 1;
 
 int hint_counter = 0;
 
+// --- Переменные для фонового затухания звука ---
+bool isFadingOut = false;
+unsigned long fadeStartTime = 0;
+const unsigned long FADE_DURATION = 2000; // 2 секунды
+const int INITIAL_VOLUME = 30;
+
 //const char* ssid = "Castle";
 //const char* password = "questquest";
 const char* ssid = "ProducED";
@@ -472,6 +478,7 @@ void loop() {
     delay(2000);
   }
   handlePlayerQueries();
+  handleFadeOut();
 
   helpButton.tick();
   if (helpButton.isPress()) {
@@ -845,40 +852,28 @@ void WolfGame() {
     if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_B_CH);
     
     TRACK_Flag = 0;
-    cloudFiPlaying = true; // Включаем "замок"
+    cloudFiPlaying = true;
   }
 
   OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
 
-  // Если аудио играет, мы больше ничего в этой функции не делаем
   if (cloudFiPlaying) {
     return;
   }
-
-  // Этот код выполнится только ПОСЛЕ того, как аудио доиграет до конца
-  // и флаг cloudFiPlaying станет false.
   
   lightCircut1 = !rightCloud3Gerk.isHold();
   lightCircut2 = !leftCloudGerk.isHold();
 
   if ((lightCircut1 || lightCircut2)) {
-    state = 1;
-    // ... остальная логика возврата в состояние 1 ...
-    unsigned long duration = 2000;
-    Serial.println("TRACK_STOP");
-    int initialVolume = 30;
-    int steps = initialVolume;
-    unsigned long stepTime = duration / steps;
-    for (int vol = initialVolume; vol >= 0; vol--) {
-      myMP3.volume(vol);
-      unsigned long currentTime = millis();
-      while (millis() - currentTime < stepTime) {
-      }
+    state = 1; // <- МОМЕНТАЛЬНЫЙ СБРОС СОСТОЯНИЯ
+    
+    // --- ЗАПУСКАЕМ ФОНОВОЕ ЗАТУХАНИЕ ВМЕСТО СТАРОГО ЦИКЛА ---
+    if (!isFadingOut) { // Проверяем, что затухание еще не запущено
+        isFadingOut = true;
+        fadeStartTime = millis();
+        Serial.println("Starting background fade out...");
     }
-    myMP3.volume(30);
-    myMP3.stop();
-    delay(50);
-    myMP3.playMp3Folder(TRACK_FON_WOLF);
+    // Старый блокирующий цикл for() полностью удален
   }
 
   if (wolfGerk.isHold()) {
@@ -1008,5 +1003,31 @@ void handlePlayerQueries() {
         }
       }
     }
+  }
+}
+
+void handleFadeOut() {
+  // Если процесс затухания не активен, ничего не делаем
+  if (!isFadingOut) {
+    return;
+  }
+
+  unsigned long elapsedTime = millis() - fadeStartTime;
+
+  if (elapsedTime >= FADE_DURATION) {
+    // Затухание завершено
+    myMP3.volume(0);
+    myMP3.stop();
+    delay(50);
+    myMP3.volume(INITIAL_VOLUME); // Возвращаем громкость для следующих треков
+    myMP3.playMp3Folder(TRACK_FON_WOLF);
+    isFadingOut = false; // Завершаем процесс
+    Serial.println("Fade out complete. Playing background music.");
+  } else {
+    // Процесс затухания еще идет
+    // Рассчитываем новую громкость на основе прошедшего времени
+    float progress = (float)elapsedTime / FADE_DURATION;
+    int newVolume = INITIAL_VOLUME * (1.0 - progress);
+    myMP3.volume(newVolume);
   }
 }
