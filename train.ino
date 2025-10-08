@@ -72,6 +72,7 @@ uint8_t initialHue = 0;
 long musicCounter = 0;
 bool musicFlag1 = 0;
 bool musicFlag2 = 0;
+bool musicFlag3 = 0;
 int language = 1;
 int hint_counter = 0;
 bool hintFlag = 1;
@@ -168,6 +169,7 @@ const int TRACK_ENGINE2 = 3;
 const int TRACK_KNOCK = 4;
 const int TRACK_TRAIN = 5;
 const int TRACK_GHOST = 6;
+const int TRACK_ENGINE3 = 43;
 
 bool isTrainClick = false;
 bool isOwlClick = false;
@@ -180,6 +182,7 @@ bool isSkinPulsation;
 bool ghostFlag;
 bool isSendOut;
 bool isTrollEnd = 0;
+bool resumeEngineSound = false;
 
 String mapState;
 
@@ -527,6 +530,7 @@ void setup() {
         musicCounter = 0;
         musicFlag1 = 0;
         musicFlag2 = 0;
+        musicFlag3 = 0;
         isTrainClick = false;
         isOwlClick = false;
         isKeyClick = false;
@@ -905,6 +909,7 @@ void loop() {
   if (!INPUTS.digitalRead(2)) {
     if (state == 0 && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
+	  resumeEngineSound = true;
       delay(50);
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_HINT_0_RU);
@@ -928,6 +933,7 @@ void loop() {
     }
     if (state > 0 && state < 3 && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
+	  resumeEngineSound = true;
       delay(50);
       Serial.println(hint_counter);
       if (hint_counter == 0 && isStartTrain) {
@@ -1426,18 +1432,31 @@ void TrainGame() {
 
   //checkGreen();
 
-  if (musicCounter >= 40 && musicCounter <= 100) {
-    if (!musicFlag1) {
-      musicFlag1 = 1;
-      musicFlag2 = 0;
-      myMP3.loop(TRACK_ENGINE1);
-    }
+    // --- НОВЫЙ КОД С ВАШИМ РАСПРЕДЕЛЕНИЕМ ПРОЦЕНТОВ ---
+  if (musicCounter >= 80 && musicCounter <= 119) {
+      // Диапазон 1 (Центр, ~20%): Первый звук двигателя
+      if (!musicFlag1) {
+        musicFlag1 = true;
+        musicFlag2 = false;
+        musicFlag3 = false;
+        myMP3.loop(TRACK_ENGINE1);
+      }
+  } else if (musicCounter >= 0 && musicCounter <= 59) {
+      // Диапазон 2 (Начало, ~30%): Второй звук двигателя
+      if (!musicFlag2) {
+        musicFlag1 = false;
+        musicFlag2 = true;
+        musicFlag3 = false;
+        myMP3.loop(TRACK_ENGINE2);
+      }
   } else {
-    if (!musicFlag2) {
-      musicFlag2 = 1;
-      musicFlag1 = 0;
-      myMP3.loop(TRACK_ENGINE2);
-    }
+      // Диапазон 3 (Остальное, ~50%): Третий звук двигателя
+      if (!musicFlag3) {
+        musicFlag1 = false;
+        musicFlag2 = false;
+        musicFlag3 = true;
+        myMP3.loop(TRACK_ENGINE3);
+      }
   }
 
   if (millis() - prevFlickerTime > 30) {  // Обновляем каждые 30мс
@@ -1454,7 +1473,7 @@ void TrainGame() {
     FastLED.show();
   }
   Serial.println(hue1 == greenHue);
-  if ((hue1 == greenHue) && flickerIntensity <= 100 && musicCounter >= 40 && musicCounter <= 130) {
+  if ((hue1 == greenHue) && flickerIntensity <= 100 && musicCounter >= 80 && musicCounter <= 118) {
     if (millis() - checkTrainTimer >= 500) {
       state++;
       SendData("{\"train\":\"end\"}");
@@ -1492,6 +1511,13 @@ void handlePlayerQueries() {
     if (type == 11) {  // должно быть 5
       int finishedTrack = myMP3.read();
       hintFlag = 1;
+	  if (resumeEngineSound) {
+        // Подсказка завершилась. Сбрасываем флаги, чтобы TrainGame() снова запустила звук.
+        musicFlag1 = false;
+        musicFlag2 = false;
+        musicFlag3 = false;
+        resumeEngineSound = false; // Сбрасываем наш флаг
+      }
       Serial.print("Завершился трек: ");
       Serial.println(finishedTrack);
       delay(100);
