@@ -484,35 +484,33 @@ void OpenDoor(){
 void _Troll_1() {
   butt7.tick();
   if (butt7.isPress()) {
-    strip.clear();
+    MetallBlink(1);
     strip.show();
     Serial1.println("cave_search1");
   }
-  MetallBlink(1);
 }
 
 void _Troll_2() {
   butt5.tick();
   if (butt5.isPress()) {
     strip.clear();
+    MetallBlink(3);
     strip.show();
     Serial1.println("cave_search2");
   }
-  MetallBlink(3);
 }
 
 void _Troll_3() {
   butt8.tick();
   if (butt8.isPress()) {
     strip.clear();
+    MetallBlink(0);
     strip.show();
     Serial1.println("cave_search3");
   }
-  MetallBlink(0);
 }
 
 void _Troll_4() {
-  MetallBlink(2);
   butt6.tick();
   if (butt6.isPress()) {
     trollSequence++;
