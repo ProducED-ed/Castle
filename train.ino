@@ -655,6 +655,15 @@ void setup() {
       }
 
       if (body == "\"stage_3\"") {
+        // --- НОВЫЙ КОД: Принудительно убираем светодиоды из активных ---
+        // Это гарантирует, что не будет конфликта с желтой пульсацией.
+        // Мы очищаем те же ячейки, которые используются для этих светодиодов в других частях кода.
+        ActiveLeds[0] = -1;  // Ячейка, иногда используемая для LED 9
+        ActiveLeds[1] = -1;  // Ячейка, иногда используемая для LED 10
+        ActiveLeds[15] = -1; // Ячейка, связанная с LED 24 (рыба)
+        ActiveLeds[16] = -1; // Ячейка, связанная с LED 25 (ключ)
+
+        // --- Старый код (остается без изменений) ---
         FutureLeds[0] = -1;
         FutureLeds[1] = -1;
         FutureLeds[16] = -1;
@@ -1274,32 +1283,46 @@ void MapGerkon() {
   }
 }
 
-void MapLeds() {
-  // --- Новая логика для пульсации ---
-  static unsigned long lastPulsateTime = 0;
-  static int pulsatingBrightness = 100; // Текущая яркость
-  static bool fadeUp = true;             // Направление изменения: true = увеличение, false = уменьшение
+// Новая функция для проверки, находится ли светодиод в списке активных
+bool isLedActive(int ledNumber) {
+  for (int i = 0; i < 22; i++) {
+    if (ActiveLeds[i] == ledNumber) {
+      return true; // Да, светодиод активен
+    }
+  }
+  return false; // Нет, не активен
+}
 
-  // Обновляем яркость каждые 15 миллисекунд для плавности
+void MapLeds() {
+  // --- Логика для пульсации ЖЕЛТЫХ светодиодов (ActiveLeds) ---
+  static unsigned long lastPulsateTime = 0;
+  static int pulsatingBrightness = 100;
+  static bool fadeUp = true;
   if (millis() - lastPulsateTime > 15) {
     lastPulsateTime = millis();
     if (fadeUp) {
-      pulsatingBrightness += 4; // Скорость увеличения яркости
+      pulsatingBrightness += 4;
       if (pulsatingBrightness >= 255) {
         pulsatingBrightness = 255;
-        fadeUp = false; // Меняем направление на уменьшение
+        fadeUp = false;
       }
     } else {
-      pulsatingBrightness -= 4; // Скорость уменьшения яркости
+      pulsatingBrightness -= 4;
       if (pulsatingBrightness <= 80) {
         pulsatingBrightness = 80;
-        fadeUp = true; // Меняем направление на увеличение
+        fadeUp = true;
       }
     }
   }
 
-  // Логика для мигания выбранного светодиода (из ClickLeds)
+  // --- ВОЗВРАЩЕННАЯ ЛОГИКА для переливания цвета ClickLeds (фиолетовый-голубой) ---
+  static unsigned long lightFlashTimer = 0;
+  static bool up = false;
+  static int light = 0;
+  uint8_t r = 0, g = 0, b = 0;
+
   if (millis() - lightFlashTimer >= 6) {
+    lightFlashTimer = millis();
     if (!up) {
       light++;
       if (light >= 255) up = true;
@@ -1307,57 +1330,55 @@ void MapLeds() {
       light--;
       if (light <= 0) up = false;
     }
-    uint8_t r = map(light, 0, 255, 128, 0);
-    uint8_t g = map(light, 0, 255, 0, 128);
-    uint8_t b = 255;
-    for (int i = 0; i <= 20; i++) {
-      if (ClickLeds[i] != -1) {
-        ledMap[ClickLeds[i]] = CRGB(r, g, b);
-      }
-    }
+    // Эти значения как раз и создают переход от фиолетового (128, 0, 255) к голубому (0, 128, 255)
+    r = map(light, 0, 255, 128, 0);
+    g = map(light, 0, 255, 0, 128);
+    b = 255;
+  }
 
-    if (isStartTimer && blinkLedNumber != -1) {
-      static unsigned long blinkTimer = 0;
-      static int fadeValue = 0;
-      static bool fadeDirection = true;
-
-      if (millis() - blinkTimer >= 5) {
-        blinkTimer = millis();
-        if (fadeDirection) {
-          fadeValue += 8;
-          if (fadeValue >= 255) {
-            fadeValue = 255;
-            fadeDirection = false;
-          }
-        } else {
-          fadeValue -= 8;
-          if (fadeValue <= 0) {
-            fadeValue = 0;
-            fadeDirection = true;
-          }
-        }
-        uint8_t pulseG = map(fadeValue, 0, 255, 0, 128);
-        uint8_t pulseB = map(fadeValue, 0, 255, 0, 255);
-        ledMap[blinkLedNumber] = CRGB(0, pulseG, pulseB);
+  // --- Логика для пульсации ГОЛУБОГО светодиода при касании геркона ---
+  static unsigned long blinkTimer = 0;
+  static int fadeValue = 0;
+  static bool fadeDirection = true;
+  if (isStartTimer && blinkLedNumber != -1) {
+    if (millis() - blinkTimer >= 5) {
+      blinkTimer = millis();
+      if (fadeDirection) {
+        fadeValue += 8;
+        if (fadeValue >= 255) fadeDirection = false;
+      } else {
+        fadeValue -= 8;
+        if (fadeValue <= 0) fadeDirection = true;
       }
     }
   }
 
-  // Общие операции
+  // --- ОСНОВНОЙ ЦИКЛ ОТРИСОВКИ С ПРИОРИТЕТАМИ ---
   for (int i = 0; i <= 20; i++) {
-    // --- Измененная строка для активных светодиодов ---
+    // 1. Устанавливаем базовые состояния
+    if (FutureLeds[i] != -1) ledMap[FutureLeds[i]] = CRGB::White;
+    if (DisableLeds[i] != -1) ledMap[DisableLeds[i]] = CRGB::Black;
+
+    // 2. Устанавливаем ПЕРЕЛИВАНИЕ для кликабельных (ПРИОРИТЕТ НАД БЕЛЫМ)
+    if (ClickLeds[i] != -1) {
+      ledMap[ClickLeds[i]] = CRGB(r, g, b);
+    }
+    
+    // 3. Устанавливаем ЖЕЛТУЮ пульсацию для активных (ПРИОРИТЕТ НАД ПЕРЕЛИВАНИЕМ)
     if (ActiveLeds[i] != -1) {
-      // Устанавливаем желтый цвет (Hue=55) с пульсирующей яркостью
       ledMap[ActiveLeds[i]] = CHSV(55, 255, pulsatingBrightness);
     }
-    if (DisableLeds[i] != -1) ledMap[DisableLeds[i]] = CRGB(0, 0, 0);
-    if (FutureLeds[i] != -1) ledMap[FutureLeds[i]] = CRGB(255, 255, 255);
+  }
+
+  // 4. Устанавливаем ГОЛУБУЮ пульсацию для выбранного герконом (САМЫЙ ВЫСОКИЙ ПРИОРИТЕТ)
+  if (isStartTimer && blinkLedNumber != -1) {
+    uint8_t pulseG = map(fadeValue, 0, 255, 0, 128);
+    uint8_t pulseB = map(fadeValue, 0, 255, 0, 255);
+    ledMap[blinkLedNumber] = CRGB(0, pulseG, pulseB);
   }
 
   FastLED.show();
-  lightFlashTimer = millis();
 }
-
 
 void TrainGame() {
   enc1.tick();
