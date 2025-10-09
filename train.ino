@@ -625,17 +625,24 @@ void setup() {
         ActiveLeds[14] = -1;
         ActiveLeds[3] = -1;
         ActiveLeds[9] = -1;
+        ActiveLeds[4] = -1;
 
-        DisableLeds[4] = 12;
-        DisableLeds[7] = 16;
-        DisableLeds[5] = 14;
-        DisableLeds[10] = 19;
+        DisableLeds[7] = -1;
+        DisableLeds[14] = -1;
+        DisableLeds[5] = -1;
+        DisableLeds[10] = -1;
         DisableLeds[3] = 12;
         DisableLeds[9] = 18;
+        DisableLeds[4] = -1;
 
         FutureLeds[2] = -1;
         FutureLeds[17] = -1;
         FutureLeds[18] = -1;
+        FutureLeds[4] = 12;
+
+        FutureLeds[7] = 16;
+        FutureLeds[5] = 14;
+        FutureLeds[10] = 19;
         FutureLeds[14] = 23;
 
         ActiveLeds[2] = 11;

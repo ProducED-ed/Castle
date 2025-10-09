@@ -4616,6 +4616,8 @@ void VoltageDisplay() {
   }
 }
 
+void HelpButton(String help) {
+}
 
 void RestOn() {
   static bool _dataQueue = 0;
