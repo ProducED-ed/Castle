@@ -2283,7 +2283,6 @@ void Basket() {
     else
       Unlocks(buff);
   }
-  HelpButton("help_12");
 }
 //////функция со стуком в библиотеке
 void Library() {
