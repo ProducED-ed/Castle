@@ -2507,75 +2507,125 @@ void CentralTowerGame() {
 
 void CentralTowerGameDown() {
   static int state = 0;
+  static unsigned long lastDebounceTime = 0;
+  const unsigned long debounceDelay = 50; // Задержка антидребезга
+  static bool lastSensor0State = HIGH;
+  static bool lastSensor1State = HIGH;
+  
+  // Чтение текущих состояний с антидребезгом
+  bool currentSensor0State = digitalReadExpander(0, board4);
+  bool currentSensor1State = digitalReadExpander(1, board4);
+  
+  unsigned long currentTime = millis();
+  
+  // Антидребезг для сенсора 0
+  if (currentSensor0State != lastSensor0State) {
+    lastDebounceTime = currentTime;
+  }
+  if ((currentTime - lastDebounceTime) > debounceDelay) {
+    // Используем стабильное состояние после антидребезга
+    currentSensor0State = lastSensor0State;
+  }
+  lastSensor0State = currentSensor0State;
+  
+  // Антидребезг для сенсора 1
+  if (currentSensor1State != lastSensor1State) {
+    lastDebounceTime = currentTime;
+  }
+  if ((currentTime - lastDebounceTime) > debounceDelay) {
+    currentSensor1State = lastSensor1State;
+  }
+  lastSensor1State = currentSensor1State;
+
+  // Обработка состояний
   switch (state) {
-    case 0:
-      if (!digitalReadExpander(0, board4)) {
+    case 0: // Ожидание нажатия первого геркона
+      if (currentSensor0State == LOW) {
         state++;
-        Serial.println("door_spell");
+        Serial.println("door_spell - Step 1");
+        lastDebounceTime = currentTime; // Сброс времени для следующего состояния
       }
       break;
-    case 1:
-      if (!digitalReadExpander(1, board4)) {
-        Serial.println("door_spell");
+      
+    case 1: // Ожидание отпускания первого геркона
+      if (currentSensor0State == HIGH) {
         state++;
+        Serial.println("door_spell - Ready for sensor 1");
       }
       break;
-
-    case 2:
-      if (!digitalReadExpander(1, board4)) {
+      
+    case 2: // Ожидание нажатия второго геркона
+      if (currentSensor1State == LOW) {
         state++;
+        Serial.println("door_spell - Step 2");
+        lastDebounceTime = currentTime;
       }
       break;
-    case 3:
-      if (!digitalReadExpander(0, board4)) {
-        Serial.println("door_spell");
+      
+    case 3: // Ожидание отпускания второго геркона
+      if (currentSensor1State == HIGH) {
         state++;
+        Serial.println("door_spell - Ready for sensor 0 again");
       }
       break;
-
-    case 4:
-      if (!digitalReadExpander(0, board4)) {
+      
+    case 4: // Второе нажатие первого геркона
+      if (currentSensor0State == LOW) {
         state++;
+        Serial.println("door_spell - Step 3");
+        lastDebounceTime = currentTime;
       }
       break;
-    case 5:
-      if (!digitalReadExpander(1, board4)) {
-        Serial.println("door_spell");
+      
+    case 5: // Ожидание отпускания первого геркона
+      if (currentSensor0State == HIGH) {
         state++;
+        Serial.println("door_spell - Ready for sensor 1 again");
       }
       break;
-
-    case 6:
-      if (!digitalReadExpander(1, board4)) {
+      
+    case 6: // Второе нажатие второго геркона
+      if (currentSensor1State == LOW) {
         state++;
+        Serial.println("door_spell - Step 4");
+        lastDebounceTime = currentTime;
       }
       break;
-    case 7:
-      if (!digitalReadExpander(0, board4)) {
-        Serial.println("door_spell");
+      
+    case 7: // Ожидание отпускания второго геркона
+      if (currentSensor1State == HIGH) {
         state++;
+        Serial.println("door_spell - Ready for final sequence");
       }
       break;
-
-    case 8:
-      if (!digitalReadExpander(0, board4)) {
+      
+    case 8: // Третье нажатие первого геркона
+      if (currentSensor0State == LOW) {
         state++;
+        Serial.println("door_spell - Step 5");
+        lastDebounceTime = currentTime;
       }
       break;
-    case 9:
-      if (!digitalReadExpander(1, board4)) {
-        Serial.println("door_spell");
+      
+    case 9: // Ожидание отпускания первого геркона
+      if (currentSensor0State == HIGH) {
         state++;
+        Serial.println("door_spell - Final step ready");
       }
       break;
-    case 10:
-      if (!digitalReadExpander(1, board4)) {
+      
+    case 10: // Финальное нажатие второго геркона
+      if (currentSensor1State == LOW) {
         OpenLock(HightTowerDoor);
         digitalWrite(TorchLight, HIGH);
+        Serial.println("door_spell - COMPLETED!");
         level++;
+        state = 0; // Сброс состояния для возможного повторного использования
       }
       break;
   }
+
+  // Обработка Serial команд (оставлено без изменений)
   if (Serial.available()) {
     String buff = Serial.readString();
     if (buff == "spell") {
@@ -2583,10 +2633,12 @@ void CentralTowerGameDown() {
       digitalWrite(TorchLight, HIGH);
       Serial.println("door_spell");
       level++;
+      state = 0; // Сброс состояния
     }
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      state = 0; // Сброс состояния
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -2595,9 +2647,9 @@ void CentralTowerGameDown() {
       flagSound = 1;
     }
   }
+  
   HelpTowersHandler();
 }
-
 // доделать что бы в банке работала хуйня с зельем
 /////нужно подуть в окно
 void OpenBank() {
@@ -3205,13 +3257,15 @@ void CrimeHelp() {
     helpTimer = millis();
   }
 
-  if (!digitalReadExpander(7, board1)) {
+  if (digitalReadExpander(7, board1)) {
     Serial.println("crime_end");
     Serial2.println("start_lesson");
     delay(1000);
     Serial2.println("start_lesson");
     level++;
   }
+
+
   if (Serial.available()) {
     String buff = Serial.readString();
     if (buff == "basket") {
