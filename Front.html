@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+             <!--в теге head находятся файлы которые подгружаются в первую очередь это стили иконки и библиотека стилей хранятся в папке static -->
+             <link rel="stylesheet" type="text/css" href="static/semantic.min.css"><!--импорт библиотеки стилей из semantic использовать файл .min быстрее загружается-->
+             <meta name="viewport" content="width=device-width, initial-scale=1.0"><!--размер окна при подключении автоматически понимает через какое уст-во подключились-->
+             <link rel="icon" href="static/icon.ico" type="image/x-icon"><!--тут у нас иконка в панели браузера-->
+             <link rel="stylesheet" type="text/css" href="static/styles.css"><!--стили которые мы сами написали их немного-->
+ </head>
+        <body style="background-color: #191919;">
+            
+             <div class="page" style="background-color: #191919;"><!--цвет фона можно указать прям внутри тега body пишем аттрибут style background-color-->
+                <!--вот тут как раз верхнее меню имеет 4 элемента в том числе демо режим-->
+                        <div class="ui fluid  inverted four item menu">
+                            
+                            <a class="ui inverted item"  id="Start" style=" border: 2px #D3D3D3 solid; border-radius: 10px;"> <i class="play green icon"></i>Start</a>
+
+                            <a class="ui inverted item" id="Ready"style=" border: 2px #D3D3D3 solid; border-radius: 10px;"> <i class="fire orange icon"></i>Ready</a>
+
+                            <a class="ui inverted item"  id="Pause" style=" border: 2px #D3D3D3 solid; border-radius: 10px;"><i class="pause yellow icon"></i>Pause</a>
+                            
+                            <a class="ui inverted item"  id="Restart" style=" border: 2px #D3D3D3 solid; border-radius: 10px;"><i class="sync red res icon" id = "estart"></i>Restart</a>
+                        
+                        </div>
+                        <!--здесь так называемое липкое меню оно перемещается вместе с экраном лучше ничего не менять иначе придется помучаться с позиционированием элементов
+                    содержит в себе кнопку помощи настроек таймера и уровня заряда-->
+                    <!--оно так же инвертровано и имеет класс флюид а занчит способно сжиматься -->
+                        
+                        <div class="ui form inverted fluid sticky"  id="timer">
+                            <div class="ui fluid timers borderless menu" style="opacity: .9;background-color: #191919; "><!--стиль opacity задает прозрачность блока-->
+                                <div class=" ui clearing  inverted sett " style="background-color: #191919;">
+                                    <!--кнопка с настройками settings класс small и подобные задают размер кнопки -->
+                                    <button class="ui inverted small button " id="first" style="margin-top: 17px;">Settings</button>
+                                    <!--в стиле аттрибут margin-top делает отступ сверху от границы нашшего блока-->
+                                    </div>
+
+                                <!--отображение таймера-->  
+                              <!--класс center расположит контейнер по середине color задает цвет тексту-->
+                              <div class="ui fluid center inverted align item" style=" margin-left: auto;">
+                                <h2 style="color: white; "id="teext"><p id="output"><b>0:00:00</b></p></h2>
+                              </div>
+                              <!--индикация заряда-->
+                              <!--класс right floated расположит обьект максимально справа так же указан в стиле float right-->
+                              <div class="ui fluid right floated  item"  >
+                                <i class=" big battery full green icon" id="battary_indic" style="float: right;"></i>
+                              </div>
+                            </div>
+                        </div>
+                        
+                        
+                        <br>
+                        <!--боковое меню добавить какую нибудь вкладку довольно легко используй класс segment смотри по образу внизу -->
+                        <div class="ui sidebar inverted vertical menu">
+                            <!-- вот смотри <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid ; border-radius: 10px;"> берем от этого тега до закрывающего 
+                                его </div> и заполняем необходимым нам -->
+                            <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                <!--- <input type="range" min="0" max="1"  step="any" id="phone"> -->
+                                <!--делаем группу кнопок расположенных справа -->
+                                <div class="ui right  inverted floated buttons">
+                                     <!--создаем две кнопку с разным id это наши селекторы на каждой кнопке есть иконка увеличения или уменьшения громкости-->
+                                 <button class="ui inverted  basic button" id="phoneDown"><i class="volume down icon"></i></button>
+                                 <button class="ui  inverted basic button"id="phoneUp"><i class="volume up icon"></i></button>
+                                 <!--текст в стилях font size размер шрифта margin-left и top отступ блока от соседнего-->
+                                 <b style="font-size: 30px; margin-left: 30%; margin-top: 8%;" id="phoneCount">0</b>
+                            </div>
+                                  <div class="ui sizer inverted vertical segment">
+                                      <!--надпись, класс tiny относиться к размерам -->
+                                         <div class="ui tiny header">Background Sound</div>
+                                  </div>
+                        </div>
+                 <div class="ui clearing inverted segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                <!--- <input type="range" min="0" max="1"  step="0.01" id="effects"> -->
+                                <div class="ui right  inverted floated buttons">
+                                 <button class="ui inverted  basic button" id="effectDown"><i class="volume down icon"></i></button>
+                                 <button class="ui  inverted basic button"id="effectUp"><i class="volume up icon"></i></button>
+                                 <b style="font-size: 30px; margin-left: 30%; margin-top: 8%;" id="effectCount">0</b>
+                                </div>
+                                      <div class="ui sizer inverted vertical segment">
+                                         <div class="ui tiny header">Effect Sound</div>
+                                      </div>      
+                 </div>
+                 <div class="ui clearing inverted segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                <!--- <input type="range" min="0" max="1"  step="0.01" id="voice" >  -->
+                                <div class="ui right  inverted floated buttons">
+                                 <button class="ui inverted  basic button" id="voiceDown"><i class="volume down icon"></i></button>
+                                 <button class="ui  inverted basic button"id="voiceUp"><i class="volume up icon"></i></button>
+                                 <b style="font-size: 30px; margin-left: 30%; margin-top: 8%;" id="voiceCount">0</b>
+                                </div>
+                                      <div class="ui sizer vertical inverted segment">
+                                         <div class="ui tiny header">Help Sound</div>
+                                     </div> 
+                 </div>
+                                    <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                         <!--dropdown выпадающий список с текстом по умолчанию-->
+                                        <div class="ui floating dropdown inverted labeled inverted  icon button">
+                                            <i class="tint icon"></i>
+                                            <!--наша надпись по умолчанию-->
+                                            <span class="text" id="lang">Theme</span>
+                                            <div class="menu ">
+                                                <!--компоненты нашего меню можно добавлять много-->
+                                              <div class="item " id = "black">Black</div>
+                                              <div class="item" id = "white">White</div>
+                                               
+                                            </div>
+                                          </div>
+                                     </div> 
+                                      <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                        <div class="ui floating dropdown inverted labeled inverted  icon button">
+                                            <!--тоже выпадающий список все аналогично-->
+                                            <i class="world  icon"></i>
+                                            <span class="text inverted" id="language">Choose Language</span>
+                                            <div class="menu inverted">
+                                              <div class="item " id = "russian"><i class="russia flag"></i>Russian</div>
+                                              <div class="item" id = "english"><i class="uk flag"></i>English</div>
+                                               <div class="item" id="arabian"><i class="ae flag"></i>Arabian</div>
+                                            </div>
+                                          </div>
+                                     </div> 
+                                     <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                        <div class="ui floating dropdown inverted labeled inverted  icon button">
+                                            <i class="wifi  icon"></i>
+                                            <span class="text inverted"> Wi-Fi Number</span>
+                                            <div class="menu inverted">
+                                              <div class="item" id = "Castle1">Castle1</div>
+                                              <div class="item" id = "Castle2">Castle2</div>
+                                              <div class="item" id="Castle3">Castle3</div>
+                                              <div class="item" id="Castle4">Castle4</div>
+                                              <div class="item" id = "Castle5">Castle5</div>
+                                              <div class="item" id = "Castle6">Castle6</div>
+                                              <div class="item" id="Castle7">Castle7</div>
+                                              <div class="item" id="Castle8">Castle8</div>
+                                              <div class="item" id="Castle9">Castle9</div>
+                                              <div class="item" id="Castle10">Castle10</div>
+                                               
+                                              
+                                            </div>
+                                          </div>
+                                     </div> 
+                                    
+                                     <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                        <!--просто кнопка выключения-->
+                                        <button class="ui red icon button" id="power_off">
+                                            <i class="power off icon"></i>
+                                          </button>
+                                     </div> 
+                                     
+                                     
+                                     <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                                        <!--показывает напряжение-->
+                                        <h3 style="color: white; font-size: 18pt"id="volt"><p id="v"><b >00.00</b></p></h3>
+                                        
+                                     </div>
+                          </div>
+                           <!--основной класс pusher здесь находятся наши блоки с содержимым из уровней и игр-->
+                          <div class="pusher">
+                        <div class="ui four column stackable grid  container " id="game">
+                            <!--у нас будет сетка из 4 колонок отпимально использовать максимум 4 иначе потом все будет слишком мелко-->
+                            <div class="column  left1 ">
+                                <!--первая колонка заполняется тоже сегментами смотри ниже по подобию-->
+                                <div class="cont_text ">
+                                    <!--надпись перед блоками-->
+                                    <h3 class="ui center  aligned header" style="color: white;">Central Hall</h3>
+                                    <!---начало первого блока-->
+                                    <div class="ui clearing inverted  segment" style="border: #737373 1px solid;">
+                                        <!--вот первый сегмент стартовая дверь состоит из надписи тег <h3> и иконки замка тег <i>-->
+                                        <h3 class="ui left floated  header">Door</h3>
+                                        <i class="lock large inverted icon" style="float: right;" id="first_door"></i> 
+                                       
+                                    </div>
+                                    <!--завершение первого блока -->
+                                    <!--следущий блок тумблера состоит из надписи tumbler h3 и кнопки содержащую в себе иконку <button>-->
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;" >
+                                        <h3 class="ui left floated  header">1 st Clock Click</h3>
+                                        <!--по умолчанию иконка внутри кнопки пустая когда в js обработаем событие добавим класс check и иконка появиться-->
+                                        <button class="ui right floated small inverted button" id="first_clock"><i class="icon" id="first_clock_indic"></i>Skip</button> 
+                                    </div>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;" >
+                                        <h3 class="ui left floated  header">2 nd Clock Click</h3>
+                                        <!--по умолчанию иконка внутри кнопки пустая когда в js обработаем событие добавим класс check и иконка появиться-->
+                                        <button class="ui right floated small inverted button" id="second_clock"><i class="icon" id="second_clock_indic"></i>Skip</button> 
+                                    </div>
+                                    <!--завершение блока с с тумблером-->
+                                    <!--блок с мансардой аналогично-->
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header" >Mansard Game</h3>
+                                        <button class="ui right floated small inverted button" id="open_mansard_door"><i class="icon" id="open_mansard_indic"></i>Skip</button>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                            <div class="column right1 " >
+                                <div class="cont_text ">
+                                    <h3 class="ui center aligned header" style="color: white;">Four Games</h3>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;"> 
+                                        <h3 class="ui left floated header">Suitcase</h3>
+                                        <button class="ui right floated small inverted button door_check " id="suitcase"><i class="icon" id="suitcase_indic"></i>Skip</button>
+                                    </div>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <!--некоторые блоки содержат только иконку нажать на нее нельзя игра механическая следим только за прохождением-->
+                                        <h3 class="ui left floated header">Animals Safe</h3> 
+                                        <button class="ui right floated small inverted button door_check " id="animals"><i class="icon" id="animals_indic"></i>Skip</button>
+                                        
+                                    </div>
+
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <!--в данном случае тоже содержиться иконка но уже нажимать на нее можно обработка внутри файла scripts-->
+                                        <h3 class="ui left floated header">Wolf </h3>
+                                       <button class="ui right floated small inverted button door_check " id="wolf"><i class="icon" id="wolf_indic"></i>Skip</button>
+                                    </div>
+                                    <!--блок с флагами-->
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header" >Flags</h3><!--надпись-->
+                                        <button class="ui right floated small inverted button" id="open_mansard_stash">Skip</button><!--кнопка для пропуска-->
+                                        <!--делаем небольшой отступ сверху-->
+                                        <br><br><br>
+                                        <!--ставим 4 иконки с флагами в ряд-->
+                                        <i class="flag outline white big icon" id="redflag"></i>
+                                        <!--иконка затычка что бы равномерно расположить флаги-->
+                                        <i class=" small icon"></i>
+                                        <i class="flag outline white big icon" id="greenflag"></i>
+                                        <i class=" small icon"></i>
+                                        <i class="flag outline white big icon" id="blueflag"></i>
+                                        <i class=" small icon"></i>
+                                        <i class="flag outline white big icon" id="yellowflag"></i>
+                                    </div>
+                                   
+    
+                                </div>
+                            </div>
+    
+                            <div class="column left2">
+                                <div class="cont_text">
+                                    <h3 class="ui center aligned header" style="color: white;">Dog Tower</h3>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Padlock</h3>  
+                                        <button class="ui right floated small inverted button door_check" id="pedlock"><i class="icon" id="pedlock_indic"></i>Open Door</button>
+                                        
+                                    </div>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;"> 
+                                        <h3 class="ui left floated header">Dog Game</h3>
+                                        <button class="ui right floated small inverted button door_check " id="dog"><i class="icon" id="dog_indic"></i>Skip</button>
+                                    </div>
+                                </div>
+                                <h3 class="ui center aligned header" style="color: white;">Potion Room</h3>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Cat</h3> 
+                                        <button class="ui right floated small inverted button door_check" id="cat"><i class="icon" id="cat_indic"></i>Open Door</button>
+                                    </div>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Bottles</h3>
+                                        <button class="ui right floated small inverted button door_check" id="open_potions_stash">Skip</button>
+    
+                                        <br><br><br>
+                                        <div class="ui green inverted progress" data-value="0" data-total="4" id="bottles">
+                                            <div class="bar">
+                                              <div class="progress "></div>
+                                            </div>
+                                        </div>
+                                    </div>   
+                            </div>
+
+                            <div class="column right2">
+                                <div class="cont_text">
+                                    <h3 class="ui center aligned header" style="color: white;">Owl Tower</h3>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Owl</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="owl"><i class="icon" id="owl_indic"></i>Open Door</button> 
+                                    </div>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Owls</h3>
+                                            <button class="ui right floated small inverted button door_check" id="owls"><i class="icon" id="owls_indic"></i>Skip</button>
+                                    </div>
+                                    <h3 class="ui center aligned header" style="color: white;">Train</h3>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Projector</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="projector"><i class="icon" id="projector_indic"></i>Skip</button> 
+                                    </div>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Train Game</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="train"><i class="icon" id="train_indic"></i>Skip</button> 
+                                    </div>
+                                </div>    
+                            </div>
+
+                            <div class="column right2">
+                                <div class="cont_text">
+                                    <h3 class="ui center aligned header" style="color: white;">Troll Mine</h3>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Mine Door</h3>
+                                            <button class="ui right floated small inverted button door_check" id="mine"><i class="icon" id="mine_indic"></i>Open Door</button>
+                                    </div>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Troll Game</h3>
+                                            <button class="ui right floated small inverted button door_check" id="troll"><i class="icon" id="troll_indic"></i>Skip</button>
+                                    </div>
+                                    <h3 class="ui center aligned header" style="color: white;">Bank</h3>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                            <h3 class="ui left floated header">Miror</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="open_bank_door"><i class="icon" id="open_bank_indic"></i>Open Door</button> 
+                                        </div>
+                                        <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                            <h3 class="ui left floated header">Safe</h3>
+                                            <button class="ui right floated small inverted button door_check" id="safe"><i class="icon" id="safe_indic"></i>Open Stash</button>
+                                        </div>
+                                </div>    
+                            </div>
+                            
+                            <div class="column right2">
+                                <div class="cont_text">
+                                        <h3 class="ui center aligned header" style="color: white;">Сarpenter Tower</h3>
+                                        <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                            <h3 class="ui left floated header">Workshop</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="workshop"><i class="icon" id="workshop_indic"></i>Skip</button> 
+                                        </div>
+                                        <h3 class="ui center aligned header" style="color: white;">Library</h3>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Ghost Game</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="ghost"><i class="icon" id="ghost_indic"></i>Open Door</button> 
+                                    </div>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Door Puzzle</h3>  
+                                        <i class="lock large inverted icon" style="float: right;" id="door_puzzle"></i> 
+                                    </div>
+                                </div>    
+                            </div>
+
+                            <div class="column right2">
+                                <div class="cont_text">
+                                    <h3 class="ui center aligned header" style="color: white;">High Tower</h3>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Cup</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="cup"><i class="icon" id="cup_indic"></i>Open Door</button> 
+                                    </div>
+
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                            <h3 class="ui left floated header">Spell</h3>
+                                            <button class="ui right floated small inverted button door_check" id="spell"><i class="icon" id="spell_indic"></i>Open Door</button>
+                                        </div>
+
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Crystal Space</h3>  
+                                            <button class="ui right floated small inverted button door_check" id="crystals"><i class="icon" id="crystals_indic"></i>Open Door</button> 
+                                    </div> 
+                                </div>    
+                            </div>
+
+                            <div class="column right2">
+                                <div class="cont_text">
+                                       <h3 class="ui center aligned header" style="color: white;">Memory Room</h3>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Crystals</h3>
+                                        <button class="ui right floated small inverted button door_check" id="open_memory_stash">Skip</button>
+                                        <br><br><br>
+                                        <div class="ui green inverted progress" data-value="0" data-total="4" id="items_memory">
+                                            <div class="bar">
+                                              <div class="progress "></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <h3 class="ui center aligned header" style="color: white;">Basket</h3>
+                                    <div class="ui clearing inverted segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Players</h3>
+                                        <label style="float: right;"><i class=" square outline green big  icon" id="players"></i>Play</label>
+                                    </div>
+                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                        <h3 class="ui left floated header">Basket Game</h3>  
+                                        <button class="ui right floated small inverted button door_check" id="basket">Skip game</button> 
+                                        <br><br>
+                                        <!--прогресс бары игры с баскетом их здесь 2-->
+                                        <div class="ui active inverted progress" data-value="0" data-total="10" id="player_1_progress">
+                                            <div class="bar">
+                                              <div class="progress"></div>
+                                            </div>
+                                            <div class="label" id="player_1_score">0</div>
+                                        </div>
+                                        <div class="ui active inverted progress" data-value="0" data-total="10" id="player_2_progress">
+                                            <div class="bar">
+                                              <div class="progress"></div>
+                                            </div>
+                                            <div class="label" id="player_2_score">0</div>
+                                         </div>
+                                    </div>
+                                </div>    
+                            </div>
+                            <br>   
+            </div>
+            <br>
+            
+            <div class="ui inverted vertical footer segment">
+                <div class="ui container" style="text-align: center; font-size: 25px;">
+                    <p style="color: grey;">Produc<span style="color: red;">ED</span></p>
+                    
+                </div>
+            </div>
+            </div>
+                
+                
+        </body>
+    
+        
+        <!--в конце подключаются файлы js в нашем случае библиотека jquery socket alarm и наш файл scripts-->
+        <script  src="static/jQuery.js"></script><!--jquery js библиотека для работы с компонентами почитай документацию-->
+        <script  src="static/semantic.min.js"></script><!--semantic min содержит свои скрипты для работы с их компонентами тоже документация-->
+        <script src="static/socket.io.js"></script> <!--библиотека для сокетов -->
+        <script src="static/alarm.js"></script><!--библиотека которая содержит модальные окна sweetalert тоже посмотри доку там много крутых-->
+        <script src="static/scripts.js"></script><!--скрипты которые мы написали сами -->
+        
+    
+   
+</html>   
