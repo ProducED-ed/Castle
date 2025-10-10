@@ -912,6 +912,7 @@ void loop() {
   MapGerkon();
   MapLeds();
   StartTimer();
+  GhostGame();
 
   if (!INPUTS.digitalRead(2)) {
     if (state == 0 && hintFlag) {
@@ -1153,7 +1154,7 @@ void loop() {
         WorkshopGame();
         break;
       case 5:
-        GhostGame();
+        //GhostGame();
         break;
     }
   }

@@ -1314,110 +1314,44 @@ def Remote(check):
              send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
              send_esp32_command(ESP32_API_SAFE_URL, "firework")
                  
-         
-          #------пропустили игру с пером
-        
-
-          #----нажали на кнопку пропустить игру с подковой
-        
-          #----нажали на пропуск игры с молотом
         
      #------- обработка в режиме рестарта   
      if go == 2:
-        if check=='galet_on':
-             ser.write(str.encode('m1lck'))
-        if check=='flags': 
-             ser.write(str.encode('m2lck'))
-        if check=='punch': 
-             ser.write(str.encode('rrt3lck')) 
-        if check=='miror':
-             ser.write(str.encode('rlt2lck')) 
-        if check=='scrols': 
-             ser.write(str.encode('rlt3lck'))   
-        if check=='seal_on': 
-             ser.write(str.encode('ht2lck'))
-        if check=='items': 
-             ser.write(str.encode('rrb7lck'))   
-        if check=='seal_space_on': 
-             ser.write(str.encode('ht4lck'))    
-        if check=='cauldron_on':
-             ser.write(str.encode('rlb2lck')) 
-        if check=='bottles': 
-             ser.write(str.encode('rlb8lck'))
-        if check=='feather_on':
-             ser.write(str.encode('rl2lck')) 
-        if check=='horseshoe_on':
-             ser.write(str.encode('fl2lck')) 
-        if check=='broom_on': 
-             ser.write(str.encode('fr3lck'))  
-        if check=='true_code': 
-             ser.write(str.encode('rr2lck')) 
-        if check=='true_inc':
-             ser.write(str.encode('rl6lck')) 
-             #----для отображения на пульте у всех (у чекбоксов 2 состояния нужно синхронить и добавлять логику)
-        if check=='sword_win':
-             if 'sword_off' in socklist:
-                    socklist.remove('sword_off')
-             if 'sword_off' in socklist:
-                    socklist.remove('sword_off')
-             socketio.emit('level', 'sword_win',to=None)
-             ser.write(str.encode('fl5rmn'))
-             socklist.append('sword_win')  
-        if check=='sword_off':
-             if 'sword_win' in socklist:
-                    socklist.remove('sword_win')
-             if 'sword_win' in socklist:
-                    socklist.remove('sword_win')
-             socketio.emit('level', 'sword_off',to=None)
-             ser.write(str.encode('fl60rmn'))
-             socklist.append('sword_off')  
-        if check=='syber_win':
-             if 'syber_off' in socklist:
-                    socklist.remove('syber_off')
-             if 'syber_off' in socklist:
-                    socklist.remove('syber_off')
-             socketio.emit('level', 'syber_win',to=None)
-             ser.write(str.encode('fl6rmn'))
-             socklist.append('syber_win')  
-        if check=='syber_off':
-             if 'syber_win' in socklist:
-                    socklist.remove('syber_win')
-             if 'syber_win' in socklist:
-                    socklist.remove('syber_win')
-             socketio.emit('level', 'syber_off',to=None)
-             ser.write(str.encode('fl8rmn'))
-             socklist.append('syber_off') 
-
-        if check=='sword_shield_off':
-             if 'sword_shield' in socklist:
-                    socklist.remove('sword_shield')
-             if 'sword_shield' in socklist:
-                    socklist.remove('sword_shield')
-             socketio.emit('level', 'sword_shield_off',to=None)
-             socklist.append('sword_shield_off')  
-        if check=='sword_shield':
-             if 'sword_shield_off' in socklist:
-                    socklist.remove('sword_shield_off')
-             if 'sword_shield_off' in socklist:
-                    socklist.remove('sword_shield_off')
-             socketio.emit('level', 'sword_shield',to=None)
-             ser.write(str.encode('open_basket_stash'))
-             socklist.append('sword_shield')
-        if check=='syber_shield_off':
-             if 'syber_shield' in socklist:
-                    socklist.remove('syber_shield')
-             if 'syber_shield' in socklist:
-                    socklist.remove('syber_shield')
-             socketio.emit('level', 'syber_shield_off',to=None)
-             socklist.append('syber_shield_off')  
-        if check=='syber_shield':
-             if 'syber_shield_off' in socklist:
-                    socklist.remove('syber_shield_off')
-             if 'syber_shield_off' in socklist:
-                    socklist.remove('syber_shield_off')
-             socketio.emit('level', 'syber_shield',to=None)
-             ser.write(str.encode('open_shield_stash'))
-             socklist.append('syber_shield')     
+        if check=='open_mansard_door':
+             ser.write(str.encode('open_mansard_door'))
+        if check=='suitcase': 
+             send_esp32_command(ESP32_API_SUITCASE_URL, "open_door")
+             #ser.write(str.encode('m2lck'))
+        if check=='animals': 
+             send_esp32_command(ESP32_API_SAFE_URL, "open_door")
+             #ser.write(str.encode('rrt3lck')) 
+        if check=='wolf':
+             send_esp32_command(ESP32_API_WOLF_URL, "open_door")
+             #ser.write(str.encode('rlt2lck')) 
+        if check=='open_bank_door': 
+             ser.write(str.encode('open_bank_door'))   
+        if check=='pedlock': 
+             ser.write(str.encode('open_dog_door'))
+        if check=='cat': 
+             ser.write(str.encode('open_potion_door'))   
+        if check=='owl':
+             ser.write(str.encode('open_owl_door')) 
+        if check=='mine': 
+             ser.write(str.encode('open_mine_door'))
+        if check=='safe':
+             ser.write(str.encode('open_safe_door')) 
+        if check=='workshop': 
+             ser.write(str.encode('open_workshop_door'))  
+        if check=='ghost': 
+             ser.write(str.encode('open_library_door')) 
+        if check=='cup':
+             ser.write(str.encode('open_high_tower_door')) 
+        if check=='spell':
+             ser.write(str.encode('open_low_tower_door'))
+        if check=='crystals':
+             ser.write(str.encode('open_memory_door'))
+        if check=='basket':
+             ser.write(str.encode('open_basket_door'))     
 
 
 @app.route('/api', methods=['GET', 'POST'])
@@ -1730,7 +1664,7 @@ def tmr(res):
 #данный декоратор срабатывает каждые 100 мс сюда заносятся файлы которые очень легко могут потеряться например кнопки если быстро нажимать и отправляем данные по игре
 @socketio.on('Game')
 def checkQuesst(receivedData):
-     #print(flag)
+     print(receivedData)
      global flag
      global socklist
      global go 
@@ -2895,7 +2829,6 @@ def serial():
                               play_story(story_26_ar)
                      if flag=="cave_search1":
                           #----играем эффект 
-                          ser.write(str.encode('cave_search1'))
                           play_effect(cave_search)
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
@@ -2905,9 +2838,11 @@ def serial():
                               play_story(story_27_a_en)
                           if(language==3):
                               play_story(story_27_a_ar)
+                          while channel3.get_busy()==True: 
+                              time.sleep(0.1)    
+                          ser.write(str.encode('cave_search1'))    
                      if flag=="cave_search2":
                           #----играем эффект 
-                          ser.write(str.encode('cave_search2'))
                           play_effect(cave_search)
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
@@ -2916,10 +2851,12 @@ def serial():
                           if(language==2):
                               play_story(story_27_b_en)
                           if(language==3):
-                              play_story(story_27_b_ar)   
+                              play_story(story_27_b_ar)
+                          while channel3.get_busy()==True: 
+                              time.sleep(0.1)    
+                          ser.write(str.encode('cave_search2'))        
                      if flag=="cave_search3":
                           #----играем эффект 
-                          ser.write(str.encode('cave_search3'))
                           play_effect(cave_search)
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
@@ -2928,7 +2865,10 @@ def serial():
                           if(language==2):
                               play_story(story_27_c_en)
                           if(language==3):
-                              play_story(story_27_c_ar)                      
+                              play_story(story_27_c_ar) 
+                          while channel3.get_busy()==True: 
+                              time.sleep(0.1)    
+                          ser.write(str.encode('cave_search3'))                          
                      if flag=="cave_end":
                           #----играем эффект 
                           send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
@@ -3242,7 +3182,7 @@ def serial():
                           if(language==3):
                               play_story(story_38_ar)     
                      if flag=="story_39":
-                          send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
+                          #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
                           if(language==1):
                               play_story(story_39_ru)  
                           if(language==2):
@@ -3250,7 +3190,7 @@ def serial():
                           if(language==3):
                               play_story(story_39_ar) 
                      if flag=="story_40":
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
+                          send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
                           if(language==1):
                               play_story(story_40_ru)  
                           if(language==2):
@@ -3258,6 +3198,7 @@ def serial():
                           if(language==3):
                               play_story(story_40_ar)  
                      if flag=="story_41":
+                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
                           if(language==1):
                               play_story(story_41_ru)  
                           if(language==2):
@@ -4123,7 +4064,7 @@ def serial():
                         
   ###################################################                    #######################################################
                      
-#########################################################################
+ #########################################################################
                     #------поставили пацана на место
                      if flag=="last_on":
                           #----отправили на клиента 

@@ -53,6 +53,7 @@ unsigned long doorDef;
 unsigned long basketTimer;
 bool _restartFlag;
 bool _restartGalet;
+bool isTrollFixed;
 
 //Переменные
 int SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
@@ -162,7 +163,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
   switch (state) {
     case 0:
     if (Serial1.available())
@@ -316,7 +316,6 @@ void loop() {
  }
  HelpButton();
  DoorDefender();
- 
 }
 
 void HandleMessagges(String message){
@@ -391,6 +390,7 @@ void StartTrollGame(){
 
 void TrollGame(){
   digitalWrite(trollLed, HIGH);
+  
   switch (trollSequence) {
       case 0:
         _Troll_1();
@@ -415,13 +415,16 @@ void TrollGame(){
           digitalWrite(owlLed,LOW);
       }
       else if (buff == "cave_search1\r\n"){
-         trollSequence++;
+         trollSequence=1;
+         isTrollFixed = 0;
       }
       else if (buff == "cave_search2\r\n"){
-          trollSequence++;
+          trollSequence=2;
+          isTrollFixed = 0;
       }
       else if (buff == "cave_search3\r\n"){
-          trollSequence++;
+          trollSequence=3;
+          isTrollFixed = 0;
       }
       else if (buff == "troll\r\n"){
           strip.clear();
@@ -483,28 +486,42 @@ void OpenDoor(){
 
 void _Troll_1() {
   butt7.tick();
-  if (butt7.isPress()) {
-    MetallBlink(1);
+  if (butt7.isPress() && !isTrollFixed) {
+    strip.clear();
+    strip.setPixelColor(1, strip.Color(0, 0, 255));
     strip.show();
     Serial1.println("cave_search1");
+    isTrollFixed=1;
   }
 }
 
 void _Troll_2() {
   butt5.tick();
-  if (butt5.isPress()) {
+  butt7.tick();
+  if (butt7.isRelease()){
     strip.clear();
-    MetallBlink(3);
+    strip.show();
+  }
+  if (butt5.isPress() && !isTrollFixed) {
+    strip.clear();
+    strip.setPixelColor(3, strip.Color(0, 0, 255));
     strip.show();
     Serial1.println("cave_search2");
+    isTrollFixed=1;
   }
 }
 
 void _Troll_3() {
   butt8.tick();
-  if (butt8.isPress()) {
+   butt5.tick();
+  if (butt5.isRelease()){
     strip.clear();
-    MetallBlink(0);
+    strip.show();
+  }
+  if (butt8.isPress() && !isTrollFixed) {
+    strip.clear();
+    isTrollFixed=1;
+    strip.setPixelColor(0, strip.Color(0, 0, 255));
     strip.show();
     Serial1.println("cave_search3");
   }
@@ -512,6 +529,11 @@ void _Troll_3() {
 
 void _Troll_4() {
   butt6.tick();
+  butt8.tick();
+  if (butt8.isRelease()){
+    strip.clear();
+    strip.show();
+  }
   if (butt6.isPress()) {
     trollSequence++;
     strip.clear();
@@ -522,9 +544,6 @@ void _Troll_4() {
     state++;
   }
 }
-
-
-
 
 void MetallBlink(int number){
   if (millis() - lightFlashTimer >= 18)
