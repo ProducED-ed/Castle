@@ -1480,11 +1480,17 @@ void MapGame() {
 
     if (buff == "cave_search1") {
       Serial2.println("cave_search1");
+      delay(1000);
+      Serial2.println("cave_search1");
     }
     if (buff == "cave_search2") {
       Serial2.println("cave_search2");
+      delay(1000);
+      Serial2.println("cave_search2");
     }
     if (buff == "cave_search3") {
+      Serial2.println("cave_search3");
+      delay(1000);
       Serial2.println("cave_search3");
     }
 
