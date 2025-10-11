@@ -182,6 +182,7 @@ unsigned long doorDef;
 unsigned long doorTimer;
 unsigned long finalPresentation;
 unsigned long safeTimer;
+unsigned long crimeHelpTimer;
 //////////////////
 const int threshold = 300;  // пороговое значение для пьезодатчика изменить в зависимости от вибраций
 int scrollNumber = 0;       // последовательность свитков
@@ -334,43 +335,91 @@ unsigned long KayTimer = 0;
 
 void MagicEffect() {
   digitalWrite(Fireworks, HIGH);
-  static uint16_t offset = 0;
-  static unsigned long lastUpdate = 0;
+  static uint32_t lastUpdate = 0;
+  static uint16_t timeCounter = 0;
+  
   unsigned long now = millis();
-
-  if (now - lastUpdate < 8) return;  // скорость анимации
+  if (now - lastUpdate < 15) return;  // скорость анимации
   lastUpdate = now;
-
-  offset++;
+  
+  timeCounter++;
 
   for (int s = 0; s < STRIPS; s++) {
     Adafruit_NeoPixel* strip = strips[s];
     int n = strip->numPixels();
 
+    // Затухание предыдущих кадров для создания шлейфа
     for (int i = 0; i < n; i++) {
-      // плавный переход по палитре
-      float t = (float)(i + offset + s * 20) / 30.0;
-      int c1 = ((int)t) % (COLORS - 1);
-      int c2 = (c1 + 1) % (COLORS - 1);
-
-      float blend = t - floor(t);
-
-      uint32_t col1 = palette[c1];
-      uint32_t col2 = palette[c2];
-
-      // смешиваем два цвета
-      uint8_t r = (uint8_t)(((col1 >> 16) & 0xFF) * (1 - blend) + ((col2 >> 16) & 0xFF) * blend);
-      uint8_t g = (uint8_t)(((col1 >> 8) & 0xFF) * (1 - blend) + ((col2 >> 8) & 0xFF) * blend);
-      uint8_t b = (uint8_t)((col1 & 0xFF) * (1 - blend) + (col2 & 0xFF) * blend);
-
-      // иногда добавляем белую "искру"
-      if (random(0, 1000) < 30) {
-        byte intensity = random(150, 255);
-        r = g = b = intensity;
-      }
-
+      uint32_t currentColor = strip->getPixelColor(i);
+      uint8_t r = (currentColor >> 16) & 0xFF;
+      uint8_t g = (currentColor >> 8) & 0xFF;
+      uint8_t b = currentColor & 0xFF;
+      
+      // Плавное затухание
+      r = r * 0.7;
+      g = g * 0.7;
+      b = b * 0.7;
+      
       strip->setPixelColor(i, r, g, b);
     }
+
+    // Создание новых "вспышек" фейерверка
+    for (int i = 0; i < n; i++) {
+      // Вероятность появления новой искры
+      if (random(1000) < 8) {
+        // Выбор случайного цвета из палитры
+        int colorIndex = random(COLORS - 1);
+        uint32_t baseColor = palette[colorIndex];
+        
+        uint8_t baseR = (baseColor >> 16) & 0xFF;
+        uint8_t baseG = (baseColor >> 8) & 0xFF;
+        uint8_t baseB = baseColor & 0xFF;
+        
+        // Случайная интенсивность для разнообразия
+        float intensity = 0.7 + (random(50) / 100.0);
+        
+        uint8_t r = min(255, (int)(baseR * intensity));
+        uint8_t g = min(255, (int)(baseG * intensity));
+        uint8_t b = min(255, (int)(baseB * intensity));
+        
+        // Создание небольшого кластера искр
+        int clusterSize = random(2, 5);
+        for (int j = max(0, i - clusterSize/2); j <= min(n-1, i + clusterSize/2); j++) {
+          float distance = abs(j - i) / (float)clusterSize;
+          float fade = 1.0 - distance;
+          
+          uint8_t clusterR = r * fade;
+          uint8_t clusterG = g * fade;
+          uint8_t clusterB = b * fade;
+          
+          // Смешивание с существующим цветом
+          uint32_t existingColor = strip->getPixelColor(j);
+          uint8_t existingR = (existingColor >> 16) & 0xFF;
+          uint8_t existingG = (existingColor >> 8) & 0xFF;
+          uint8_t existingB = existingColor & 0xFF;
+          
+          strip->setPixelColor(j, 
+            max(clusterR, existingR),
+            max(clusterG, existingG),
+            max(clusterB, existingB)
+          );
+        }
+      }
+    }
+
+    // Добавление ярких белых искр-вспышек
+    if (random(1000) < 15) {
+      int sparkPos = random(n);
+      byte intensity = random(200, 255);
+      
+      // Создание небольшой белой вспышки
+      for (int i = max(0, sparkPos - 1); i <= min(n-1, sparkPos + 1); i++) {
+        float distance = abs(i - sparkPos) / 2.0;
+        byte sparkIntensity = intensity * (1.0 - distance);
+        strip->setPixelColor(i, sparkIntensity, sparkIntensity, sparkIntensity);
+      }
+    }
+
     strip->show();
   }
 }
@@ -629,6 +678,13 @@ void loop() {
       FinalPresentation();
       break;
     case 21:
+      if (Serial.available()) {
+        String buff = Serial.readString();
+        if (buff == "restart") {
+          OpenAll();
+          RestOn();
+        }
+      }
       break;
     case 22:
       break;
@@ -741,6 +797,37 @@ void PowerOn() {
   }
 }
 
+int levenshteinDistance(String s1, String s2) {
+  int len1 = s1.length();
+  int len2 = s2.length();
+  int matrix[len1 + 1][len2 + 1];
+  
+  for (int i = 0; i <= len1; i++) matrix[i][0] = i;
+  for (int j = 0; j <= len2; j++) matrix[0][j] = j;
+  
+  for (int i = 1; i <= len1; i++) {
+    for (int j = 1; j <= len2; j++) {
+      int cost = (s1[i-1] == s2[j-1]) ? 0 : 1;
+      matrix[i][j] = min(
+        matrix[i-1][j] + 1,    // удаление
+        min(
+          matrix[i][j-1] + 1,  // вставка
+          matrix[i-1][j-1] + cost // замена
+        )
+      );
+    }
+  }
+  return matrix[len1][len2];
+}
+
+int calculateSimilarity(String s1, String s2) {
+  int distance = levenshteinDistance(s1, s2);
+  int maxLen = max(s1.length(), s2.length());
+  //if (maxLen == 0) return 100;
+  //Serial.println(100 - (distance * 100 / maxLen));
+  return 100 - (distance * 100 / maxLen);
+}
+
 void HelpTowersHandler() {
   if (Serial1.available()) {
     String buff = Serial1.readString();
@@ -769,8 +856,6 @@ void HelpTowersHandler() {
 }
 
 void HelpHandler(String from) {
-
-
   if (flagSound) {
     directorButton.tick();
     goblinButton.tick();
@@ -979,6 +1064,7 @@ void StartDoor() {
 
   if (Serial.available()) {
     String buff = Serial.readString();
+    //int similarity = stringSimilarity(buff, "owl_end");
     if (buff == "soundon") {
       flagSound = 0;
     }
@@ -1367,7 +1453,6 @@ void MapGame() {
     PotionPulsation();
   }
 
-
   if (isPotionEnd && isDogEnd && isOwlEnd && isTrainEnd && isTrollEnd) {
     activePotionRoom = 0;
     isPotionEnd = 0;
@@ -1384,66 +1469,67 @@ void MapGame() {
   }
 
   if (mySerial.available()) {
-    String buff = mySerial.readString();
-    //Serial.println(buff);
-    if (buff == "owl_end\r\n") {
+    String buff = mySerial.readStringUntil('\n');
+    buff.trim();
+    if (calculateSimilarity(buff, "owl_end") >= 80) {
       Serial.println("owl_end");
       Serial1.println("light_off");
       Serial2.println("light_off");
       Serial3.println("light_off");
       isOwlEnd = 1;
     }
-    if (buff == "door_owl\r\n") {
+    if (calculateSimilarity(buff, "door_owl") >= 80) {
       Serial.println("door_owl");
     }
-    if (buff == "owl_flew\r\n") {
+    if (calculateSimilarity(buff, "owl_flew") >= 80) {
       Serial.println("owl_flew");
     }
-    if (buff == "light_on\r\n") {
+    if (calculateSimilarity(buff, "light") >= 80) {
       Serial.println("light_on");
       Serial1.println("light_on");
       Serial2.println("light_on");
       Serial3.println("light_on");
     }
-    if (buff == "light_off\r\n") {
+    if (calculateSimilarity(buff, "dark") >= 80) {
       Serial.println("light_off");
       Serial1.println("light_off");
       Serial2.println("light_off");
       Serial3.println("light_off");
     }
-    if (buff == "help\r\n") {
+    if (calculateSimilarity(buff, "help") >= 80) {
       HelpHandler("dwaf");
     }
   }
 
   if (Serial3.available()) {
-    String buff = Serial3.readString();
-    if (buff == "dog_lock\r\n") {
+    String buff = Serial3.readStringUntil('\n');
+    buff.trim();
+    if (calculateSimilarity(buff, "dog_lock") >= 80) {
       Serial.println("dog_lock");
       isDogEnd = 1;
     }
-    if (buff == "door_dog\r\n") {
+    if (calculateSimilarity(buff, "door_dog") >= 80) {
       Serial.println("door_dog");
     }
-    if (buff == "dog_sleep\r\n") {
+    if (calculateSimilarity(buff, "dog_sleep") >= 80) {
       Serial.println("dog_sleep");
     }
-    if (buff == "dog_growl\r\n") {
+    if (calculateSimilarity(buff, "dog_growl") >= 80) {
       Serial.println("dog_growl");
     }
-    if (buff == "story_20_a\r\n") {
+    if (calculateSimilarity(buff, "story_20_a") >= 98) {
       Serial.println("story_20_a");
     }
-    if (buff == "story_20_b\r\n") {
+    if (calculateSimilarity(buff, "story_20_b") >= 98) {
       Serial.println("story_20_b");
     }
-    if (buff == "story_22_c\r\n") {
-      Serial.println("story_22_c");
+    if (calculateSimilarity(buff, "story_22_c") >= 98) {
+      Serial.println("story_20_c");
     }
-    if (buff == "help\r\n") {
+    if (calculateSimilarity(buff, "help") >= 78) {
       HelpHandler("knight");
     }
-    if (buff == "crystal\r\n") {
+    if (calculateSimilarity(buff, "crystal") >= 78) {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
@@ -1455,7 +1541,6 @@ void MapGame() {
 
   if (Serial.available()) {
     String buff = Serial.readString();
-    Serial.println(buff);
     if (buff == "key") {
       game = "key";
       mySerial.println("out");
@@ -1497,20 +1582,23 @@ void MapGame() {
     if (buff == "pedlock") {
       Serial3.println("skip_padlock");
       Serial.println("door_dog");
-      
     }
+
     if (buff == "dog") {
       Serial3.println("skip_dog");
       Serial.println("dog_lock");
+      isDogEnd = 1;
     }
 
     if (buff == "owl_door") {
       mySerial.println("owl_door");
       Serial.println("door_owl");
     }
+
     if (buff == "owl_skip") {
       mySerial.println("skip");
       Serial.println("owl_end");
+      isOwlEnd = 1;
     }
 
     if (buff == "open_potions_stash") {
@@ -1525,6 +1613,7 @@ void MapGame() {
       }
       isPotionEnd = true;
     }
+
     if (buff == "cat") {
       Serial.println("door_witch");
       OpenLock(PotionsRoomDoor);
@@ -1548,6 +1637,7 @@ void MapGame() {
     if (buff == "troll") {
       Serial2.println("troll");
       Serial.println("cave_end");
+      isTrollEnd = 1;
     }
 
     if (buff == "train") {
@@ -1571,6 +1661,7 @@ void MapGame() {
     if (buff == "soundoff") {
       flagSound = 1;
     }
+
     if (buff == "skin") {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
@@ -1582,29 +1673,29 @@ void MapGame() {
 
   if (Serial2.available()) {
     String buff = Serial2.readString();
-    if (buff == "cave_search1\r\n") {
+    if (calculateSimilarity(buff, "aluminium\r\n") >= 78) {
       Serial.println("cave_search1");
     }
-    if (buff == "cave_search2\r\n") {
+    if (calculateSimilarity(buff, "bronze\r\n") >= 78) {
       Serial.println("cave_search2");
     }
-    if (buff == "cave_search3\r\n") {
+    if (calculateSimilarity(buff, "copper\r\n") >= 78) {
       Serial.println("cave_search3");
     }
-    if (buff == "cave_end\r\n") {
+    if (calculateSimilarity(buff, "cave_end\r\n") >= 78) {
       Serial.println("cave_end");
       isTrollEnd = 1;
     }
-    if (buff == "cave_click\r\n") {
+    if (calculateSimilarity(buff, "cave_click\r\n") >= 78) {
       Serial.println("cave_click");
     }
-    if (buff == "door_cave\r\n") {
+    if (calculateSimilarity(buff, "door_cave\r\n") >= 78) {
       Serial.println("door_cave");
     }
-    if (buff == "help\r\n") {
+    if (calculateSimilarity(buff, "help\r\n") >= 78) {
       HelpHandler("troll");
     }
-    if (buff == "metal\r\n") {
+    if (calculateSimilarity(buff, "metal\r\n") >= 78) {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
@@ -1778,6 +1869,46 @@ void Oven() {
     }
     if (buff == "workshop") {
       Serial1.println("skip");
+      Serial.println("story_35");
+      Serial1.println("item_end");
+      Serial2.println("item_end");
+      Serial3.println("item_end");
+      delay(1000);
+      Serial1.println("day_off");
+      Serial2.println("day_off");
+      Serial3.println("day_off");
+      mySerial.println("day_off");
+      GoldStrip.setPixelColor(0, GoldStrip.Color(0, 0, 0));
+      GoldStrip.show();
+      CauldronStrip.setPixelColor(0, CauldronStrip.Color(0, 0, 0));
+      CauldronStrip.show();
+      goldPulsation = 0;
+      potionPulsation = 0;
+      GoldStrip.clear();
+      CandleStrip.clear();
+      CauldronStrip.clear();
+      CauldronRoomStrip.clear();
+      memory_Led.clear();
+      strip1.clear();
+      strip2.clear();
+      GoldStrip.show();
+      CandleStrip.show();
+      CauldronStrip.show();
+      CauldronRoomStrip.show();
+      memory_Led.show();
+      strip1.show();
+      strip2.show();
+      digitalWrite(MansardLight, LOW);
+      digitalWrite(LastTowerTopLight, LOW);
+      digitalWrite(Fireworks, LOW);
+      digitalWrite(LibraryLight, LOW);
+      digitalWrite(BankRoomLight, LOW);
+      digitalWrite(HallLight, LOW);
+      digitalWrite(UfHallLight, LOW);
+      digitalWrite(HightTowerDoor2, LOW);
+      digitalWrite(TorchLight, LOW);
+      digitalWrite(HallLight, HIGH);
+      level++;
     }
     if (buff == "skin") {
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
@@ -2165,44 +2296,13 @@ void Basket() {
       enemyFlag = 0;
       Serial.println("goal_4_bot");
     }
-    if (buf == "fr75nmr\r\n") {
-      BotScore = "5";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_5_bot");
-    }
-    if (buf == "fr76nmr\r\n") {
-      BotScore = "6";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_6_bot");
-    }
-    if (buf == "fr77nmr\r\n") {
-      BotScore = "7";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_7_bot");
-    }
-    if (buf == "fr78nmr\r\n") {
-      BotScore = "8";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_8_bot");
-    }
-    if (buf == "fr79nmr\r\n") {
-      BotScore = "9";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_9_bot");
-    }
     if (buf == "fr8nmr\r\n") {
       Serial.println("win");
-      level++;
+      strip1.clear();
+      strip2.clear();
+      strip1.show();
+      strip2.show();
+      level=20;
     }
     if (buf == "fr61nmr\r\n") {
       snitchFlag = 0;
@@ -2228,36 +2328,6 @@ void Basket() {
       enemyFlag = 0;
       Serial.println("goal_4_player");
     }
-    if (buf == "fr65nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_5_player");
-    }
-    if (buf == "fr66nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_6_player");
-    }
-    if (buf == "fr67nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_7_player");
-    }
-    if (buf == "fr68nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_8_player");
-    }
-    if (buf == "fr69nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_9_player");
-    }
 
     if (buf == "start_snitch\r\n") {
       snitchFlag = 0;
@@ -2267,9 +2337,12 @@ void Basket() {
     }
 
     if (buf == "fr9nmr\r\n") {
-      //Serial.println(BotScore);
       Serial.println("win_robot");
-      level++;
+      strip1.clear();
+      strip2.clear();
+      strip1.show();
+      strip2.show();
+      //level=21;
     }
   }
 
@@ -2278,7 +2351,11 @@ void Basket() {
     if (buff == "basket") {
       Serial.println("win");
       Serial2.println("win");
-      level++;
+      strip1.clear();
+      strip2.clear();
+      strip1.show();
+      strip2.show();
+      level=20;
     } else if (buff == "restart") {
       OpenAll();
       RestOn();
@@ -2289,7 +2366,6 @@ void Basket() {
     else
       Unlocks(buff);
   }
-  HelpButton("help_12");
 }
 //////функция со стуком в библиотеке
 void Library() {
@@ -2410,10 +2486,7 @@ void Library() {
 void LibraryGame() {
   if (digitalReadExpander(5, board3)) {
     Serial.println("lib_door");
-    boyServo.attach(49);
-    boyServo.write(0);
-    delay(1000);
-    boyServo.detach();
+    
     level++;
   }
   if (Serial.available()) {
@@ -2424,6 +2497,12 @@ void LibraryGame() {
     }
     if (buff == "ghost") {
       Serial.println("star_hint");
+    }
+    if (buff == "student_hide") {
+      boyServo.attach(49);
+      boyServo.write(0);
+      delay(1000);
+      boyServo.detach();
     }
     if (buff == "restart") {
       OpenAll();
@@ -2624,7 +2703,7 @@ void CentralTowerGameDown() {
       if (currentSensor1State == LOW) {
         OpenLock(HightTowerDoor);
         digitalWrite(TorchLight, HIGH);
-        Serial.println("door_spell - COMPLETED!");
+        Serial.println("door_spell");
         level++;
         state = 0; // Сброс состояния для возможного повторного использования
       }
@@ -3174,33 +3253,39 @@ void ScrollFive() {
 
 
 void SealSpace() {
-  // sealSpace.tick();
-  if (!digitalReadExpander(4, board4)) {
-    if (millis() - sealSpaceTimer >= 200) {
-      Serial.println("cristal_up");
-      OpenLock(MemoryRoomDoor);
-      level++;
-    }
-  } else
-    sealSpaceTimer = millis();
+  static unsigned long lastPress = 0;
+  // Обработка геркона
+  if (digitalReadExpander(4, board4) && (millis() - lastPress > 500)) {
+    Serial.println("cristal_up");
+    OpenLock(MemoryRoomDoor);
+    level++;
+    lastPress = millis();
+  }
+
+  // Обработка команд
   if (Serial.available()) {
-    String buff = Serial.readString();
-    if (buff == "crystals") {
+    String cmd = Serial.readString();
+    cmd.trim();
+    
+    if (cmd == "crystals") {
       Serial.println("cristal_up");
       OpenLock(MemoryRoomDoor);
       level++;
     }
-    if (buff == "restart") {
+    else if (cmd == "restart") {
       OpenAll();
       RestOn();
     }
-    if (buff == "soundon") {
+    else if (cmd == "soundon") {
       flagSound = 0;
+      Serial.println("Sound ON");
     }
-    if (buff == "soundoff") {
+    else if (cmd == "soundoff") {
       flagSound = 1;
+      Serial.println("Sound OFF");
     }
   }
+
   HelpTowersHandler();
 }
 
@@ -3256,18 +3341,24 @@ void MemoryRoom() {
   }
   HelpTowersHandler();
 }
+
 void CrimeHelp() {
-  static unsigned long helpTimer;
-  if (millis() - helpTimer >= 20000) {
+  
+  static bool flag = 0;
+  if (millis() - crimeHelpTimer >= 20000) {
     Serial.println("story_55");
-    helpTimer = millis();
+    crimeHelpTimer = millis();
+  }
+  if (!digitalReadExpander(7, board1)) {
+    flag = 1;
   }
 
-  if (digitalReadExpander(7, board1)) {
+  if (digitalReadExpander(7, board1) && flag) {
     Serial.println("crime_end");
     Serial2.println("start_lesson");
     delay(1000);
     Serial2.println("start_lesson");
+    flag = 0;
     level++;
   }
 
@@ -4300,6 +4391,7 @@ void fourCaseLogic() {
           }
           OpenLock(CrimeDoor);
           level++;
+          crimeHelpTimer++;
           return;
         }
       } else

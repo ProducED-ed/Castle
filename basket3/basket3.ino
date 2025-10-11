@@ -54,6 +54,7 @@ unsigned long basketTimer;
 bool _restartFlag;
 bool _restartGalet;
 bool isTrollFixed;
+bool isLoose;
 
 //Переменные
 int SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
@@ -334,6 +335,12 @@ void HandleMessagges(String message){
   if(message == "day_off\r\n"){
     digitalWrite(trollLed, LOW);
   }
+  if(message == "open_door\r\n"){
+    OpenLock(SHERIF_EM2);
+  }
+  if(message == "open_mine_door\r\n"){
+    OpenLock(SHERIF_EM1);
+  }
 }
 
 
@@ -490,7 +497,7 @@ void _Troll_1() {
     strip.clear();
     strip.setPixelColor(1, strip.Color(0, 0, 255));
     strip.show();
-    Serial1.println("cave_search1");
+    Serial1.println("aluminium");
     isTrollFixed=1;
   }
 }
@@ -506,7 +513,7 @@ void _Troll_2() {
     strip.clear();
     strip.setPixelColor(3, strip.Color(0, 0, 255));
     strip.show();
-    Serial1.println("cave_search2");
+    Serial1.println("bronze");
     isTrollFixed=1;
   }
 }
@@ -523,7 +530,7 @@ void _Troll_3() {
     isTrollFixed=1;
     strip.setPixelColor(0, strip.Color(0, 0, 255));
     strip.show();
-    Serial1.println("cave_search3");
+    Serial1.println("copper");
   }
 }
 
@@ -729,9 +736,33 @@ void BasketLesson(){
       }
   }
 }
+
 void Basket(){
   boyButton.tick();
+  if (SCORE_MAN == 5) {
+      delay(1000);
+      Serial1.println("fr8nmr");
+      delay(1000);
+      Serial1.println("fr8nmr");
+      isLoose=0;
+      state++;
+    }
+    if (SCORE_ROBOT == 5) { // Проиграли роботу
+      delay(1000);
+      Serial1.println("fr9nmr");
+      delay(1000);
+      OpenLock(Solenoid);
+      SCORE_ROBOT = 0;
+      isLoose = 1;
+      //state++;
+    }
   if(boyButton.isPress()){
+    OUTPUT_TO_DISPLAY();
+    if(isLoose){
+        SCORE_ROBOT = 0;
+        SCORE_MAN = 0;
+        isLoose=0;
+    }
     if(_startBasket){
       basketTimer = millis();
       digitalWrite(basketLed, HIGH);
@@ -740,9 +771,12 @@ void Basket(){
       Serial1.println("boy_in");
     }
   }
+
   if(boyButton.isRelease()){
     Serial1.println("boy_out");
   }
+
+
   if(boyButton.isHold()){
     OUTPUT_TO_DISPLAY();
     if (Serial1.available())
@@ -761,14 +795,15 @@ void Basket(){
       delay(50);
     }
     else if (buff == "win\r\n"){
-      SCORE_ROBOT=8;
-      SCORE_MAN=10;
+      SCORE_MAN=5;
       OUTPUT_TO_DISPLAY();
       delay(2000);
       PRINT_SCORE_ROBOT();
       delay(1000);
       PRINT_SCORE_MAN();
+      delay(1000);
       Serial1.println("fr8nmr");
+      isLoose = 0;
       state++;
     }
     else
@@ -798,19 +833,28 @@ void Basket(){
     else{
       _startBasket = 0;
       digitalWrite(basketLed, LOW);
+      delay(1000);
       Serial1.println("start_snitch");
       _startBasket = 0;
     }
   }
 
-    if (SCORE_MAN >= 10) {
+    if (SCORE_MAN == 5) {
+      delay(1000);
       Serial1.println("fr8nmr");
+      delay(1000);
+      Serial1.println("fr8nmr");
+      isLoose=0;
       state++;
     }
-    if (SCORE_ROBOT >= 10) { // Проиграли роботу
+    if (SCORE_ROBOT == 5) { // Проиграли роботу
+      delay(1000);
       Serial1.println("fr9nmr");
+      delay(1000);
       OpenLock(Solenoid);
-      state++;
+      SCORE_ROBOT = 0;
+      isLoose = 1;
+      //state++;
     }
   }
   else{
@@ -837,21 +881,7 @@ void PRINT_SCORE_MAN() { // Вывод голов в Serial
     case 4:
       Serial1.println("fr64nmr");
       break;
-    case 5:
-      Serial1.println("fr65nmr");
-      break;
-    case 6:
-      Serial1.println("fr66nmr");
-      break;
-    case 7:
-      Serial1.println("fr67nmr");
-      break;
-    case 8:
-      Serial1.println("fr68nmr");
-      break;
-    case 9:
-      Serial1.println("fr69nmr");
-      break;
+
   }
   delay(50);
 }
@@ -869,21 +899,6 @@ void PRINT_SCORE_ROBOT() {
       break;
     case 4:
       Serial1.println("fr74nmr");
-      break;
-    case 5:
-      Serial1.println("fr75nmr");
-      break;
-    case 6:
-      Serial1.println("fr76nmr");
-      break;
-    case 7:
-      Serial1.println("fr77nmr");
-      break;
-    case 8:
-      Serial1.println("fr78nmr");
-      break;
-    case 9:
-      Serial1.println("fr79nmr");
       break;
   }
   delay(50);

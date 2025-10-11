@@ -82,6 +82,8 @@ $('.ui.dropdown')
 .sticky({
   context: '.page'
 });
+
+
 //флаги
      var rFlag = 0;
      var gFlag=0;
@@ -133,7 +135,7 @@ $('.ui.dropdown')
              if (connected) {
                  output.innerHTML = '0:00:00';// если в 2 секунды свзяь не потерялась выводим текст с нашим таймером
              }					
-         }, 5000);
+         }, 3000);
          intID = setInterval(function() {
              socket.emit('Game', {'level': 'all'});//отправляем heartbeat опрашиваем сервер раз в 100 мс
              //socket.emit('time', 'timer');    
@@ -354,6 +356,7 @@ duration   : '1s',
      socket.on('level', function(inp) {
         
         if (typeof(inp) === 'string') {
+            console.log(inp);
             //пришло сообщение о модальном окне
             if (inp === 'modal') {
                 if(modal==0){
@@ -986,9 +989,16 @@ duration   : '1s',
                 //если пришло с сервера rest все скидываем обновляем приводим к виду по умолчанию
                 $('#Restart').css('border','red 2px solid');
                 $('#estart').addClass('loading'); 
-                $('#Start').css('border','white 2px solid');
+                //$('#Start').css('border','white 2px solid');
+                $('#Start').css('border','grey 2px solid');
+                $('#start_icon').removeClass('green');
+                $('#start_icon').addClass('grey');
+                $('#Start').addClass('disabled');
                 $('#Pause').css('border','white 2px solid');
                 $('#Ready').css('border','white 2px solid');
+                $('#ready_icon').removeClass('gray');
+                $('#ready_icon').addClass('orange');
+                $('#Ready').removeClass('disabled');
                 
                 if(restflag==0){
                 $('.button').removeClass('positive');
@@ -1043,12 +1053,17 @@ duration   : '1s',
             }
             if(inp === 'start_game') {
                 restflag = 0;
+                $('#Ready').css('border','grey 2px solid');
+                $('#ready_icon').removeClass('orange');
+                $('#ready_icon').addClass('gray');
+                $('#Ready').addClass('disabled');
+
+                $('#Start').css('border','green 2px solid');
                 //если пришло с сервера start_game запускаем нашуигру блокируем все окна кроме первого уровня 
                 $('#Restart').css('border','white 2px solid') ;
                 $('#estart').removeClass('loading'); 
                 $('#Start').css('border','green 2px solid');
                 $('#Pause').css('border','white 2px solid');
-                $('#Ready').css('border','white 2px solid');
                 if(disBut==0){
                 $('.button').removeClass('positive');
                 $('.icon').removeClass('check');
@@ -1107,11 +1122,14 @@ duration   : '1s',
                 }
             }
             if(inp === 'ready') {
-                $('#Restart').css('border','white 2px solid') ;
-                $('#estart').removeClass('loading'); 
+                $('#Restart').css('border','white 2px solid');
+                $('#estart').removeClass('loading');
                 $('#Start').css('border','white 2px solid');
                 $('#Pause').css('border','white 2px solid');
                 $('#Ready').css('border','orange 2px solid');
+                $('#start_icon').removeClass('grey');
+                $('#start_icon').addClass('green');
+                $('#Start').removeClass('disabled');
                 restflag = 0;
             }
         }

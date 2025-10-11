@@ -1289,6 +1289,7 @@ def Remote(check):
              ser.write(str.encode('crystals'))
              name = "story_2" 
         if check == 'open_memory_stash':
+             send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
              #-----отправка клиенту 
              socketio.emit('level', 'first_level',to=None)
              #-----добавить в историю
@@ -1383,6 +1384,7 @@ def handle_data():
         if 'map' in data and data['map'] == 'owl':
           print("owl")
           ser.write(str.encode('owl'))
+          time.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True: 
           #     time.sleep(0.1) 
@@ -1407,6 +1409,7 @@ def handle_data():
         if 'map' in data and data['map'] == 'fish':
           print("fish")
           ser.write(str.encode('fish'))
+          time.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True: 
           #     time.sleep(0.1) 
@@ -1431,6 +1434,7 @@ def handle_data():
         if 'map' in data and data['map'] == 'key':
           print("key")
           ser.write(str.encode('key'))
+          time.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True: 
           #     time.sleep(0.1) 
@@ -1454,6 +1458,7 @@ def handle_data():
         if 'map' in data and data['map'] == 'train':
           print("train")
           ser.write(str.encode('train'))
+          time.sleep(1.0) 
           play_effect(map_click)
           #while channel2.get_busy()==True: 
           #     time.sleep(0.1) 
@@ -1547,6 +1552,7 @@ def tmr(res):
      global hintCount
      global rating
      global star
+     print(res)
     #----на всякий случай отправим данные о выборе языка 
      if language==1: 
          socketio.emit('lang', 'russian', to=None)
@@ -1631,6 +1637,7 @@ def tmr(res):
      #----если нажало на демо    
      if res =='ready':
           #-----перейдет только если был в рестарте или просто запущен
+         print("ready")
          if go == 2 or go == 0:
                if test_esp32() == True:
                     print("ready")
@@ -1664,7 +1671,6 @@ def tmr(res):
 #данный декоратор срабатывает каждые 100 мс сюда заносятся файлы которые очень легко могут потеряться например кнопки если быстро нажимать и отправляем данные по игре
 @socketio.on('Game')
 def checkQuesst(receivedData):
-     print(receivedData)
      global flag
      global socklist
      global go 
@@ -1748,21 +1754,35 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
         volume = float(f.read(4))
         channel2.set_volume(volume, volume)
 
-def send_esp32_command(api_url, command, timeout=5, max_retries=3, retry_delay=1):
-    for attempt in range(max_retries):
-        try:
-            response = requests.post(api_url, json=command, timeout=timeout)
-            response.raise_for_status()
-            return response
-        except RequestException as e:
-            print(f"Попытка {attempt + 1}/{max_retries} не удалась: {e}")
-            if attempt < max_retries - 1:
-                print(f"Повтор через {retry_delay} секунд...")
-                time.sleep(retry_delay)
-                retry_delay *= 2  # Экспоненциальная задержка
-            else:
-                print(f"Все попытки отправки команды {command} на {api_url} не удались")
-                return None      
+def send_esp32_command(api_url, command, timeout=6, max_retries=4, retry_delay=1, async_mode=True):
+
+    def _send_command():
+        current_delay = retry_delay
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(api_url, json=command, timeout=timeout)
+                response.raise_for_status()
+                print(f"Команда {command} выполнена успешно")
+                return response
+            except RequestException as e:
+                print(f"Попытка {attempt + 1}/{max_retries} не удалась: {e}")
+                if attempt < max_retries - 1:
+                    print(f"Повтор через {current_delay} секунд...")
+                    time.sleep(current_delay)
+                    current_delay *= 2
+                else:
+                    print(f"Все попытки отправки команды {command} на {api_url} не удались")
+                    return None
+    
+    if async_mode:
+        # Запуск в отдельном потоке
+        thread = threading.Thread(target=_send_command)
+        thread.daemon = True
+        thread.start()
+        return thread
+    else:
+        # Синхронный вызов
+        return _send_command()      
 
 def test_esp32():
     device_configs = [
@@ -1789,6 +1809,7 @@ def test_esp32():
     
     print(f"Итог: {success_count}/4 устройств доступно")
     final_string = ', '.join(str(device) for device in devices)
+    print(final_string)
     socketio.emit('devices',final_string ,to=None)
     return success_count == 4   
                 
@@ -1870,8 +1891,10 @@ def serial():
           if channel3.get_busy()==True:#------если канал с голосом играет
                a10 = phoneLevel
                if flagS == 0:#- если флаг равен 0
+                   time.sleep(1)
                    ser.write(str.encode('soundon'))#-----отправляем в сериал и череп перестает моргать если трек воспроизводится
                    flagS = 1 #--поднмаем флаг
+                   time.sleep(1)
                while a10>0.01  and fs==0: # до тех пор пока звук не погаснет до значения 0.01 удавляем по 0.01
                     #a10=(a10*10-1)/10
                     a10 = round(a10,2)-round(0.01,2)
@@ -1882,8 +1905,10 @@ def serial():
                #после этого поднимаем флаг что бы прибавить до того состояния которое было записано в файле
           else :
                if flagS == 1:
-                   if starts==1: #--- работает только после того как стартанем
-                        ser.write(str.encode('soundoff'))# если воспроизведение закончено начинаем моргать
+                   if starts==1:
+                        time.sleep(1) #--- работает только после того как стартанем
+                        ser.write(str.encode('soundoff'))
+                        time.sleep(1)# если воспроизведение закончено начинаем моргать
                         flagS = 0
                #-----так же плавно поднимаем громкость
                while a20 != phoneLevel and fs==1:
@@ -1904,6 +1929,23 @@ def serial():
                flag = line
                time.sleep(0.1)
                print(flag)
+               for i in socklist:
+                    #----- постоянно обновляем данные по громкости синхроним 
+                    socketio.emit('volume', str(phoneLevel))
+                    #     phoneLeveltmp = phoneLevel
+                    #     print(phoneLevel)
+                    ##time.sleep(0.01)
+                    #if effectLevel is not effectLeveltmp:
+                    # ----постоянно обновляем данные по громкости синхроним 
+                    socketio.emit('volume1', str(effectLevel))
+                    #     effectLeveltmp = effectLevel
+                    ##time.sleep(0.01)
+                    #if voiceLevel is not voiceLeveltmp:
+                    # ----постоянно обновляем данные по громкости синхроним 
+                    socketio.emit('volume2', str(voiceLevel))
+                    socketio.emit('level', i ,to=None)
+                    final_string = ', '.join(str(device) for device in devices)
+                    socketio.emit('devices', final_string,to=None)
                #проверяем если пришло значение в виде цифры отправляем на метод на клиенте volt
                if is_number(flag):
                     socketio.emit('volt', flag,to=None)
@@ -2367,10 +2409,6 @@ def serial():
                           socketio.emit('level', 'active_open_mansard_door',to=None)
                           socklist.append('active_open_mansard_door') 
                      if flag == "steps":
-                          #----шлем на клиента
-                          socketio.emit('level', 'after_steps',to=None)
-                          #----добавляем в историю
-                          socklist.append('after_steps')
                           #----играем эффект
                           play_effect(steps)
                           #-----ждем окончания эффекта
@@ -2752,8 +2790,8 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
                           play_effect(dog_lock)
 
-                          while channel2.get_busy()==True: 
-                              time.sleep(0.1)
+                          #while channel2.get_busy()==True: 
+                          #    time.sleep(0.1)
 
                           if(language==1):
                               play_story(story_21_ru)  
@@ -2819,6 +2857,7 @@ def serial():
                           socklist.append('active_troll')
                           socketio.emit('level', 'mine',to=None)
                           socklist.append('mine')
+                          send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
                           if(language==1):
@@ -2827,6 +2866,8 @@ def serial():
                               play_story(story_26_en)
                           if(language==3):
                               play_story(story_26_ar)
+                          while channel3.get_busy()==True: 
+                              time.sleep(0.1)    
                      if flag=="cave_search1":
                           #----играем эффект 
                           play_effect(cave_search)
@@ -2839,7 +2880,8 @@ def serial():
                           if(language==3):
                               play_story(story_27_a_ar)
                           while channel3.get_busy()==True: 
-                              time.sleep(0.1)    
+                              time.sleep(0.1)
+                          time.sleep(1.1)        
                           ser.write(str.encode('cave_search1'))    
                      if flag=="cave_search2":
                           #----играем эффект 
@@ -2853,7 +2895,10 @@ def serial():
                           if(language==3):
                               play_story(story_27_b_ar)
                           while channel3.get_busy()==True: 
-                              time.sleep(0.1)    
+                              time.sleep(0.1)
+                          while channel3.get_busy()==True: 
+                              time.sleep(0.1)
+                          time.sleep(1.1)         
                           ser.write(str.encode('cave_search2'))        
                      if flag=="cave_search3":
                           #----играем эффект 
@@ -2867,11 +2912,11 @@ def serial():
                           if(language==3):
                               play_story(story_27_c_ar) 
                           while channel3.get_busy()==True: 
-                              time.sleep(0.1)    
+                              time.sleep(0.1)
+                          time.sleep(1.1)        
                           ser.write(str.encode('cave_search3'))                          
                      if flag=="cave_end":
                           #----играем эффект 
-                          send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
                           socketio.emit('level', 'troll',to=None)
                           socklist.append('troll')
                           play_effect(cave_end)
@@ -2907,13 +2952,16 @@ def serial():
                               time.sleep(0.1)
                           time.sleep(1.0)    
                           ser.write(str.encode('open_bank'))    
-                          time.sleep(10.0)      
+                          time.sleep(5.0)      
                           if(language==1):
                               play_story(story_24_ru)  
                           if(language==2):
                               play_story(story_24_en)
                           if(language==3):
-                              play_story(story_24_ar) 
+                              play_story(story_24_ar)
+
+                          while channel3.get_busy()==True: 
+                              time.sleep(0.1)     
                      if flag=="safe_turn":
                           #----играем эффект 
                           play_effect(safe_turn) 
@@ -2974,9 +3022,13 @@ def serial():
                           if(language==2):
                               play_story(story_46_en)
                           if(language==3):
-                              play_story(story_46_ar)
+                              play_story(story_46_ar)    
+                          send_esp32_command(ESP32_API_TRAIN_URL, "train_on")    
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
+                          time.sleep(1.1)    
+                          ser.write(str.encode('student_hide')) 
+                          time.sleep(1.1)    
                           if(language==1):
                               play_story(story_47_ru)  
                           if(language==2):
@@ -2987,7 +3039,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)        
 
-                          send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
+                          #send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
 
                           play_background_music("fon15.mp3")
                           if(language==1):
@@ -3060,8 +3112,6 @@ def serial():
                           play_effect(fire1)
                           if fire1Flag == 0:
                               fire1Flag = 1
-                              while channel2.get_busy()==True: 
-                                  time.sleep(0.1)
                               if(language==1):
                                   play_story(story_32_a_ru)  
                               if(language==2):
@@ -3073,8 +3123,6 @@ def serial():
                           play_effect(fire2)
                           if fire2Flag == 0:
                               fire2Flag = 1
-                              while channel2.get_busy()==True: 
-                                  time.sleep(0.1)
                               if(language==1):
                                   play_story(story_32_b_ru)  
                               if(language==2):
@@ -3089,8 +3137,6 @@ def serial():
                           play_effect(fire0)
                           if fire0Flag == 0:
                               fire0Flag = 1
-                              while channel2.get_busy()==True: 
-                                  time.sleep(0.1)
                               if(language==1):
                                   play_story(story_32_c_ru)  
                               if(language==2):
@@ -4034,10 +4080,6 @@ def serial():
                               play_story(story_66_ar)
                      if flag=="win_robot":
                           play_effect(enemy_goal1)
-                          send_esp32_command(ESP32_API_WOLF_URL, "firework")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "firework")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
-                          send_esp32_command(ESP32_API_SAFE_URL, "firework")
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
                           play_background_music("fon17.mp3")    
@@ -4516,6 +4558,23 @@ def timer():
     start = 0
     while True:
          time.sleep(0)
+         for i in socklist:
+              #----- постоянно обновляем данные по громкости синхроним 
+              socketio.emit('volume', str(phoneLevel))
+              #     phoneLeveltmp = phoneLevel
+              #     print(phoneLevel)
+              ##time.sleep(0.01)
+              #if effectLevel is not effectLeveltmp:
+              # ----постоянно обновляем данные по громкости синхроним 
+              socketio.emit('volume1', str(effectLevel))
+              #     effectLeveltmp = effectLevel
+              ##time.sleep(0.01)
+              #if voiceLevel is not voiceLeveltmp:
+              # ----постоянно обновляем данные по громкости синхроним 
+              socketio.emit('volume2', str(voiceLevel))
+              socketio.emit('level', i ,to=None)
+              final_string = ', '.join(str(device) for device in devices)
+              socketio.emit('devices', final_string,to=None)
          
               #print(i)
          if go >=2:
