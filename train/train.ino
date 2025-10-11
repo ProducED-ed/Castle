@@ -912,7 +912,6 @@ void loop() {
   MapGerkon();
   MapLeds();
   StartTimer();
-  GhostGame();
 
   if (!INPUTS.digitalRead(2)) {
     if (state == 0 && hintFlag) {
@@ -1131,6 +1130,7 @@ void loop() {
           for (int i = 1; i < 4; i++) {
             leds1[i] = CHSV(initialHue + (i * 7), 255, 255);
           }
+          SendData("{\"train\":\"end\"}");
           FastLED.show();
           EVERY_N_MILLISECONDS(30) {
             FastLED.show();
@@ -1154,7 +1154,7 @@ void loop() {
         WorkshopGame();
         break;
       case 5:
-        //GhostGame();
+        GhostGame();
         break;
     }
   }
