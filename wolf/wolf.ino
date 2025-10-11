@@ -174,6 +174,19 @@ unsigned long fadeStartTime = 0;
 const unsigned long FADE_DURATION = 2000; // 2 секунды
 const int INITIAL_VOLUME = 30;
 
+// Фейерверк
+bool fireworkActive = false;
+unsigned long fireworkStartTime = 0;
+const unsigned long FIREWORK_DURATION = 10000;  // 10 секунд салюта
+CRGB fireworkColors[6] = { 
+  CRGB(255, 100, 50),   // Оранжевый
+  CRGB(100, 255, 100),  // Светло-зеленый
+  CRGB(100, 100, 255),  // Светло-синий
+  CRGB(255, 255, 100),  // Светло-желтый
+  CRGB(255, 100, 255),  // Розовый
+  CRGB(100, 255, 255)   // Бирюзовый
+};
+
 //const char* ssid = "Castle";
 //const char* password = "questquest";
 const char* ssid = "ProducED";
@@ -358,6 +371,7 @@ void setup() {
         MP3Flag = 1;
         TRACK_Flag = 1;
         cloudFiPlaying = false;
+        fireworkActive = false;
       }
       if (body == "\"start\"") {
         state = 0;
@@ -449,13 +463,18 @@ void setup() {
         delay(50);
         myMP3.disableLoop();               // Сначала выключаем повтор
         myMP3.playMp3Folder(TRACK_ghost);  // Запускаем трек
-        myMP3.enableLoop();                // Включаем повтор для текущего трека
+        myMP3.enableLoop();                // Включаем повтор для текущего трек
         Serial.println(TRACK_ghost);
         ghostFlag = 1;
       }
       if (body == "\"ghost_game_end\"") {
         ghostFlag = 0;
         myMP3.stop();
+      }
+
+      // Добавь эту команду для запуска салюта
+      if (body == "\"firework\"") {
+        startFirework();
       }
 
       Serial.println("Received POST: " + body);
@@ -471,14 +490,20 @@ void setup() {
 
 
 void loop() {
-  //Serial.println(state);
   server.handleClient();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
     delay(2000);
   }
+  
   handlePlayerQueries();
   handleFadeOut();
+
+  // Обработка салюта (добавь эту строку)
+  if (fireworkActive) {
+    handleFirework();
+    return;  // Пропускаем остальную логику во время салюта
+  }
 
   helpButton.tick();
   if (helpButton.isPress()) {
@@ -1030,4 +1055,104 @@ void handleFadeOut() {
     int newVolume = INITIAL_VOLUME * (1.0 - progress);
     myMP3.volume(newVolume);
   }
+}
+
+// Функции для фейерверка
+void startFirework() {
+  fireworkActive = true;
+  fireworkStartTime = millis();
+  Serial.println("firework:started");
+}
+
+void handleFirework() {
+  if (!fireworkActive) return;
+
+  static unsigned long lastFireworkTime = 0;
+  static const int MAX_EXPLOSIONS = 3;
+  static struct Explosion {
+    int phase;
+    CRGB color;
+    int center;
+    unsigned long startTime;
+  } explosions[MAX_EXPLOSIONS];
+
+  // Проверяем время окончания салюта
+
+  // Создаем новые взрывы
+  if (millis() - lastFireworkTime >= 600) {
+    lastFireworkTime = millis();
+
+    // Ищем свободный слот для нового взрыва
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+      if (explosions[i].phase == 0) {
+        explosions[i].color = fireworkColors[random(6)];
+        explosions[i].center = random(0, 10);  // Взрывы по всей длине ленты
+        explosions[i].startTime = millis();
+        explosions[i].phase = 1;
+        break;
+      }
+    }
+  }
+
+  // Обрабатываем все активные взрывы
+  for (int e = 0; e < MAX_EXPLOSIONS; e++) {
+    if (explosions[e].phase > 0) {
+      unsigned long elapsed = millis() - explosions[e].startTime;
+
+      if (elapsed < 500) {
+        // Фаза расширения
+        float progress = (float)elapsed / 500.0;
+        int radius = progress * 5;  // Меньший радиус для коротких лент
+
+        for (int i = 0; i < 10; i++) {
+          int distance = abs(i - explosions[e].center);
+          if (distance <= radius) {
+            float intensity = 1.0 - (float)distance / radius;
+            wolfLed[i] = explosions[e].color;
+            threeLed[i] = explosions[e].color;
+            wolfLed[i].fadeToBlackBy(255 - (intensity * 255));
+            threeLed[i].fadeToBlackBy(255 - (intensity * 255));
+          }
+        }
+      } else if (elapsed < 1000) {
+        // Фаза затухания
+        float fadeProgress = (float)(elapsed - 500) / 500.0;
+        uint8_t fadeAmount = fadeProgress * 255;
+
+        for (int i = 0; i < 10; i++) {
+          int distance = abs(i - explosions[e].center);
+          if (distance <= 5) {
+            wolfLed[i] = explosions[e].color;
+            threeLed[i] = explosions[e].color;
+            wolfLed[i].fadeToBlackBy(fadeAmount);
+            threeLed[i].fadeToBlackBy(fadeAmount);
+          }
+        }
+      } else {
+        // Завершаем взрыв
+        explosions[e].phase = 0;
+        for (int i = 0; i < 10; i++) {
+          int distance = abs(i - explosions[e].center);
+          if (distance <= 5) {
+            wolfLed[i] = CRGB::Black;
+            threeLed[i] = CRGB::Black;
+          }
+        }
+      }
+    }
+  }
+
+  // Плавное затухание всех светодиодов
+  EVERY_N_MILLISECONDS(20) {
+    for (int i = 0; i < 10; i++) {
+      if (wolfLed[i] != CRGB::Black) {
+        wolfLed[i].fadeToBlackBy(8);
+      }
+      if (threeLed[i] != CRGB::Black) {
+        threeLed[i].fadeToBlackBy(8);
+      }
+    }
+  }
+
+  FastLED.show();
 }
