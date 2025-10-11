@@ -178,7 +178,7 @@ void handleSerial1Commands() {
     }
 
     if (command == "out") {
-    //  state = 0;
+      //  state = 0;
       owlCommandReceived = false;
     }
 
@@ -270,9 +270,9 @@ void checkOwlButton() {
   if (owlCommandReceived && PIN_HERKON_OWA.isHold()) {
     if (!F) {
       F = true;  // Устанавливаем флаг
-      Serial1.println("door_owl");
-      delay(1000);
       Serial.println("door_owl");
+      delay(1000);
+      Serial1.println("door_owl");
       delay(1000);
       state = 1;
     }
@@ -405,8 +405,7 @@ void handleTileLeds() {
 
       digitalWrite(PIN_LED_WINDOW, 0);
     }
-  } 
-  else {
+  } else {
     if (tile0State) {
       Serial1.println("light_on");
       tile0State = false;
