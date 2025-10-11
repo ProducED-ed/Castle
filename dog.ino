@@ -188,25 +188,14 @@ GButton flagButton(FLAG_IR_SENSOR_PIN);
 
 bool isActive;
 
-// --- FUNKCII UPRAVLENIYA SOSTOYANIEM ---
-// Funkciya dlya polnogo otklyucheniya vseh effektov kolesa i sbrosa ego sostoyaniya v "spyashchee"
-#line 193 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void putWheelToSleep();
-#line 214 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void resetQuestState();
-#line 275 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void activateEndStage();
-#line 320 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void smoothTurnOnLighting();
-#line 326 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void smoothTurnOnCrystal();
-#line 333 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void smoothTurnOffCrystal();
-#line 339 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void setup();
-#line 397 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void loop();
-#line 193 "C:\\Users\\Public.NoteArchitip\\Downloads\\dog_alan_lox\\dog_alan_lox.ino"
 void putWheelToSleep() {
   // Proveryaem, deystvitelno li chto-to aktivno, prezhde chem "usyplyat"
   if (isFastSpinning || wasFastSpinningActive || digitalRead(VIBRO_MOTOR_PIN) == HIGH || digitalRead(LED_STRIP_PIN) == HIGH || periodicStorySoundActive || periodicFastSpinSoundActive) {
@@ -454,6 +443,10 @@ void loop() {
           isActive = 1;
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_MAP_OWL) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_MAP_FISH) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_MAP_TRAIN) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_MAP_OUT) == 0) {
           isActive = 0;
+        } else if (strcmp_P(receivedUartMessageBuffer, PSTR("open_door")) == 0) {
+          digitalWrite(10, HIGH);  // Включаем светодиод на пине 10
+          delay(500);              // Ждем 500 мс
+          digitalWrite(10, LOW);   // Выключаем светодиод
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
           currentQuestState = STATE_RESTARTING;
           resetQuestState();
@@ -719,7 +712,6 @@ void loop() {
             int firstRandomIndex = random(NUM_STORY_SOUNDS);
             char firstBuffer[MAX_UART_MESSAGE_LENGTH];
             strcpy_P(firstBuffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[firstRandomIndex])));
-            Serial.println(firstBuffer);
             vibroPulseState = true;
             digitalWrite(VIBRO_MOTOR_PIN, HIGH);
             analogWrite(LIGHTING_LED_PIN, 255);
@@ -729,6 +721,8 @@ void loop() {
             currentVibroOffDuration = VIBRO_OFF_DURATIONS[patternIndex];
             digitalWrite(LED_STRIP_PIN, HIGH);
             lastFastSpinEffectTime = currentMillis;
+            delay(500);
+            Serial.println(firstBuffer);
           }
           periodicStorySoundActive = false;
           lastCageReedUnactivatedTime = 0;
