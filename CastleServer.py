@@ -844,6 +844,7 @@ f4.close()
 channel1.set_volume(float(a1),float(a1))
 channel2.set_volume(float(a2),float(a2))
 channel3.set_volume(float(a3),float(a3))
+print("loaded music")
 #------------дополнительные переменные для звука и флаги
 sound = float(a1)
 go = 0
@@ -861,11 +862,12 @@ app = Flask('feedback')
 app.config['SECRET_KEY'] = 'secret!'
 app.static_folder = 'static'
 socketio = SocketIO(app,async_mode = 'threading',async_handlers=True,cors_allowed_origins="*",allow_unsafe_werkzeug=True)
-
+print("create client")
 #основной декоратор срабатывает при запросе браузера страницы отправляет наш файл с интерфейсом и все необходимые дополняющие css js icon
 #html храниться в папке templates все остальное в папке static
 @app.route('/')
 def index():
+     print("load page")
      return send_file('templates/Front.html')
 
 #декоратор работы socket отвечает за настройки wifi
@@ -1664,6 +1666,7 @@ def tmr(res):
                     socklist.clear()
                     socketio.emit('level', 'start_error',to=None)
                     socklist.append('start_error')
+                    print("error")
                     final_string = ', '.join(str(device) for device in devices)
                     socklist.append(final_string)
                     socketio.emit('devices', final_string,to=None)       
@@ -1797,6 +1800,7 @@ def test_esp32():
 
     for device_name, url in device_configs:
         try:
+            print("Проверка устройства:", device_name)
             response = requests.post(url, json="hc", timeout=5)
             response.raise_for_status()
             success_count += 1
