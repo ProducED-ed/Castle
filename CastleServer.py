@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 #импорт библиотек  flask фреймворк для работы с сервером так же дополнение socketIO 
 from flask import Flask, send_file, request, jsonify
 from flask import render_template, request
@@ -12,6 +14,7 @@ from engineio.payload import Payload
 #сериал тут и обьяснять не нужно но тоже на досуге почитать документацию
 import serial
 from serial import Serial
+import serial.tools.list_ports
 # библиотека для работы со звуками и графикой в нашем случае используется только музыка но тоже может пригодится почтай на досуге там не много
 import pygame
 import pygame.mixer
@@ -844,7 +847,6 @@ f4.close()
 channel1.set_volume(float(a1),float(a1))
 channel2.set_volume(float(a2),float(a2))
 channel3.set_volume(float(a3),float(a3))
-print("loaded music")
 #------------дополнительные переменные для звука и флаги
 sound = float(a1)
 go = 0
@@ -853,21 +855,36 @@ flagS = 0
 voiceLevel = a3
 effectLevel = a2
 phoneLevel = float(a1)
-#-----создаем обьект класса serial для работы с uart
-ser = serial.Serial('COM3', 9600,timeout=1)
+
+def find_arduino_port():
+    """Ищет порт, к которому подключено устройство с драйвером CH340."""
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        # Драйвер CH340 обычно содержит "CH340" в описании
+        if "CH340" in port.description.upper():
+            print(f"INFO: Found Arduino on port {port.device}")
+            return port.device
+    return None
+##-----создаем обьект класса serial для работы с uart
+# Замените старую строку ser = serial.Serial('COM3',...) на этот блок:
+arduino_port = find_arduino_port()
+if arduino_port:
+    ser = serial.Serial(arduino_port, 9600, timeout=1)
+else:
+    print("FATAL: Arduino with CH340 driver not found. Check connection.")
+    exit() # Завершаем работу, если контроллер не найден
 #---конфиг сервера
 Payload.max_decode_packets = 200
 #async_mode = None  
 app = Flask('feedback')
 app.config['SECRET_KEY'] = 'secret!'
 app.static_folder = 'static'
-socketio = SocketIO(app,async_mode = 'threading',async_handlers=True,cors_allowed_origins="*",allow_unsafe_werkzeug=True)
-print("create client")
+socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True)
+
 #основной декоратор срабатывает при запросе браузера страницы отправляет наш файл с интерфейсом и все необходимые дополняющие css js icon
 #html храниться в папке templates все остальное в папке static
 @app.route('/')
 def index():
-     print("load page")
      return send_file('templates/Front.html')
 
 #декоратор работы socket отвечает за настройки wifi
@@ -1661,12 +1678,11 @@ def tmr(res):
                     channel3.stop() 
                     channel2.stop() 
                     pygame.mixer.music.stop()
-                    play_background_music("fon1.mp3", loops=0)
+                    play_background_music("fon1.mp3", loops=-1)
                else:
                     socklist.clear()
                     socketio.emit('level', 'start_error',to=None)
                     socklist.append('start_error')
-                    print("error")
                     final_string = ', '.join(str(device) for device in devices)
                     socklist.append(final_string)
                     socketio.emit('devices', final_string,to=None)       
@@ -1800,7 +1816,6 @@ def test_esp32():
 
     for device_name, url in device_configs:
         try:
-            print("Проверка устройства:", device_name)
             response = requests.post(url, json="hc", timeout=5)
             response.raise_for_status()
             success_count += 1
@@ -4616,11 +4631,15 @@ def timer():
 #-----методы для повторения голосвых треков в случае смены языка(мноого)  чем больше треков тем больше логики              
 
 #------наша основная программа крутиться здесь сам сервер порт можно измнить(при желании) методы таймер и сериал работают ассинхронно
-try: 
-     socketio.start_background_task(target=serial)
-     socketio.start_background_task(target=timer)
-     socketio.run(app, port=3000, host='0.0.0.0')
-except:
-        pass
-        
-           
+if __name__ == '__main__':
+    try:
+        print("INFO: Starting background tasks...")
+        socketio.start_background_task(target=serial)
+        socketio.start_background_task(target=timer)
+        print("INFO: Starting Flask-SocketIO server on http://0.0.0.0:3000")
+        socketio.run(app, port=3000, host='0.0.0.0')
+    except OSError as e:
+        print(f"FATAL: Could not start server. Error: {e}")
+        print("HINT: The port 3000 might be in use by another application.")
+    except Exception as e:
+        print(f"FATAL: An unexpected error occurred: {e}")
