@@ -2876,7 +2876,6 @@ def serial():
                           socklist.append('active_troll')
                           socketio.emit('level', 'mine',to=None)
                           socklist.append('mine')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
                           if(language==1):
@@ -2939,6 +2938,7 @@ def serial():
                           socketio.emit('level', 'troll',to=None)
                           socklist.append('troll')
                           play_effect(cave_end)
+                          send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)
                           if(language==1):
