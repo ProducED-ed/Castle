@@ -965,7 +965,7 @@ void HelpHandler(String from) {
         Serial.println(directorHints[directorCounter]);
       }
       if (level == 14) {
-        directorCounter = (directorCounter == 3) ? 2 : 3;
+        directorCounter = (directorCounter == 2) ? 3 : 2;
         Serial.println(directorHints[directorCounter]);
       }
       if (level > 14 && level < 18) {
