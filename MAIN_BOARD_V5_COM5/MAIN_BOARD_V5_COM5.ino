@@ -1148,6 +1148,16 @@ void Clock2Game() {
     if (buff == "second_clock") {
       Serial.println("clock2");
       //OpenLock(MansardDoor);
+	  
+      // Добавлена логика мигания и выключения УФ-светодиода,
+      // аналогичная блоку физического взаимодействия.
+      for (int i = 0; i < 3; i++) {
+        digitalWrite(UfHallLight, HIGH);
+        delay(500);
+        digitalWrite(UfHallLight, LOW);
+        delay(500);
+      }
+      digitalWrite(UfHallLight, LOW);
       stepsTimer = millis();
       level++;
     }
@@ -3761,77 +3771,81 @@ void Game() {
     if (millis() - _presentTimer >= Timings[_levels]) {
       if (millis() - fadeWhiteTimer >= 5) {
         lightBr -= CountsFallen[_levels];
-        // здесь задаем первоначальный цвет кристалов
+// здесь задаем первоначальный цвет кристалов
         switch (_levels) {
           case 0:
             for (int i = 0; i <= 3; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, lightBr, 0));
-            }
+}
             for (int i = 4; i <= 7; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, 0, 0));
-            }
+}
             for (int i = 8; i <= 11; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, 0, lightBr));
-            }
+}
             for (int i = 12; i <= 15; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, lightBr, 0));
-            }
+}
             memory_Led.show();
 
             break;
+
+          /* --- ИЗМЕНЕНО: Закомментированы case 1 и 2 для сокращения уровней ---
           case 1:
             for (int i = 0; i <= 3; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, lightBr, 0));
-            }
+}
             for (int i = 4; i <= 7; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, 0, lightBr));
-            }
+}
             for (int i = 8; i <= 11; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, lightBr, 0));
-            }
+}
             for (int i = 12; i <= 15; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, 0, 0));
-            }
+}
             memory_Led.show();
 
             break;
           case 2:
             for (int i = 0; i <= 3; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, 0, lightBr));
-            }
+}
             for (int i = 4; i <= 7; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, lightBr, 0));
-            }
+}
             for (int i = 8; i <= 11; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, 0, 0));
-            }
+}
             for (int i = 12; i <= 15; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, lightBr, 0));
-            }
+}
             memory_Led.show();
 
             break;
+          */ // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+          
           case 3:
             for (int i = 0; i <= 3; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, 0, 0));
-            }
+}
             for (int i = 4; i <= 7; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(lightBr, lightBr, 0));
-            }
+}
             for (int i = 8; i <= 11; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, lightBr, 0));
-            }
+}
             for (int i = 12; i <= 15; i++) {
               memory_Led.setPixelColor(i, memory_Led.Color(0, 0, lightBr));
-            }
+}
             memory_Led.show();
 
             break;
-        }
+}
         fadeWhiteTimer = millis();
-        if (!lightBr)
+if (!lightBr)
           _present = 1;
-      }
+}
     }
   }
   // здесь основная логика игры
@@ -3840,14 +3854,16 @@ void Game() {
       case 0:
         if (_stones < 1)
           firstCaseLeds();
-        else {
+else {
           for (int i = 16; i <= 31; i++) {
             memory_Led.setPixelColor(i, memory_Led.Color(0, 0, 0));
-            memory_Led.show();
+memory_Led.show();
           }
         }
         firstCaseLogic();
         break;
+
+      /* --- ИЗМЕНЕНО: Закомментированы case 1 и 2 для сокращения уровней ---
       case 1:
         if (_stones < 1)
           secondCaseLeds();
@@ -3870,18 +3886,20 @@ void Game() {
         }
         thirdCaseLogic();
         break;
+      */ // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
       case 3:
         if (_stones < 1)
           fourCaseLeds();
-        else {
+else {
           for (int i = 16; i <= 31; i++) {
             memory_Led.setPixelColor(i, memory_Led.Color(0, 0, 0));
-            memory_Led.show();
+memory_Led.show();
           }
         }
         fourCaseLogic();
         break;
-    }
+}
   }
 }
 // метод для светодиодов 1 уровень
@@ -3979,59 +3997,74 @@ void firstCaseLogic() {
       if (digitalRead(fourCrystal)) {
         if (millis() - MemoryItem4Interval >= 100) {
           Serial.println("true_crystal");
-          _stones++;
+_stones++;
         }
       } else
         MemoryItem4Interval = millis();
-      mistakeStones(1, 1, 1, 0);
+mistakeStones(1, 1, 1, 0);
       break;
     case 1:
       if (digitalRead(secondCrystal)) {
         if (millis() - MemoryItem2Interval >= 100) {
           Serial.println("true_crystal");
-          _stones++;
+_stones++;
         }
       } else
         MemoryItem2Interval = millis();
-      mistakeStones(1, 0, 1, 0);
+mistakeStones(1, 0, 1, 0);
       mistakeStonesDown(0, 0, 0, 1);
       break;
     case 2:
       if (digitalRead(firstCrystal)) {
         if (millis() - MemoryItem1Interval >= 100) {
           Serial.println("true_crystal");
-          _stones++;
+_stones++;
         }
       } else
         MemoryItem1Interval = millis();
-      mistakeStones(0, 0, 1, 0);
+mistakeStones(0, 0, 1, 0);
       mistakeStonesDown(0, 1, 0, 1);
       break;
     case 3:
       if (digitalRead(thirdCrystal)) {
         if (millis() - MemoryItem3Interval >= 100) {
           symbolBrightness = 0;
-          for (int i = 0; i <= 255; i++) {
+for (int i = 0; i <= 255; i++) {
+
+            // --- НАЧАЛО ИЗМЕНЕНИЯ: Анимация зажигает первые ДВЕ ячейки (бывшие 1 и 2) ---
+            for (int j = 16; j <= 23; j++) {
+              memory_Led.setPixelColor(j, memory_Led.Color(i, i, i));
+            }
+            // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
+            /* --- СТАРЫЙ КОД (одна ячейка):
             for (int j = 16; j <= 19; j++) {
               memory_Led.setPixelColor(j, memory_Led.Color(i, i, i));
             }
-            for (int j = 20; j <= 31; j++) {
+            */
+
+            for (int j = 24; j <= 31; j++) {
               memory_Led.setPixelColor(j, memory_Led.Color(0, 0, 0));
-            }
+}
             memory_Led.show();
             delay(2);
-          }
+}
           Serial.println("first_level");
-          _levels++;
+
+          // --- НАЧАЛО ИЗМЕНЕНИЯ: Прямой переход на последний уровень (бывший 4-й) ---
+          //_levels++; // Старый переход на следующий уровень
+          _levels = 3; // Новый переход сразу на последний уровень
+          // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
           _stages = 0;
           return;
-        }
+}
       } else
         MemoryItem3Interval = millis();
-      // mistakeStones(0, 0, 0, 1);
+// mistakeStones(0, 0, 0, 1);
       mistakeStonesDown(1, 1, 0, 1);
       break;
-  }
+}
 }
 // метод для кристалов 2 уровень
 void secondCaseLogic() {
