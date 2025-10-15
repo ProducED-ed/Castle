@@ -2532,41 +2532,49 @@ void CentralTowerGame() {
   static int state = 0;
   static bool flag =0;
   //FireCup();
-
-  switch (state) {
+switch (state) {
     case 0:
       if (!digitalReadExpander(3, board4)) {
         //state++;
-        //Serial.println("fire");
+//Serial.println("fire");
         //delay(1500);
         flag = 1;
       }
       if (digitalReadExpander(3, board4) && flag) {
         state++;
-        Serial.println("fire");
+Serial.println("fire");
       }
       break;
     case 1:
       if (!digitalReadExpander(2, board4)) {
         Serial2.println("opent_basket");
-        Serial.println("door_basket");
+Serial.println("door_basket");
         fireFlag = 1;
         state = 0;
         flag = 0;
         level++;
       }
       break;
-  }
+}
+
+  // Добавлен обработчик команд от сервера, чтобы принять команду "student_hide"
   if (Serial.available()) {
     String buff = Serial.readString();
+    if (buff == "student_hide") {
+      boyServo.attach(49);
+      boyServo.write(0); // Поворачиваем сервопривод в скрытое положение
+      delay(1000);
+      boyServo.detach();
+    }
+
     if (buff == "door_top") {
       Serial1.println("day_on");
       Serial2.println("day_on");
       Serial3.println("day_on");
       mySerial.println("day_on");
-      for (int i = 0; i <= 50; i++) {
+for (int i = 0; i <= 50; i++) {
         CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 255, 255));
-      }
+}
       CauldronRoomStrip.show();
       digitalWrite(MansardLight, HIGH);
       digitalWrite(LibraryLight, HIGH);
@@ -2575,27 +2583,27 @@ void CentralTowerGame() {
       digitalWrite(UfHallLight, LOW);
       digitalWrite(TorchLight, HIGH);
       OpenLock(HightTowerDoor2);
-      digitalWrite(LastTowerTopLight, HIGH);
+digitalWrite(LastTowerTopLight, HIGH);
       flag = 0;
     }
     if (buff == "cup") {
       Serial2.println("opent_basket");
-      Serial.println("door_basket");
+Serial.println("door_basket");
       fireFlag = 1;
       state = 0;
       level++;
     }
     if (buff == "restart") {
       flag = 0;
-      OpenAll();
+OpenAll();
       RestOn();
     }
     if (buff == "soundon") {
       flagSound = 0;
-    }
+}
     if (buff == "soundoff") {
       flagSound = 1;
-    }
+}
   }
   HelpTowersHandler();
 }
