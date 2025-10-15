@@ -897,9 +897,9 @@ void HelpHandler(String from) {
     //if (!digitalReadExpander(1, board1)) {
     if (studentButton.isPress()) {
       if (level > 1 && level < 4) {
-        Serial.println(studentHints[studentCounter]);
-        studentCounter = 1 - studentCounter;
-      }
+	    studentCounter = (studentCounter == 0) ? 1 : 0; // Правильно: сначала _b (индекс 0), потом _c (индекс 1)
+	    Serial.println(studentHints[studentCounter]);
+	  }
       if (level > 3 && level < 11) {
         Serial.println(studentHints[2]);
       }
@@ -910,7 +910,7 @@ void HelpHandler(String from) {
       }
 
       if (level > 11 && level < 17) {
-        studentCounter = (studentCounter == 6) ? 5 : 6;
+        studentCounter = (studentCounter == 5) ? 6 : 5; // Правильно: сначала _b (индекс 5), потом _c (индекс 6)
         Serial.println(studentHints[studentCounter]);
       }
 
@@ -928,7 +928,7 @@ void HelpHandler(String from) {
         Serial.println(professorHints[professorCounter]);
       }
       if (level == 6) {
-        professorCounter = (professorCounter == 3) ? 2 : 3;
+        professorCounter = (professorCounter == 2) ? 3 : 2; // Правильно: сначала _b (индекс 2), потом _c (индекс 3)
         Serial.println(professorHints[professorCounter]);
       }
       if (level == 7) {
@@ -969,7 +969,7 @@ void HelpHandler(String from) {
         Serial.println(directorHints[directorCounter]);
       }
       if (level > 14 && level < 18) {
-        directorCounter = (directorCounter == 5) ? 4 : 5;
+        directorCounter = (directorCounter == 4) ? 5 : 4; // Правильно: сначала _b (индекс 4), потом _c (индекс 5)
         Serial.println(directorHints[directorCounter]);
       }
       flagSound = 0;
