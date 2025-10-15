@@ -5168,7 +5168,7 @@ void BasketEffectLesson() {
 
 void BasketEffect() {
   if (!snitchFlag) {
-    if (millis() - enemyTimer >= random(15000, 30000)) {
+    if (millis() - enemyTimer >= random(10000, 20000)) {
       if (!enemyFlag) {
         enemyFlag = 1;
         Serial.println("red_ball");
