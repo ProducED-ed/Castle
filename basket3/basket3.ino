@@ -739,7 +739,7 @@ void BasketLesson(){
 
 void Basket(){
   boyButton.tick();
-  if (SCORE_MAN == 5) {
+  if (SCORE_MAN == 3) {
       delay(1000);
       Serial1.println("fr8nmr");
       delay(1000);
@@ -747,7 +747,7 @@ void Basket(){
       isLoose=0;
       state++;
     }
-    if (SCORE_ROBOT == 5) { // Проиграли роботу
+    if (SCORE_ROBOT == 3) { // Проиграли роботу
       delay(1000);
       Serial1.println("fr9nmr");
       delay(1000);
@@ -795,7 +795,7 @@ void Basket(){
       delay(50);
     }
     else if (buff == "win\r\n"){
-      SCORE_MAN=5;
+      SCORE_MAN=3;
       OUTPUT_TO_DISPLAY();
       delay(2000);
       PRINT_SCORE_ROBOT();
@@ -839,7 +839,7 @@ void Basket(){
     }
   }
 
-    if (SCORE_MAN == 5) {
+    if (SCORE_MAN == 3) {
       delay(1000);
       Serial1.println("fr8nmr");
       delay(1000);
@@ -847,7 +847,7 @@ void Basket(){
       isLoose=0;
       state++;
     }
-    if (SCORE_ROBOT == 5) { // Проиграли роботу
+    if (SCORE_ROBOT == 3) { // Проиграли роботу
       delay(1000);
       Serial1.println("fr9nmr");
       delay(1000);
