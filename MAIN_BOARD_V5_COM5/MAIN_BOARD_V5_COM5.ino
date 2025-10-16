@@ -4852,7 +4852,7 @@ void RestOn() {
 
   Serial.println("restart");
   OpenAll();
-  level = 30;
+  level = 0;
 
   // опрашиваем все башни если есть что полезное шлем на сервак
 }
