@@ -120,15 +120,15 @@ const int TRACK_HINT_0_CH = 5;
 
 int hint_counter = 0;
 
-//const char* ssid = "Castle";
-//const char* password = "questquest";
-const char* ssid = "ProducED";
-const char* password = "32744965";
+const char* ssid = "Castle";
+const char* password = "questquest";
+//const char* ssid = "ProducED";
+//const char* password = "32744965";
 
 // Настройки статического IP
 IPAddress local_IP(192, 168, 0, 203);   
 
-const char* externalApi = "http://192.168.0.120:3000/api";
+const char* externalApi = "http://192.168.0.100:3000/api";
 
 WebServer server(80);
 

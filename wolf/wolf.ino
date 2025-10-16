@@ -187,15 +187,15 @@ CRGB fireworkColors[6] = {
   CRGB(100, 255, 255)   // Бирюзовый
 };
 
-//const char* ssid = "Castle";
-//const char* password = "questquest";
-const char* ssid = "ProducED";
-const char* password = "32744965";
+const char* ssid = "Castle";
+const char* password = "questquest";
+//const char* ssid = "ProducED";
+//const char* password = "32744965";
 
 // Настройки статического IP
 IPAddress local_IP(192, 168, 0, 201);
 
-const char* externalApi = "http://192.168.0.120:3000/api";
+const char* externalApi = "http://192.168.0.100:3000/api";
 
 WebServer server(80);
 

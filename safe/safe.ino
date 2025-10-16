@@ -85,10 +85,10 @@ int gameWonSequenceStep = 0;
 unsigned long lastDebounceTime_1 = 0;
 unsigned long lastDebounceTime_2 = 0;
 unsigned long debounceDelay = 200;
-//const char* ssid = "Castle";
-//const char* password = "questquest";
-const char* ssid = "ProducED";
-const char* password = "32744965";
+const char* ssid = "Castle";
+const char* password = "questquest";
+//const char* ssid = "ProducED";
+//const char* password = "32744965";
 int language = 1;
 unsigned long doorTimer;
 bool hintFlag=1;
@@ -96,7 +96,7 @@ bool hintFlag=1;
 // Настройки статического IP
 IPAddress local_IP(192, 168, 0, 204);   
 
-const char* externalApi = "http://192.168.0.120:3000/api";
+const char* externalApi = "http://192.168.0.100:3000/api";
 
 WebServer server(80);
 // --- Прототипы функций ---

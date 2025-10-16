@@ -126,8 +126,8 @@ $('.ui.dropdown')
 
  //настройка подключения не менять
      output = document.getElementById('output');//присвоим переменной значение элемента с id output 
-     //socket = io.connect('http://' + document.domain + ':' + location.port);//строка подключения сокетов
-	 socket = io.connect('http://127.0.0.1:3000');
+     socket = io.connect('http://' + document.domain + ':' + location.port);//строка подключения сокетов
+	 //socket = io.connect('http://127.0.0.1:3000');
      socket.on('connect', function() {//если наш сервер подключен он отправит сообщение коннектед
          output.innerHTML = 'Connected';// выводим текст conneted
          connected = true;

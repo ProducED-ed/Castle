@@ -867,7 +867,8 @@ def find_arduino_port():
     return None
 ##-----создаем обьект класса serial для работы с uart
 # Замените старую строку ser = serial.Serial('COM3',...) на этот блок:
-arduino_port = find_arduino_port()
+#arduino_port = find_arduino_port()
+arduino_port = '/dev/ttyUSB0'
 if arduino_port:
     ser = serial.Serial(arduino_port, 9600, timeout=1)
 else:

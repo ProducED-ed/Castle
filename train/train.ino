@@ -191,15 +191,15 @@ Encoder enc2(35, 32);
 Encoder enc3(39, 34);
 DFRobotDFPlayerMini myMP3;
 
-//const char* ssid = "Castle";
-//const char* password = "questquest";
-const char* ssid = "ProducED";
-const char* password = "32744965";
+const char* ssid = "Castle";
+const char* password = "questquest";
+//const char* ssid = "ProducED";
+//const char* password = "32744965";
 
 // Настройки статического IP
 IPAddress local_IP(192, 168, 0, 202);
 
-const char* externalApi = "http://192.168.0.120:3000/api";
+const char* externalApi = "http://192.168.0.100:3000/api";
 
 WebServer server(80);
 
