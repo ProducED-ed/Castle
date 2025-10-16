@@ -135,6 +135,7 @@ unsigned long pixelsInterval = 10;
 unsigned long stepsTimer;
 unsigned long libraryOpenTimer;
 unsigned long helpsBankTimer;
+unsigned long rfidCooldownEnd = 0;
 int rainbowCycles = 0;
 int rainbowCycleCycles = 0;
 int repeatCount = 0;
@@ -1991,15 +1992,17 @@ void Oven() {
 
 ////игра с бутылками
 void Bottles() {
-  //boyServo.detach();
+  // Если активен "период охлаждения" после ошибки, выходим из функции
+  if (millis() < rfidCooldownEnd) {
+    return;
+  }
+
   switch (Bottle) {
     case 0:
-      //FirstBottle();
-      SecondBottle();
+      SecondBottle(); // Логика в вашем коде перепутана, оставляю как есть
       break;
     case 1:
-      //SecondBottle();
-      FirstBottle();
+      FirstBottle(); // Логика в вашем коде перепутана, оставляю как есть
       break;
     case 2:
       ThirdBottle();
@@ -2020,7 +2023,7 @@ void FirstBottle() {
     }
     if (result) {
       if (FirstBottleTrue) {
-        Serial.println("second_bottle"); // Сообщение в вашем коде перепутано, оставляю как есть
+        Serial.println("second_bottle");
         CauldronTrueFire();
         FirstBottleTrue = 0;
       }
@@ -2034,14 +2037,13 @@ void FirstBottle() {
     } else {
       if (FirstBottleFalse) {
         Serial.println("mistake_bottle");
-        // --- ИЗМЕНЕНИЕ: Добавлен мгновенный сброс ---
-        FirstBottleFalse = 0; // Флаг, чтобы не спамить сообщениями
-        Bottle = 0;           // Сброс на начальный шаг
-        // Сброс флагов всех шагов
+        FirstBottleFalse = 0;
+        Bottle = 0;
         FirstBottleTrue = 1;
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
+        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
       }
       CauldronMistakeFire();
     }
@@ -2069,7 +2071,7 @@ void SecondBottle() {
     }
     if (result) {
       if (SecondBottleTrue) {
-        Serial.println("first_bottle"); // Сообщение в вашем коде перепутано, оставляю как есть
+        Serial.println("first_bottle");
         CauldronTrueFire();
         SecondBottleTrue = 0;
       }
@@ -2083,20 +2085,20 @@ void SecondBottle() {
     } else {
       if (SecondBottleFalse) {
         Serial.println("mistake_bottle");
-        // --- ИЗМЕНЕНИЕ: Добавлен мгновенный сброс ---
         SecondBottleFalse = 0;
         Bottle = 0;
         FirstBottleTrue = 1;  FirstBottleFalse = 1;
         SecondBottleTrue = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
+        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
       }
       CauldronMistakeFire();
     }
     myRFID.reset_search();
   } else {
     if (millis() - Bottle2Timer >= 100) {
-      SecondBottleFalse = 1; // Просто сбрасываем флаг, логика сброса перенесена
+      SecondBottleFalse = 1;
       if (SecondBottleTrue == 0)
         Bottle++;
       for (int i = 0; i <= 12; i++) {
@@ -2131,20 +2133,20 @@ void ThirdBottle() {
     } else {
       if (ThirdBottleFalse) {
         Serial.println("mistake_bottle");
-        // --- ИЗМЕНЕНИЕ: Добавлен мгновенный сброс ---
         ThirdBottleFalse = 0;
         Bottle = 0;
         FirstBottleTrue = 1;  FirstBottleFalse = 1;
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
+        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
       }
       CauldronMistakeFire();
     }
     myRFID.reset_search();
   } else {
     if (millis() - Bottle3Timer >= 100) {
-      ThirdBottleFalse = 1; // Просто сбрасываем флаг, логика сброса перенесена
+      ThirdBottleFalse = 1;
       if (ThirdBottleTrue == 0)
         Bottle++;
       for (int i = 0; i <= 12; i++) {
@@ -2179,21 +2181,20 @@ void FourBottle() {
     } else {
       if (FourBottleFalse) {
         Serial.println("mistake_bottle");
-        // --- ИЗМЕНЕНИЕ: Добавлен мгновенный сброс ---
         FourBottleFalse = 0;
         Bottle = 0;
         FirstBottleTrue = 1;  FirstBottleFalse = 1;
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;
+        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
       }
       CauldronMistakeFire();
     }
     myRFID.reset_search();
   } else {
     if (millis() - Bottle4Timer >= 100) {
-      FourBottleFalse = 1; // Просто сбрасываем флаг, логика сброса перенесена
-      // На этом шаге нет перехода на следующий уровень (Bottle++), т.к. он последний
+      FourBottleFalse = 1;
       for (int i = 0; i <= 12; i++) {
         CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(250, 250, 250));
       }
