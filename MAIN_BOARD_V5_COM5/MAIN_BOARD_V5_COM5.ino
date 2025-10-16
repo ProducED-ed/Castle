@@ -962,7 +962,7 @@ void HelpHandler(String from) {
     //директор
     if (directorButton.isPress()) {
       if (level == 13) {
-        directorCounter = (directorCounter == 1) ? 0 : 1;
+        directorCounter = (directorCounter == 0) ? 1 : 0;
         Serial.println(directorHints[directorCounter]);
       }
       if (level == 14) {
