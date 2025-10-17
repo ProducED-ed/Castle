@@ -560,7 +560,7 @@ duration   : '1s',
             }
             if(inp === 'cat') {
                 $('#cat').addClass('positive');
-                $('#pedlock_indic').addClass('check');
+                $('#cat_indic').addClass('check');
             }
             if(inp === 'dog') {
                 $('#dog').addClass('positive');
