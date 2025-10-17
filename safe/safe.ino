@@ -93,6 +93,9 @@ int language = 1;
 unsigned long doorTimer;
 bool hintFlag=1;
 
+bool safeEndConfirmed = false;      // Флаг подтверждения от сервера
+unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
+
 // Настройки статического IP
 IPAddress local_IP(192, 168, 0, 204);   
 
@@ -160,6 +163,7 @@ void setup() {
         ledOff();
         Serial.println("Команда 'start': подсветка выключена.");
         currentState = AWAIT_GAME;
+		safeEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if(body == "\"restart\""){
         ledOn();
@@ -167,11 +171,13 @@ void setup() {
         myDFPlayer.stop();
        
         currentState = IDLE;
+		safeEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if(body == "\"ready\""){
         ledOff();
         myDFPlayer.stop();
         currentState = IDLE;
+		safeEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if(body == "\"game\""){
         ledOn();
@@ -183,11 +189,14 @@ void setup() {
         Serial.println("Состояние: GAME_ACTIVE");
       }
       if(body == "\"skip\""){
-        // --- ИЗМЕНЕНИЕ ---
         Serial.println("Принудительный переход в GAME_WON.");
         startGameWonSequence();
       }
 
+	  // Добавляем обработку подтверждения от сервера
+      if(body == "\"confirm_safe_end\"") {
+        safeEndConfirmed = true;
+      }
       if(body == "\"open_door\""){
         openLocker();
         // ИЗМЕНЕНИЕ 1: Добавлено открытие замка
@@ -355,11 +364,17 @@ void loop() {
       // --- ИЗМЕНЕНИЕ ---
       if (digitalRead(BALL_SENSOR_PIN) == HIGH) {
         Serial.println("Датчик пересечения сработал! Переход в GAME_WON.");
-        SendData();
         startGameWonSequence();
       }
       break;
     case GAME_WON:
+      // Периодически отправляем, пока не получим подтверждение
+      if (!safeEndConfirmed) {
+        if (millis() - safeEndSendTimer > 1000) {
+          SendData();
+          safeEndSendTimer = millis();
+        }
+      }
       if (digitalRead(REED_SWITCH_2_PIN) == LOW && gameWonSequenceStep >= 4 && (millis() - lastDebounceTime_2) > debounceDelay) {
         if (hintFlag){
           if(language == 1){
@@ -500,6 +515,8 @@ void startGameWonSequence() {
   currentState = GAME_WON;
   gameWonSequenceStep = 1;
   myDFPlayer.stop();
+  // Начинаем процесс отправки данных
+  safeEndSendTimer = millis(); // Устанавливаем таймер для немедленной первой отправки
   
   // В зависимости от языка, запускаем нужный трек 29A
   if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_RU); }
@@ -535,7 +552,6 @@ void SendData(){
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
-    
     // Пример POST-запроса
     String payload = "{\"safe\":\"end\"}";
     int httpCode = http.POST(payload);
