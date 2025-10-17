@@ -2043,7 +2043,7 @@ void FirstBottle() {
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
-        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
+        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
       }
       CauldronMistakeFire();
     }
@@ -2091,7 +2091,7 @@ void SecondBottle() {
         SecondBottleTrue = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
-        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
+        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
       }
       CauldronMistakeFire();
     }
@@ -2139,7 +2139,7 @@ void ThirdBottle() {
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
-        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
+        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
       }
       CauldronMistakeFire();
     }
@@ -2187,7 +2187,7 @@ void FourBottle() {
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;
-        rfidCooldownEnd = millis() + 250; // Запускаем "охлаждение" на 250 мс
+        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
       }
       CauldronMistakeFire();
     }
