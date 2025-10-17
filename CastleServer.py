@@ -58,6 +58,7 @@ fireFlag = 0
 fire2Flag = 0
 fire0Flag = 0
 last_story_55_play_time = 0
+is_processing_ready = False
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 pygame.mixer.pre_init(44100, -16, 2, 2048)
@@ -1575,6 +1576,7 @@ def tmr(res):
      global hintCount
      global rating
      global star
+     global is_processing_ready
      print(res)
     #----на всякий случай отправим данные о выборе языка 
      if language==1: 
@@ -1659,6 +1661,12 @@ def tmr(res):
           
      #----если нажало на демо    
      if res =='ready':
+         if is_processing_ready:
+             print("INFO: 'Ready' command is already being processed.")
+             return # Выходим, если команда уже в обработке
+
+         is_processing_ready = True
+         socketio.emit('level', 'ready_processing') # Команда для UI, чтобы заблокировать кнопку
           #-----перейдет только если был в рестарте или просто запущен
          print("ready")
          if go == 2 or go == 0:
@@ -1689,8 +1697,12 @@ def tmr(res):
                     socklist.append('start_error')
                     final_string = ', '.join(str(device) for device in devices)
                     socklist.append(final_string)
-                    socketio.emit('devices', final_string,to=None)       
-         
+                    socketio.emit('devices', final_string,to=None)
+                    
+         # --- НАЧАЛО ИЗМЕНЕНИЯ: Снимаем блокировку в конце ---
+         socketio.emit('level', 'ready_finished') # Команда для UI, чтобы разблокировать кнопку
+         is_processing_ready = False
+         # --- КОНЕЦ ИЗМЕНЕНИЯ ---
 #данный декоратор срабатывает каждые 100 мс сюда заносятся файлы которые очень легко могут потеряться например кнопки если быстро нажимать и отправляем данные по игре
 @socketio.on('Game')
 def checkQuesst(receivedData):
