@@ -1271,6 +1271,7 @@ void GaletGame() {
       startSteps = 1;
     }
     if (buff == "student_hide") {
+	  boyServo.attach(49);
       digitalWrite(HallLight, HIGH);
       digitalWrite(MansardLight, HIGH);
       boyServo.write(0);
