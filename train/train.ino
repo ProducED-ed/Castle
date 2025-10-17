@@ -186,6 +186,11 @@ bool resumeEngineSound = false;
 
 String mapState;
 
+// Флаг для контроля отправки сообщения о завершении игры с поездом
+bool trainEndConfirmed = false;
+// Таймер для периодической отправки этого сообщения
+unsigned long trainEndSendTimer = 0;
+
 Encoder enc1(33, 25);
 Encoder enc2(35, 32);
 Encoder enc3(39, 34);
@@ -401,6 +406,10 @@ void setup() {
   server.on("/data", HTTP_POST, []() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
+      // Добавляем обработку подтверждения от сервера
+      if (body == "\"confirm_train_end\"") {
+        trainEndConfirmed = true; // Получили подтверждение, прекращаем отправку
+      }
       if (body == "\"start\"") {
         OUTPUTS.digitalWrite(0, HIGH);
         myMP3.stop();
@@ -420,6 +429,7 @@ void setup() {
         state = 0;
         FutureLeds[4] = -1;
         hintFlag = 1;
+		trainEndConfirmed = false; // Сбрасываем флаг
       }
       if (body == "\"language_1\"") {
         language = 1;
@@ -458,6 +468,7 @@ void setup() {
         state = 0;
         FastLED.show();
         hintFlag = 0;
+		trainEndConfirmed = false; // Сбрасываем флаг
       }
 
       if (body == "\"projector\"") {
@@ -474,7 +485,6 @@ void setup() {
       }
       if (body == "\"skip\"") {
         state = 3;
-        SendData("{\"train\":\"end\"}");
         if (language == 1)
           myMP3.playMp3Folder(TRACK_STORY_16_RU);
         if (language == 2)
@@ -542,6 +552,7 @@ void setup() {
         ghostFlag = false;
         isSendOut = false;
         mapState = "";
+		trainEndConfirmed = false; // Сбрасываем флаг
         newStateAvailable = false;
         _secondsTimer = 0;
         _clockTimer = 0;
@@ -1134,34 +1145,27 @@ void loop() {
         TrainGame();
         break;
       case 3:
-        if (!isTrainEnd) {
-          FutureLeds[13] = -1;
-          ActiveLeds[13] = 22;
-          DisableLeds[0] = 9;
-          ActiveLeds[0] = -1;
-          ClickLeds[0] = -1;
-          digitalWrite(TUNNEL_LED, HIGH);
-          for (int i = 1; i < 4; i++) {
-            leds1[i] = CHSV(initialHue + (i * 7), 255, 255);
+        // Пока не получим подтверждение от сервера, отправляем сообщение раз в секунду
+        if (!trainEndConfirmed) {
+          if (millis() - trainEndSendTimer > 1000) { // Интервал отправки - 1 секунда
+            SendData("{\"train\":\"end\"}");
+            trainEndSendTimer = millis(); // Сбрасываем таймер
           }
-          SendData("{\"train\":\"end\"}");
-          FastLED.show();
-          EVERY_N_MILLISECONDS(30) {
-            FastLED.show();
-            initialHue++;
-          }
-        } else {
-          DisableLeds[0] = 9;
-          ActiveLeds[0] = -1;
-          ClickLeds[0] = -1;
-          leds1[0] = CRGB(0, 128, 0);
-          FastLED.show();
+        }
 
-          FutureLeds[13] = -1;
-          ActiveLeds[13] = 22;
-          digitalWrite(TUNNEL_LED, HIGH);
-          hint_counter = 0;
-          state = 4;
+        // Этот код для анимации светодиодов будет работать постоянно, пока state = 3
+        FutureLeds[13] = -1;
+        ActiveLeds[13] = 22;
+        DisableLeds[0] = 9;
+        ActiveLeds[0] = -1;
+        ClickLeds[0] = -1;
+        digitalWrite(TUNNEL_LED, HIGH);
+        for (int i = 1; i < 4; i++) {
+          leds1[i] = CHSV(initialHue + (i * 7), 255, 255);
+        }
+        EVERY_N_MILLISECONDS(30) {
+          FastLED.show();
+          initialHue++;
         }
         break;
       case 4:
