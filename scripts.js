@@ -1133,6 +1133,14 @@ duration   : '1s',
                 $('#Start').removeClass('disabled');
                 restflag = 0;
             }
+			// --- НАЧАЛО ИЗМЕНЕНИЯ: Блокировка и разблокировка кнопки "Ready" ---
+            if(inp === 'ready_processing') {
+                $('#Ready').addClass('disabled loading'); // Блокируем кнопку и добавляем анимацию загрузки
+            }
+            if(inp === 'ready_finished') {
+                $('#Ready').removeClass('disabled loading'); // Снимаем блокировку и анимацию
+            }
+            // --- КОНЕЦ ИЗМЕНЕНИЯ ---
         }
     });
 
