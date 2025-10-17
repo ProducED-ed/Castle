@@ -167,6 +167,8 @@ bool MP3Flag = 1;
 bool TRACK_Flag = 1;
 
 int hint_counter = 0;
+bool wolfEndConfirmed = false;      // Флаг подтверждения от сервера
+unsigned long wolfEndSendTimer = 0; // Таймер для периодической отправки
 
 // --- Переменные для фонового затухания звука ---
 bool isFadingOut = false;
@@ -207,7 +209,6 @@ void WolfSendData() {
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
-
     // Пример POST-запроса
     String payload = "{\"wolf\":\"end\"}";
     int httpCode = http.POST(payload);
@@ -372,17 +373,23 @@ void setup() {
         TRACK_Flag = 1;
         cloudFiPlaying = false;
         fireworkActive = false;
+		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if (body == "\"start\"") {
         state = 0;
         doorRepeatActive = false;
         hintFlag = 1;
         myMP3.stop();
+		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if (body == "\"ready\"") {
         state = 0;
         doorRepeatActive = false;
         myMP3.stop();
+		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+      }
+	  if (body == "\"confirm_wolf_end\"") {
+        wolfEndConfirmed = true;
       }
       if (body == "\"language_1\"") {
         language = 1;
@@ -415,7 +422,9 @@ void setup() {
         OUTPUTS.digitalWrite(three1Led, HIGH);
         OUTPUTS.digitalWrite(three2Led, HIGH);
         OUTPUTS.digitalWrite(three3Led, HIGH);
-        state = 6;
+        // state = 6; // Убираем немедленный переход
+        state = 5; // Переходим в состояние отправки
+        wolfEndSendTimer = millis(); // Готовимся к отправке
         fill_solid(wolfLed, 10, CRGB(255, 255, 255));
         fill_solid(threeLed, 10, CRGB(255, 255, 255));
         FastLED.show();
@@ -701,8 +710,22 @@ void loop() {
     case 4:
       WolfGame();
       break;
-    case 5:
-      OpenDoor();
+	case 5:
+      // Новое состояние для надежной отправки данных
+      if (!wolfEndConfirmed) {
+        if (millis() - wolfEndSendTimer > 1000) {
+          WolfSendData();
+          wolfEndSendTimer = millis();
+        }
+      } else {
+        // Как только получили подтверждение, открываем замок и переходим дальше
+        OpenLock(SH1);
+        state = 6;
+        doorRepeatActive = true;
+        repeatDoorTimer = millis();
+      }
+      auroraEffect(); // Продолжаем анимацию
+      FastLED.show();
       break;
     case 6:
       if (doorRepeatActive) {
@@ -902,7 +925,7 @@ void WolfGame() {
   }
 
   if (wolfGerk.isHold()) {
-    state++;
+    // state++; // Убираем немедленный переход
     doorTimer = millis();
     auroraEffect();
     FastLED.show();
@@ -914,6 +937,8 @@ void WolfGame() {
     if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
     if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
     if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+	state = 5; // Переходим в новое состояние отправки
+    wolfEndSendTimer = millis(); // Готовимся к отправке
   }
 }
 
