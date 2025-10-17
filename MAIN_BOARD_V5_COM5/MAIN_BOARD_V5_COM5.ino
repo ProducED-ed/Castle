@@ -680,7 +680,8 @@ void loop() {
       break;
     case 21:
       if (Serial.available()) {
-        String buff = Serial.readString();
+        String buff = Serial.readStringUntil('\n');
+    buff.trim();
         if (buff == "restart") {
           OpenAll();
           RestOn();
@@ -720,7 +721,8 @@ void PowerOn() {
     requestFlag = 1;
   }
   if (Serial.available()) {  // есть что на вход?
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     // Serial.println(buff);
     if (buff == "start") {
       ////////рассылка всем башня
@@ -1057,7 +1059,8 @@ void StartDoor() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     //int similarity = stringSimilarity(buff, "owl_end");
     if (buff == "soundon") {
       flagSound = 0;
@@ -1094,7 +1097,8 @@ void ClockGame() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "first_clock") {
       Serial.println("clock1");
       digitalWrite(UfHallLight, HIGH);
@@ -1138,7 +1142,8 @@ void Clock2Game() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "second_clock") {
       Serial.println("clock2");
       //OpenLock(MansardDoor);
@@ -1259,7 +1264,8 @@ void GaletGame() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "after_story_clock2") {
       startSteps = 1;
     }
@@ -1308,7 +1314,8 @@ void ThreeGame() {
     Serial.println("three_game_end");
   }
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "suitcase_end") {
       suitcaseFlag = 1;
     }
@@ -1387,7 +1394,8 @@ void Flags() {
     level++;
   }
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "m2lck") {
       Serial.println("flagsendmr");
       level++;
@@ -1545,7 +1553,8 @@ void MapGame() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "key") {
       game = "key";
       mySerial.println("out");
@@ -1858,7 +1867,8 @@ void Oven() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "open_workshop") {
       Serial1.println("open_workshop");
     }
@@ -2334,7 +2344,8 @@ void Basket() {
   }
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "basket") {
       Serial.println("win");
       Serial2.println("win");
@@ -2381,6 +2392,17 @@ void Library() {
         
       }
       break;
+
+    // Добавляем новое состояние для ожидания третьего стука игрока
+    case 5:
+      // Ждем, пока игрок постучит по датчику
+      if (analogRead(KnockSens) <= threshold) {
+          Serial.println("punch"); // Отправляем подтверждение стука на сервер
+          ghostState = 6;          // Теперь переходим к финальной загадке со стуком
+          delay(300);              // Небольшая задержка для антидребезга датчика
+      }
+      break;
+
     case 6:
       if (millis() - KnockInterval >= 3000) {
         if (millis() - KnockIntervalLow >= 100) {
@@ -2414,7 +2436,8 @@ void Library() {
 
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "rrt3lck") {
       //OpenLock(LibraryDoor);
       digitalWrite(KnockSol, LOW);
@@ -2454,7 +2477,7 @@ void Library() {
       //поезд
       if (ghostState == 4) {
         Serial.println("story_42");
-        ghostState = 6;
+        ghostState = 5;
       }
       if(ghostState<5)
         ghostState++;
@@ -2477,7 +2500,8 @@ void LibraryGame() {
     level++;
   }
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "open_library") {
       OpenLock(LibraryDoor);
       digitalWrite(LibraryLight, HIGH);
@@ -2536,7 +2560,8 @@ Serial.println("door_basket");
 
   // Добавлен обработчик команд от сервера, чтобы принять команду "student_hide"
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "student_hide") {
       boyServo.attach(49);
       boyServo.write(0); // Поворачиваем сервопривод в скрытое положение
@@ -2707,7 +2732,8 @@ void CentralTowerGameDown() {
 
   // Обработка Serial команд (оставлено без изменений)
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "spell") {
       OpenLock(HightTowerDoor);
       digitalWrite(TorchLight, HIGH);
@@ -2761,7 +2787,8 @@ void OpenBank() {
     level++;
   }
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "open_bank_door") {
       CandleStrip.setPixelColor(0, CandleStrip.Color(0, 0, 0));
       CandleStrip.show();
@@ -2808,7 +2835,8 @@ void Scrolls() {
       break;
   }
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     Serial.println(buff);
     if (buff == "open_safe") {
       OpenLock(BankStashDoor);
@@ -3301,7 +3329,8 @@ void MemoryRoom() {
       break;
   }
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "memory_room_end") {
       Serial.println("memory_room_end");
       for (long firstPixelHue = 0; firstPixelHue < 2 * 65536; firstPixelHue += 556) {
@@ -3359,7 +3388,8 @@ void CrimeHelp() {
 
 
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "basket") {
       Serial.println("win");
       Serial2.println("win");
@@ -3390,7 +3420,8 @@ void FinalPresentation() {
   digitalWrite(Fireworks, HIGH);
   MagicEffect();
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "restart") {
       OpenAll();
       RestOn();
@@ -4844,7 +4875,8 @@ void RestOn() {
 
 void Restart() {
   if (Serial.available()) {
-    String buff = Serial.readString();
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
     if (buff == "open_mansard_door") {
       OpenDoor(MansardDoor);
     }
