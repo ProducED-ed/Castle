@@ -732,15 +732,8 @@ void PowerOn() {
       delay(100);
       mySerial.println("start");
       Serial1.println("start");
-      delay(1000);
-      Serial1.println("start");
-      Serial2.println("start");
-      delay(1000);
       Serial2.println("start");
       Serial3.println("start");
-      delay(1000);
-      Serial3.println("start");
-      mySerial.println("start");
       delay(1000);
       mySerial.println("start");
       Serial.println("startgo");
@@ -1593,24 +1586,18 @@ void MapGame() {
 
     if (buff == "pedlock") {
       Serial3.println("skip_padlock");
-      Serial.println("door_dog");
     }
 
     if (buff == "dog") {
       Serial3.println("skip_dog");
-      Serial.println("dog_lock");
-      isDogEnd = 1;
     }
 
     if (buff == "owl_door") {
       mySerial.println("owl_door");
-      Serial.println("door_owl");
     }
 
     if (buff == "owl_skip") {
       mySerial.println("skip");
-      Serial.println("owl_end");
-      isOwlEnd = 1;
     }
 
     if (buff == "open_potions_stash") {
@@ -1627,7 +1614,6 @@ void MapGame() {
     }
 
     if (buff == "cat") {
-      Serial.println("door_witch");
       OpenLock(PotionsRoomDoor);
       activePotionRoom = 1;
       ////дописать свет
@@ -1644,12 +1630,9 @@ void MapGame() {
 
     if (buff == "mine") {
       Serial2.println("mine");
-      Serial.println("door_cave");
     }
     if (buff == "troll") {
       Serial2.println("troll");
-      Serial.println("cave_end");
-      isTrollEnd = 1;
     }
 
     if (buff == "train") {
