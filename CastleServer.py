@@ -1913,7 +1913,7 @@ def serial():
           # ИЗМЕНЕНИЕ: Добавляем блок для отправки сообщений из очереди
           try:
               message_to_send = serial_write_queue.get_nowait()
-              ser.write(str.encode(message_to_send))
+              ser.write(str.encode(message_to_send + '\n'))
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
           # КОНЕЦ ИЗМЕНЕНИЯ
