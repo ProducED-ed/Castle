@@ -1386,18 +1386,21 @@ def handle_data():
           serial_write_queue.put('suitcase_end')
           socketio.emit('level', 'suitcase',to=None)
           socklist.append('suitcase')
+          send_esp32_command(ESP32_API_SUITCASE_URL, "confirm_suitcase_end")
         if 'safe' in data and data['safe'] == 'end':
           print("safe")
           send_esp32_command(ESP32_API_TRAIN_URL, "safe_finish")
           serial_write_queue.put('safe_end')
           socketio.emit('level', 'animals',to=None)
           socklist.append('animals')
+          send_esp32_command(ESP32_API_SAFE_URL, "confirm_safe_end")
         if 'wolf' in data and data['wolf'] == 'end':
           print("wolf")
           send_esp32_command(ESP32_API_TRAIN_URL, "wolf_finish")
           serial_write_queue.put('wolf_end')
           socketio.emit('level', 'wolf',to=None)
           socklist.append('wolf')
+          send_esp32_command(ESP32_API_WOLF_URL, "confirm_wolf_end")
 
         if 'map' in data and data['map'] == 'owl':
           print("owl")
