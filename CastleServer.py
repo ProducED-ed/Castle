@@ -25,6 +25,10 @@ from subprocess import call
 import os
 import requests
 from requests.exceptions import RequestException
+# ИЗМЕНЕНИЕ: Добавляем очередь для безопасной работы с serial портом
+import eventlet.queue
+serial_write_queue = eventlet.queue.Queue()
+# КОНЕЦ ИЗМЕНЕНИЯ
 #----переменные 
 ESP32_IP_WOLF = "192.168.0.201" 
 ESP32_IP_TRAIN = "192.168.0.202" 
@@ -856,24 +860,18 @@ voiceLevel = a3
 effectLevel = a2
 phoneLevel = float(a1)
 
-def find_arduino_port():
-    """Ищет порт, к которому подключено устройство с драйвером CH340."""
-    ports = serial.tools.list_ports.comports()
-    for port in ports:
-        # Драйвер CH340 обычно содержит "CH340" в описании
-        if "CH340" in port.description.upper():
-            print(f"INFO: Found Arduino on port {port.device}")
-            return port.device
-    return None
-##-----создаем обьект класса serial для работы с uart
-# Замените старую строку ser = serial.Serial('COM3',...) на этот блок:
-#arduino_port = find_arduino_port()
-arduino_port = '/dev/ttyUSB0'
-if arduino_port:
-    ser = serial.Serial(arduino_port, 9600, timeout=1)
-else:
-    print("FATAL: Arduino with CH340 driver not found. Check connection.")
-    exit() # Завершаем работу, если контроллер не найден
+# ИЗМЕНЕНИЕ: Убираем автопоиск и жёстко прописываем порт Arduino
+try:
+    # Указываем порт, найденный через утилиту serial.tools.list_ports
+    ARDUINO_PORT = '/dev/ttyUSB0' 
+    ser = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
+    print(f"INFO: Successfully connected to Arduino on port {ARDUINO_PORT}")
+except serial.SerialException as e:
+    print(f"FATAL: Could not open serial port {ARDUINO_PORT}. Error: {e}")
+    print("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
+    exit() # Завершаем работу, если не удалось подключиться
+# КОНЕЦ ИЗМЕНЕНИЯ
+
 #---конфиг сервера
 Payload.max_decode_packets = 200
 #async_mode = None  
@@ -1025,7 +1023,7 @@ def Remote(check):
      if check == 'off':
              call("sudo shutdown -h now", shell=True) 
      if check == 'open_stash':
-             ser.write(str.encode('open_stash'))    
+             serial_write_queue.put('open_stash')
      #есть отдельная кнопка которая открывает все тайники на меге обрабатывается и отправляет башням
      # -------если пришло сообщение startgo в serial игра начинается и мы можем управлять квесто           
      if starts == 1:
@@ -1034,7 +1032,7 @@ def Remote(check):
              #----отправли на клиента
              socketio.emit('level', 'first_clock',to=None)
              #-----отправили на мегу
-             ser.write(str.encode('first_clock'))
+             serial_write_queue.put('first_clock')
              #----добавили в историю
              socklist.append('first_clock')
              time.sleep(3)
@@ -1050,7 +1048,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('second_clock')
              #----отправить на мегу
-             ser.write(str.encode('second_clock'))
+             serial_write_queue.put('second_clock')
              name = "story_2"  
              #---ждем 3 секунды
              time.sleep(3) 
@@ -1063,7 +1061,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('galet_on')
              #----отправить на мегу
-             ser.write(str.encode('open_mansard_door'))
+             serial_write_queue.put('open_mansard_door')
              name = "story_2"  
              #---ждем 3 секунды
              time.sleep(3) 
@@ -1080,7 +1078,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('suitcase')
              #----отправить на мегу
-             ser.write(str.encode('suitcase_end'))
+             serial_write_queue.put('suitcase_end')
              name = "story_2" 
              send_esp32_command(ESP32_API_SUITCASE_URL, "skip")
              send_esp32_command(ESP32_API_TRAIN_URL, "case_finish")
@@ -1090,7 +1088,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('animals')
              #----отправить на мегу
-             ser.write(str.encode('safe_end'))
+             serial_write_queue.put('safe_end')
              name = "story_2"  
              send_esp32_command(ESP32_API_SAFE_URL, "skip")
              send_esp32_command(ESP32_API_TRAIN_URL, "safe_finish")
@@ -1100,7 +1098,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('wolf')
              #----отправить на мегу
-             ser.write(str.encode('wolf_end'))
+             serial_write_queue.put('wolf_end')
              name = "story_2"  
              send_esp32_command(ESP32_API_WOLF_URL, "skip")
              send_esp32_command(ESP32_API_TRAIN_URL, "wolf_finish")
@@ -1117,7 +1115,7 @@ def Remote(check):
              socklist.append('flag3_on')
              socklist.append('flag4_on')
              #-----отправили на мегу
-             ser.write(str.encode('m2lck'))
+             serial_write_queue.put('m2lck')
 
              socketio.emit('level', 'active_owl',to=None)
              socklist.append('active_owl')
@@ -1133,7 +1131,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('open_bank_door')
              #----отправить на мегу
-             ser.write(str.encode('open_bank_door'))
+             serial_write_queue.put('open_bank_door')
              name = "story_2"     
              time.sleep(3) 
              #-----активируем блок с флагами
@@ -1145,7 +1143,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('pedlock')
              #----отправить на мегу
-             ser.write(str.encode('pedlock'))
+             serial_write_queue.put('pedlock')
              name = "story_2"     
              time.sleep(3) 
              #-----активируем блок с флагами
@@ -1157,7 +1155,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('dog')
              #----отправить на мегу
-             ser.write(str.encode('dog'))
+             serial_write_queue.put('dog')
              name = "story_2"
         if check == 'cat':
              #-----отправка клиенту 
@@ -1165,7 +1163,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('cat')
              #----отправить на мегу
-             ser.write(str.encode('cat'))
+             serial_write_queue.put('cat')
              name = "story_2"     
              time.sleep(3) 
              #-----активируем блок с флагами
@@ -1177,7 +1175,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('open_potions_stash')
              #----отправить на мегу
-             ser.write(str.encode('open_potions_stash'))
+             serial_write_queue.put('open_potions_stash')
              name = "story_2"   
         if check == 'owl':
              #-----отправка клиенту 
@@ -1186,7 +1184,7 @@ def Remote(check):
              socklist.append('owl')
              #send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
              #----отправить на мегу
-             ser.write(str.encode('owl_door'))
+             serial_write_queue.put('owl_door')
              name = "story_2"     
              time.sleep(3) 
              #-----активируем блок с флагами
@@ -1198,7 +1196,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('owls')
              #----отправить на мегу
-             ser.write(str.encode('owl_skip'))
+             serial_write_queue.put('owl_skip')
              name = "story_2"  
         if check == 'projector':
              #-----отправка клиенту 
@@ -1219,7 +1217,7 @@ def Remote(check):
              socklist.append('train')
              send_esp32_command(ESP32_API_TRAIN_URL, "skip")
              #----отправить на мегу
-             ser.write(str.encode('train_end'))
+             serial_write_queue.put('train_end')
              name = "story_2" 
              socketio.emit('level', 'active_mine',to=None)
              socklist.append('active_mine')
@@ -1229,7 +1227,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('mine')
              #----отправить на мегу
-             ser.write(str.encode('mine'))
+             serial_write_queue.put('mine')
              name = "story_2" 
              socketio.emit('level', 'active_troll',to=None)
              socklist.append('active_troll')
@@ -1239,7 +1237,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('troll')
              #----отправить на мегу
-             ser.write(str.encode('troll'))
+             serial_write_queue.put('troll')
              name = "story_2" 
              socketio.emit('level', 'active_open_bank_door',to=None)
              socklist.append('active_open_bank_door')                        
@@ -1250,7 +1248,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('safe')
              #----отправить на мегу
-             ser.write(str.encode('safe'))
+             serial_write_queue.put('safe')
              name = "story_2"     
              time.sleep(5) 
              #-----активируем блок с флагами
@@ -1262,7 +1260,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('workshop')
              #----отправить на мегу
-             ser.write(str.encode('workshop'))
+             serial_write_queue.put('workshop')
              name = "story_2"     
              time.sleep(5) 
              #-----активируем блок с флагами
@@ -1274,7 +1272,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('ghost')
              #----отправить на мегу
-             ser.write(str.encode('ghost_skip'))
+             serial_write_queue.put('ghost_skip')
              name = "story_2" 
         if check == 'cup':
              #-----отправка клиенту 
@@ -1282,7 +1280,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('cup')
              #----отправить на мегу
-             ser.write(str.encode('cup'))
+             serial_write_queue.put('cup')
              name = "story_2"
              time.sleep(5) 
              #-----активируем блок с флагами
@@ -1294,7 +1292,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('spell')
              #----отправить на мегу
-             ser.write(str.encode('spell'))
+             serial_write_queue.put('spell')
              name = "story_2"
              time.sleep(5) 
              #-----активируем блок с флагами
@@ -1306,7 +1304,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('crystals')
              #----отправить на мегу
-             ser.write(str.encode('crystals'))
+             serial_write_queue.put('crystals')
              name = "story_2" 
         if check == 'open_memory_stash':
              send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
@@ -1321,7 +1319,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('third_level')
              #----отправить на мегу
-             ser.write(str.encode('memory_room_end'))
+             serial_write_queue.put('memory_room_end')
                          
         if check == 'basket':
              #-----отправка клиенту 
@@ -1329,7 +1327,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('basket')
              #----отправить на мегу
-             ser.write(str.encode('basket'))
+             serial_write_queue.put('basket')
              send_esp32_command(ESP32_API_WOLF_URL, "firework")
              send_esp32_command(ESP32_API_TRAIN_URL, "firework")
              send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
@@ -1339,40 +1337,40 @@ def Remote(check):
      #------- обработка в режиме рестарта   
      if go == 2:
         if check=='open_mansard_door':
-             ser.write(str.encode('open_mansard_door'))
+             serial_write_queue.put('open_mansard_door')
         if check=='suitcase': 
              send_esp32_command(ESP32_API_SUITCASE_URL, "open_door")
-             #ser.write(str.encode('m2lck'))
+             #serial_write_queue.put('m2lck')
         if check=='animals': 
              send_esp32_command(ESP32_API_SAFE_URL, "open_door")
-             #ser.write(str.encode('rrt3lck')) 
+             #serial_write_queue.put('rrt3lck')
         if check=='wolf':
              send_esp32_command(ESP32_API_WOLF_URL, "open_door")
-             #ser.write(str.encode('rlt2lck')) 
+             #serial_write_queue.put('rlt2lck')
         if check=='open_bank_door': 
-             ser.write(str.encode('open_bank_door'))   
+             serial_write_queue.put('open_bank_door')
         if check=='pedlock': 
-             ser.write(str.encode('open_dog_door'))
+             serial_write_queue.put('open_dog_door')
         if check=='cat': 
-             ser.write(str.encode('open_potion_door'))   
+             serial_write_queue.put('open_potion_door')
         if check=='owl':
-             ser.write(str.encode('open_owl_door')) 
+             serial_write_queue.put('open_owl_door')
         if check=='mine': 
-             ser.write(str.encode('open_mine_door'))
+             serial_write_queue.put('open_mine_door')
         if check=='safe':
-             ser.write(str.encode('open_safe_door')) 
+             serial_write_queue.put('open_safe_door')
         if check=='workshop': 
-             ser.write(str.encode('open_workshop_door'))  
+             serial_write_queue.put('open_workshop_door')
         if check=='ghost': 
-             ser.write(str.encode('open_library_door')) 
+             serial_write_queue.put('open_library_door')
         if check=='cup':
-             ser.write(str.encode('open_high_tower_door')) 
+             serial_write_queue.put('open_high_tower_door')
         if check=='spell':
-             ser.write(str.encode('open_low_tower_door'))
+             serial_write_queue.put('open_low_tower_door')
         if check=='crystals':
-             ser.write(str.encode('open_memory_door'))
+             serial_write_queue.put('open_memory_door')
         if check=='basket':
-             ser.write(str.encode('open_basket_door'))     
+             serial_write_queue.put('open_basket_door')
 
 
 @app.route('/api', methods=['GET', 'POST'])
@@ -1385,25 +1383,25 @@ def handle_data():
         if 'suitcase' in data and data['suitcase'] == 'end':
           print("suitcase")
           send_esp32_command(ESP32_API_TRAIN_URL, "case_finish")
-          ser.write(str.encode('suitcase_end'))
+          serial_write_queue.put('suitcase_end')
           socketio.emit('level', 'suitcase',to=None)
           socklist.append('suitcase')
         if 'safe' in data and data['safe'] == 'end':
           print("safe")
           send_esp32_command(ESP32_API_TRAIN_URL, "safe_finish")
-          ser.write(str.encode('safe_end')) 
+          serial_write_queue.put('safe_end')
           socketio.emit('level', 'animals',to=None)
           socklist.append('animals')
         if 'wolf' in data and data['wolf'] == 'end':
           print("wolf")
           send_esp32_command(ESP32_API_TRAIN_URL, "wolf_finish")
-          ser.write(str.encode('wolf_end')) 
+          serial_write_queue.put('wolf_end')
           socketio.emit('level', 'wolf',to=None)
           socklist.append('wolf')
 
         if 'map' in data and data['map'] == 'owl':
           print("owl")
-          ser.write(str.encode('owl'))
+          serial_write_queue.put('owl')
           time.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True: 
@@ -1428,7 +1426,7 @@ def handle_data():
 
         if 'map' in data and data['map'] == 'fish':
           print("fish")
-          ser.write(str.encode('fish'))
+          serial_write_queue.put('fish')
           time.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True: 
@@ -1453,7 +1451,7 @@ def handle_data():
 
         if 'map' in data and data['map'] == 'key':
           print("key")
-          ser.write(str.encode('key'))
+          serial_write_queue.put('key')
           time.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True: 
@@ -1477,7 +1475,7 @@ def handle_data():
 
         if 'map' in data and data['map'] == 'train':
           print("train")
-          ser.write(str.encode('train'))
+          serial_write_queue.put('train')
           time.sleep(1.0) 
           play_effect(map_click)
           #while channel2.get_busy()==True: 
@@ -1501,11 +1499,13 @@ def handle_data():
 
         if 'train' in data and data['train'] == 'end':
             print("train_end")
-            ser.write(str.encode('train_end'))
+            serial_write_queue.put('train_end')
             socketio.emit('level', 'train',to=None)
             socklist.append('train')
             socketio.emit('level', 'active_mine',to=None)
             socklist.append('active_mine')
+            # Отправляем подтверждение обратно на ESP32, чтобы он перестал слать запросы
+            send_esp32_command(ESP32_API_TRAIN_URL, "confirm_train_end")
 
         if 'projector' in data and data['projector'] == 'end':
             print("projector")
@@ -1516,12 +1516,12 @@ def handle_data():
 
         if 'train' in data and data['train'] == 'skin':
             print("skin")
-            ser.write(str.encode('skin'))
+            serial_write_queue.put('skin')
             play_effect(item_find)    
   
         if 'map' in data and data['map'] == 'out':
           print("out")
-          ser.write(str.encode('out'))
+          serial_write_queue.put('out')
           play_effect(map_out)
           while channel2.get_busy()==True: 
              time.sleep(0.1) 
@@ -1544,7 +1544,7 @@ def handle_data():
 
         if 'ghost' in data and data['ghost'] == 'end':
             print("ghost_map")
-            ser.write(str.encode('ghost'))  
+            serial_write_queue.put('ghost')
                  
 
         # Можно отправить данные на ESP32
@@ -1622,13 +1622,13 @@ def tmr(res):
              print("start")
              #----очищаем историю 
              socklist.clear() 
-             ser.write(str.encode('start')) 
+             serial_write_queue.put('start')
              go=1
              starts = 1
         
      #----нажали на рестарт   
      if res =='restart':
-         ser.write(str.encode('restart'))
+         serial_write_queue.put('restart')
          send_esp32_command(ESP32_API_WOLF_URL, "restart")
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
@@ -1661,7 +1661,7 @@ def tmr(res):
          if go == 2 or go == 0:
                if test_esp32() == True:
                     print("ready")
-                    ser.write(str.encode('ready')) 
+                    serial_write_queue.put('ready')
                     send_esp32_command(ESP32_API_WOLF_URL, "ready")
                     send_esp32_command(ESP32_API_TRAIN_URL, "ready")
                     send_esp32_command(ESP32_API_SUITCASE_URL, "ready")
@@ -1895,6 +1895,13 @@ def serial():
      #алгоритм на понижение громкости работает хитро сорян за имена переменных лучше его не трогай намучаешься капец сам делал долго связано в округлением данных float и урпавлением во время эффекта
      #если нужно быстрее или медленне измени значения sleep
      while True:
+          # ИЗМЕНЕНИЕ: Добавляем блок для отправки сообщений из очереди
+          try:
+              message_to_send = serial_write_queue.get_nowait()
+              ser.write(str.encode(message_to_send))
+          except eventlet.queue.Empty:
+              pass # Если очередь пуста, ничего не делаем
+          # КОНЕЦ ИЗМЕНЕНИЯ
           #---- иногда для ассинхрона нужно добавлять time.sleep(0)для переключения на другой метод
           time.sleep(0)
           if pygame.mixer.music.get_busy() == False:
