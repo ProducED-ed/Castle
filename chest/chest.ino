@@ -55,6 +55,8 @@ bool storyFlag;
 int language=1;
 bool afterEffect;
 bool hintFlag = 1;
+bool chestEndConfirmed = false;      // Флаг подтверждения от сервера
+unsigned long chestEndSendTimer = 0; // Таймер для периодической отправки
 
 // --- Системные треки (1-2) ---
 const int TRACK_FON_SUITCASE = 1;
@@ -251,6 +253,7 @@ void setup() {
         myMP3.stop();
         digitalWrite(insideLed, HIGH);
         OpenLock(SHERIF_EM2);
+        chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if(body == "\"ready\""){
         state = 0;
@@ -260,6 +263,11 @@ void setup() {
         }
         myMP3.stop();
         digitalWrite(insideLed, LOW);
+        chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+      }
+      // Добавляем обработку подтверждения от сервера
+      if (body == "\"confirm_suitcase_end\"") {
+        chestEndConfirmed = true;
       }
       if(body == "\"day_on\""){
         state = 6;
@@ -289,6 +297,7 @@ void setup() {
         butt4.resetStates();
         myMP3.stop();
         hintFlag = 1;
+        chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
       if(body == "\"language_1\""){
         language = 1;
@@ -495,6 +504,13 @@ void loop() {
      SymbolEye();
      break;
    case 3:
+      // Периодически отправляем, пока не получим подтверждение
+      if (!chestEndConfirmed) {
+        if (millis() - chestEndSendTimer > 1000) {
+          SendData();
+          chestEndSendTimer = millis();
+        }
+      }
       randomTwinkleEffect();
      break;
     case 4:
@@ -526,7 +542,6 @@ void SendData(){
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
-    
     // Пример POST-запроса
     String payload = "{\"suitcase\":\"end\"}";
     int httpCode = http.POST(payload);
@@ -542,39 +557,34 @@ void SymbolEye() {
     butt2.tick();
     butt3.tick();
     butt4.tick();
-    //if(myMP3.readState() != 513){
-      
-    //if (myMP3.readState() == 512) {
-    //  if(!flag){
-    //    myMP3.playMp3Folder(1);
-    //    delay(1000);
-    //    myMP3.enableLoop();
-    //    flag = 1;
-    //  } 
-    //}
+
   if (!digitalRead(eyeSymbolGerkon) && butt1.isHold() && butt2.isHold() && butt3.isHold() && butt4.isHold()) {
     if (millis() - eyeSymbolTimer >= 500) {
-      Serial.println("wineye");
-      SendData();
-      myMP3.pause(); // Ставим фоновую музыку на паузу
-      delay(50);
-      myMP3.playMp3Folder(TRACK_SUITCASE_END);
-      timerEndLed = millis();
-      timerEndLock = millis();
-      state++;
-      flag=0;
+      
+      // --- НАЧАЛО ИЗМЕНЕНИЯ ---
+      // Вместо одиночной отправки, переходим в состояние 3 и позволяем loop() отправлять данные
+      if (state != 3) { // Переходим в состояние 3 только один раз
+          Serial.println("wineye");
+          myMP3.pause();
+          delay(50);
+          myMP3.playMp3Folder(TRACK_SUITCASE_END);
+          timerEndLed = millis();
+          timerEndLock = millis();
+          state = 3; // Переходим в состояние отправки и анимации
+          flag = 0;
+      }
+      // --- КОНЕЦ ИЗМЕНЕНИЯ ---
     }
   }
   else eyeSymbolTimer = millis();
-
+  
   if(!butt1.isHold() || !butt2.isHold() || !butt3.isHold() || !butt4.isHold()){
-    state--;
+    state = 1; // Возвращаемся к предыдущему состоянию, если кнопки отпустили
     for (int i = 0; i < arrayLenght; i++)
     {
       analogWrite(ledsSym[i], 0);
     }
   }
-  
 }
 
 
