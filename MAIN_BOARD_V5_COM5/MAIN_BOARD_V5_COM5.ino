@@ -601,6 +601,7 @@ void setup() {
 
   boyServo.attach(49);
   boyServo.write(0);
+  boyServo.detach();
   
 }
 void loop() {
@@ -737,7 +738,6 @@ void PowerOn() {
       Serial2.println("start");
       Serial3.println("start");
       delay(1000);
-      mySerial.println("start");
       Serial.println("startgo");
       requestFlag = 0;
       dragonCounter = 0;
@@ -1417,6 +1417,7 @@ void Flags() {
 
 
 void MapGame() {
+  boyServo.detach();
   static String game = "";
   static bool activePotionRoom;
   static bool potionPulsation;
