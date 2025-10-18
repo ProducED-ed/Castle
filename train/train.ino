@@ -576,6 +576,8 @@ void setup() {
         skinlight = 0;
       }
 
+      //
+
       if (body == "\"flag_on\"") {
         ActiveLeds[18] = -1;
         ActiveLeds[17] = -1;
@@ -659,6 +661,8 @@ void setup() {
         ActiveLeds[2] = 11;
         ActiveLeds[17] = 26;
         ActiveLeds[18] = 27;
+
+        ClickLeds[4] = -1;
       }
 
       if (body == "\"wolf_finish\"") {
@@ -718,14 +722,20 @@ void setup() {
       }
 
       if (body == "\"fish_open\"") {
-        DisableLeds[15] = 24;
-        ActiveLeds[15] = -1;
-        ClickLeds[15] = -1;
-        FutureLeds[15] = -1;
+        Serial.println("Received fish_open command.");
+        // Гасим LED рыбы (24)
+        DisableLeds[15] = 24; // Индекс 15 -> LED 24
+        ActiveLeds[15] = -1;  //
+        ClickLeds[15] = -1;   //
+        FutureLeds[15] = -1;  //
 
-        isSendOut = 1;
-        FutureLeds[4] = -1;
-        ActiveLeds[4] = 13;
+        // Активируем LED Комнаты Зелий (13)
+        ActiveLeds[4] = 13;   // Индекс 4 -> LED 13
+        FutureLeds[4] = -1;   // Убираем из будущих, если был
+        DisableLeds[4] = -1;  // Убираем из неактивных, если был
+        ClickLeds[4] = -1;    // Не кликабельный на этом этапе
+
+        isSendOut = 1; //
       }
       if (body == "\"owl_finish\"") {
 
@@ -737,23 +747,46 @@ void setup() {
         ActiveLeds[7] = -1;
       }
       if (body == "\"fish_finish\"") {
-        DisableLeds[4] = 13;
-        ActiveLeds[4] = -1;
+        Serial.println("Received fish_finish command.");
+        // Гасим LED Комнаты Зелий (13)
+        DisableLeds[4] = 13;  // Индекс 4 -> LED 13
+        ActiveLeds[4] = -1;   //
+        ClickLeds[4] = -1;    // На всякий случай
+        FutureLeds[4] = -1;   // На всякий случай
       }
+      // --- ИЗМЕНЕНИЕ: Добавляем обработчик train_end, приходящий ИЗВНЕ ---
+      // (Этот обработчик мог отсутствовать или быть неполным)
+      if (body == "\"train_end\"") {
+        Serial.println("DEBUG: Received external train_end command.");
+        DisableLeds[0] = 9;  // Гасим проектор
+        ActiveLeds[0] = -1;
+        ClickLeds[0] = -1;
+        FutureLeds[13] = -1; // Убираем тролля из будущих
+
+        // --- УДАЛЯЕМ ИЛИ КОММЕНТИРУЕМ ЭТУ СТРОКУ ЗДЕСЬ ТОЖЕ ---
+        // ActiveLeds[13] = 22; // Не активируем тролля здесь
+
+        digitalWrite(TUNNEL_LED, HIGH); // Включаем свет туннеля
+        state = 3; // Переходим в состояние завершения поезда
+        trainEndSendTimer = millis(); // Начинаем отправку подтверждения, если нужно
+      }
+      // --- КОНЕЦ ИЗМЕНЕНИЯ ---
       if (body == "\"troll_finish\"") {
-        DisableLeds[13] = 22;
-        ActiveLeds[13] = -1;
-        isTrollEnd = 1;
+        Serial.println("DEBUG: Processing troll_finish command.");
+        DisableLeds[13] = 22; // Индекс 13 -> LED 22
+        ActiveLeds[13] = -1;  // Убираем его из активных
+        ClickLeds[13] = -1;   // Убираем его из кликабельных
+        FutureLeds[13] = -1;  // Убираем его из будущих
+        isTrollEnd = 1;       // Устанавливаем флаг завершения игры с троллем
       }
       if (body == "\"stage_4\"") {
+        ActiveLeds[13] = -1;  //
+        ClickLeds[13] = -1;   //
 
-        DisableLeds[13] = 22;
-        ActiveLeds[13] = -1;
-        ClickLeds[13] = -1;
-
-        FutureLeds[6] = -1;
-        ActiveLeds[6] = 15;
-        state = 4;
+        // Активируем следующий этап (LED 15)
+        FutureLeds[6] = -1;   //
+        ActiveLeds[6] = 15;   // Индекс 6 -> LED 15
+        state = 4;            //
       }
 
       if (body == "\"stage_5\"") {
@@ -1589,6 +1622,25 @@ void SendData(String payload) {
     http.setTimeout(100);
     // Пример POST-запроса
     int httpCode = http.POST(payload);
+    // --- ИЗМЕНЕНИЕ: Обрабатываем train:end ЛОКАЛЬНО ---
+    // Это предотвращает отправку команды самой себе и последующую активацию LED тролля
+    if (payload == "{\"train\":\"end\"}") {
+        Serial.println("DEBUG: Processing train:end LOCALLY after skip.");
+        DisableLeds[0] = 9;
+        ActiveLeds[0] = -1;
+        ClickLeds[0] = -1;
+        FutureLeds[13] = -1; // Убираем тролля из будущих, если он там был
+
+        digitalWrite(TUNNEL_LED, HIGH);
+        for (int i = 1; i < 4; i++) {
+          leds1[i] = CHSV(initialHue + (i * 7), 255, 255);
+        }
+        EVERY_N_MILLISECONDS(30) {
+          FastLED.show();
+          initialHue++;
+        }
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
     http.end();
   }
 }
