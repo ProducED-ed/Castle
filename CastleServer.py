@@ -1164,9 +1164,24 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('cat')
              #----отправить на мегу
-             serial_write_queue.put('cat')
-             name = "story_2"     
-             time.sleep(3) 
+             serial_write_queue.put('open_potion_door')
+             # --- НАЧАЛО ИЗМЕНЕНИЙ: Имитируем реакцию сервера на door_witch ---
+             play_effect(door_witch) # 1. Воспроизводим звук открытия
+             send_esp32_command(ESP32_API_TRAIN_URL, "fish_open") # 2. Гасим LED рыбы (24) на карте
+
+             # 3. Воспроизводим историю
+             if(language==1):
+                 play_story(story_17_ru) #
+             if(language==2):
+                 play_story(story_17_en) #
+             if(language==3):
+                 play_story(story_17_ar) #
+
+             # 4. Активируем следующий этап
+             socketio.emit('level', 'active_open_potions_stash',to=None) #
+             socklist.append('active_open_potions_stash') #
+             # --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
              #-----активируем блок с флагами
              socketio.emit('level', 'active_open_potions_stash',to=None)
              socklist.append('active_open_potions_stash')
@@ -1198,7 +1213,14 @@ def Remote(check):
              socklist.append('owls')
              #----отправить на мегу
              serial_write_queue.put('owl_skip')
-             name = "story_2"  
+             #----отправить на ESP32 карты
+             send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
+             if(language==1):
+                 play_story(story_14_b_ru) #
+             if(language==2):
+                 play_story(story_14_b_en) #
+             if(language==3):
+                 play_story(story_14_b_ar) #
         if check == 'projector':
              #-----отправка клиенту 
              socketio.emit('level', 'projector',to=None)
@@ -1336,7 +1358,7 @@ def Remote(check):
                  
         
      #------- обработка в режиме рестарта   
-     if go == 2:
+     elif go == 2: # --- ИЗМЕНЕНИЕ: Используем elif вместо if для режима рестарта ---
         if check=='open_mansard_door':
              serial_write_queue.put('open_mansard_door')
         if check=='suitcase': 
@@ -1354,6 +1376,8 @@ def Remote(check):
              serial_write_queue.put('open_dog_door')
         if check=='cat': 
              serial_write_queue.put('open_potion_door')
+             play_effect(door_witch)
+             send_esp32_command(ESP32_API_TRAIN_URL, "fish_open")
         if check=='owl':
              serial_write_queue.put('open_owl_door')
         if check=='mine': 
