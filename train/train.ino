@@ -497,6 +497,7 @@ void setup() {
           myMP3.playMp3Folder(TRACK_STORY_16_SP);
         if (language == 6)
           myMP3.playMp3Folder(TRACK_STORY_16_CH);
+        ActiveLeds[13] = 22; // активируем тролля
       }
 
       if (body == "\"restart\"") {
@@ -761,10 +762,10 @@ void setup() {
         DisableLeds[0] = 9;  // Гасим проектор
         ActiveLeds[0] = -1;
         ClickLeds[0] = -1;
-        FutureLeds[13] = -1; // Убираем тролля из будущих
-
-        // --- УДАЛЯЕМ ИЛИ КОММЕНТИРУЕМ ЭТУ СТРОКУ ЗДЕСЬ ТОЖЕ ---
-        // ActiveLeds[13] = 22; // Не активируем тролля здесь
+        ActiveLeds[13] = 22; // Индекс 13 -> LED 22
+        FutureLeds[13] = -1; // Убираем из будущих, если был
+        DisableLeds[13] = -1;// Убираем из неактивных, если был
+        ClickLeds[13] = -1;  // Не кликабельный
 
         digitalWrite(TUNNEL_LED, HIGH); // Включаем свет туннеля
         state = 3; // Переходим в состояние завершения поезда
@@ -1190,7 +1191,6 @@ void loop() {
 
         // Этот код для анимации светодиодов будет работать постоянно, пока state = 3
         FutureLeds[13] = -1;
-        ActiveLeds[13] = 22;
         DisableLeds[0] = 9;
         ActiveLeds[0] = -1;
         ClickLeds[0] = -1;
@@ -1626,10 +1626,13 @@ void SendData(String payload) {
     // Это предотвращает отправку команды самой себе и последующую активацию LED тролля
     if (payload == "{\"train\":\"end\"}") {
         Serial.println("DEBUG: Processing train:end LOCALLY after skip.");
-        DisableLeds[0] = 9;
+        DisableLeds[0] = 9; // Гасим проектор
         ActiveLeds[0] = -1;
         ClickLeds[0] = -1;
-        FutureLeds[13] = -1; // Убираем тролля из будущих, если он там был
+        ActiveLeds[13] = 22; // Индекс 13 -> LED 22
+        FutureLeds[13] = -1; // Убираем из будущих, если был
+        DisableLeds[13] = -1;// Убираем из неактивных, если был
+        ClickLeds[13] = -1;  // Не кликабельный
 
         digitalWrite(TUNNEL_LED, HIGH);
         for (int i = 1; i < 4; i++) {
