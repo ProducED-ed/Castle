@@ -1426,6 +1426,26 @@ def handle_data():
           socketio.emit('level', 'wolf',to=None)
           socklist.append('wolf')
           send_esp32_command(ESP32_API_WOLF_URL, "confirm_wolf_end")
+         
+        # --- ИЗМЕНЕНИЕ: Добавляем логику для TRAIN (projector end) ---
+        elif 'projector' in data and data['projector'] == 'end':
+            print("projector")
+            socketio.emit('level', 'projector',to=None)
+            socklist.append('projector')
+            # Отправляем команду отключения кликов ПЕРЕД историей
+            send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
+            # Запускаем историю (предположим, story_15)
+            if(language==1): play_story(story_15_ru) # Замени story_15 на актуальную
+            if(language==2): play_story(story_15_en)
+            if(language==3): play_story(story_15_ar)
+            # Ждем завершения истории
+            while channel3.get_busy()==True: time.sleep(0.1)
+            # Включаем клики обратно
+            send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
+            # Активируем следующий этап (игра с поездом)
+            socketio.emit('level', 'active_train',to=None)
+            socklist.append('active_train')
+        # --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
         if 'map' in data and data['map'] == 'owl':
           print("owl")
@@ -2642,9 +2662,10 @@ def serial():
                           #-----добавили в историю
                           socklist.append('owl')
                           send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
-                          while channel2.get_busy()==True: 
-                              time.sleep(0.1)
- 
+                          send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
+                          #while channel2.get_busy()==True: 
+                              #time.sleep(0.1)
+                          time.sleep(2.0)
                           if story13Flag == 0:
                                story13Flag = 1
                                if(language==1):
@@ -2664,14 +2685,16 @@ def serial():
                               play_story(story_14_a_en)
                           if(language==3):
                               play_story(story_14_a_ar)
-                          #----активируем игру с пером
+                          while channel3.get_busy()==True: time.sleep(0.1) # Ждем завершения story_14_a
+                          send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
+                          #----активируем игру с совами
                           socketio.emit('level', 'active_owls',to=None)
                           socklist.append('active_owls')
 
                      if flag=="owl_flew":
                           #----играем эффект 
                           play_effect(owl_flew)
-                          #----активируем игру с пером
+                          #----активируем игру с совами
 
                      if flag=="owl_end":
                           #----играем эффект 
@@ -2693,9 +2716,10 @@ def serial():
                           #-----добавили в историю
                           socklist.append('cat')
                           send_esp32_command(ESP32_API_TRAIN_URL, "fish_open")
-                          while channel2.get_busy()==True: 
-                              time.sleep(0.1)
- 
+                          send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
+                          #while channel2.get_busy()==True: 
+                          #    time.sleep(0.1)
+                          time.sleep(2.0)
                           if story13Flag == 0:
                                story13Flag = 1
                                if(language==1):
@@ -2714,6 +2738,8 @@ def serial():
                               play_story(story_17_en)
                           if(language==3):
                               play_story(story_17_ar)
+                          while channel3.get_busy()==True: time.sleep(0.1) # Ждем завершения story_17
+                          send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                           #----активируем игру с пером
                           socketio.emit('level', 'active_open_potions_stash',to=None)
                           socklist.append('active_open_potions_stash')                   
@@ -2816,6 +2842,7 @@ def serial():
                           socklist.append('pedlock')
                           play_effect(door_dog)
                           send_esp32_command(ESP32_API_TRAIN_URL, "key_open")
+                          send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
                           # Убираем ожидание завершения эффекта
                           # while channel2.get_busy()==True: 
                           #    time.sleep(0.1)
@@ -2841,6 +2868,8 @@ def serial():
                               play_story(story_19_en)
                           if(language==3):
                               play_story(story_19_ar)
+                          while channel3.get_busy()==True: time.sleep(0.1) # Ждем завершения story_19
+                          send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                           #----активируем игру с собакой
                           socketio.emit('level', 'active_dog',to=None)
                           socklist.append('active_dog')
@@ -2868,7 +2897,7 @@ def serial():
                           if(language==2):
                               play_story(story_21_en)
                           if(language==3):
-                              play_story(story_21_ar)  
+                              play_story(story_21_ar)
 
                      if flag=="story_20_a":
                           if(language==1):
