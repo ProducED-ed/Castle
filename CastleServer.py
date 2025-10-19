@@ -1432,16 +1432,6 @@ def handle_data():
             print("projector")
             socketio.emit('level', 'projector',to=None)
             socklist.append('projector')
-            # Отправляем команду отключения кликов ПЕРЕД историей
-            send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
-            # Запускаем историю (предположим, story_15)
-            if(language==1): play_story(story_15_ru) # Замени story_15 на актуальную
-            if(language==2): play_story(story_15_en)
-            if(language==3): play_story(story_15_ar)
-            # Ждем завершения истории
-            while channel3.get_busy()==True: time.sleep(0.1)
-            # Включаем клики обратно
-            send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
             # Активируем следующий этап (игра с поездом)
             socketio.emit('level', 'active_train',to=None)
             socklist.append('active_train')
