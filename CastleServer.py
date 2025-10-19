@@ -2816,8 +2816,12 @@ def serial():
                           socklist.append('pedlock')
                           play_effect(door_dog)
                           send_esp32_command(ESP32_API_TRAIN_URL, "key_open")
-                          while channel2.get_busy()==True: 
-                              time.sleep(0.1)
+                          # Убираем ожидание завершения эффекта
+                          # while channel2.get_busy()==True: 
+                          #    time.sleep(0.1)
+                          
+                          # Добавляем фиксированную задержку 2 секунды
+                          time.sleep(2.0)
  
                           if story13Flag == 0:
                                story13Flag = 1
@@ -2837,7 +2841,7 @@ def serial():
                               play_story(story_19_en)
                           if(language==3):
                               play_story(story_19_ar)
-                          #----активируем игру с пером
+                          #----активируем игру с собакой
                           socketio.emit('level', 'active_dog',to=None)
                           socklist.append('active_dog')
 
