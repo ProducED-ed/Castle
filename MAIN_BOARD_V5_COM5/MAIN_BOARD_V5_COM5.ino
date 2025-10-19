@@ -935,9 +935,8 @@ void HelpHandler(String from) {
           Serial.println(professorHints[6]);
         }
       }
-      if (level > 7) {
-        // professorCounter = (professorCounter == 5) ? 4 : 5;
-        Serial.println(professorHints[6]);
+      else if (level >= 7) {
+        Serial.println(professorHints[6]); // Индекс 6 соответствует hint_11_z
       }
       flagSound = 0;
     }
@@ -2039,8 +2038,8 @@ void FirstBottle() {
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
         rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
-      }
-      CauldronMistakeFire();
+        CauldronMistakeFire();
+      } 
     }
     myRFID.reset_search();
   } else {
@@ -2087,8 +2086,8 @@ void SecondBottle() {
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
         rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
+        CauldronMistakeFire();
       }
-      CauldronMistakeFire();
     }
     myRFID.reset_search();
   } else {
@@ -2135,8 +2134,8 @@ void ThirdBottle() {
         ThirdBottleTrue = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
         rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
+        CauldronMistakeFire();
       }
-      CauldronMistakeFire();
     }
     myRFID.reset_search();
   } else {
@@ -2183,8 +2182,8 @@ void FourBottle() {
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;
         rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
+        CauldronMistakeFire();
       }
-      CauldronMistakeFire();
     }
     myRFID.reset_search();
   } else {
