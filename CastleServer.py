@@ -2927,8 +2927,11 @@ def serial():
                           socklist.append('active_troll')
                           socketio.emit('level', 'mine',to=None)
                           socklist.append('mine')
-                          while channel2.get_busy()==True: 
-                              time.sleep(0.1)
+                          # Убираем ожидание завершения эффекта
+                          # while channel2.get_busy()==True:
+                          #     time.sleep(0.1)
+                          # Добавляем фиксированную задержку 2 секунды
+                          time.sleep(2.0)
                           if(language==1):
                               play_story(story_26_ru)  
                           if(language==2):
