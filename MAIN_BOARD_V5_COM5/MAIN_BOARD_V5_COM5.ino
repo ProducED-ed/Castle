@@ -1202,7 +1202,8 @@ void GaletGame() {
   }
 
   if (Serial1.available()) {
-    String buf1 = Serial1.readString();
+    String buf1 = Serial1.readStringUntil('\n');
+    buf1.trim();
     if (buf1 == "galet_on\r\n") {
       galet1 = 1;
       Serial.println("galet2");
@@ -1214,7 +1215,8 @@ void GaletGame() {
   }
 
   if (Serial2.available()) {
-    String buf2 = Serial2.readString();
+    String buf2 = Serial2.readStringUntil('\n');
+    buf2.trim();
     if (buf2 == "galet_on\r\n") {
       galet2 = 1;
       Serial.println("galet3");
@@ -1226,7 +1228,8 @@ void GaletGame() {
   }
 
   if (Serial3.available()) {
-    String buf4 = Serial3.readString();
+    String buf4 = Serial3.readStringUntil('\n');
+    buf4.trim();
     if (buf4 == "galet_on\r\n") {
       galet3 = 1;
       Serial.println("galet4");
@@ -1238,7 +1241,8 @@ void GaletGame() {
   }
 
   if (mySerial.available()) {
-    String buf4 = mySerial.readString();
+    String buf4 = mySerial.readStringUntil('\n');
+    buf4.trim();
     if (buf4 == "galet_on\r\n") {
       galet4 = 1;
       Serial.println("galet5");
@@ -1341,7 +1345,8 @@ void ThreeGame() {
 void Flags() {
   // digitalWrite(MansardLight, LOW);
   if (Serial1.available()) {
-    String buf1 = Serial1.readString();
+    String buf1 = Serial1.readStringUntil('\n');
+    buf1.trim();
     if (buf1 == "flag1_on\r\n") {
       FirstFlag = 1;
       Serial.println("flag1_on");
@@ -1353,7 +1358,8 @@ void Flags() {
   }
 
   if (Serial2.available()) {
-    String buf2 = Serial2.readString();
+    String buf2 = Serial2.readStringUntil('\n');
+    buf2.trim();
     if (buf2 == "flag2_on\r\n") {
       SecondFlag = 1;
       Serial.println("flag2_on");
@@ -1365,7 +1371,8 @@ void Flags() {
   }
 
   if (Serial3.available()) {
-    String buf4 = Serial3.readString();
+    String buf4 = Serial3.readStringUntil('\n');
+    buf4.trim();
     if (buf4 == "flag3_on\r\n") {
       ThirdFlag = 1;
       Serial.println("flag3_on");
@@ -1377,7 +1384,8 @@ void Flags() {
   }
 
   if (mySerial.available()) {
-    String buf4 = mySerial.readString();
+    String buf4 = mySerial.readStringUntil('\n');
+    buf4.trim();
     if (buf4 == "flag4_on\r\n") {
       FourFlag = 1;
       Serial.println("flag4_on");
@@ -1803,7 +1811,8 @@ void Oven() {
   }
 
   if (Serial1.available()) {
-    String buff = Serial1.readString();
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
     //Serial.println(buff);
     if (buff == "help\r\n") {
       HelpHandler("workshop");
@@ -2238,7 +2247,8 @@ void BasketLesson() {
     }
   }
   if (Serial.available()) {
-    String buf = Serial.readString();
+    String buf = Serial.readStringUntil('\n');
+    buf.trim();
     if (buf == "start_game_basket") {
       snitchFlag = 0;
       enemyTimer = millis();
@@ -3294,7 +3304,7 @@ void SealSpace() {
 
   // Обработка команд
   if (Serial.available()) {
-    String cmd = Serial.readString();
+    String cmd = Serial.readStringUntil('\n');
     cmd.trim();
     
     if (cmd == "crystals") {
@@ -5121,7 +5131,8 @@ void RestOn() {
   }
 
   if (Serial1.available()) {
-    String buff = Serial1.readString();
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
     if (buff == "flag1_on\r\n") {
       Serial.println("flag1_on");
     }
@@ -5141,7 +5152,8 @@ void RestOn() {
   }
 
   if (Serial2.available()) {
-    String buff = Serial2.readString();
+    String buff = Serial2.readStringUntil('\n');
+    buff.trim();
     if (buff == "flag2_on\r\n") {
       Serial.println("flag2_on");
     }
@@ -5161,7 +5173,8 @@ void RestOn() {
   }
 
   if (Serial3.available()) {
-    String buff = Serial3.readString();
+    String buff = Serial3.readStringUntil('\n');
+    buff.trim();
     if (buff == "flag3_on\r\n") {
       Serial.println("flag3_on");
     }
@@ -5181,7 +5194,8 @@ void RestOn() {
   }
 
   if (mySerial.available()) {
-    String buff = mySerial.readString();
+    String buff = mySerial.readStringUntil('\n');
+    buff.trim();
     if (buff == "flag4_on\r\n") {
       Serial.println("flag4_on");
     }
