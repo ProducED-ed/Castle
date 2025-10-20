@@ -16,6 +16,7 @@ HardwareSerial mySerial(1);  // Use UART1
 #define TUNNEL_LED 23
 #define UF_LED 19
 
+bool mapClicksDisabled = false; // Флаг для отслеживания состояния кликов
 
 CRGB leds1[NUM_LEDS1];
 CRGB ledMap[30];
@@ -952,6 +953,40 @@ void setup() {
         myMP3.stop();
       }
       Serial.println("Received POST: " + body);
+
+      // --- НАЧАЛО ИЗМЕНЕНИЙ: Обработчики новых команд ---
+      if (body == "\"map_disable_clicks\"") {
+        Serial.println("Disabling map clicks...");
+        if (!mapClicksDisabled) { // Предотвращаем повторное выполнение
+          for (int i = 0; i < 22; i++) {
+            if (ClickLeds[i] != -1) {
+              FutureLeds[i] = ClickLeds[i]; // Перемещаем в Future (белый)
+              ClickLeds[i] = -1;            // Очищаем Click (фиол-голуб)
+            }
+          }
+          mapClicksDisabled = true;
+          ResetTimer(); // Гасим светодиоды таймера и сбрасываем его состояние
+          isStartTimer = false; // Отключаем таймер во время паузы
+          blinkLedNumber = -1; // Сбрасываем мигающий LED
+        }
+      }
+      else if (body == "\"map_enable_clicks\"") {
+        Serial.println("Enabling map clicks...");
+        if (mapClicksDisabled) { // Восстанавливаем только если были отключены
+          for (int i = 0; i < 22; i++){
+              // Проверяем, был ли этот LED временно сделан белым И не является ли он уже пройденным
+              if(FutureLeds[i] != -1 && DisableLeds[i] == -1) {
+                  ClickLeds[i] = FutureLeds[i]; // Восстанавливаем в Clickable
+                  FutureLeds[i] = -1;           // Убираем из Future
+              } else if (ClickLeds[i] != -1 && DisableLeds[i] != -1) {
+                  // На всякий случай: если LED одновременно Clickable и Disabled, убираем Clickable
+                  ClickLeds[i] = -1;
+              }
+          }
+          mapClicksDisabled = false;
+        }
+      }
+      // --- КОНЕЦ ИЗМЕНЕНИЙ ---
       server.send(200, "application/json", "{\"status\":\"received\"}");
     } else {
       server.send(400, "text/plain", "Bad Request");
@@ -1216,6 +1251,20 @@ void loop() {
 
 
 void MapGerkon() {
+  // --- ИЗМЕНЕНИЕ: Не обрабатываем герконы, если клики отключены ---
+    if (mapClicksDisabled) {
+        // Если клики отключены, сбрасываем состояние таймера и мигания, если они были активны
+        if (isStartTimer) {
+             isStartTimer = false;
+             blinkLedNumber = -1;
+             timerLedsCount = 0;
+             timerIsStarting = true;
+             // Возможно, нужно погасить светодиоды таймера
+             ResetTimer(); // Используем существующую функцию сброса
+        }
+        return; // Выходим из функции
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
   bool keyLedActive = false;
   bool fishLedActive = false;
@@ -1568,7 +1617,7 @@ void handlePlayerQueries() {
   }
   if (myMP3.available()) {
     uint8_t type = myMP3.readType();
-    Serial.println(type);
+    // Serial.println(type);
     if (type == 11) {  // должно быть 5
       int finishedTrack = myMP3.read();
       hintFlag = 1;
