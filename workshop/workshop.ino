@@ -623,9 +623,6 @@ void handleUartCommands() {
   if (Serial1.available()) {
     String command = Serial1.readStringUntil('\n');
     command.trim();
-    if (command.endsWith("\r")) {
-      command.remove(command.length() - 1);
-    }
 
     if (command == "workshop") {
       openLock();
