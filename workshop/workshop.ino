@@ -45,6 +45,8 @@ float heat = 0.0;
 float coolingRate = 0.01;      // Скорость остывания
 float heatingRate = 0.55;      // Скорость нагрева
 float flickerIntensity = 0.1;  // Интенсивность мерцания
+bool _restartGalet = 0;
+bool _restartFlag = 0;
 
 unsigned long previousMillis = 0;
 const long interval = 40;  // Интервал обновления (мс) для эффекта мерцания
@@ -657,8 +659,31 @@ void handleUartCommands() {
       isFirstFire1 = true;
       isFirstFire2 = true;
       isFirstFire0 = true;
+      _restartGalet = 0;
+      _restartFlag = 0;
     } else if (command == "restart") {
       //openLock();
+      if (!digitalRead(30) && !_restartGalet) {
+        Serial1.println("galet_on");
+        _restartGalet = 1;
+        delay(500);
+      }
+      if (digitalRead(30) && _restartGalet) {
+        Serial1.println("galet_off");
+        _restartGalet = 0;
+        delay(500);
+      }
+
+      if (digitalRead(27) && !_restartFlag) {
+        Serial1.println("flag1_on");
+        _restartFlag = 1;
+        delay(500);
+      }
+      if (_restartFlag && !digitalRead(27)) {
+        Serial1.println("flag1_off");
+        delay(500);
+        _restartFlag = 0;
+      }
       lockOpen = false;
       recurringLockActive = false;
       digitalWrite(LOCK_PIN, HIGH);
@@ -706,7 +731,7 @@ void handleUartCommands() {
       activateBroomServo();
     }
 
-    else if (command == "door_open") {
+    else if (command == "open_door") {
       digitalWrite(LOCK_PIN, HIGH);
       delay(500);
       digitalWrite(LOCK_PIN, LOW);
@@ -735,6 +760,9 @@ void handleUartCommands() {
       workbenchMode = 4;
     } else if (command == "metal") {
       workbenchMode = 5;
+    }
+    else if (command == "firework") {
+      //workbenchMode = 5;
     }
   }
 }

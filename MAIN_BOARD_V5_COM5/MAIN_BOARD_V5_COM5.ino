@@ -1455,6 +1455,7 @@ void MapGame() {
     if (reading) {
       if (!potionPulsation) {
         potionPulsation = 1;
+        Serial1.println("potion");
         Serial.println("item_find");
         Serial2.println("item_find");
         Serial3.println("item_find");
@@ -1670,6 +1671,7 @@ void MapGame() {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
+      Serial1.println("skin");
       Serial2.println("item_find");
       Serial3.println("item_find");
     }
@@ -3787,7 +3789,7 @@ void Game() {
     if (millis() - _presentTimer >= Timings[_levels]) {
       if (millis() - fadeWhiteTimer >= 5) {
         lightBr -= CountsFallen[_levels];
-// здесь задаем первоначальный цвет кристалов
+ // здесь задаем первоначальный цвет кристалов
         switch (_levels) {
           case 0:
             for (int i = 0; i <= 3; i++) {
@@ -4827,139 +4829,18 @@ void RestOn() {
   static byte _towerCounter = 0;
   static bool doorEvent = 0;
   static bool mansardEvent = 0;
-  static bool cauldronEvent = 0;
-  static bool scroll1Event = 0;
-  static bool scroll2Event = 0;
-  static bool scroll3Event = 0;
-  static bool scroll4Event = 0;
-  static bool scroll5Event = 0;
+  static bool libraryEvent = 0;
+  static bool galet1Event = 0;
+  static bool galet2Event = 0;
+  static bool galet3Event = 0;
+  static bool galet4Event = 0;
+  static bool galet5Event = 0;
   static bool sealEvent = 0;
   static bool sealSpaceEvent = 0;
   static bool finalEvent = 0;
   static unsigned long bugTimerScroll = 0;
   boyServo.detach();
   delay(500);
-  // опрашиваем сам замок на предметы которые могли оставить
-  if (digitalRead(startDoorPin)) {
-    if (!doorEvent) {
-      //Serial.println("open_door");
-      // delay(50);
-      doorEvent = 1;
-    }
-  }
-  if (!digitalRead(startDoorPin)) {
-    if (doorEvent) {
-      //Serial.println("close_door");
-      // delay(50);
-      doorEvent = 0;
-    }
-  }
-
-
-  // по опчереди отправляем рестарт всем башням
-  Serial1.println("restart");
-  delay(100);
-  Serial2.println("restart");
-  delay(100);
-  Serial3.println("restart");
-  delay(100);
-  mySerial.println("restart");
-  delay(100);
-
-  Serial.println("restart");
-  OpenAll();
-  level = 0;
-
-  // опрашиваем все башни если есть что полезное шлем на сервак
-}
-
-void Restart() {
-  if (Serial.available()) {
-    String buff = Serial.readStringUntil('\n');
-    buff.trim();
-    if (buff == "open_mansard_door") {
-      OpenDoor(MansardDoor);
-    }
-    if (buff == "open_bank_door") {
-      OpenDoor(BankDoor);
-    }
-    if (buff == "open_potion_door") {
-      OpenDoor(PotionsRoomDoor);
-    }
-    if (buff == "open_owl_door") {
-      mySerial.println("open_door");
-    }
-    if (buff == "open_dog_door") {
-      Serial3.println("open_door");
-    }
-    if (buff == "open_low_tower_door") {
-      OpenDoor(HightTowerDoor);
-    }
-    if (buff == "open_high_tower_door") {
-      OpenDoor(HightTowerDoor2);
-    }
-    if (buff == "open_library_door") {
-      OpenDoor(LibraryDoor);
-    }
-    if (buff == "open_workshop_door") {
-      Serial1.println("open_door");
-    }
-    if (buff == "open_safe_door") {
-      OpenDoor(BankStashDoor);
-    }
-    if (buff == "open_memory_door") {
-      OpenDoor(MemoryRoomDoor);
-    }
-    if (buff == "open_basket_door") {
-      Serial2.println("open_door");
-    }
-    if (buff == "open_mine_door") {
-      Serial2.println("open_mine_door");
-    }
-    if (buff == "ready") {
-      Serial1.println("ready");
-      delay(500);
-      Serial1.println("ready");
-      Serial2.println("ready");
-      delay(500);
-      Serial2.println("ready");
-      Serial3.println("ready");
-      delay(500);
-      Serial3.println("ready");
-      mySerial.println("ready");
-      delay(500);
-      mySerial.println("ready");
-      digitalWrite(MansardLight, LOW);
-      digitalWrite(MansardLight, LOW);
-      digitalWrite(LastTowerTopLight, LOW);
-      digitalWrite(Fireworks, LOW);
-      digitalWrite(BankRoomLight, LOW);
-      digitalWrite(TorchLight, LOW);
-      digitalWrite(HallLight, LOW);
-      digitalWrite(UfHallLight, LOW);
-      digitalWrite(LibraryLight, LOW);
-      for (int i = 0; i <= 200; i++) {
-        CandleStrip.setPixelColor(i, CandleStrip.Color(0, 0, 0));
-        CauldronStrip.setPixelColor(i, CauldronStrip.Color(0, 0, 0));
-        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(0, 0, 0));
-        memory_Led.setPixelColor(i, memory_Led.Color(0, 0, 0));
-        strip1.setPixelColor(i, strip1.Color(0, 0, 0));
-        strip2.setPixelColor(i, strip2.Color(0, 0, 0));
-        GoldStrip.setPixelColor(i, GoldStrip.Color(0, 0, 0));
-        CandleStrip.setPixelColor(i, CandleStrip.Color(0, 0, 0));
-      }
-      CandleStrip.show();
-      CauldronStrip.show();
-      CauldronRoomStrip.show();
-      memory_Led.show();
-      //strip1.show();
-      //strip2.show();
-      GoldStrip.show();
-      delay(2000);
-      level = 0;
-      return;
-    }
-  }
   digitalWrite(MansardLight, HIGH);
   digitalWrite(LastTowerTopLight, HIGH);
   digitalWrite(Fireworks, LOW);
@@ -5108,6 +4989,288 @@ void Restart() {
   isTrollEnd = 0;
   isTrainBasket = 0;
   ghostState = 0;
+
+  for (int i = 0; i < DOORS; i++) {
+    active[i] = false;
+  }
+
+  //OpenAll();
+
+  // опрашиваем сам замок на предметы которые могли оставить
+  if (digitalRead(startDoorPin)) {
+    if (!doorEvent) {
+      Serial.println("open_door");
+      doorEvent = 1;
+    }
+  }
+
+  if (!digitalRead(startDoorPin)) {
+    if (doorEvent) {
+      Serial.println("close_door");
+      doorEvent = 0;
+    }
+  }
+
+  if (!digitalRead(galetSwitchesPin)) {
+    if (!galet1Event) {
+      galet1Event = 1;
+    }
+  }
+  if (digitalRead(galetSwitchesPin)) {
+    if (galet1Event) {
+      galet1Event = 0;
+    }
+  }
+
+  if (digitalReadExpander(4, board4)) {
+    if (!sealEvent) {
+      Serial.println("cristal_up");
+      sealEvent = 1;
+    }
+  }
+
+  if (!digitalReadExpander(4, board4)) {
+    if (sealEvent) {
+      Serial.println("cristal_down");
+      sealEvent = 0;
+    }
+  }
+
+  if (digitalReadExpander(7, board1)) {
+    if(!finalEvent){
+      Serial.println("boy_out");
+      finalEvent = 1;
+    }
+  }
+
+  if (!digitalReadExpander(7, board1)) {
+    if(finalEvent){
+      Serial.println("boy_in");
+      finalEvent = 0;
+    }
+  }
+
+  if (digitalReadExpander(5, board3)) {
+    if(!libraryEvent){
+      Serial.println("lib_door");
+      libraryEvent = 1;
+    }
+  }
+
+  if (!digitalReadExpander(5, board3)) {
+    if(libraryEvent){
+      Serial.println("lib_door_in");
+      libraryEvent = 0;
+    }
+  }
+
+  if (!_dataQueue) {
+    if (millis() - _towerTimer >= 2500) {
+      switch (_towerCounter) {
+        case 0:
+          Serial1.println("restart");
+          break;
+        case 1:
+          Serial2.println("restart");
+          break;
+        case 2:
+          Serial3.println("restart");
+          break;
+        case 3:
+          mySerial.println("restart");
+          _dataQueue = 1;
+          break;
+      }
+      _towerCounter++;
+      _towerTimer = millis();
+    }
+  }
+
+  if(galet1Event || galet1Event || galet3Event || galet4Event || galet5Event){
+    if(!mansardEvent){
+      Serial.println("galet_on");
+      mansardEvent = 1;
+    }
+  }
+
+  if(!galet1Event && !galet1Event && !galet3Event && !galet4Event && !galet5Event){
+    if(mansardEvent){
+      Serial.println("galet_off");
+      mansardEvent = 0;
+    }
+  }
+
+  if (Serial1.available()) {
+    String buff = Serial1.readString();
+    if (buff == "flag1_on\r\n") {
+      Serial.println("flag1_on");
+    }
+    if (buff == "flag1_off\r\n") {
+      Serial.println("flag1_off");
+    }
+    if (buff == "galet_on\r\n") {
+      if (!galet2Event) {
+        galet2Event = 1;
+      }
+    }
+    if (buff == "galet_off\r\n") {
+      if (galet2Event) {
+        galet2Event = 0;
+      }
+    }
+  }
+
+  if (Serial2.available()) {
+    String buff = Serial2.readString();
+    if (buff == "flag2_on\r\n") {
+      Serial.println("flag2_on");
+    }
+    if (buff == "flag2_off\r\n") {
+      Serial.println("flag2_off");
+    }
+    if (buff == "galet_on\r\n") {
+      if (!galet3Event) {
+        galet3Event = 1;
+      }
+    }
+    if (buff == "galet_off\r\n") {
+      if (galet3Event) {
+        galet3Event = 0;
+      }
+    }
+  }
+
+  if (Serial3.available()) {
+    String buff = Serial3.readString();
+    if (buff == "flag3_on\r\n") {
+      Serial.println("flag3_on");
+    }
+    if (buff == "flag3_off\r\n") {
+      Serial.println("flag3_off");
+    }
+    if (buff == "galet_on\r\n") {
+      if (!galet4Event) {
+        galet4Event = 1;
+      }
+    }
+    if (buff == "galet_off\r\n") {
+      if (galet4Event) {
+        galet4Event = 0;
+      }
+    }
+  }
+
+  if (mySerial.available()) {
+    String buff = mySerial.readString();
+    if (buff == "flag4_on\r\n") {
+      Serial.println("flag4_on");
+    }
+    if (buff == "flag4_off\r\n") {
+      Serial.println("flag4_off");
+    }
+    if (buff == "galet_on\r\n") {
+      if (!galet5Event) {
+        galet5Event = 1;
+      }
+    }
+    if (buff == "galet_off\r\n") {
+      if (galet5Event) {
+        galet5Event = 0;
+      }
+    }
+  }
+
+  if (Serial.available()) {
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
+    Serial.println(buff);
+    if (buff == "open_mansard_door") {
+      OpenDoor(MansardDoor);
+    }
+    if (buff == "open_bank_door") {
+      OpenDoor(BankDoor);
+    }
+    if (buff == "open_potion_door") {
+      OpenDoor(PotionsRoomDoor);
+    }
+    if (buff == "open_owl_door") {
+      mySerial.println("open_door");
+    }
+    if (buff == "open_dog_door") {
+      Serial3.println("open_door");
+    }
+    if (buff == "open_low_tower_door") {
+      OpenDoor(HightTowerDoor);
+    }
+    if (buff == "open_high_tower_door") {
+      OpenDoor(HightTowerDoor2);
+    }
+    if (buff == "open_library_door") {
+      OpenDoor(LibraryDoor);
+    }
+    if (buff == "open_workshop_door") {
+      Serial1.println("open_door");
+    }
+    if (buff == "open_safe_door") {
+      OpenDoor(BankStashDoor);
+    }
+    if (buff == "open_memory_door") {
+      OpenDoor(MemoryRoomDoor);
+    }
+    if (buff == "open_basket_door") {
+      Serial2.println("open_door");
+    }
+    if (buff == "open_mine_door") {
+      Serial2.println("open_mine_door");
+    }
+    if (buff == "ready") {
+      Serial1.println("ready");
+      delay(500);
+      Serial1.println("ready");
+      Serial2.println("ready");
+      delay(500);
+      Serial2.println("ready");
+      Serial3.println("ready");
+      delay(500);
+      Serial3.println("ready");
+      mySerial.println("ready");
+      delay(500);
+      mySerial.println("ready");
+      digitalWrite(MansardLight, LOW);
+      digitalWrite(MansardLight, LOW);
+      digitalWrite(LastTowerTopLight, LOW);
+      digitalWrite(Fireworks, LOW);
+      digitalWrite(BankRoomLight, LOW);
+      digitalWrite(TorchLight, LOW);
+      digitalWrite(HallLight, LOW);
+      digitalWrite(UfHallLight, LOW);
+      digitalWrite(LibraryLight, LOW);
+      for (int i = 0; i <= 200; i++) {
+        CandleStrip.setPixelColor(i, CandleStrip.Color(0, 0, 0));
+        CauldronStrip.setPixelColor(i, CauldronStrip.Color(0, 0, 0));
+        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(0, 0, 0));
+        memory_Led.setPixelColor(i, memory_Led.Color(0, 0, 0));
+        strip1.setPixelColor(i, strip1.Color(0, 0, 0));
+        strip2.setPixelColor(i, strip2.Color(0, 0, 0));
+        GoldStrip.setPixelColor(i, GoldStrip.Color(0, 0, 0));
+        CandleStrip.setPixelColor(i, CandleStrip.Color(0, 0, 0));
+      }
+      CandleStrip.show();
+      CauldronStrip.show();
+      CauldronRoomStrip.show();
+      memory_Led.show();
+      //strip1.show();
+      //strip2.show();
+      GoldStrip.show();
+      delay(2000);
+      level = 0;
+      return;
+    }
+  }
+  level = 25;
+}
+
+void Restart() {
 }
 // метод для открытия дверей
 void Unlocks(String buff) {

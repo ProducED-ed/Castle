@@ -33,6 +33,10 @@ $(document).ready(function(){
     
      //добавляем всем кнопкам класс basic нужен просто для внешки
     $('.button').addClass('basic');
+    $('#Start').css('border','grey 2px solid');
+    $('#start_icon').removeClass('green');
+    $('#start_icon').addClass('grey');
+    $('#Start').addClass('disabled');
     //переключение тем метод removeClass удаляет нужный нам класс
        
     $('#white').click(function(){
@@ -168,7 +172,7 @@ duration   : '1s',
         //приходит в десятичном ввиде округляем и умножаем на 100
         lev13 = lev3.toFixed(2) * 100
         //выводим значение еще раз округлив на всякий
-        
+        console.log(Math.floor(lev13))
         $('#voiceCount').text(Math.floor(lev13));
     });
     //настройка для канала с эффектами
@@ -176,6 +180,7 @@ duration   : '1s',
 
         lev2 = Number(v)
         lev12 = lev2.toFixed(2) * 100
+        console.log(Math.floor(lev12))
         $('#effectCount').text(Math.floor(lev12));
 
     });
@@ -183,6 +188,7 @@ duration   : '1s',
     socket.on('volume', function (z) {
         lev1 = Number(z)
         lev11 = lev1.toFixed(2) * 100;
+        console.log(Math.floor(lev11))
         $('#phoneCount').text(Math.floor(lev11));
     });
     //данный метод принимает значение напряжения 
@@ -458,8 +464,8 @@ duration   : '1s',
                 $('#first_door').removeClass('green');//удаляем класс зеленый
             }
             if (inp === 'open_door_puzzle') {
-                $('#door_puzzle').removeClass('open');//удаляем класс open
-                $('#door_puzzle').removeClass('green');
+                $('#door_puzzle').addClass('open');//удаляем класс open
+                $('#door_puzzle').addClass('green');
             }  
             if (inp === 'close_door_puzzle') {
                 $('#door_puzzle').removeClass('open');//удаляем класс open
@@ -542,7 +548,12 @@ duration   : '1s',
                     yFlag = 0;
                 }
             }
-            if(inp === 'suitcase') {
+
+            if (yFlag == 1 && bFlag ==1 && gFlag == 1 && rFlag == 1){
+                 $('#open_mansard_stash').addClass('positive');
+            }
+
+            if(inp === 'suitcase') { 
                 $('#suitcase').addClass('positive');
                 $('#suitcase_indic').addClass('check');
             }
@@ -589,6 +600,7 @@ duration   : '1s',
                 if(bottle4==0){
                     $('#bottles').progress('increment')
                     bottle4 = 1;
+                    $('#open_potions_stash').addClass('positive');
                 }
             }
             ////////////////
@@ -724,60 +736,6 @@ duration   : '1s',
                     goal3bot = 1;
                 }
             }
-            if(inp === 'goal_4_bot') {
-                if(goal4bot==0){
-                    $('#player_2_progress').progress({
-                        percent: 40
-                     });
-                    $('#player_2_score').text('4')
-                    goal4bot = 1;
-                }
-            }
-            if(inp === 'goal_5_bot') {
-                if(goal5bot==0){
-                    $('#player_2_progress').progress({
-                        percent: 50
-                     });
-                    $('#player_2_score').text('5')
-                    goal5bot = 1;
-                }
-            }
-            if(inp === 'goal_6_bot') {
-                if(goal6bot==0){
-                    $('#player_2_progress').progress({
-                        percent: 60
-                     });
-                    $('#player_2_score').text('6')
-                    goal6bot = 1;
-                }
-            }
-            if(inp === 'goal_7_bot') {
-                if(goal7bot==0){
-                    $('#player_2_progress').progress({
-                    percent: 70
-                 });
-                    $('#player_2_score').text('7')
-                    goal7bot = 1;
-                }
-            }
-            if(inp === 'goal_8_bot') {
-                if(goal8bot==0){
-                    $('#player_2_progress').progress({
-                        percent: 80
-                     });
-                    $('#player_2_score').text('8')
-                    goal8bot = 1;
-                }
-            }
-            if(inp === 'goal_9_bot') {
-                if(goal9bot==0){
-                    $('#player_2_progress').progress({
-                        percent: 90
-                     });
-                    $('#player_2_score').text('9')
-                    goal9bot = 1;
-                }
-            }
             if(inp === 'win_bot') {
                 if(goal10bot==0){
                     $('#player_2_progress').progress({
@@ -812,60 +770,6 @@ duration   : '1s',
                      });
                     $('#player_1_score').text('3')
                     goal3player = 1;
-                }
-            }
-            if(inp === 'goal_4_player') {
-                if(goal4player==0){
-                    $('#player_1_progress').progress({
-                        percent: 40
-                     });
-                    $('#player_1_score').text('4')
-                    goal4player = 1;
-                }
-            }
-            if(inp === 'goal_5_player') {
-                if(goal5player==0){
-                    $('#player_1_progress').progress({
-                        percent: 50
-                     });
-                    $('#player_1_score').text('5')
-                    goal5player = 1;
-                }
-            }
-            if(inp === 'goal_6_player') {
-                if(goal6player==0){
-                    $('#player_1_progress').progress({
-                        percent: 60
-                     });
-                    $('#player_1_score').text('6')
-                    goal6player = 1;
-                }
-            }
-            if(inp === 'goal_7_player') {
-                if(goal7player==0){
-                    $('#player_1_progress').progress({
-                        percent: 70
-                     });
-                    $('#player_1_score').text('7')
-                    goal7player = 1;
-                }
-            }
-            if(inp === 'goal_8_player') {
-                if(goal8player==0){
-                    $('#player_1_progress').progress({
-                        percent: 80
-                     });
-                    $('#player_1_score').text('8')
-                    goal8player = 1;
-                }
-            }
-            if(inp === 'goal_9_player') {
-                if(goal9player==0){
-                    $('#player_1_progress').progress({
-                        percent: 90
-                     });
-                    $('#player_1_score').text('9')
-                    goal9player = 1;
                 }
             }
             if(inp === 'win_player') {

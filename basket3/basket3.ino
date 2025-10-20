@@ -245,20 +245,21 @@ void loop() {
     if(!digitalRead(26) && !_restartGalet){
       Serial1.println("galet_on");
       _restartGalet = 1;
-      delay(100);
+      delay(500);
     }
     if(digitalRead(26) && _restartGalet){
       Serial1.println("galet_off");
       _restartGalet = 0;
-      delay(100);
+      delay(500);
     }
     if(digitalRead(27) && !_restartFlag){
       Serial1.println("flag2_on");
       _restartFlag = 1;
-      delay(100);
+      delay(500);
     }
     if(_restartFlag && !digitalRead(27)){
       Serial1.println("flag2_off");
+      delay(500);
       _restartFlag = 0;
     }
        SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
@@ -291,7 +292,8 @@ void loop() {
         digitalWrite(SHERIF_EM1, LOW);
         digitalWrite(SHERIF_EM2, LOW);
         digitalWrite(Solenoid, LOW);
-        
+        _restartFlag = 0;
+        _restartGalet = 0;
         SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
         SCORE_MAN = 0;
         buttonSequence = 0;
@@ -312,6 +314,9 @@ void loop() {
        strip.show();
        disp.point(0);
        state = 0;
+      }
+      else{
+        HandleMessagges(buff);
       }
     }
  }

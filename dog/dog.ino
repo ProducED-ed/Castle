@@ -107,6 +107,8 @@ bool lastKnightReedState = HIGH;
 // Dlya gerkona "kletka" i kolesa
 bool lastCageReedState = HIGH;
 unsigned long lastCageReedActivationTime = 0;
+bool _restartFlag = 0;
+bool _restartGalet = 0;
 bool isCageReedInitialized = false;
 bool isFastSpinning = false;               // Flag, ukazyvayushchiy na aktivnoe bystroe vrashchenie
 unsigned long lastFastSpinEffectTime = 0;  // Vremya poslednego obnaruzheniya bystrogo vrashcheniya
@@ -450,6 +452,32 @@ void loop() {
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
           currentQuestState = STATE_RESTARTING;
           resetQuestState();
+          digitalWrite(10, HIGH);  // Включаем светодиод на пине 10
+          delay(500);              // Ждем 500 мс
+          digitalWrite(10, LOW);
+          if (!digitalRead(A3) && !_restartGalet) {
+            Serial.println("galet_on");
+            _restartGalet = 1;
+            delay(500);
+          }
+          if (digitalRead(A3) && _restartGalet) {
+            Serial.println("galet_off");
+            _restartGalet = 0;
+            delay(500);
+          }
+
+
+          if (digitalRead(7) && !_restartFlag) {
+            Serial.println("flag3_on");
+            _restartFlag = 1;
+            delay(500);
+          }
+          if (_restartFlag && !digitalRead(7)) {
+            Serial.println("flag3_off");
+            delay(500);
+            _restartFlag = 0;
+          }
+          
           digitalWrite(DOOR_LOCK_PIN, HIGH);
           doorLockRestartTime = currentMillis;
           doorLockRestartActive = true;
@@ -484,6 +512,8 @@ void loop() {
           }
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_READY) == 0) {
           resetQuestState();
+          _restartFlag = 0;
+          _restartGalet = 0;
           currentQuestState = STATE_WAITING_FOR_START;
           if (digitalRead(CAPSULE_REED_PIN) == HIGH) {
             Serial.println((__FlashStringHelper *)MSG_DOG_NRD);

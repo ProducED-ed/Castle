@@ -48,6 +48,7 @@ caveCounter = 0
 storyBasketFlag = 0
 catchCount = 0
 enemyCatchCount = 0
+current_client_sid = None
 sintchEnemyCatchCount = 0
 redSintchEnemyCatchCount = 0
 redClickSintchEnemyCatchCount = 0
@@ -910,6 +911,21 @@ def WLAN(ssid):
      #перезагружаемся после всего
      os.system("sudo reboot")
 
+
+@socketio.on('connect')
+def handle_connect():
+    global current_client_sid
+    current_client_sid = request.sid
+    socketio.emit('volume', str(phoneLevel))
+    socketio.emit('volume1', str(effectLevel))
+    socketio.emit('volume2', str(voiceLevel))
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    global current_client_sid
+    if request.sid == current_client_sid:
+        current_client_sid = None
+
 #декоратор для громкости фона     
 @socketio.on('Phone')
 def Phone(phone):
@@ -1376,8 +1392,6 @@ def Remote(check):
              serial_write_queue.put('open_dog_door')
         if check=='cat': 
              serial_write_queue.put('open_potion_door')
-             play_effect(door_witch)
-             send_esp32_command(ESP32_API_TRAIN_URL, "fish_open")
         if check=='owl':
              serial_write_queue.put('open_owl_door')
         if check=='mine': 
@@ -1761,19 +1775,14 @@ def checkQuesst(receivedData):
      if flag=="LOW":
           socketio.emit('level', 'LOW',to=None)
      for i in socklist:
-         #----- постоянно обновляем данные по громкости синхроним 
-         socketio.emit('volume', str(phoneLevel))
-         #     phoneLeveltmp = phoneLevel
-         #     print(phoneLevel)
-         ##time.sleep(0.01)
-         #if effectLevel is not effectLeveltmp:
-         # ----постоянно обновляем данные по громкости синхроним 
-         socketio.emit('volume1', str(effectLevel))
-         #     effectLeveltmp = effectLevel
-         ##time.sleep(0.01)
-         #if voiceLevel is not voiceLeveltmp:
-         # ----постоянно обновляем данные по громкости синхроним 
-         socketio.emit('volume2', str(voiceLevel))
+         if current_client_sid:
+            socketio.emit('volume', str(phoneLevel), skip_sid=current_client_sid)
+            socketio.emit('volume1', str(effectLevel), skip_sid=current_client_sid)
+            socketio.emit('volume2', str(voiceLevel), skip_sid=current_client_sid)
+         else:
+            socketio.emit('volume', str(phoneLevel))
+            socketio.emit('volume1', str(effectLevel))
+            socketio.emit('volume2', str(voiceLevel))
          socketio.emit('level', i ,to=None)
          final_string = ', '.join(str(device) for device in devices)
          socketio.emit('devices', final_string,to=None)            
@@ -3149,6 +3158,8 @@ def serial():
                           send_esp32_command(ESP32_API_SAFE_URL, "day_on") 
                           ser.write(str.encode('door_top'))
                           time.sleep(1)
+                          socketio.emit('level', 'open_door_puzzle',to=None)
+                          socklist.append('open_door_puzzle')
                           if(language==1):
                               play_story(story_49_ru)  
                           if(language==2):
@@ -4651,19 +4662,16 @@ def timer():
     while True:
          time.sleep(0)
          for i in socklist:
-              #----- постоянно обновляем данные по громкости синхроним 
-              socketio.emit('volume', str(phoneLevel))
-              #     phoneLeveltmp = phoneLevel
-              #     print(phoneLevel)
-              ##time.sleep(0.01)
-              #if effectLevel is not effectLeveltmp:
-              # ----постоянно обновляем данные по громкости синхроним 
-              socketio.emit('volume1', str(effectLevel))
-              #     effectLeveltmp = effectLevel
-              ##time.sleep(0.01)
-              #if voiceLevel is not voiceLeveltmp:
-              # ----постоянно обновляем данные по громкости синхроним 
-              socketio.emit('volume2', str(voiceLevel))
+              if current_client_sid:
+                socketio.emit('volume', str(phoneLevel), skip_sid=current_client_sid)
+                socketio.emit('volume1', str(effectLevel), skip_sid=current_client_sid)
+                socketio.emit('volume2', str(voiceLevel), skip_sid=current_client_sid)
+              else:
+                socketio.emit('volume', str(phoneLevel))
+                socketio.emit('volume1', str(effectLevel))
+                socketio.emit('volume2', str(voiceLevel))
+
+
               socketio.emit('level', i ,to=None)
               final_string = ', '.join(str(device) for device in devices)
               socketio.emit('devices', final_string,to=None)

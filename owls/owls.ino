@@ -65,6 +65,8 @@ bool tile2Solved = false;
 bool tile3Solved = false;
 bool tile4Solved = false;
 bool allTilesSolved = false;
+bool _restartFlag;
+bool _restartGalet;
 bool F;
 
 void handleSkipCommand() {
@@ -189,6 +191,15 @@ void handleSerial1Commands() {
       state = 1;
     }
 
+    if (command == "open_door") {
+      digitalWrite(PIN_LOKER_DOOR, HIGH);
+      delay(100);
+      digitalWrite(PIN_LOKER_DOOR, LOW);
+    }
+
+    if (command == "firework") {
+    }
+
     if (command == "skip") {
       skipCommand = true;
       rainbowActive = true;
@@ -227,6 +238,31 @@ void handleSerial1Commands() {
       state = 0;
       owl = 0;
       F = false;
+      if(!digitalRead(30) && !_restartGalet){
+        Serial1.println("galet_on");
+        _restartGalet = 1;
+        delay(500);
+      }
+    if(digitalRead(30) && _restartGalet){
+      Serial1.println("galet_off");
+      _restartGalet = 0;
+      delay(500);
+    }
+
+
+    if(digitalRead(27) && !_restartFlag){
+      Serial1.println("flag4_on");
+      _restartFlag = 1;
+      delay(500);
+    }
+    if(_restartFlag && !digitalRead(27)){
+      Serial1.println("flag4_off");
+      delay(500);
+      _restartFlag = 0;
+    }
+    digitalWrite(PIN_LOKER_DOOR, HIGH);
+      delay(100);
+      digitalWrite(PIN_LOKER_DOOR, LOW);
       for (int i = 0; i < NUM_TILE_LEDS; i++) {
         tileLeds[i] = CRGB::Green;
         digitalWrite(PIN_LED_ROOM, HIGH);
@@ -251,6 +287,8 @@ void handleSerial1Commands() {
       lockerActive = false;
       owlCommandReceived = false;
       state = 0;
+      _restartFlag = 0;
+      _restartGalet = 0;
       owl = 0;
       F = false;
       for (int i = 0; i < NUM_TILE_LEDS; i++) {
@@ -538,6 +576,7 @@ void loop() {
       digitalWrite(PIN_LED_ROOM, HIGH);
       break;
     case 2:
+
       break;
   }
   if (state > 0) controlLocker();
@@ -546,9 +585,10 @@ void loop() {
   FastLED.show();
   delay(10);
   handleSerial1Commands();   // Проверяем команды
-  checkOwlButton();          // Проверяем кнопку совы
-  handleFlagSensorSimple();  //проверяем флаг
-  handleBOATSensorSimple();  //проверяем лодку
-  HELP();                    //просим подсказку
+  checkOwlButton();  
+    handleFlagSensorSimple();  //проверяем флаг
+    handleBOATSensorSimple();  //проверяем лодку
+    HELP();  
+                    //просим подсказку
   //digitalWrite(PIN_LED_WINDOW, 0);
 }
