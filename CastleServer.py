@@ -2696,7 +2696,8 @@ def serial():
                           #----активируем игру с совами
 
                      if flag=="owl_end":
-                          #----играем эффект 
+                          #----играем эффект
+                          play_effect(owl_flew)
                           socketio.emit('level', 'owls',to=None)
                           #-----добавили в историю
                           socklist.append('owls')
@@ -4724,3 +4725,4 @@ if __name__ == '__main__':
         print("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         print(f"FATAL: An unexpected error occurred: {e}")
+
