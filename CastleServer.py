@@ -1681,7 +1681,8 @@ def tmr(res):
         
      #----нажали на рестарт   
      if res =='restart':
-         serial_write_queue.put('restart')
+         #serial_write_queue.put('restart')
+         ser.write(str.encode('restart')) 
          send_esp32_command(ESP32_API_WOLF_URL, "restart")
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
