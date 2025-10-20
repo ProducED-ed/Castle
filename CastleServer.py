@@ -1180,7 +1180,7 @@ def Remote(check):
              #-----добавить в историю
              socklist.append('cat')
              #----отправить на мегу
-             serial_write_queue.put('open_potion_door')
+             serial_write_queue.put('cat')
              # --- НАЧАЛО ИЗМЕНЕНИЙ: Имитируем реакцию сервера на door_witch ---
              play_effect(door_witch) # 1. Воспроизводим звук открытия
              send_esp32_command(ESP32_API_TRAIN_URL, "fish_open") # 2. Гасим LED рыбы (24) на карте

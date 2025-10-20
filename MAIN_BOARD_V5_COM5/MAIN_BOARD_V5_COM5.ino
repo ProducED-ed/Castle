@@ -1608,6 +1608,11 @@ void MapGame() {
 
     if (buff == "owl_skip") {
       mySerial.println("skip");
+      Serial.println("owl_end");
+      Serial1.println("light_off");
+      Serial2.println("light_off");
+      Serial3.println("light_off");
+      isOwlEnd = 1;
     }
 
     if (buff == "open_potions_stash") {
