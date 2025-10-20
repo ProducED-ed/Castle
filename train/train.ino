@@ -813,25 +813,22 @@ void setup() {
       }
 
       if (body == "\"stage_7\"") {
-        // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
 
         // 1. Гасим предыдущий этап (Мастерская, LED 12)
         DisableLeds[3] = 12;
         ActiveLeds[3] = -1;
 
-        // 2. Устанавливаем следующий этап (Башня Директора, LED 18) как БУДУЩИЙ (белый).
-        FutureLeds[9] = 18;
-        ActiveLeds[9] = -1; // Гарантированно убираем из активных на случай ошибки
-        DisableLeds[9] = -1;
-
-        // 3. Устанавливаем ТЕКУЩИЙ этап (Библиотека, LED 21) как АКТИВНЫЙ (желтый).
-        ActiveLeds[12] = 21;
-        FutureLeds[12] = -1; // Убираем из будущих
+        // 2. Устанавливаем LED 21 (Библиотека) как БУДУЩИЙ (белый).
+        FutureLeds[12] = 21; // Индекс 12 -> LED 21
+        ActiveLeds[12] = -1; // Гарантированно убираем из активных
         DisableLeds[12] = -1;
+        ClickLeds[12] = -1; // Не кликабельный
 
-        // 4. На всякий случай гасим ошибочный LED 20, который включался здесь ранее.
-        DisableLeds[11] = 20;
-        ActiveLeds[11] = -1;
+        // 3. Устанавливаем LED 20 (???) как АКТИВНЫЙ (желтый).
+        ActiveLeds[11] = 20; // Индекс 11 -> LED 20
+        FutureLeds[11] = -1; // Убираем из будущих
+        DisableLeds[11] = -1; // Убираем из неактивных
+        ClickLeds[11] = -1; // Не кликабельный
 
         state = 5; // Переводим контроллер в состояние игры с призраком
 
@@ -839,12 +836,7 @@ void setup() {
       }
 
       if (body == "\"stage_8\"") {
-        DisableLeds[11] = 20;
-        ActiveLeds[11] = -1;
 
-        DisableLeds[8] = -1;
-        FutureLeds[8] = -1;
-        ActiveLeds[8] = 17;
       }
 
       if (body == "\"stage_9\"") {
@@ -973,16 +965,20 @@ void setup() {
       else if (body == "\"map_enable_clicks\"") {
         Serial.println("Enabling map clicks...");
         if (mapClicksDisabled) { // Восстанавливаем только если были отключены
+
           for (int i = 0; i < 22; i++){
-              // Проверяем, был ли этот LED временно сделан белым И не является ли он уже пройденным
-              if(FutureLeds[i] != -1 && DisableLeds[i] == -1) {
-                  ClickLeds[i] = FutureLeds[i]; // Восстанавливаем в Clickable
-                  FutureLeds[i] = -1;           // Убираем из Future
-              } else if (ClickLeds[i] != -1 && DisableLeds[i] != -1) {
-                  // На всякий случай: если LED одновременно Clickable и Disabled, убираем Clickable
-                  ClickLeds[i] = -1;
+              // Проверяем, был ли этот LED временно сделан белым
+              if(FutureLeds[i] != -1) {
+                  // ЕСЛИ он НЕ помечен как ВЫКЛЮЧЕННЫЙ (DisableLeds == -1),
+                  // ТО восстанавливаем его в Clickable
+                  if (DisableLeds[i] == -1) {
+                      ClickLeds[i] = FutureLeds[i]; // Восстанавливаем Clickable
+                  }
+                  // В любом случае убираем из Future (временный белый)
+                  FutureLeds[i] = -1;
               }
           }
+
           mapClicksDisabled = false;
         }
       }
