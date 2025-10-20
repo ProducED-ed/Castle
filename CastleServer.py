@@ -1230,6 +1230,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('owl_skip')
              #----отправить на ESP32 карты
+             play_effect(owl_flew)
              send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
              if(language==1):
                  play_story(story_14_b_ru) #
@@ -1681,8 +1682,8 @@ def tmr(res):
         
      #----нажали на рестарт   
      if res =='restart':
-         #serial_write_queue.put('restart')
-         ser.write(str.encode('restart')) 
+         serial_write_queue.put('restart')
+         serial_write_queue.put('restart')
          send_esp32_command(ESP32_API_WOLF_URL, "restart")
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
@@ -1957,7 +1958,7 @@ def serial():
           # ИЗМЕНЕНИЕ: Добавляем блок для отправки сообщений из очереди
           try:
               message_to_send = serial_write_queue.get_nowait()
-              ser.write(str.encode(message_to_send + '\n'))
+              serial_write_queue.put(message_to_send + '\n')
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
           # КОНЕЦ ИЗМЕНЕНИЯ
@@ -1978,7 +1979,7 @@ def serial():
                a10 = phoneLevel
                if flagS == 0:#- если флаг равен 0
                    time.sleep(1)
-                   ser.write(str.encode('soundon'))#-----отправляем в сериал и череп перестает моргать если трек воспроизводится
+                   serial_write_queue.put('soundon')#-----отправляем в сериал и череп перестает моргать если трек воспроизводится
                    flagS = 1 #--поднмаем флаг
                    time.sleep(1)
                while a10>0.01  and fs==0: # до тех пор пока звук не погаснет до значения 0.01 удавляем по 0.01
@@ -1993,7 +1994,7 @@ def serial():
                if flagS == 1:
                    if starts==1:
                         time.sleep(1) #--- работает только после того как стартанем
-                        ser.write(str.encode('soundoff'))
+                        serial_write_queue.put('soundoff')
                         time.sleep(1)# если воспроизведение закончено начинаем моргать
                         flagS = 0
                #-----так же плавно поднимаем громкость
@@ -2437,7 +2438,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.1) 
-                          ser.write(str.encode('kay_repeat')) 
+                          serial_write_queue.put('kay_repeat') 
                           time.sleep(1.1)     
                           #------активируем блок на пульте с тумблером
                           socketio.emit('level', 'active_first_clock',to=None)
@@ -2487,7 +2488,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)  
 
-                          ser.write(str.encode('after_story_clock2'))
+                          serial_write_queue.put('after_story_clock2')
                           time.sleep(1.0)     
                           #-----изменяем переменную
                           name = "story_1"  
@@ -2511,7 +2512,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)         
 
-                          ser.write(str.encode('student_hide'))
+                          serial_write_queue.put('student_hide')
                           time.sleep(1.0)
 
                           send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_off")
@@ -2697,7 +2698,7 @@ def serial():
                           #----активируем игру с совами
 
                      if flag=="owl_end":
-                          #----играем эффект
+                          #----играем эффект 
                           play_effect(owl_flew)
                           socketio.emit('level', 'owls',to=None)
                           #-----добавили в историю
@@ -2984,7 +2985,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.1)        
-                          ser.write(str.encode('cave_search1'))    
+                          serial_write_queue.put('cave_search1')    
                      if flag=="cave_search2":
                           #----играем эффект 
                           play_effect(cave_search)
@@ -3001,7 +3002,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.1)         
-                          ser.write(str.encode('cave_search2'))        
+                          serial_write_queue.put('cave_search2')        
                      if flag=="cave_search3":
                           #----играем эффект 
                           play_effect(cave_search)
@@ -3016,7 +3017,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.1)        
-                          ser.write(str.encode('cave_search3'))                          
+                          serial_write_queue.put('cave_search3')                          
                      if flag=="cave_end":
                           #----играем эффект 
                           socketio.emit('level', 'troll',to=None)
@@ -3054,7 +3055,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.0)    
-                          ser.write(str.encode('open_bank'))    
+                          serial_write_queue.put('open_bank')    
                           time.sleep(5.0)      
                           if(language==1):
                               play_story(story_24_ru)  
@@ -3085,7 +3086,7 @@ def serial():
                               play_story(story_25_ar)
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)  
-                          ser.write(str.encode('open_safe'))
+                          serial_write_queue.put('open_safe')
                           time.sleep(1.1)
                           if(language==1):
                               play_story(story_31_ru)  
@@ -3096,7 +3097,7 @@ def serial():
                               
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
-                          ser.write(str.encode('open_workshop'))
+                          serial_write_queue.put('open_workshop')
                           time.sleep(1.1)          
                           play_effect(door_workshop)
                           play_background_music("fon9.mp3", loops=0)
@@ -3130,7 +3131,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.1)    
-                          ser.write(str.encode('student_hide')) 
+                          serial_write_queue.put('student_hide') 
                           time.sleep(1.1)    
                           if(language==1):
                               play_story(story_47_ru)  
@@ -3158,7 +3159,7 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "day_on")
                           send_esp32_command(ESP32_API_SUITCASE_URL, "day_on")
                           send_esp32_command(ESP32_API_SAFE_URL, "day_on") 
-                          ser.write(str.encode('door_top'))
+                          serial_write_queue.put('door_top')
                           time.sleep(1)
                           socketio.emit('level', 'open_door_puzzle',to=None)
                           socklist.append('open_door_puzzle')
@@ -3304,7 +3305,7 @@ def serial():
                               play_story(story_36_ar)
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
-                          ser.write(str.encode('student_open'))
+                          serial_write_queue.put('student_open')
                           time.sleep(1.0)     
                           if(language==1):
                               play_story(story_37_ru)  
@@ -3375,11 +3376,11 @@ def serial():
                               play_story(story_43_ar) 
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
-                          ser.write(str.encode('open_library'))
+                          serial_write_queue.put('open_library')
                           #send_esp32_command(ESP32_API_TRAIN_URL, #"ghost_game_end")
-                          send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+                          #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
                           time.sleep(2.0)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
+                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
                           time.sleep(1.0)
                           if(language==1):
                               play_story(story_44_ru)  
@@ -3484,7 +3485,7 @@ def serial():
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.0)    
-                          ser.write(str.encode('start_game_basket')) 
+                          serial_write_queue.put('start_game_basket') 
                           time.sleep(1.0)
                           socketio.emit('level', 'active_basket',to=None)
                           socklist.append('active_basket')     
@@ -4726,4 +4727,3 @@ if __name__ == '__main__':
         print("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         print(f"FATAL: An unexpected error occurred: {e}")
-
