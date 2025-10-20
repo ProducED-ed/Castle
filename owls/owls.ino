@@ -144,11 +144,6 @@ void handleSerial1Commands() {
     String command = Serial1.readStringUntil('\n');  // Читаем до LF
     command.trim();                                  // Удаляем CR и пробелы
 
-    // Удаляем CR если он есть в конце
-    if (command.endsWith("\r")) {
-      command.remove(command.length() - 1);
-    }
-
     if (command == "day_on") {
       for (int i = 0; i < NUM_TILE_LEDS; i++) {
         tileLeds[i] = CRGB::Green;
