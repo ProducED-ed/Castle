@@ -1245,6 +1245,7 @@ def Remote(check):
              socklist.append('projector')
              #----отправить на мегу
              send_esp32_command(ESP32_API_TRAIN_URL, "projector")
+             serial_write_queue.put('train_active')
              name = "story_2"     
              time.sleep(3) 
              #-----активируем блок с флагами
@@ -1447,6 +1448,7 @@ def handle_data():
             print("projector")
             socketio.emit('level', 'projector',to=None)
             socklist.append('projector')
+            serial_write_queue.put('train_active')
             # Активируем следующий этап (игра с поездом)
             socketio.emit('level', 'active_train',to=None)
             socklist.append('active_train')
