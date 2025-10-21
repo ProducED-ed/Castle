@@ -68,6 +68,7 @@ bool allTilesSolved = false;
 bool _restartFlag;
 bool _restartGalet;
 bool F;
+bool fireworkActive = false; // Флаг для фейерверка
 
 void handleSkipCommand() {
   if (skipCommand) {
@@ -198,6 +199,13 @@ void handleSerial1Commands() {
     }
 
     if (command == "firework") {
+
+      fireworkActive = true;
+
+      FastLED.clear(); // Очищаем светодиоды перед запуском
+
+      FastLED.show();
+
     }
 
     if (command == "skip") {
@@ -220,9 +228,15 @@ void handleSerial1Commands() {
       FastLED.show();
     }
 
+    if (command == "ready") {
+      _restartFlag = 0;
+      _restartGalet = 0;
+    }
+
     if (command == "restart") {
       // Сброс всех переменных
       skipCommand = false;
+      fireworkActive = false;
       rainbowActive = false;
       tile0State = false;
       tile1State = false;
@@ -566,6 +580,9 @@ void setup() {
 
 void loop() {
   // Главный state machine
+  if (fireworkActive) {
+    handleFirework();
+  } else {
   switch (state) {
     case 1:
       if (skipCommand) {
@@ -579,6 +596,7 @@ void loop() {
 
       break;
   }
+  }
   if (state > 0) controlLocker();
 
   // Общие функции, работающие в любом состоянии
@@ -591,4 +609,102 @@ void loop() {
     HELP();  
                     //просим подсказку
   //digitalWrite(PIN_LED_WINDOW, 0);
+}
+
+// Адаптированная функция фейерверка для owls.ino (FastLED)
+void handleFirework() {
+  if (!fireworkActive) return;
+
+  static unsigned long lastFireworkTime = 0;
+  // Уменьшаем кол-во взрывов для 4 светодиодов
+  static const int MAX_EXPLOSIONS = 2; 
+  // Уменьшаем макс. радиус взрыва
+  static const int FIREWORK_RADIUS = 2; 
+  static struct Explosion {
+    int phase;
+    CRGB color;
+    int center;
+    unsigned long startTime;
+  } explosions[MAX_EXPLOSIONS];
+
+
+  // Создаем новые взрывы (реже, т.к. светодиодов мало)
+  if (millis() - lastFireworkTime >= 1000) { // [изменено с 600]
+    lastFireworkTime = millis();
+    // Ищем свободный слот для нового взрыва
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+      if (explosions[i].phase == 0) {
+        // Красивые цвета салюта
+        CRGB niceColors[] = {
+          CRGB(255, 100, 50),   // Оранжевый
+          CRGB(100, 255, 100),  // Светло-зеленый
+          CRGB(100, 100, 255),  // Светло-синий
+          CRGB(255, 255, 100),  // Светло-желтый
+          CRGB(255, 100, 255),  // Розовый
+          CRGB(100, 255, 255)   // Бирюзовый
+        };
+        explosions[i].color = niceColors[random(6)];
+        // Центр взрыва - случайный из 4 светодиодов
+        explosions[i].center = random(NUM_TILE_LEDS); // 
+        explosions[i].startTime = millis();
+        explosions[i].phase = 1;
+        break;
+      }
+    }
+  }
+
+  // Обрабатываем все активные взрывы
+  for (int e = 0; e < MAX_EXPLOSIONS; e++) {
+    if (explosions[e].phase > 0) {
+      unsigned long elapsed = millis() - explosions[e].startTime;
+      if (elapsed < 500) {
+        // Фаза расширения
+        float progress = (float)elapsed / 500.0;
+        int radius = progress * FIREWORK_RADIUS; // Используем новый радиус
+
+        for (int i = 0; i < NUM_TILE_LEDS; i++) { // 
+          int distance = abs(i - explosions[e].center);
+          if (distance <= radius) {
+            float intensity = 1.0 - (float)distance / radius;
+            // Применяем цвет с масштабированной яркостью
+            tileLeds[i] = explosions[e].color; // 
+            tileLeds[i].fadeToBlackBy(255 - (intensity * 255)); // 
+          }
+        }
+      } else if (elapsed < 1000) {
+        // Фаза затухания
+        float fadeProgress = (float)(elapsed - 500) / 500.0;
+        uint8_t fadeAmount = fadeProgress * 255;
+
+        for (int i = 0; i < NUM_TILE_LEDS; i++) { // 
+          int distance = abs(i - explosions[e].center);
+          if (distance <= FIREWORK_RADIUS) { // Используем новый радиус
+            // Применяем цвет и сразу затухаем
+            tileLeds[i] = explosions[e].color; // 
+            tileLeds[i].fadeToBlackBy(fadeAmount); // 
+          }
+        }
+      } else {
+        // Завершаем взрыв
+        explosions[e].phase = 0;
+        for (int i = 0; i < NUM_TILE_LEDS; i++) { // 
+          int distance = abs(i - explosions[e].center);
+          if (distance <= FIREWORK_RADIUS) { // Используем новый радиус
+            tileLeds[i] = CRGB::Black; // 
+          }
+        }
+      }
+    }
+  }
+
+  // Плавное затухание всех светодиодов
+  EVERY_N_MILLISECONDS(20) {
+    for (int i = 0; i < NUM_TILE_LEDS; i++) { // 
+      if (tileLeds[i] != CRGB::Black) { // 
+        tileLeds[i].fadeToBlackBy(8); // 
+      }
+    }
+  }
+
+  FastLED.show();
 }

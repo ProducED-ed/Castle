@@ -491,6 +491,10 @@ duration   : '1s',
                 $('#open_mansard_door').removeClass('positive');
                 $('#open_mansard_indic').removeClass('check');
             }
+            if(inp === 'galet_on') {
+                $('#open_mansard_door').addClass('positive');
+                $('#open_mansard_indic').addClass('check');
+            }
             if(inp === 'flag1_on') {
                 //используем флажок на всякий
                 if(rFlag==0){
@@ -522,15 +526,15 @@ duration   : '1s',
             }
             if(inp === 'flag1_off') {
                 if(rFlag==1){
-                    $('#redflag').removeClass('green')//удалим класс red 
-                    $('#redflag').addClass('white')//добавим класс white
+                    $('#greenflag').removeClass('green')//удалим класс red 
+                    $('#greenflag').addClass('white')//добавим класс white
                     rFlag = 0;
                 }
             }
             if(inp === 'flag2_off') {
                 if(gFlag==1){
-                    $('#greenflag').removeClass('red')
-                    $('#greenflag').addClass('white')
+                    $('#redflag').removeClass('red')
+                    $('#redflag').addClass('white')
                     gFlag = 0;
                 }
             }
@@ -666,6 +670,10 @@ duration   : '1s',
                 $('#crystals').addClass('positive');
                 $('#crystals_indic').addClass('check');
             }
+            if(inp === 'crystals_down') {
+                $('#crystals').removeClass('positive');
+                $('#crystals_indic').removeClass('check');
+            }
 
             if(inp === 'start_players') {
                 $('#players').addClass('check');
@@ -711,7 +719,7 @@ duration   : '1s',
                 if(goal1bot==0){
                     //percent 10 позволяет выставить процент можно в принципе использовать increment но тут так удобнее
                     $('#player_2_progress').progress({
-                        percent: 10
+                        percent: 33
                      });
                      //так же вниху под прогресс баром есть текст ставим по количеству
                     $('#player_2_score').text('1')
@@ -721,19 +729,10 @@ duration   : '1s',
             if(inp === 'goal_2_bot') {
                 if(goal2bot==0){
                     $('#player_2_progress').progress({
-                        percent: 20
+                        percent: 66
                      });
                     $('#player_2_score').text('2')
                     goal2bot = 1;
-                }
-            }
-            if(inp === 'goal_3_bot') {
-                if(goal3bot==0){
-                    $('#player_2_progress').progress({
-                        percent: 30
-                     });
-                    $('#player_2_score').text('3')
-                    goal3bot = 1;
                 }
             }
             if(inp === 'win_bot') {
@@ -741,14 +740,14 @@ duration   : '1s',
                     $('#player_2_progress').progress({
                     percent: 100
                  });
-                    $('#player_2_score').text('10')
+                    $('#player_2_score').text('3')
                     goal10bot = 1;
                 }
             }
             if(inp === 'goal_1_player') {
                 if(goal1player==0){
                     $('#player_1_progress').progress({
-                        percent: 10
+                        percent: 33
                      });
                     $('#player_1_score').text('1')
                     goal1player = 1;
@@ -757,19 +756,10 @@ duration   : '1s',
             if(inp === 'goal_2_player') {
                 if(goal2player==0){
                     $('#player_1_progress').progress({
-                        percent: 20
+                        percent: 66
                      });
                     $('#player_1_score').text('2')
                     goal2player = 1;
-                }
-            }
-            if(inp === 'goal_3_player') {
-                if(goal3player==0){
-                    $('#player_1_progress').progress({
-                        percent: 30
-                     });
-                    $('#player_1_score').text('3')
-                    goal3player = 1;
                 }
             }
             if(inp === 'win_player') {
@@ -777,7 +767,7 @@ duration   : '1s',
                     $('#player_1_progress').progress({
                     percent: 100
                  });
-                    $('#player_1_score').text('10')
+                    $('#player_1_score').text('3')
                     goal10player = 1;
                 }
             }
@@ -833,7 +823,7 @@ duration   : '1s',
                
             }
             if(inp === 'start_error') {
-                if(start_error==1){
+                if(start_error==1 && devices.trim().length > 0){
                     swal.fire({
                         title: "Error!",
                         icon: "error",

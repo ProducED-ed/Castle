@@ -41,7 +41,7 @@ ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
 rating = 0
 star = 0
 socklist = [50]
-devices = [5]
+devices = []
 rateTime = ''
 hintCount=0
 caveCounter = 0
@@ -1721,6 +1721,8 @@ def tmr(res):
          if go == 2 or go == 0:
                if test_esp32() == True:
                     print("ready")
+                    socklist.clear()
+                    devices.clear()
                     serial_write_queue.put('ready')
                     send_esp32_command(ESP32_API_WOLF_URL, "ready")
                     send_esp32_command(ESP32_API_TRAIN_URL, "ready")
@@ -1730,7 +1732,7 @@ def tmr(res):
                     socketio.emit('level', 'ready',to=None)
                     go=3 
                     #---очистим список  
-                    socklist.clear()
+                    
                     #-----добавим демо
                     socklist.append('ready')
                     #----обновим значение флага
@@ -1871,7 +1873,7 @@ def test_esp32():
         ("Golden safe", ESP32_API_SAFE_URL)
     ]
     
-    devices = []  # Недоступные устройства
+    #devices = []  # Недоступные устройства
     success_count = 0
 
     for device_name, url in device_configs:
@@ -1883,14 +1885,16 @@ def test_esp32():
             devices.append(device_name)
 
     # Результат
-    if devices:
-        print(f"Не отвечают: {', '.join(devices)}")
     
     print(f"Итог: {success_count}/4 устройств доступно")
+    print(devices)
     final_string = ', '.join(str(device) for device in devices)
     print(final_string)
     socketio.emit('devices',final_string ,to=None)
-    return success_count == 4   
+    if success_count == 4 and len(devices) == 0:
+        socklist.clear()
+        devices.clear()
+    return success_count == 4 and len(devices) == 0 
                 
 def play_background_music(music_file, volume_file='1.txt', loops=-1):
     try:
@@ -2104,135 +2108,45 @@ def serial():
                          play_story(story_2_a_ar)         
                #---режим для событий в ресте показывает что нужно вернуть на свои места
                if starts == 2:
-                     if flag=="open_mine":
-                          if 'close_mine' in socklist:
-                                   socklist.remove('close_mine')
-                          if 'close_mine' in socklist:
-                                   socklist.remove('close_mine')         
-                          socketio.emit('level', 'open_mine',to=None)
-                          socklist.append('open_mine')
-                         
-                     if flag=='close_mine':
-                          if 'open_mine' in socklist:
-                                   socklist.remove('open_mine')
-                          if 'open_mine' in socklist:
-                                   socklist.remove('open_mine')         
-                          socketio.emit('level', 'close_mine',to=None)
-                          socklist.append('close_mine') 
                      if flag=="flag1_on":
                           if 'flag1_off' in socklist:
                                    socklist.remove('flag1_off')
                           socketio.emit('level', 'flag1_on',to=None)
                           socklist.append('flag1_on')
+                          if 'Check Flags' not in devices:
+                            devices.append('Check Flags')
                      if flag=="flag1_off":
+                          if 'Check Flags' in devices:
+                                   devices.remove('Check Flags')
                           if 'flag1_on' in socklist:
                                    socklist.remove('flag1_on')
                           socketio.emit('level', 'flag1_off',to=None)
                           socklist.append('flag1_off')
-                     if flag=="horseshoe_in":
-                          if 'horseshoe_off' in socklist:
-                                   socklist.remove('horseshoe_off')
-                          if 'horseshoe_off' in socklist:
-                                   socklist.remove('horseshoe_off')         
-                          socketio.emit('level', 'horseshoe_on',to=None)
-                          socklist.append('horseshoe_on') 
-                     if flag=="horseshoe_off":
-                          if 'horseshoe_in' in socklist:
-                                   socklist.remove('horseshoe_in')
-                          if 'horseshoe_on' in socklist:
-                                   socklist.remove('horseshoe_on') 
-                          if 'horseshoe_in' in socklist:
-                                   socklist.remove('horseshoe_in')
-                          if 'horseshoe_on' in socklist:
-                                   socklist.remove('horseshoe_on')                 
-                          socketio.emit('level', 'horseshoe_off',to=None)
-                          socklist.append('horseshoe_off')            
-                     if flag=="hummer_on":
-                          if 'hummer_off_rest' in socklist:
-                                   socklist.remove('hummer_off_rest')
-                          if 'hummer_off_rest' in socklist:
-                                   socklist.remove('hummer_off_rest')         
-                          socketio.emit('level', 'hummer_on',to=None)
-                          socklist.append('hummer_on')     
-                     if flag=="hummer_off":
-                          if 'hummer_on' in socklist:
-                                   socklist.remove('hummer_on')
-                          if 'hummer_on' in socklist:
-                                   socklist.remove('hummer_on')
-                          socketio.emit('level', 'hummer_off_rest',to=None)
-                          socklist.append('hummer_off_rest')   
-                     if flag=="sword_shield":
-                          if 'sword_shield_off' in socklist:
-                                   socklist.remove('sword_shield_off')
-                          if 'sword_shield_off' in socklist:
-                                   socklist.remove('sword_shield_off')         
-                          socketio.emit('level', 'sword_shield',to=None)
-                          socklist.append('sword_shield') 
-                     if flag=='sword_shield_off':
-                          if 'sword_shield' in socklist:
-                                   socklist.remove('sword_shield')
-                          if 'sword_shield' in socklist:
-                                   socklist.remove('sword_shield')         
-                          socketio.emit('level', 'sword_shield_off',to=None)
-                          socklist.append('sword_shield_off')  
-                     if flag=="syber_shield":
-                          if 'syber_shield_off' in socklist:
-                                   socklist.remove('syber_shield_off')
-                          if 'syber_shield_off' in socklist:
-                                   socklist.remove('syber_shield_off')
-                          socketio.emit('level', 'syber_shield',to=None)
-                          socklist.append('syber_shield')
-                     if flag=="syber_shield_off":
-                          if 'syber_shield' in socklist:
-                                   socklist.remove('syber_shield')
-                          if 'syber_shield' in socklist:
-                                   socklist.remove('syber_shield')
-                          socketio.emit('level', 'syber_shield_off',to=None)
-                          socklist.append('syber_shield_off') 
                      if flag=="flag2_on":
                           if 'flag2_off' in socklist:
                                    socklist.remove('flag2_off')
                           socketio.emit('level', 'flag2_on',to=None)
                           socklist.append('flag2_on')
+                          if 'Check Flags' not in devices:
+                            devices.append('Check Flags')
                      if flag=="flag2_off":
+                          if 'Check Flags' in devices:
+                                   devices.remove('Check Flags')
                           if 'flag2_on' in socklist:
                                    socklist.remove('flag2_on')
                           socketio.emit('level', 'flag2_off',to=None)
-                          socklist.append('flag2_off')   
-                     if flag=="broom_on":
-                          if 'broom_off' in socklist:
-                                   socklist.remove('broom_off')
-                          if 'broom_off' in socklist:
-                                   socklist.remove('broom_off')         
-                          socketio.emit('level', 'broom_on',to=None)
-                          socklist.append('broom_on')
-                     if flag=="broom_off":
-                          if 'broom_on' in socklist:
-                                   socklist.remove('broom_on')
-                          if 'broom_on' in socklist:
-                                   socklist.remove('broom_on')         
-                          socketio.emit('level', 'broom_off',to=None)
-                          socklist.append('broom_off')    
-                     if flag=="stop_players":
-                          if 'start_players' in socklist:
-                                   socklist.remove('start_players')
-                          if 'start_players' in socklist:
-                                   socklist.remove('start_players')                                                                                         
-                          socketio.emit('level', 'stop_players_rest',to=None)
-                          socklist.append('stop_players_rest') 
-                     if flag=="start_players":
-                          if 'stop_players_rest' in socklist:
-                                   socklist.remove('stop_players_rest')
-                          if 'stop_players_rest' in socklist:
-                                   socklist.remove('stop_players_rest')                                                                                         
-                          socketio.emit('level', 'start_players',to=None)
-                          socklist.append('start_players')  
+                          socklist.append('flag2_off') 
+
                      if flag=="flag3_on":
                           if 'flag3_off' in socklist:
                                    socklist.remove('flag3_off')
                           socketio.emit('level', 'flag3_on',to=None)
                           socklist.append('flag3_on')
+                          if 'Check Flags' not in devices:
+                            devices.append('Check Flags')
                      if flag=="flag3_off":
+                          if 'Check Flags' in devices:
+                                   devices.remove('Check Flags')
                           if 'flag3_on' in socklist:
                                    socklist.remove('flag3_on')
                           socketio.emit('level', 'flag3_off',to=None)
@@ -2242,161 +2156,93 @@ def serial():
                                    socklist.remove('flag4_off')
                           socketio.emit('level', 'flag4_on',to=None)
                           socklist.append('flag4_on')
+                          if 'Check Flags' not in devices:
+                            devices.append('Check Flags')
                      if flag=="flag4_off":
+                          if 'Check Flags' in devices:
+                                   devices.remove('Check Flags')
                           if 'flag4_on' in socklist:
                                    socklist.remove('flag4_on')
                           socketio.emit('level', 'flag4_off',to=None)
                           socklist.append('flag4_off') 
-                     if flag=="feather_on":
-                          if 'feather_off' in socklist:
-                                   socklist.remove('feather_off')
-                          if 'feather_off' in socklist:
-                                   socklist.remove('feather_off')         
-                          socketio.emit('level', 'feather_on',to=None)
-                          socklist.append('feather_on') 
-                     if flag=="feather_off":
-                          if 'feather_on' in socklist:
-                                   socklist.remove('feather_on')
-                          if 'feather_on' in socklist:
-                                   socklist.remove('feather_on') 
-                          socketio.emit('level', 'feather_off',to=None)
-                          socklist.append('feather_off')     
-                     if flag=="egg_on":
-                          if 'egg_off_rest' in socklist:
-                                   socklist.remove('egg_off_rest')
-                          if 'egg_off_rest' in socklist:
-                                   socklist.remove('egg_off_rest')         
-                          socketio.emit('level', 'egg_on',to=None)
-                          socklist.append('egg_on')  
-                     if flag=="egg_off_rest":
-                          if 'egg_on' in socklist:
-                                   socklist.remove('egg_on')
-                          if 'egg_on' in socklist:
-                                   socklist.remove('egg_on')         
-                          socketio.emit('level', 'egg_off_rest',to=None)
-                          socklist.append('egg_off_rest') 
                      if flag == "open_door":
                           if 'close_door' in socklist:
                                    socklist.remove('close_door')
                           socketio.emit('level', 'open_door',to=None)
-                          socklist.append('open_door') 
+                          socklist.append('open_door')
+                          if 'Check Start Door' not in devices:
+                            devices.append('Check Start Door') 
                      if flag == "close_door":
+                          if 'Check Start Door' in devices:
+                                   devices.remove('Check Start Door')
                           if 'open_door' in socklist:
                                    socklist.remove('open_door')
                           socketio.emit('level', 'close_door',to=None)
                           socklist.append('close_door')   
                      if flag=="galet_on":
+                          if 'Check Galet' not in devices:
+                            devices.append('Check Galet')
                           if 'galet_off' in socklist:
                                    socklist.remove('galet_off')
                           socketio.emit('level', 'galet_on',to=None)
                           socklist.append('galet_on')
                      if flag=="galet_off":
+                          if 'Check Galet' in devices:
+                                   devices.remove('Check Galet')
                           if 'galet_on' in socklist:
                                    socklist.remove('galet_on')
                           socketio.emit('level', 'galet_off',to=None)
                           socklist.append('galet_off')  
-                     if flag=="cauldron_on":
-                          if 'cauldron_off' in socklist:
-                                   socklist.remove('cauldron_off')
-                          socketio.emit('level', 'cauldron_on',to=None)
-                          socklist.append('cauldron_on')   
-                     if flag=="cauldron_off":
-                          if 'cauldron_on' in socklist:
-                                   socklist.remove('cauldron_on')
-                          socketio.emit('level', 'cauldron_off',to=None)
-                          socklist.append('cauldron_off')   
-                     if flag=="first_scrol_true":
-                          if 'first_scrol_false' in socklist:
-                                   socklist.remove('first_scrol_false') 
-                          #socketio.emit('level', 'first_scrol_true',to=None)
-                          socklist.append('first_scrol_true')
-                         
-                     if flag=="second_scrol_true":
-                          if 'second_scrol_false' in socklist:
-                                   socklist.remove('second_scrol_false')                  
-                          #socketio.emit('level', 'second_scrol_true',to=None)
-                          socklist.append('second_scrol_true')
-                         
-                     if flag=="third_scrol_true":
-                          if 'third_scrol_false' in socklist:
-                                   socklist.remove('third_scrol_false') 
-                          #socketio.emit('level', 'third_scrol_true',to=None)
-                          socklist.append('third_scrol_true')
-                         
-                     if flag=='four_scrol_true':
-                          if 'four_scrol_false' in socklist:
-                                   socklist.remove('four_scrol_false') 
-                          #socketio.emit('level', 'four_scrol_true',to=None)
-                          socklist.append('four_scrol_true')
-                           
-                     if flag=="five_scrol_true":
-                          if 'five_scrol_false' in socklist:
-                                   socklist.remove('five_scrol_false') 
-                          #socketio.emit('level', 'five_scrol_true',to=None)
-                          socklist.append('five_scrol_true')
-                          
 
-                     if flag=="first_scrol_false":
-                          if 'first_scrol_true' in socklist:
-                                   socklist.remove('first_scrol_true')        
-                          socketio.emit('level', 'first_scrol_false',to=None)
-                          socklist.append('first_scrol_false')
-                         
-                     if flag=="second_scrol_false":
-                          if 'second_scrol_true' in socklist:
-                                   socklist.remove('second_scrol_true')                  
-                          socketio.emit('level', 'second_scrol_false',to=None)
-                          socklist.append('second_scrol_false')
+                     if flag=="cristal_up":
+                          if 'Check Crystals' not in devices:
+                            devices.append('Check Crystals')
+                          if 'crystals_down' in socklist:
+                                   socklist.remove('crystals_down')
+                          socketio.emit('level', 'crystals',to=None)
+                          socklist.append('crystals')   
+
+                     if flag=="cristal_down":
+                          if 'Check Crystals' in devices:
+                                   devices.remove('Check Crystals')
+                          if 'crystals' in socklist:
+                                   socklist.remove('crystals')
+                          socketio.emit('level', 'crystals_down',to=None)
+                          socklist.append('crystals_down')   
+
+                     if flag=="boy_in":
+                          if 'Check Kay' in devices:
+                                   devices.remove('Check Kay')
                           
-                     if flag=="third_scrol_false":
-                          if 'third_scrol_true' in socklist:
-                                   socklist.remove('third_scrol_true')
-                          socketio.emit('level', 'third_scrol_false',to=None)
-                          socklist.append('third_scrol_false')
-                           
-                     if flag=="four_scrol_false":
-                          if 'four_scrol_true' in socklist:
-                                   socklist.remove('four_scrol_true')
-                          socketio.emit('level', 'four_scrol_false',to=None)
-                          socklist.append('four_scrol_false')
-                           
-                     if flag=="five_scrol_false":
-                          if 'five_scrol_true' in socklist:
-                                   socklist.remove('five_scrol_true')
-                          socketio.emit('level', 'five_scrol_false',to=None)
-                          socklist.append('five_scrol_false')   
-                     if flag=="seal_on":
-                          if 'seal_off' in socklist:
-                                   socklist.remove('seal_off')
-                          socketio.emit('level', 'seal_on',to=None)
-                          socklist.append('seal_on')
-                     if flag=="seal_off":
-                          if 'seal_on' in socklist:
-                                   socklist.remove('seal_on')
-                          socketio.emit('level', 'seal_off',to=None)
-                          socklist.append('seal_off')  
-                     if flag=="seal_space_on":
-                          if 'seal_space_off' in socklist:
-                                   socklist.remove('seal_space_off')
-                          socketio.emit('level', 'seal_space_on',to=None)
-                          socklist.append('seal_space_on')
-                     if flag=="seal_space_off":
-                          if 'seal_space_on' in socklist:
-                                   socklist.remove('seal_space_on')
-                          socketio.emit('level', 'seal_space_off',to=None)
-                          socklist.append('seal_space_off')
-                     if flag=="last_on":
-                          if 'last_off' in socklist:
-                                   socklist.remove('last_off')
-                          socketio.emit('level', 'last_on',to=None)
-                          socklist.append('last_on')
-                     if flag=="last_off":
-                          if 'last_on' in socklist:
-                                   socklist.remove('last_on')
-                          socketio.emit('level', 'last_off',to=None)
-                          socklist.append('last_off')                                                                      
-                     
-                         
+                          if 'start_players' in socklist:
+                                socklist.remove('start_players')
+                          socketio.emit('level', 'stop_players_rest',to=None)
+                          socklist.append('stop_players_rest')
+
+                     if flag=="boy_out":
+                          if 'Check Kay' not in devices:
+                            devices.append('Check Kay')
+                          if 'stop_players_rest' in socklist:
+                                socklist.remove('stop_players_rest')
+                          socketio.emit('level', 'start_players',to=None)
+                          socklist.append('start_players') 
+
+                     if flag=="lib_door":
+                          if 'Check Library' not in devices:
+                            devices.append('Check Library')
+                          if 'close_door_puzzle' in socklist:
+                                socklist.remove('close_door_puzzle')
+                          socketio.emit('level', 'open_door_puzzle',to=None)
+                          socklist.append('open_door_puzzle')
+
+                     if flag=="lib_door_in":
+                          if 'Check Library' in devices:
+                                   devices.remove('Check Library')
+                          if 'open_door_puzzle' in socklist:
+                                socklist.remove('open_door_puzzle')
+                          socketio.emit('level', 'close_door_puzzle',to=None)
+                          socklist.append('close_door_puzzle')         
+                                                                                
                #----если нажали на старт и пришло сообщение от меги что можно играть начинаем обрабатывать сообщения
                if go == 1 and starts == 1:
                     #-----игроки открыли стартовую дверь
@@ -3389,8 +3235,6 @@ def serial():
                               play_story(story_44_ar) 
 
                      if flag=="star_hint":
-                          socketio.emit('level', 'open_door_puzzle',to=None)
-                          socklist.append('open_door_puzzle')
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_8") 
                           socketio.emit('level', 'active_cup',to=None)
                           socklist.append('active_cup')   
@@ -3461,9 +3305,23 @@ def serial():
                           if(language==2):
                               play_story(story_52_en)
                           if(language==3):
-                              play_story(story_52_ar)      
+                              play_story(story_52_ar)  
+                     if flag=="boy_in_game":
+                          if 'stop_players_rest' in socklist:
+                                socklist.remove('stop_players_rest')
+                          socketio.emit('level', 'start_players',to=None)
+                          socklist.append('start_players')
+
+                     if flag=="boy_out_game":
+                          if 'start_players' in socklist:
+                                socklist.remove('start_players')
+                          socketio.emit('level', 'stop_players_rest',to=None)
+                          socklist.append('stop_players_rest')       
+
                      if flag=="boy_in":
                           play_background_music("fon18.mp3")
+                          socketio.emit('level', 'start_players',to=None)
+                          socklist.append('start_players') 
                           if(language==1):
                               play_story(story_57_ru)  
                           if(language==2):
@@ -3845,47 +3703,7 @@ def serial():
                               play_story(story_61_d_en)
                           if(language==3):
                               play_story(story_61_d_ar)    
-                     if flag=="goal_5_player":
-                          play_effect(goal5)
-                          if(language==1):
-                              play_story(story_61_e_ru)  
-                          if(language==2):
-                              play_story(story_61_e_en)
-                          if(language==3):
-                              play_story(story_61_e_ar)    
-                     if flag=="goal_6_player":
-                          play_effect(goal6)
-                          if(language==1):
-                              play_story(story_61_f_ru)  
-                          if(language==2):
-                              play_story(story_61_f_en)
-                          if(language==3):
-                              play_story(story_61_f_ar)    
-                     if flag=="goal_7_player":
-                          play_effect(goal7)
-                          if(language==1):
-                              play_story(story_61_g_ru)  
-                          if(language==2):
-                              play_story(story_61_g_en)
-                          if(language==3):
-                              play_story(story_61_g_ar)    
-                     if flag=="goal_8_player":
-                          play_effect(goal1)
-                          if(language==1):
-                              play_story(story_61_h_ru)  
-                          if(language==2):
-                              play_story(story_61_h_en)
-                          if(language==3):
-                              play_story(story_61_h_ar)    
-                     if flag=="goal_9_player":
-                          play_effect(goal2)
-                          if(language==1):
-                              play_story(story_61_i_ru)  
-                          if(language==2):
-                              play_story(story_61_i_en)
-                          if(language==3):
-                              play_story(story_61_i_ar)    
-                     
+
                      if flag=="goal_1_bot":
                           play_effect(enemy_goal1)
                           if(language==1):
@@ -3917,47 +3735,7 @@ def serial():
                           if(language==2):
                               play_story(story_65_d_en)
                           if(language==3):
-                              play_story(story_65_d_ar)    
-                     if flag=="goal_5_bot":
-                          play_effect(enemy_goal1)
-                          if(language==1):
-                              play_story(story_65_e_ru)  
-                          if(language==2):
-                              play_story(story_65_e_en)
-                          if(language==3):
-                              play_story(story_65_e_ar)    
-                     if flag=="goal_6_bot":
-                          play_effect(enemy_goal2)
-                          if(language==1):
-                              play_story(story_65_f_ru)  
-                          if(language==2):
-                              play_story(story_65_f_en)
-                          if(language==3):
-                              play_story(story_65_f_ar)    
-                     if flag=="goal_7_bot":
-                          play_effect(enemy_goal3)
-                          if(language==1):
-                              play_story(story_65_g_ru)  
-                          if(language==2):
-                              play_story(story_65_g_en)
-                          if(language==3):
-                              play_story(story_65_g_ar)    
-                     if flag=="goal_8_bot":
-                          play_effect(enemy_goal4)
-                          if(language==1):
-                              play_story(story_65_h_ru)  
-                          if(language==2):
-                              play_story(story_65_h_en)
-                          if(language==3):
-                              play_story(story_65_h_ar)    
-                     if flag=="goal_9_bot":
-                          play_effect(enemy_goal1)
-                          if(language==1):
-                              play_story(story_65_i_ru)  
-                          if(language==2):
-                              play_story(story_65_i_en)
-                          if(language==3):
-                              play_story(story_65_i_ar)  
+                              play_story(story_65_d_ar)  
 
                      if flag=="start_snitch":
                           #----играем эффект 
@@ -4233,30 +4011,7 @@ def serial():
                           elif rating>=180:
                                star = 1                    
                           socketio.emit('rating', str(star),to=None)
-                          #----играем фон
-                          pygame.mixer.music.load("fon_end.mp3")
-                          pygame.mixer.music.play(-1)
-                          f1 = open('1.txt','r')
-                          a1=f1.read(4)
-                          f1.close() 
-                          pygame.mixer.music.set_volume(float(a1))
-                          #----играем историю
-                          #if(language==1):
-                          #    channel3.play(story_12_ru, loops = 0)  
-                          #if(language==2):
-                          #    channel3.play(story_12_en, loops = 0)
-                          #if(language==3):
-                          #    channel3.play(story_12_ar, loops = 0) 
-                          #if(language==4):
-                          #    channel3.play(story_12_ge, loops = 0)
-                          #if(language==5):
-                          #    channel3.play(story_12_sp, loops = 0) 
-                          #if(language==6):
-                          #    channel3.play(story_12_ch, loops =# 0)              
-                          f3 = open('3.txt','r')
-                          a3=f3.read(4)
-                          f3.close()   
-                          channel3.set_volume(float(a3),float(a3))
+                          #----играем фон       
                           #----меняем переменную
                           name = "story_12"  
                           #----удаляем старт из истории

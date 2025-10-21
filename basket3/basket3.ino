@@ -880,13 +880,6 @@ void PRINT_SCORE_MAN() { // Вывод голов в Serial
     case 2:
       Serial1.println("fr62nmr");
       break;
-    case 3:
-      Serial1.println("fr63nmr");
-      break;
-    case 4:
-      Serial1.println("fr64nmr");
-      break;
-
   }
   delay(50);
 }
@@ -898,12 +891,6 @@ void PRINT_SCORE_ROBOT() {
       break;
     case 2:
       Serial1.println("fr72nmr");
-      break;
-    case 3:
-      Serial1.println("fr73nmr");
-      break;
-    case 4:
-      Serial1.println("fr74nmr");
       break;
   }
   delay(50);

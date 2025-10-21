@@ -102,7 +102,15 @@ const byte firstCrystal = 27;  // геркон первого кристала
 const byte secondCrystal = 24;
 const byte thirdCrystal = 23;
 const byte fourCrystal = 25;
+// Флаги активации дверей/этапов для подсказки hint_11_z ---
 
+bool isPotionDoorOpened = false; // Дверь ведьмы (рыба) открыта
+
+bool isDogDoorOpened = false;    // Дверь рыцаря (собака/ключ) открыта
+
+bool isOwlDoorOpened = false;    // Дверь гнома (сова) открыта
+
+bool isTrainStarted = false;     // Игра с поездом (после проектора) активна
 //-------------------
 //----------------RFID
 OneWire myRFID(13);  // рфидка на котле в комнате зельеварения
@@ -750,6 +758,10 @@ void PowerOn() {
       directorCounter = 0;
       goblinCounter = 0;
       witchCounter = 0;
+      isPotionDoorOpened = false;
+      isDogDoorOpened = false;
+      isOwlDoorOpened = false;
+      isTrainStarted = false;
       dragonTimer = millis();
       level++;
       //}
@@ -928,7 +940,7 @@ void HelpHandler(String from) {
         Serial.println(professorHints[professorCounter]);
       }
       if (level == 7) {
-        if (!isPotionEnd || !isDogEnd || !isOwlEnd || !isTrainEnd) {
+        if (!isPotionDoorOpened || !isDogDoorOpened || !isOwlDoorOpened || !isTrainStarted) {
           professorCounter = (professorCounter == 5) ? 4 : 5;
           Serial.println(professorHints[professorCounter]);
         } else {
@@ -1429,6 +1441,7 @@ void MapGame() {
     bool reading1 = !digitalRead(21);
     if (reading1) {
       Serial.println("door_witch");
+      isPotionDoorOpened = true;
       OpenLock(PotionsRoomDoor);
       activePotionRoom = 1;
       ////дописать свет
@@ -1494,6 +1507,8 @@ void MapGame() {
     }
     if (calculateSimilarity(buff, "door_owl") >= 80) {
       Serial.println("door_owl");
+      isOwlDoorOpened = true;
+
     }
     if (calculateSimilarity(buff, "owl_flew") >= 80) {
       Serial.println("owl_flew");
@@ -1524,6 +1539,7 @@ void MapGame() {
     }
     if (calculateSimilarity(buff, "door_dog") >= 80) {
       Serial.println("door_dog");
+      isDogDoorOpened = true;
     }
     if (calculateSimilarity(buff, "dog_sleep") >= 80) {
       Serial.println("dog_sleep");
@@ -1560,6 +1576,9 @@ void MapGame() {
       game = "key";
       mySerial.println("out");
       Serial3.println("key");
+    }
+     if (buff == "train_active") {
+      isTrainStarted = true;
     }
     if (buff == "train_end") {
       isTrainEnd = 1;
@@ -2267,6 +2286,7 @@ void Basket() {
       snitchFlag = 0;
       enemyTimer = millis();
       additionalTimer = millis();
+      Serial.println("boy_in_game");
     }
     if (buf == "boy_out\r\n") {
       snitchFlag = 1;
@@ -2274,6 +2294,7 @@ void Basket() {
       strip2.clear();
       strip1.show();
       strip2.show();
+      Serial.println("boy_out_game");
     }
     if (buf == "fr72nmr\r\n") {
       BotScore = "2";
@@ -2282,26 +2303,14 @@ void Basket() {
       enemyFlag = 0;
       Serial.println("goal_2_bot");
     }
-    if (buf == "fr73nmr\r\n") {
-      BotScore = "3";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_3_bot");
-    }
-    if (buf == "fr74nmr\r\n") {
-      BotScore = "4";
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_4_bot");
-    }
     if (buf == "fr8nmr\r\n") {
       Serial.println("win");
       strip1.clear();
       strip2.clear();
       strip1.show();
       strip2.show();
+      delay(1000);
+      Serial.println("last_on");
       level=20;
     }
     if (buf == "fr61nmr\r\n") {
@@ -2315,18 +2324,6 @@ void Basket() {
       enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_2_player");
-    }
-    if (buf == "fr63nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_3_player");
-    }
-    if (buf == "fr64nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
-      enemyFlag = 0;
-      Serial.println("goal_4_player");
     }
 
     if (buf == "start_snitch\r\n") {
@@ -5036,7 +5033,7 @@ void RestOn() {
       sealEvent = 0;
     }
   }
-
+  //Serial.println(digitalReadExpander(7, board1));
   if (digitalReadExpander(7, board1)) {
     if(!finalEvent){
       Serial.println("boy_out");
@@ -5087,14 +5084,14 @@ void RestOn() {
     }
   }
 
-  if(galet1Event || galet1Event || galet3Event || galet4Event || galet5Event){
+  if(galet1Event || galet2Event || galet3Event || galet4Event || galet5Event){
     if(!mansardEvent){
       Serial.println("galet_on");
       mansardEvent = 1;
     }
   }
 
-  if(!galet1Event && !galet1Event && !galet3Event && !galet4Event && !galet5Event){
+  if(!galet1Event && !galet2Event && !galet3Event && !galet4Event && !galet5Event){
     if(mansardEvent){
       Serial.println("galet_off");
       mansardEvent = 0;
