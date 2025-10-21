@@ -1683,7 +1683,6 @@ def tmr(res):
      #----нажали на рестарт   
      if res =='restart':
          serial_write_queue.put('restart')
-         serial_write_queue.put('restart')
          send_esp32_command(ESP32_API_WOLF_URL, "restart")
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
@@ -4727,3 +4726,4 @@ if __name__ == '__main__':
         print("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         print(f"FATAL: An unexpected error occurred: {e}")
+
