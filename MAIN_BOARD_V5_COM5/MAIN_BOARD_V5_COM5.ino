@@ -5224,6 +5224,25 @@ void RestOn() {
     if (buff == "open_mine_door") {
       Serial2.println("open_mine_door");
     }
+    if (buff == "restart") {
+      _dataQueue = 0;
+   _towerTimer = 0;
+   _towerCounter = 0;
+   doorEvent = 0;
+   mansardEvent = 0;
+   libraryEvent = 0;
+   galet1Event = 0;
+   galet2Event = 0;
+   galet3Event = 0;
+   galet4Event = 0;
+   galet5Event = 0;
+   sealEvent = 0;
+   sealSpaceEvent = 0;
+   finalEvent = 0;
+   bugTimerScroll = 0;
+      OpenAll();
+      //RestOn();
+    }
     if (buff == "ready") {
        _dataQueue = 0;
    _towerTimer = 0;
