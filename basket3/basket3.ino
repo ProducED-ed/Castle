@@ -168,8 +168,7 @@ void loop() {
     case 0:
     if (Serial1.available())
     {
-      String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+      String buff = Serial1.readString();
       if (buff == "ready\r\n"){
         digitalWrite(trollLed, LOW);
         digitalWrite(owlLed, LOW);
@@ -284,8 +283,7 @@ void loop() {
 
      if (Serial1.available())
     {
-      String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+      String buff = Serial1.readString();
       if (buff == "ready\r\n"){
         digitalWrite(trollLed, LOW);
         digitalWrite(owlLed, LOW);
@@ -358,8 +356,7 @@ void WorkShopGame(){
   }
   if (Serial1.available())
   {
-    String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+    String buff = Serial1.readString();
     if (buff == "item_find\r\n"){
       metallClick = 0;
       strip.setPixelColor(2, strip.Color(0, 128, 128));
@@ -387,8 +384,7 @@ void WorkShopGame(){
 void StartTrollGame(){
   if (Serial1.available())
   {
-    String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+    String buff = Serial1.readString();
     if (buff == "start_troll\r\n"){
       state++;
     }
@@ -423,8 +419,7 @@ void TrollGame(){
     }
     if (Serial1.available())
     {
-      String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+      String buff = Serial1.readString();
       if (buff == "light_on\r\n"){
           digitalWrite(owlLed,HIGH);
       }
@@ -482,8 +477,7 @@ void OpenDoor(){
     butt4.tick();
     if (Serial1.available())
     {
-      String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+      String buff = Serial1.readString();
       if (buff == "light_on\r\n"){
           digitalWrite(owlLed,HIGH);
       }
@@ -726,8 +720,7 @@ void BasketLesson(){
   
   if (Serial1.available())
   {
-    String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+    String buff = Serial1.readString();
     if (buff == "start_basket\r\n"){
       digitalWrite(basketLed, HIGH);
       isStart = 1;
@@ -793,8 +786,7 @@ void Basket(){
     OUTPUT_TO_DISPLAY();
     if (Serial1.available())
     {
-      String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+      String buff = Serial1.readString();
       if (buff == "start_basket\r\n"){
         basketTimer = millis();
         digitalWrite(basketLed, HIGH);
@@ -940,8 +932,7 @@ void OUTPUT_TO_DISPLAY() { // Вывод на дисплей счета
 void OpenBasket(){
   if (Serial1.available())
   {
-    String buff = Serial1.readStringUntil('\n'); // ИЗМЕНЕНИЕ: Читаем до новой строки
-      buff.trim();
+    String buff = Serial1.readString();
     if (buff == "opent_basket\r\n"){
       OpenLock(SHERIF_EM2);
     }
