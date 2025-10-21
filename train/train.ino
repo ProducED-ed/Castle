@@ -34,6 +34,10 @@ int ActiveLeds[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 int ClickLeds[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 int FutureLeds[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
+// Этот массив будет "помнить", какие LED были в ClickLeds 
+// до вызова map_disable_clicks
+bool wasClickLed[22] = {false};
+
 bool newStateAvailable = false;
 unsigned long _secondsTimer;
 unsigned long _clockTimer;
@@ -348,6 +352,8 @@ void setup() {
     DisableLeds[i] = -1;
     ClickLeds[i] = -1;
     FutureLeds[i] = -1;
+    // Сбрасываем массив "памяти"
+    wasClickLed[i] = false;
   }
 
   ghost.setDebounce(10);       // настройка антидребезга (по умолчанию 80 мс)
@@ -518,6 +524,8 @@ void setup() {
         for (int i = 0; i < 22; i++) {
           ActiveLeds[i] = -1;
           ClickLeds[i] = -1;
+          // Сбрасываем массив "памяти" при рестарте
+          wasClickLed[i] = false;
           FutureLeds[i] = i + 8;
         }
         state = 0;
@@ -946,43 +954,63 @@ void setup() {
       }
       Serial.println("Received POST: " + body);
 
-      // --- НАЧАЛО ИЗМЕНЕНИЙ: Обработчики новых команд ---
+// --- НАЧАЛО ИЗМЕНЕНИЙ: Обработчики новых команд ---
       if (body == "\"map_disable_clicks\"") {
         Serial.println("Disabling map clicks...");
-        if (!mapClicksDisabled) { // Предотвращаем повторное выполнение
+if (!mapClicksDisabled) { // Предотвращаем повторное выполнение
           for (int i = 0; i < 22; i++) {
             if (ClickLeds[i] != -1) {
-              FutureLeds[i] = ClickLeds[i]; // Перемещаем в Future (белый)
-              ClickLeds[i] = -1;            // Очищаем Click (фиол-голуб)
+              FutureLeds[i] = ClickLeds[i];
+// Перемещаем в Future (белый)
+              ClickLeds[i] = -1;
+// Очищаем Click (фиол-голуб)
+              
+              // Помечаем, что этот LED был в Click ---
+              wasClickLed[i] = true;
+
+            } else {
+
+              // Убеждаемся, что флаг сброшен для остальных ---
+              wasClickLed[i] = false;
             }
           }
           mapClicksDisabled = true;
-          ResetTimer(); // Гасим светодиоды таймера и сбрасываем его состояние
-          isStartTimer = false; // Отключаем таймер во время паузы
-          blinkLedNumber = -1; // Сбрасываем мигающий LED
+ResetTimer(); // Гасим светодиоды таймера и сбрасываем его состояние
+          isStartTimer = false;
+// Отключаем таймер во время паузы
+          blinkLedNumber = -1;
+// Сбрасываем мигающий LED
         }
       }
       else if (body == "\"map_enable_clicks\"") {
         Serial.println("Enabling map clicks...");
-        if (mapClicksDisabled) { // Восстанавливаем только если были отключены
+if (mapClicksDisabled) { // Восстанавливаем только если были отключены
+            
+            for (int i = 0; i < 22; i++){
+                // Проверяем, был ли этот LED отмечен в нашей "памяти"
+                if (wasClickLed[i]) {
+                    
+                    // Дополнительная проверка: восстанавливаем, только если он 
+                    // все еще числится в Future (белый)
+                    if (FutureLeds[i] != -1) {
+                        // Восстанавливаем его в Clickable
+                        ClickLeds[i] = FutureLeds[i];
+                        // Убираем из Future
+                        FutureLeds[i] = -1;
+                    }
+                    
+                    // Сбрасываем флаг "памяти", так как мы его обработали
+                    wasClickLed[i] = false;
+                }
+                // ВАЖНО: Если wasClickLed[i] был false, мы ничего не делаем.
+                // Это значит, что светодиоды, которые были в FutureLeds,
+                // но не были в ClickLeds (например, LED 21 из stage_7),
+                // останутся в FutureLeds (белыми), как и должны.
+            }
 
-          for (int i = 0; i < 22; i++){
-              // Проверяем, был ли этот LED временно сделан белым
-              if(FutureLeds[i] != -1) {
-                  // ЕСЛИ он НЕ помечен как ВЫКЛЮЧЕННЫЙ (DisableLeds == -1),
-                  // ТО восстанавливаем его в Clickable
-                  if (DisableLeds[i] == -1) {
-                      ClickLeds[i] = FutureLeds[i]; // Восстанавливаем Clickable
-                  }
-                  // В любом случае убираем из Future (временный белый)
-                  FutureLeds[i] = -1;
-              }
-          }
-
-          mapClicksDisabled = false;
+            mapClicksDisabled = false;
         }
       }
-      // --- КОНЕЦ ИЗМЕНЕНИЙ ---
       server.send(200, "application/json", "{\"status\":\"received\"}");
     } else {
       server.send(400, "text/plain", "Bad Request");
