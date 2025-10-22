@@ -2311,6 +2311,18 @@ void Basket() {
       strip2.show();
       delay(1000);
       Serial.println("last_on");
+      Serial1.println("firework");
+      delay(500);
+      Serial1.println("firework");
+      Serial2.println("firework");
+      delay(500);
+      Serial2.println("firework");
+      Serial3.println("firework");
+      delay(500);
+      Serial3.println("firework");
+      mySerial.println("firework");
+      delay(500);
+      mySerial.println("firework");
       level=20;
     }
     if (buf == "fr61nmr\r\n") {
@@ -2353,6 +2365,20 @@ void Basket() {
       strip2.clear();
       strip1.show();
       strip2.show();
+      delay(1000);
+      Serial.println("last_on");
+      Serial1.println("firework");
+      delay(500);
+      Serial1.println("firework");
+      Serial2.println("firework");
+      delay(500);
+      Serial2.println("firework");
+      Serial3.println("firework");
+      delay(500);
+      Serial3.println("firework");
+      mySerial.println("firework");
+      delay(500);
+      mySerial.println("firework");
       level=20;
     } else if (buff == "restart") {
       OpenAll();

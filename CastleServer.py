@@ -1748,7 +1748,7 @@ def tmr(res):
                     socklist.clear()
                     socketio.emit('level', 'start_error',to=None)
                     socklist.append('start_error')
-                    final_string = ', '.join(str(device) for device in devices)
+                    final_string = ', '.join(str(device) for device in set(devices))
                     socklist.append(final_string)
                     socketio.emit('devices', final_string,to=None)
                     
@@ -1789,7 +1789,7 @@ def checkQuesst(receivedData):
             socketio.emit('volume1', str(effectLevel))
             socketio.emit('volume2', str(voiceLevel))
          socketio.emit('level', i ,to=None)
-         final_string = ', '.join(str(device) for device in devices)
+         final_string = ', '.join(str(device) for device in set(devices))
          socketio.emit('devices', final_string,to=None)            
      
      
@@ -1890,7 +1890,7 @@ def test_esp32():
     
     print(f"Итог: {success_count}/4 устройств доступно")
     print(devices)
-    final_string = ', '.join(str(device) for device in devices)
+    final_string = ', '.join(str(device) for device in set(devices))
     print(final_string)
     socketio.emit('devices',final_string ,to=None)
     if success_count == 4 and len(devices) == 0:
@@ -2036,7 +2036,7 @@ def serial():
                     # ----постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume2', str(voiceLevel))
                     socketio.emit('level', i ,to=None)
-                    final_string = ', '.join(str(device) for device in devices)
+                    final_string = ', '.join(str(device) for device in set(devices))
                     socketio.emit('devices', final_string,to=None)
                #проверяем если пришло значение в виде цифры отправляем на метод на клиенте volt
                if is_number(flag):
@@ -2115,8 +2115,8 @@ def serial():
                                    socklist.remove('flag1_off')
                           socketio.emit('level', 'flag1_on',to=None)
                           socklist.append('flag1_on')
-                          if 'Check Flags' not in devices:
-                            devices.append('Check Flags')
+                          #if 'Check Flags' not in devices:
+                          devices.append('Check Flags')
                      if flag=="flag1_off":
                           if 'Check Flags' in devices:
                                    devices.remove('Check Flags')
@@ -2129,8 +2129,8 @@ def serial():
                                    socklist.remove('flag2_off')
                           socketio.emit('level', 'flag2_on',to=None)
                           socklist.append('flag2_on')
-                          if 'Check Flags' not in devices:
-                            devices.append('Check Flags')
+                          #if 'Check Flags' not in devices:
+                          devices.append('Check Flags')
                      if flag=="flag2_off":
                           if 'Check Flags' in devices:
                                    devices.remove('Check Flags')
@@ -2144,8 +2144,8 @@ def serial():
                                    socklist.remove('flag3_off')
                           socketio.emit('level', 'flag3_on',to=None)
                           socklist.append('flag3_on')
-                          if 'Check Flags' not in devices:
-                            devices.append('Check Flags')
+                          #if 'Check Flags' not in devices:
+                          devices.append('Check Flags')
                      if flag=="flag3_off":
                           if 'Check Flags' in devices:
                                    devices.remove('Check Flags')
@@ -2158,8 +2158,8 @@ def serial():
                                    socklist.remove('flag4_off')
                           socketio.emit('level', 'flag4_on',to=None)
                           socklist.append('flag4_on')
-                          if 'Check Flags' not in devices:
-                            devices.append('Check Flags')
+                          #if 'Check Flags' not in devices:
+                          devices.append('Check Flags')
                      if flag=="flag4_off":
                           if 'Check Flags' in devices:
                                    devices.remove('Check Flags')
@@ -4432,7 +4432,7 @@ def timer():
 
 
               socketio.emit('level', i ,to=None)
-              final_string = ', '.join(str(device) for device in devices)
+              final_string = ', '.join(str(device) for device in set(devices))
               socketio.emit('devices', final_string,to=None)
          
               #print(i)
