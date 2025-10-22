@@ -117,6 +117,7 @@ bool isFirstFire0 = false;
 
 // НОВЫЕ ПЕРЕМЕННЫЕ для анимации
 bool isCelebrationActive = false;
+bool fireworkActive = false; // Флаг для фейерверка
 unsigned long celebrationStartTime = 0;
 
 GButton butt1(REED_SWITCH_PIN);
@@ -249,20 +250,31 @@ void loop() {
     Serial1.println("help");
   }
 
-  // Отдаем приоритет анимации. Если она активна, стандартная логика LED не выполняется.
-  if (isCelebrationActive) {
-    handleCelebrationEffect();
+  // Проверяем команды В НАЧАЛЕ, чтобы установить/сбросить флаг
+  handleUartCommands(); 
+
+  // Логика для светодиодов верстака (workbenchStrip)
+  if (fireworkActive) {
+    // Фейерверк "перехватывает" управление лентой верстака
+    handleFirework();
   } else {
-    handleWorkbenchReedSwitches();
-    updateWorkbenchLeds();
+    // Иначе - обычная логика верстака
+    if (isCelebrationActive) { // 
+      handleCelebrationEffect(); // 
+    } else {
+      handleWorkbenchReedSwitches(); // 
+      updateWorkbenchLeds(); // 
+    }
   }
 
+  // Логика для светодиодов огня (strip) работает независимо
   switch (state) {
     case 0:
       handleFireLogic();
       break;
   }
 
+  // Остальная логика игры
   checkWorkbenchCombinations();
   handleUartCommands();
   manageLock();
@@ -639,6 +651,7 @@ void handleUartCommands() {
       isFirstFire0 = true;
       openLock();
     } else if (command == "ready" || command == "start") {
+      fireworkActive = false; // Сбрасываем фейерверк
       if (floorLedsOn) {
         digitalWrite(LED_FLOOR1_PIN, LOW);
         digitalWrite(LED_FLOOR2_PIN, LOW);
@@ -662,6 +675,7 @@ void handleUartCommands() {
       _restartGalet = 0;
       _restartFlag = 0;
     } else if (command == "restart") {
+      fireworkActive = false; // Сбрасываем фейерверк
       //openLock();
       if (!digitalRead(30) && !_restartGalet) {
         Serial1.println("galet_on");
@@ -739,6 +753,7 @@ void handleUartCommands() {
       digitalWrite(LED_FLOOR1_PIN, HIGH);
       digitalWrite(LED_FLOOR2_PIN, HIGH);
     } else if (command == "day_off") {
+      fireworkActive = false; // Сбрасываем фейерверк
       digitalWrite(LED_FLOOR1_PIN, LOW);
       digitalWrite(LED_FLOOR2_PIN, LOW);
     } else if (command == "light_on") {
@@ -762,7 +777,9 @@ void handleUartCommands() {
       workbenchMode = 5;
     }
     else if (command == "firework") {
-      //workbenchMode = 5;
+      fireworkActive = true; // Включаем фейерверк
+      workbenchStrip.clear(); // 
+      workbenchStrip.show(); //
     }
   }
 }
@@ -796,4 +813,132 @@ void manageLock() {
     lockOpenTime = millis();
     lastRecurringLockOpenTime = millis();
   }
+}
+
+// Вспомогательная функция для имитации fadeToBlackBy (qsub8)
+uint32_t fadeColor(uint32_t color, uint8_t fadeAmount) {
+  uint8_t r = (color >> 16) & 0xFF;
+  uint8_t g = (color >> 8) & 0xFF;
+  uint8_t b = color & 0xFF;
+  
+  // Логика qsub8 (вычитание с насыщением)
+  r = (r < fadeAmount) ? 0 : r - fadeAmount;
+  g = (g < fadeAmount) ? 0 : g - fadeAmount;
+  b = (b < fadeAmount) ? 0 : b - fadeAmount;
+  
+  return workbenchStrip.Color(r, g, b); // 
+}
+
+
+// Адаптированная функция фейерверка для workshop.ino (Adafruit_NeoPixel)
+void handleFirework() {
+  if (!fireworkActive) return;
+
+  static unsigned long lastFireworkTime = 0;
+  static const int MAX_EXPLOSIONS = 2; // Уменьшаем для 4 светодиодов
+  static const int FIREWORK_RADIUS = 2; // Макс. радиус
+  static struct Explosion {
+    int phase;
+    uint32_t color; // Используем uint32_t для Adafruit_NeoPixel
+    int center;
+    unsigned long startTime;
+  } explosions[MAX_EXPLOSIONS];
+
+
+  // Создаем новые взрывы (реже)
+  if (millis() - lastFireworkTime >= 1000) {
+    lastFireworkTime = millis();
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+      if (explosions[i].phase == 0) {
+        // Цвета в формате Adafruit_NeoPixel
+        uint32_t niceColors[] = {
+          workbenchStrip.Color(255, 100, 50), // 
+          workbenchStrip.Color(100, 255, 100),
+          workbenchStrip.Color(100, 100, 255),
+          workbenchStrip.Color(255, 255, 100),
+          workbenchStrip.Color(255, 100, 255),
+          workbenchStrip.Color(100, 255, 255)
+        };
+        explosions[i].color = niceColors[random(6)];
+        explosions[i].center = random(NUM_LEDS_WORKBENCH); // [cite: 554]
+        explosions[i].startTime = millis();
+        explosions[i].phase = 1;
+        break;
+      }
+    }
+  }
+
+  // Обрабатываем все активные взрывы
+  for (int e = 0; e < MAX_EXPLOSIONS; e++) {
+    if (explosions[e].phase > 0) {
+      unsigned long elapsed = millis() - explosions[e].startTime;
+      if (elapsed < 500) {
+        // Фаза расширения
+        float progress = (float)elapsed / 500.0;
+        int radius = progress * FIREWORK_RADIUS;
+
+        for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) { // [cite: 554]
+          int distance = abs(i - explosions[e].center);
+          if (distance <= radius) {
+            float intensity = 1.0 - (float)distance / radius;
+            
+            // Масштабируем цвет по яркости (intensity)
+            uint8_t r = (explosions[e].color >> 16) & 0xFF;
+            uint8_t g = (explosions[e].color >> 8) & 0xFF;
+            uint8_t b = explosions[e].color & 0xFF;
+            
+            r = r * intensity;
+            g = g * intensity;
+            b = b * intensity;
+            
+            workbenchStrip.setPixelColor(i, workbenchStrip.Color(r, g, b)); // 
+          }
+        }
+      } else if (elapsed < 1000) {
+        // Фаза затухания
+        float fadeProgress = (float)(elapsed - 500) / 500.0;
+        float intensity = 1.0 - fadeProgress; // 1.0 -> 0.0
+
+        for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) { // [cite: 554]
+          int distance = abs(i - explosions[e].center);
+          if (distance <= FIREWORK_RADIUS) {
+            // Масштабируем цвет по яркости (intensity)
+            uint8_t r = (explosions[e].color >> 16) & 0xFF;
+            uint8_t g = (explosions[e].color >> 8) & 0xFF;
+            uint8_t b = explosions[e].color & 0xFF;
+
+            r = r * intensity;
+            g = g * intensity;
+            b = b * intensity;
+            
+            workbenchStrip.setPixelColor(i, workbenchStrip.Color(r, g, b)); // 
+          }
+        }
+      } else {
+        // Завершаем взрыв
+        explosions[e].phase = 0;
+        for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) { // [cite: 554]
+          int distance = abs(i - explosions[e].center);
+          if (distance <= FIREWORK_RADIUS) {
+            workbenchStrip.setPixelColor(i, 0); // 
+          }
+        }
+      }
+    }
+  }
+
+  // Плавное затухание (замена EVERY_N_MILLISECONDS)
+  static unsigned long lastGlobalFade = 0;
+  if (millis() - lastGlobalFade >= 20) {
+    lastGlobalFade = millis();
+    for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) { // [cite: 554]
+      uint32_t currentColor = workbenchStrip.getPixelColor(i); // 
+      if (currentColor != 0) {
+        // Используем нашу вспомогательную функцию затухания
+        workbenchStrip.setPixelColor(i, fadeColor(currentColor, 8)); // 
+      }
+    }
+  }
+
+  workbenchStrip.show(); // 
 }
