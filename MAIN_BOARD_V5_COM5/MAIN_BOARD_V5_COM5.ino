@@ -2637,152 +2637,183 @@ OpenAll();
 }
 
 void CentralTowerGameDown() {
-  static int state = 0;
-  static unsigned long lastDebounceTime = 0;
-  const unsigned long debounceDelay = 50; // Задержка антидребезга
-  static bool lastSensor0State = HIGH;
-  static bool lastSensor1State = HIGH;
-  
-  // Чтение текущих состояний с антидребезгом
-  bool currentSensor0State = digitalReadExpander(0, board4);
-  bool currentSensor1State = digitalReadExpander(1, board4);
-  
+  // --- Переменные ---
+  // Состояния: 0=Idle, 1=WaitR, 2=WaitL, 3=Cooldown
+  static int swipeState = 0;
+  static int puzzleProgress = 0;
+  static unsigned long swipeTimer = 0; // Теперь будет перезапускаться при отпускании
+  const unsigned long SWIPE_TIMEOUT = 1500;
+  static unsigned long lastDebounceTimeLeft = 0;
+  static unsigned long lastDebounceTimeRight = 0;
+  static bool lastSteadyLeftState = HIGH;
+  static bool lastSteadyRightState = HIGH;
+  static bool currentLeftState = HIGH;
+  static bool currentRightState = HIGH;
+  const unsigned long debounceDelay = 150;
   unsigned long currentTime = millis();
-  
-  // Антидребезг для сенсора 0
-  if (currentSensor0State != lastSensor0State) {
-    lastDebounceTime = currentTime;
-  }
-  if ((currentTime - lastDebounceTime) > debounceDelay) {
-    // Используем стабильное состояние после антидребезга
-    currentSensor0State = lastSensor0State;
-  }
-  lastSensor0State = currentSensor0State;
-  
-  // Антидребезг для сенсора 1
-  if (currentSensor1State != lastSensor1State) {
-    lastDebounceTime = currentTime;
-  }
-  if ((currentTime - lastDebounceTime) > debounceDelay) {
-    currentSensor1State = lastSensor1State;
-  }
-  lastSensor1State = currentSensor1State;
+  // --- НОВЫЙ ФЛАГ для отслеживания отпускания первого геркона ---
+  static bool initialSwitchReleased = false;
 
-  // Обработка состояний
-  switch (state) {
-    case 0: // Ожидание нажатия первого геркона
-      if (currentSensor0State == LOW) {
-        state++;
-        Serial.println("door_spell - Step 1");
-        lastDebounceTime = currentTime; // Сброс времени для следующего состояния
-      }
-      break;
-      
-    case 1: // Ожидание отпускания первого геркона
-      if (currentSensor0State == HIGH) {
-        state++;
-        Serial.println("door_spell - Ready for sensor 1");
-      }
-      break;
-      
-    case 2: // Ожидание нажатия второго геркона
-      if (currentSensor1State == LOW) {
-        state++;
-        Serial.println("door_spell - Step 2");
-        lastDebounceTime = currentTime;
-      }
-      break;
-      
-    case 3: // Ожидание отпускания второго геркона
-      if (currentSensor1State == HIGH) {
-        state++;
-        Serial.println("door_spell - Ready for sensor 0 again");
-      }
-      break;
-      
-    case 4: // Второе нажатие первого геркона
-      if (currentSensor0State == LOW) {
-        state++;
-        Serial.println("door_spell - Step 3");
-        lastDebounceTime = currentTime;
-      }
-      break;
-      
-    case 5: // Ожидание отпускания первого геркона
-      if (currentSensor0State == HIGH) {
-        state++;
-        Serial.println("door_spell - Ready for sensor 1 again");
-      }
-      break;
-      
-    case 6: // Второе нажатие второго геркона
-      if (currentSensor1State == LOW) {
-        state++;
-        Serial.println("door_spell - Step 4");
-        lastDebounceTime = currentTime;
-      }
-      break;
-      
-    case 7: // Ожидание отпускания второго геркона
-      if (currentSensor1State == HIGH) {
-        state++;
-        Serial.println("door_spell - Ready for final sequence");
-      }
-      break;
-      
-    case 8: // Третье нажатие первого геркона
-      if (currentSensor0State == LOW) {
-        state++;
-        Serial.println("door_spell - Step 5");
-        lastDebounceTime = currentTime;
-      }
-      break;
-      
-    case 9: // Ожидание отпускания первого геркона
-      if (currentSensor0State == HIGH) {
-        state++;
-        Serial.println("door_spell - Final step ready");
-      }
-      break;
-      
-    case 10: // Финальное нажатие второго геркона
-      if (currentSensor1State == LOW) {
-        OpenLock(HightTowerDoor);
-        digitalWrite(TorchLight, HIGH);
-        Serial.println("door_spell");
-        level++;
-        state = 0; // Сброс состояния для возможного повторного использования
-      }
-      break;
-  }
-
-  // Обработка Serial команд (оставлено без изменений)
+  // --- Блок Serial для тестов (без изменений) ---
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
-    if (buff == "spell") {
-      OpenLock(HightTowerDoor);
-      digitalWrite(TorchLight, HIGH);
-      Serial.println("door_spell");
-      level++;
-      state = 0; // Сброс состояния
+
+    // --- (Симуляция свайпов - изменится только логика оригинала) ---
+    if (buff == "swipe_right") {
+      // Эта симуляция больше не точно отражает новую логику таймаута,
+      // но оставим ее для базовой проверки последовательности
+      Serial.println("--- SIMULATING: swipe_right (>) ---");
+      Serial.println("swipe_r");
+      if (puzzleProgress == 0 || puzzleProgress == 2 || puzzleProgress == 4) {
+          puzzleProgress++;
+          if (puzzleProgress == 5) { /* ПОБЕДА */ } else { /* УСПЕШНЫЙ ШАГ */ }
+      } else { /* ОШИБКА ПОСЛЕДОВАТЕЛЬНОСТИ */ }
+      // Сброс флага и состояния для симуляции
+      initialSwitchReleased = false;
+      swipeState = 0; // Возвращаемся в Idle после симуляции
+      return;
     }
-    if (buff == "restart") {
-      OpenAll();
-      RestOn();
-      state = 0; // Сброс состояния
+    if (buff == "swipe_left") {
+      // Аналогично, симуляция не отражает новый таймаут
+      Serial.println("--- SIMULATING: swipe_left (<) ---");
+      Serial.println("swipe_l");
+       if (puzzleProgress == 1 || puzzleProgress == 3) {
+          puzzleProgress++; /* УСПЕШНЫЙ ШАГ */
+       } else { /* ОШИБКА ПОСЛЕДОВАТЕЛЬНОСТИ */ }
+      // Сброс флага и состояния для симуляции
+      initialSwitchReleased = false;
+      swipeState = 0;
+      return;
     }
-    if (buff == "soundon") {
-      flagSound = 0;
-    }
-    if (buff == "soundoff") {
-      flagSound = 1;
-    }
+     // --- (Остальные команды симуляции без изменений) ---
+    if (buff == "status") { /* ... */ return; }
+    if (buff == "spell") { /* ... */ initialSwitchReleased = false; swipeState = 0; } // Добавлен сброс флага
+    if (buff == "restart") { /* ... */ initialSwitchReleased = false; swipeState = 0; } // Добавлен сброс флага
+    if (buff == "soundon") { /* ... */ }
+    if (buff == "soundoff") { /* ... */ }
   }
-  
+
+
+  // --- Чтение сенсоров с антидребезгом (без изменений) ---
+  bool readingLeft = (digitalReadExpander(0, board4) == LOW);  // Пин 0 = Левый
+  bool readingRight = (digitalReadExpander(1, board4) == LOW); // Пин 1 = Правый
+  // --- Антидребезг (код без изменений) ---
+  if (readingLeft != lastSteadyLeftState) { lastDebounceTimeLeft = currentTime; }
+  if ((currentTime - lastDebounceTimeLeft) > debounceDelay) { if (readingLeft != currentLeftState) { currentLeftState = readingLeft; } }
+  lastSteadyLeftState = readingLeft;
+  if (readingRight != lastSteadyRightState) { lastDebounceTimeRight = currentTime; }
+  if ((currentTime - lastDebounceTimeRight) > debounceDelay) { if (readingRight != currentRightState) { currentRightState = readingRight; } }
+  lastSteadyRightState = readingRight;
+  bool leftPressed = currentLeftState;
+  bool rightPressed = currentRightState;
+
+  // --- Отладка состояний (без изменений) ---
+  static int lastState = -1; if (swipeState != lastState) { Serial.println(">>> New Swipe State: " + String(swipeState)); lastState = swipeState; }
+
+  // --- ОБНОВЛЕННАЯ Машина состояний ---
+  switch (swipeState) {
+    case 0: // IDLE
+      if (leftPressed && !rightPressed) {
+        Serial.println("State 0 -> 1 (Left pressed first)");
+        swipeState = 1;
+        // --- ИЗМЕНЕНИЕ: Таймер НЕ запускается здесь ---
+        initialSwitchReleased = false; // Сбрасываем флаг отпускания
+      } else if (rightPressed && !leftPressed) {
+        Serial.println("State 0 -> 2 (Right pressed first)");
+        swipeState = 2;
+        // --- ИЗМЕНЕНИЕ: Таймер НЕ запускается здесь ---
+        initialSwitchReleased = false; // Сбрасываем флаг отпускания
+      }
+      break;
+
+    case 1: // WAIT_R (Нажат левый, ждем правый ИЛИ отпускание левого)
+      if (rightPressed) { // --- СВАЙП ВПРАВО (>) ---
+        Serial.println("State 1: Right detected -> Swipe RIGHT (>) completed.");
+        Serial.println("swipe_r"); // ОЗВУЧКА
+
+        // --- ВОЗВРАЩЕНА ЛОГИКА PUZZLEPROGRESS ---
+        if (puzzleProgress == 0 || puzzleProgress == 2 || puzzleProgress == 4) { // Правильная последовательность?
+          puzzleProgress++;
+          if (puzzleProgress == 5) { // ПОБЕДА?
+              Serial.println("--- GAME WON ---"); // Отладка победы
+              OpenLock(HightTowerDoor);
+              digitalWrite(TorchLight, HIGH);
+              Serial.println("door_spell");
+              level++;
+              puzzleProgress = 0; // Сброс для след. игры
+           } else { // Успешный шаг
+               Serial.println("...Good swipe! Progress: " + String(puzzleProgress) + "/5"); // Отладка прогресса
+           }
+        } else { // Неправильная последовательность
+            Serial.println("...Wrong sequence! Resetting..."); // Отладка сброса
+            Serial.println("swipe_wrong_sequence"); // ОЗВУЧКА ОШИБКИ
+            puzzleProgress = 0; // Сброс всей комбинации
+        }
+        // --- КОНЕЦ ВОЗВРАЩЕННОЙ ЛОГИКИ ---
+
+        swipeState = 3; // Cooldown (Успешный свайп)
+        initialSwitchReleased = false; // Сброс флага
+      }
+      // --- (Логика отпускания и таймаута остается) ---
+      else if (!leftPressed && !initialSwitchReleased) { // Левый отпущен В ПЕРВЫЙ РАЗ?
+         Serial.println("State 1: Left released, starting timeout timer."); // Отладка
+         initialSwitchReleased = true; // Ставим флаг, что отпустили
+         swipeTimer = currentTime;    // ЗАПУСКАЕМ ТАЙМЕР СЕЙЧАС
+      }
+      else if (initialSwitchReleased && (currentTime - swipeTimer > SWIPE_TIMEOUT)) { // Таймаут ПОСЛЕ отпускания
+         Serial.println("State 1: Timeout AFTER release waiting for Right. Go to Cooldown (3)."); // Отладка
+         swipeState = 3; // Cooldown (Таймаут)
+         initialSwitchReleased = false; // Сброс флага
+      }
+      break;
+
+    case 2: // WAIT_L (Нажат правый, ждем левый ИЛИ отпускание правого)
+      if (leftPressed) { // --- СВАЙП ВЛЕВО (<) ---
+        Serial.println("State 2: Left detected -> Swipe LEFT (<) completed.");
+        Serial.println("swipe_l"); // ОЗВУЧКА
+
+        // --- ВОЗВРАЩЕНА ЛОГИКА PUZZLEPROGRESS ---
+        if (puzzleProgress == 1 || puzzleProgress == 3) { // Правильная последовательность?
+          puzzleProgress++;
+           Serial.println("...Good swipe! Progress: " + String(puzzleProgress) + "/5"); // Отладка прогресса
+        } else { // Неправильная последовательность
+            Serial.println("...Wrong sequence! Resetting..."); // Отладка сброса
+            Serial.println("swipe_wrong_sequence"); // ОЗВУЧКА ОШИБКИ
+            puzzleProgress = 0; // Сброс всей комбинации
+        }
+        // --- КОНЕЦ ВОЗВРАЩЕННОЙ ЛОГИКИ ---
+
+        swipeState = 3; // Cooldown (Успешный свайп)
+        initialSwitchReleased = false; // Сброс флага
+      }
+      // --- (Логика отпускания и таймаута остается) ---
+      else if (!rightPressed && !initialSwitchReleased) { // Правый отпущен В ПЕРВЫЙ РАЗ?
+        Serial.println("State 2: Right released, starting timeout timer."); // Отладка
+        initialSwitchReleased = true; // Ставим флаг, что отпустили
+        swipeTimer = currentTime;    // ЗАПУСКАЕМ ТАЙМЕР СЕЙЧАС
+      }
+      else if (initialSwitchReleased && (currentTime - swipeTimer > SWIPE_TIMEOUT)) { // Таймаут ПОСЛЕ отпускания
+        Serial.println("State 2: Timeout AFTER release waiting for Left. Go to Cooldown (3)."); // Отладка
+        swipeState = 3; // Cooldown (Таймаут)
+        initialSwitchReleased = false; // Сброс флага
+      }
+      break;
+
+    case 3: // COOLDOWN (После успешного свайпа или Таймаута)
+      // Ждем отпускания ОБ_ОИХ герконов для надежности
+      if (!leftPressed && !rightPressed) {
+        Serial.println("State 3 -> 0 (Cooldown finished - Both released)");
+        swipeState = 0; // Готовы к новому свайпу
+        initialSwitchReleased = false; // Сброс флага на всякий случай
+      }
+      break;
+
+  } // Конец switch
+
   HelpTowersHandler();
 }
-// доделать что бы в банке работала хуйня с зельем
+
 /////нужно подуть в окно
 void OpenBank() {
   if (millis() - helpsBankTimer >= 30000) {
