@@ -1512,13 +1512,13 @@ void MapGame() {
     if (calculateSimilarity(buff, "owl_flew") >= 80) {
       Serial.println("owl_flew");
     }
-    if (calculateSimilarity(buff, "light") >= 80) {
+    if (calculateSimilarity(buff, "light_on") >= 80) {
       Serial.println("light_on");
       Serial1.println("light_on");
       Serial2.println("light_on");
       Serial3.println("light_on");
     }
-    if (calculateSimilarity(buff, "dark") >= 80) {
+    if (calculateSimilarity(buff, "light_off") >= 80) {
       Serial.println("light_off");
       Serial1.println("light_off");
       Serial2.println("light_off");
@@ -2010,8 +2010,6 @@ void Bottles() {
   if (millis() < rfidCooldownEnd) {
     // ИСПРАВЛЕНИЕ: Пока длится таймаут, поддерживаем красный свет
     CauldronMistakeFire();
-    myRFID.reset_search(); 
-    
     return;
   }
 
@@ -2067,8 +2065,7 @@ void FirstBottle() {
         FourBottleTrue = 1;   FourBottleFalse = 1;
         rfidCooldownEnd = millis() + 2000;
       }
-      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
-      // Красный свет теперь вызывается ТОЛЬКО из void Bottles()
+      CauldronMistakeFire(); // Поддерживаем красный, пока бутылка в котле
     }
     myRFID.reset_search();
   } else {
@@ -2133,7 +2130,7 @@ void SecondBottle() {
         FourBottleTrue = 1;   FourBottleFalse = 1;
         rfidCooldownEnd = millis() + 2000;
       }
-      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
+      CauldronMistakeFire(); // Поддерживаем красный, пока бутылка в котле
     }
     myRFID.reset_search();
   } else {
@@ -2198,7 +2195,7 @@ void ThirdBottle() {
         FourBottleTrue = 1;   FourBottleFalse = 1;
         rfidCooldownEnd = millis() + 2000;
       }
-      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
+      CauldronMistakeFire(); // Поддерживаем красный, пока бутылка в котле
     }
     myRFID.reset_search();
   } else {
@@ -2263,7 +2260,7 @@ void FourBottle() {
         FourBottleTrue = 1;
         rfidCooldownEnd = millis() + 2000;
       }
-      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
+      CauldronMistakeFire(); // Поддерживаем красный, пока бутылка в котле
     }
     myRFID.reset_search();
   } else {
@@ -3619,7 +3616,7 @@ void CauldronFire() {
 }
 
 void CauldronMistakeFire() {
-  if (millis() - CauldronFireMistakeInterval >= random(50, 70)) {
+  if (millis() - CauldronFireMistakeInterval >= random(100, 130)) {
     for (int j = 0; j <= 9; j++) {
       CauldronStrip.setPixelColor(j, CauldronStrip.Color(random(100, 200), random(15, 25), random(0, 10)));
       CauldronRoomStrip.setPixelColor(j, CauldronRoomStrip.Color(random(100, 250), 0, 0));
