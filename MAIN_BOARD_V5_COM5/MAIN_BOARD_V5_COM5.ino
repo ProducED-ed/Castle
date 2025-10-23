@@ -2010,6 +2010,8 @@ void Bottles() {
   if (millis() < rfidCooldownEnd) {
     // ИСПРАВЛЕНИЕ: Пока длится таймаут, поддерживаем красный свет
     CauldronMistakeFire();
+    myRFID.reset_search(); 
+    
     return;
   }
 
