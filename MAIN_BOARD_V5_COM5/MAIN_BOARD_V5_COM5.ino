@@ -1433,7 +1433,6 @@ void MapGame() {
   static bool activePotionRoom;
   static bool potionPulsation;
 
-
   if (game == "fish") {
     digitalWrite(pinA, 0);
     digitalWrite(pinB, 0);
@@ -2009,9 +2008,13 @@ void Oven() {
 void Bottles() {
   // Если активен "период охлаждения" после ошибки, выходим из функции
   if (millis() < rfidCooldownEnd) {
+    // ИСПРАВЛЕНИЕ: Пока длится таймаут, поддерживаем красный свет
+    CauldronMistakeFire();
     return;
   }
 
+  // Убрали сброс флагов отсюда, он теперь в 'else' с таймером
+  
   switch (Bottle) {
     case 0:
       SecondBottle(); // Логика в вашем коде перепутана, оставляю как есть
@@ -2031,7 +2034,8 @@ void Bottles() {
 ///////первая бутылка
 void FirstBottle() {
   if (myRFID.search(addr)) {
-    Bottle1Timer = millis();
+    // ИСПРАВЛЕНИЕ: Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
+    Bottle1Timer = millis(); 
     byte result = 1;
     for (int i = 0; i < 8; i++) {
       result &= addr[i] == validHex[0][i];
@@ -2050,35 +2054,53 @@ void FirstBottle() {
         CauldronFire();
       }
     } else {
+      // ИСПРАВЛЕНИЕ: Неправильная бутылка
       if (FirstBottleFalse) {
         Serial.println("mistake_bottle");
-        FirstBottleFalse = 0;
+        FirstBottleFalse = 0; // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;
         SecondBottleTrue = 1; SecondBottleFalse = 1;
-        ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
+        ThirdBottleTrue = 1; ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
-        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
-        CauldronMistakeFire();
-      } 
+        rfidCooldownEnd = millis() + 2000;
+      }
+      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
+      // Красный свет теперь вызывается ТОЛЬКО из void Bottles()
     }
     myRFID.reset_search();
   } else {
+    // ИСПРАВЛЕНИЕ: Нет бутылки. Ждем 100мс прежде чем реагировать.
     if (millis() - Bottle1Timer >= 100) {
+      // "Перевзводим" флаги, только когда бутылка убрана > 100мс
       FirstBottleFalse = 1;
-      if (FirstBottleTrue == 0)
-        Bottle++;
-      for (int i = 0; i <= 12; i++) {
-        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(30, 0, 250));
+      SecondBottleFalse = 1;
+      ThirdBottleFalse = 1;
+      FourBottleFalse = 1;
+
+      if (FirstBottleTrue == 0) { // Правильная бутылка была убрана
+        Bottle++; // Переходим к шагу 2 (ThirdBottle)
+        // Устанавливаем свет для *нового* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(150, 250, 0)); // yellow-green
+        }
+      } else { // Мы ждем правильную бутылку (или только что убрали неправильную)
+        // Восстанавливаем свет для *текущего* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(30, 0, 250)); // blue
+        }
       }
       CauldronRoomStrip.show();
       CauldronFire();
     }
+    // Если прошло < 100мс, ничего не делаем. Это фильтрует "моргания".
   }
 }
+
 ///////вторая бутылка
 void SecondBottle() {
   if (myRFID.search(addr)) {
+    // ИСПРАВЛЕНИЕ: Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle2Timer = millis();
     byte result = 1;
     for (int i = 0; i < 8; i++) {
@@ -2098,35 +2120,52 @@ void SecondBottle() {
         CauldronFire();
       }
     } else {
+      // ИСПРАВЛЕНИЕ: Неправильная бутылка
       if (SecondBottleFalse) {
         Serial.println("mistake_bottle");
-        SecondBottleFalse = 0;
+        SecondBottleFalse = 0; // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;  FirstBottleFalse = 1;
         SecondBottleTrue = 1;
-        ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
+        ThirdBottleTrue = 1; ThirdBottleFalse = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
-        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
-        CauldronMistakeFire();
+        rfidCooldownEnd = millis() + 2000;
       }
+      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
     }
     myRFID.reset_search();
   } else {
+    // ИСПРАВЛЕНИЕ: Нет бутылки. Ждем 100мс прежде чем реагировать.
     if (millis() - Bottle2Timer >= 100) {
+      // "Перевзводим" флаги, только когда бутылка убрана > 100мс
+      FirstBottleFalse = 1;
       SecondBottleFalse = 1;
-      if (SecondBottleTrue == 0)
-        Bottle++;
-      for (int i = 0; i <= 12; i++) {
-        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(0, 250, 30));
+      ThirdBottleFalse = 1;
+      FourBottleFalse = 1;
+
+      if (SecondBottleTrue == 0) { // Правильная бутылка была убрана
+        Bottle++; // Переходим к шагу 1 (FirstBottle)
+        // Устанавливаем свет для *нового* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(30, 0, 250)); // blue
+        }
+      } else { // Мы ждем правильную бутылку (или только что убрали неправильную)
+        // Восстанавливаем свет для *текущего* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(0, 250, 30)); // green
+        }
       }
       CauldronRoomStrip.show();
       CauldronFire();
     }
+    // Если прошло < 100мс, ничего не делаем. Это фильтрует "моргания".
   }
 }
+
 //////третья бутылка
 void ThirdBottle() {
   if (myRFID.search(addr)) {
+    // ИСПРАВЛЕНИЕ: Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle3Timer = millis();
     byte result = 1;
     for (int i = 0; i < 8; i++) {
@@ -2146,35 +2185,52 @@ void ThirdBottle() {
         CauldronFire();
       }
     } else {
+      // ИСПРАВЛЕНИЕ: Неправильная бутылка
       if (ThirdBottleFalse) {
         Serial.println("mistake_bottle");
-        ThirdBottleFalse = 0;
+        ThirdBottleFalse = 0; // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;  FirstBottleFalse = 1;
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;
         FourBottleTrue = 1;   FourBottleFalse = 1;
-        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
-        CauldronMistakeFire();
+        rfidCooldownEnd = millis() + 2000;
       }
+      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
     }
     myRFID.reset_search();
   } else {
+    // ИСПРАВЛЕНИЕ: Нет бутылки. Ждем 100мс прежде чем реагировать.
     if (millis() - Bottle3Timer >= 100) {
+      // "Перевзводим" флаги, только когда бутылка убрана > 100мс
+      FirstBottleFalse = 1;
+      SecondBottleFalse = 1;
       ThirdBottleFalse = 1;
-      if (ThirdBottleTrue == 0)
-        Bottle++;
-      for (int i = 0; i <= 12; i++) {
-        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(150, 250, 0));
+      FourBottleFalse = 1;
+
+      if (ThirdBottleTrue == 0) { // Правильная бутылка была убрана
+        Bottle++; // Переходим к шагу 3 (FourBottle)
+        // Устанавливаем свет для *нового* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(250, 250, 250)); // white
+        }
+      } else { // Мы ждем правильную бутылку (или только что убрали неправильную)
+        // Восстанавливаем свет для *текущего* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(150, 250, 0)); // yellow-green
+        }
       }
       CauldronRoomStrip.show();
       CauldronFire();
     }
+    // Если прошло < 100мс, ничего не делаем. Это фильтрует "моргания".
   }
 }
+
 /////четвертая бутылка
 void FourBottle() {
   if (myRFID.search(addr)) {
+    // ИСПРАВЛЕНИЕ: Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle4Timer = millis();
     byte result = 1;
     for (int i = 0; i < 8; i++) {
@@ -2194,28 +2250,41 @@ void FourBottle() {
         isPotionEnd = true;
       }
     } else {
+      // ИСПРАВЛЕНИЕ: Неправильная бутылка
       if (FourBottleFalse) {
         Serial.println("mistake_bottle");
-        FourBottleFalse = 0;
+        FourBottleFalse = 0; // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;  FirstBottleFalse = 1;
         SecondBottleTrue = 1; SecondBottleFalse = 1;
         ThirdBottleTrue = 1;  ThirdBottleFalse = 1;
         FourBottleTrue = 1;
-        rfidCooldownEnd = millis() + 500; // Запускаем "охлаждение" на 500 мс
-        CauldronMistakeFire();
+        rfidCooldownEnd = millis() + 2000;
       }
+      // !!! ИСПРАВЛЕНИЕ: CauldronMistakeFire() УБРАН ОТСЮДА !!!
     }
     myRFID.reset_search();
   } else {
+    // ИСПРАВЛЕНИЕ: Нет бутылки. Ждем 100мс прежде чем реагировать.
     if (millis() - Bottle4Timer >= 100) {
+      // "Перевзводим" флаги, только когда бутылка убрана > 100мс
+      FirstBottleFalse = 1;
+      SecondBottleFalse = 1;
+      ThirdBottleFalse = 1;
       FourBottleFalse = 1;
-      for (int i = 0; i <= 12; i++) {
-        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(250, 250, 250));
+
+      if (FourBottleTrue == 0) { // Правильная бутылка была убрана
+        // Это был последний шаг, игра выиграна. Ничего не делаем.
+      } else { // Мы ждем правильную бутылку (или только что убрали неправильную)
+        // Восстанавливаем свет для *текущего* шага
+        for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(250, 250, 250)); // white
+        }
+        CauldronRoomStrip.show();
+        CauldronFire();
       }
-      CauldronRoomStrip.show();
-      CauldronFire();
     }
+    // Если прошло < 100мс, ничего не делаем. Это фильтрует "моргания".
   }
 }
 
