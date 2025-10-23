@@ -2641,7 +2641,7 @@ void CentralTowerGameDown() {
   // Состояния: 0=Idle, 1=WaitR, 2=WaitL, 3=Cooldown
   static int swipeState = 0;
   static int puzzleProgress = 0;
-  static unsigned long swipeTimer = 0; // Теперь будет перезапускаться при отпускании
+  static unsigned long swipeTimer = 0;
   const unsigned long SWIPE_TIMEOUT = 1500;
   static unsigned long lastDebounceTimeLeft = 0;
   static unsigned long lastDebounceTimeRight = 0;
@@ -2651,47 +2651,34 @@ void CentralTowerGameDown() {
   static bool currentRightState = HIGH;
   const unsigned long debounceDelay = 150;
   unsigned long currentTime = millis();
-  // --- НОВЫЙ ФЛАГ для отслеживания отпускания первого геркона ---
   static bool initialSwitchReleased = false;
 
-  // --- Блок Serial для тестов (без изменений) ---
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
-    // --- (Симуляция свайпов - изменится только логика оригинала) ---
-    if (buff == "swipe_right") {
-      // Эта симуляция больше не точно отражает новую логику таймаута,
-      // но оставим ее для базовой проверки последовательности
-      Serial.println("--- SIMULATING: swipe_right (>) ---");
-      Serial.println("swipe_r");
-      if (puzzleProgress == 0 || puzzleProgress == 2 || puzzleProgress == 4) {
-          puzzleProgress++;
-          if (puzzleProgress == 5) { /* ПОБЕДА */ } else { /* УСПЕШНЫЙ ШАГ */ }
-      } else { /* ОШИБКА ПОСЛЕДОВАТЕЛЬНОСТИ */ }
-      // Сброс флага и состояния для симуляции
+    if (buff == "spell") {
+      OpenLock(HightTowerDoor);
+      digitalWrite(TorchLight, HIGH);
+      Serial.println("door_spell"); // Исходное сообщение
+      level++;
       initialSwitchReleased = false;
-      swipeState = 0; // Возвращаемся в Idle после симуляции
-      return;
-    }
-    if (buff == "swipe_left") {
-      // Аналогично, симуляция не отражает новый таймаут
-      Serial.println("--- SIMULATING: swipe_left (<) ---");
-      Serial.println("swipe_l");
-       if (puzzleProgress == 1 || puzzleProgress == 3) {
-          puzzleProgress++; /* УСПЕШНЫЙ ШАГ */
-       } else { /* ОШИБКА ПОСЛЕДОВАТЕЛЬНОСТИ */ }
-      // Сброс флага и состояния для симуляции
-      initialSwitchReleased = false;
+      puzzleProgress = 0;
       swipeState = 0;
-      return;
     }
-     // --- (Остальные команды симуляции без изменений) ---
-    if (buff == "status") { /* ... */ return; }
-    if (buff == "spell") { /* ... */ initialSwitchReleased = false; swipeState = 0; } // Добавлен сброс флага
-    if (buff == "restart") { /* ... */ initialSwitchReleased = false; swipeState = 0; } // Добавлен сброс флага
-    if (buff == "soundon") { /* ... */ }
-    if (buff == "soundoff") { /* ... */ }
+    if (buff == "restart") {
+      OpenAll();
+      RestOn();
+      initialSwitchReleased = false;
+      puzzleProgress = 0;
+      swipeState = 0;
+    }
+    if (buff == "soundon") {
+      flagSound = 0;
+    }
+    if (buff == "soundoff") {
+      flagSound = 1;
+    }
   }
 
 
@@ -2708,111 +2695,83 @@ void CentralTowerGameDown() {
   bool leftPressed = currentLeftState;
   bool rightPressed = currentRightState;
 
-  // --- Отладка состояний (без изменений) ---
-  static int lastState = -1; if (swipeState != lastState) { Serial.println(">>> New Swipe State: " + String(swipeState)); lastState = swipeState; }
-
-  // --- ОБНОВЛЕННАЯ Машина состояний ---
+  // --- Машина состояний ---
   switch (swipeState) {
     case 0: // IDLE
       if (leftPressed && !rightPressed) {
-        Serial.println("State 0 -> 1 (Left pressed first)");
         swipeState = 1;
-        // --- ИЗМЕНЕНИЕ: Таймер НЕ запускается здесь ---
-        initialSwitchReleased = false; // Сбрасываем флаг отпускания
+        initialSwitchReleased = false;
       } else if (rightPressed && !leftPressed) {
-        Serial.println("State 0 -> 2 (Right pressed first)");
         swipeState = 2;
-        // --- ИЗМЕНЕНИЕ: Таймер НЕ запускается здесь ---
-        initialSwitchReleased = false; // Сбрасываем флаг отпускания
+        initialSwitchReleased = false;
       }
       break;
 
-    case 1: // WAIT_R (Нажат левый, ждем правый ИЛИ отпускание левого)
+    case 1: // WAIT_R
       if (rightPressed) { // --- СВАЙП ВПРАВО (>) ---
-        Serial.println("State 1: Right detected -> Swipe RIGHT (>) completed.");
-        Serial.println("swipe_r"); // ОЗВУЧКА
+        Serial.println("swipe_r");
 
-        // --- ВОЗВРАЩЕНА ЛОГИКА PUZZLEPROGRESS ---
-        if (puzzleProgress == 0 || puzzleProgress == 2 || puzzleProgress == 4) { // Правильная последовательность?
+        if (puzzleProgress == 0 || puzzleProgress == 2 || puzzleProgress == 4) {
           puzzleProgress++;
-          if (puzzleProgress == 5) { // ПОБЕДА?
-              Serial.println("--- GAME WON ---"); // Отладка победы
+          if (puzzleProgress == 5) { // ПОБЕДА
               OpenLock(HightTowerDoor);
               digitalWrite(TorchLight, HIGH);
               Serial.println("door_spell");
               level++;
-              puzzleProgress = 0; // Сброс для след. игры
+              puzzleProgress = 0;
            } else { // Успешный шаг
-               Serial.println("...Good swipe! Progress: " + String(puzzleProgress) + "/5"); // Отладка прогресса
            }
         } else { // Неправильная последовательность
-            Serial.println("...Wrong sequence! Resetting..."); // Отладка сброса
-            Serial.println("swipe_wrong_sequence"); // ОЗВУЧКА ОШИБКИ
-            puzzleProgress = 0; // Сброс всей комбинации
+            Serial.println("swipe_wrong_sequence");
+            puzzleProgress = 0;
         }
-        // --- КОНЕЦ ВОЗВРАЩЕННОЙ ЛОГИКИ ---
-
-        swipeState = 3; // Cooldown (Успешный свайп)
-        initialSwitchReleased = false; // Сброс флага
+        swipeState = 3; // Cooldown
+        initialSwitchReleased = false;
       }
-      // --- (Логика отпускания и таймаута остается) ---
-      else if (!leftPressed && !initialSwitchReleased) { // Левый отпущен В ПЕРВЫЙ РАЗ?
-         Serial.println("State 1: Left released, starting timeout timer."); // Отладка
-         initialSwitchReleased = true; // Ставим флаг, что отпустили
-         swipeTimer = currentTime;    // ЗАПУСКАЕМ ТАЙМЕР СЕЙЧАС
+      else if (!leftPressed && !initialSwitchReleased) {
+         initialSwitchReleased = true;
+         swipeTimer = currentTime;
       }
-      else if (initialSwitchReleased && (currentTime - swipeTimer > SWIPE_TIMEOUT)) { // Таймаут ПОСЛЕ отпускания
-         Serial.println("State 1: Timeout AFTER release waiting for Right. Go to Cooldown (3)."); // Отладка
-         swipeState = 3; // Cooldown (Таймаут)
-         initialSwitchReleased = false; // Сброс флага
+      else if (initialSwitchReleased && (currentTime - swipeTimer > SWIPE_TIMEOUT)) {
+         swipeState = 3;
+         initialSwitchReleased = false;
       }
       break;
 
-    case 2: // WAIT_L (Нажат правый, ждем левый ИЛИ отпускание правого)
+    case 2: // WAIT_L
       if (leftPressed) { // --- СВАЙП ВЛЕВО (<) ---
-        Serial.println("State 2: Left detected -> Swipe LEFT (<) completed.");
-        Serial.println("swipe_l"); // ОЗВУЧКА
+        Serial.println("swipe_l");
 
-        // --- ВОЗВРАЩЕНА ЛОГИКА PUZZLEPROGRESS ---
-        if (puzzleProgress == 1 || puzzleProgress == 3) { // Правильная последовательность?
+        if (puzzleProgress == 1 || puzzleProgress == 3) {
           puzzleProgress++;
-           Serial.println("...Good swipe! Progress: " + String(puzzleProgress) + "/5"); // Отладка прогресса
         } else { // Неправильная последовательность
-            Serial.println("...Wrong sequence! Resetting..."); // Отладка сброса
-            Serial.println("swipe_wrong_sequence"); // ОЗВУЧКА ОШИБКИ
-            puzzleProgress = 0; // Сброс всей комбинации
+            Serial.println("swipe_wrong_sequence");
+            puzzleProgress = 0;
         }
-        // --- КОНЕЦ ВОЗВРАЩЕННОЙ ЛОГИКИ ---
-
-        swipeState = 3; // Cooldown (Успешный свайп)
-        initialSwitchReleased = false; // Сброс флага
+        swipeState = 3; // Cooldown
+        initialSwitchReleased = false;
       }
-      // --- (Логика отпускания и таймаута остается) ---
-      else if (!rightPressed && !initialSwitchReleased) { // Правый отпущен В ПЕРВЫЙ РАЗ?
-        Serial.println("State 2: Right released, starting timeout timer."); // Отладка
-        initialSwitchReleased = true; // Ставим флаг, что отпустили
-        swipeTimer = currentTime;    // ЗАПУСКАЕМ ТАЙМЕР СЕЙЧАС
+      else if (!rightPressed && !initialSwitchReleased) {
+        initialSwitchReleased = true;
+        swipeTimer = currentTime;
       }
-      else if (initialSwitchReleased && (currentTime - swipeTimer > SWIPE_TIMEOUT)) { // Таймаут ПОСЛЕ отпускания
-        Serial.println("State 2: Timeout AFTER release waiting for Left. Go to Cooldown (3)."); // Отладка
-        swipeState = 3; // Cooldown (Таймаут)
-        initialSwitchReleased = false; // Сброс флага
+      else if (initialSwitchReleased && (currentTime - swipeTimer > SWIPE_TIMEOUT)) {
+        swipeState = 3;
+        initialSwitchReleased = false;
       }
       break;
 
-    case 3: // COOLDOWN (После успешного свайпа или Таймаута)
-      // Ждем отпускания ОБ_ОИХ герконов для надежности
+    case 3: // COOLDOWN
       if (!leftPressed && !rightPressed) {
-        Serial.println("State 3 -> 0 (Cooldown finished - Both released)");
-        swipeState = 0; // Готовы к новому свайпу
-        initialSwitchReleased = false; // Сброс флага на всякий случай
+        swipeState = 0;
+        initialSwitchReleased = false;
       }
       break;
 
   } // Конец switch
 
   HelpTowersHandler();
-}
+} // Конец функции
 
 /////нужно подуть в окно
 void OpenBank() {
