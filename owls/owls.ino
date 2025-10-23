@@ -319,17 +319,13 @@ void handleSerial1Commands() {
 // Функция проверки кнопки совы
 void checkOwlButton() {
 
-  if (owlCommandReceived && PIN_HERKON_OWA.isHold()) {
-    if (!F) {
-      F = true;  // Устанавливаем флаг
-      Serial.println("door_owl");
-      delay(1000);
-      Serial1.println("door_owl");
-      delay(1000);
-      state = 1;
-    }
-  } else if (!PIN_HERKON_OWA.isHold()) {
-    F = false;  // Сбрасываем флаг когда кнопка отпущена
+  // ИЗМЕНЕНИЕ: Заменено isHold() на isPress() и убрана логика с флагом F.
+  // Теперь команда может быть отправлена только один раз за сессию.
+  if (owlCommandReceived && PIN_HERKON_OWA.isPress()) {
+    owlCommandReceived = false;  // Предотвращаем повторное срабатывание
+    Serial.println("door_owl");
+    Serial1.println("door_owl");
+    state = 1;
   }
 }
 
