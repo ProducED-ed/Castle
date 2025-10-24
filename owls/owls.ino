@@ -448,14 +448,14 @@ void handleTileLeds() {
 
   if (PIN_HERKON_TILE0.isHold()) {
     if (!tile0State) {
-      Serial1.println("light_off");
+      Serial1.println("dark");
       tile0State = true;
 
       digitalWrite(PIN_LED_WINDOW, 0);
     }
   } else {
     if (tile0State) {
-      Serial1.println("light_on");
+      Serial1.println("light");
       tile0State = false;
       digitalWrite(PIN_LED_WINDOW, 1);
     }
