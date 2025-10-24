@@ -1618,14 +1618,20 @@ void MapGame() {
 
     if (buff == "dog") {
       Serial3.println("skip_dog");
+      isDogEnd = 1;
     }
 
     if (buff == "owl_door") {
       mySerial.println("owl_door");
+      isOwlDoorOpened = true;
     }
 
     if (buff == "owl_skip") {
       mySerial.println("skip");
+      isOwlEnd = 1;
+      Serial1.println("light_off");
+      Serial2.println("light_off");
+      Serial3.println("light_off");
     }
 
     if (buff == "open_potions_stash") {
@@ -1661,6 +1667,7 @@ void MapGame() {
     }
     if (buff == "troll") {
       Serial2.println("troll");
+      isTrollEnd = 1;
     }
 
     if (buff == "train") {
@@ -1693,6 +1700,25 @@ void MapGame() {
       Serial2.println("item_find");
       Serial3.println("item_find");
     }
+
+    // ВСТАВКА КОПИИ БЛОКА ПРОВЕРКИ ---
+    // Эта проверка сработает СРАЗУ после обработки команды пропуска, которая УСТАНОВИЛА ПОСЛЕДНИЙ флаг
+    if (isPotionEnd && isDogEnd && isOwlEnd && isTrainEnd && isTrollEnd) {
+      activePotionRoom = 0;
+      game = "";
+      delay(500); // Небольшая задержка перед отправкой
+      helpsBankTimer = millis();
+      Serial.println("material_end"); // <- Отправка сообщения
+      delay(500); // Небольшая задержка перед переходом уровня
+      // Теперь сбрасываем флаги
+      isPotionEnd = 0;
+      isDogEnd = 0;
+      isOwlEnd = 0;
+      isTrainEnd = 0;
+      isTrollEnd = 0;
+      level++;
+    }
+    // --- 
   }
 
   if (Serial2.available()) {
