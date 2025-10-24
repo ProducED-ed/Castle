@@ -146,6 +146,8 @@ enemy_goal3 = pygame.mixer.Sound('enemy_goal3.wav')
 enemy_goal4 = pygame.mixer.Sound('enemy_goal4.wav')
 win = pygame.mixer.Sound('win.wav')
 timeout = pygame.mixer.Sound('timeout.wav')
+swipe_r = pygame.mixer.Sound('swipe_r.wav')
+swipe_l = pygame.mixer.Sound('swipe_l.wav')
 
 #тут очень много историй и подсказок так что старайся если будешь добавлять файлы сжимать их предусмотрено много языков так что можно добавлять вплоть до китайского в нашей
 # версии на последний момент было 3 языка просто замени названия
@@ -3035,6 +3037,11 @@ def serial():
                           play_effect(lose1)
                           socketio.emit('level', 'active_spell',to=None)
                           socklist.append('active_spell')
+                          
+                     if flag == "swipe_r":
+                          play_effect(swipe_r)
+                     if flag == "swipe_l":
+                          play_effect(swipe_l)
                               
                      if flag=="door_spell":
                           socketio.emit('level', 'spell',to=None)
