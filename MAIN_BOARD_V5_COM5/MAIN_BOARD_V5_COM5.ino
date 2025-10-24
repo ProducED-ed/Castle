@@ -1512,13 +1512,13 @@ void MapGame() {
     if (calculateSimilarity(buff, "owl_flew") >= 80) {
       Serial.println("owl_flew");
     }
-    if (calculateSimilarity(buff, "light_on") >= 80) {
+    if (calculateSimilarity(buff, "light") >= 80) {
       Serial.println("light_on");
       Serial1.println("light_on");
       Serial2.println("light_on");
       Serial3.println("light_on");
     }
-    if (calculateSimilarity(buff, "light_off") >= 80) {
+    if (calculateSimilarity(buff, "dark") >= 80) {
       Serial.println("light_off");
       Serial1.println("light_off");
       Serial2.println("light_off");
