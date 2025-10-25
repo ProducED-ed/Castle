@@ -1355,12 +1355,9 @@ def Remote(check):
              socketio.emit('level', 'first_level',to=None)
              #-----добавить в историю
              socklist.append('first_level')
-             socketio.emit('level', 'second_level',to=None)
+             socketio.emit('level', 'memory_room_end',to=None)
              #-----добавить в историю
-             socklist.append('second_level')
-             socketio.emit('level', 'third_level',to=None)
-             #-----добавить в историю
-             socklist.append('third_level')
+             socklist.append('memory_room_end')
              #----отправить на мегу
              serial_write_queue.put('memory_room_end')
                          
@@ -1369,6 +1366,9 @@ def Remote(check):
              socketio.emit('level', 'basket',to=None)
              #-----добавить в историю
              socklist.append('basket')
+             socketio.emit('level', 'win_player',to=None)
+             #-----добавить в историю
+             socklist.append('win_player')
              #----отправить на мегу
              serial_write_queue.put('basket')
              send_esp32_command(ESP32_API_WOLF_URL, "firework")
@@ -2245,7 +2245,24 @@ def serial():
                           if 'open_door_puzzle' in socklist:
                                 socklist.remove('open_door_puzzle')
                           socketio.emit('level', 'close_door_puzzle',to=None)
-                          socklist.append('close_door_puzzle')         
+                          socklist.append('close_door_puzzle')
+
+                     if flag=="safe_close":
+                          if 'Check Safe' in devices:
+                                   devices.remove('Check Safe')
+                          
+                          if 'safe' in socklist:
+                                socklist.remove('safe')
+                          socketio.emit('level', 'safe_close',to=None)
+                          socklist.append('safe_close')
+
+                     if flag=="safe_open":
+                          if 'Check Safe' not in devices:
+                            devices.append('Check Safe')
+                          if 'safe_close' in socklist:
+                                socklist.remove('safe_close')
+                          socketio.emit('level', 'safe',to=None)
+                          socklist.append('safe')                
                                                                                 
                #----если нажали на старт и пришло сообщение от меги что можно играть начинаем обрабатывать сообщения
                if go == 1 and starts == 1:
@@ -2965,6 +2982,7 @@ def serial():
 
                      if flag=="lib_door":
                           #----играем эффект 
+                          
                           play_effect(lib_door)
                           socketio.emit('level', 'active_cup',to=None)
                           socklist.append('active_cup')
@@ -3957,6 +3975,10 @@ def serial():
                                     play_story(story_64_b_ar)
                      if flag=="win":
                           play_effect(win)
+                          socketio.emit('level', 'win_player',to=None)
+                          #-----добавили в историю
+                          socklist.append('win_player')
+                          
                           send_esp32_command(ESP32_API_WOLF_URL, "firework")
                           send_esp32_command(ESP32_API_TRAIN_URL, "firework")
                           send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
@@ -3971,6 +3993,9 @@ def serial():
                           if(language==3):
                               play_story(story_66_ar)
                      if flag=="win_robot":
+                          socketio.emit('level', 'win_bot',to=None)
+                          #-----добавили в историю
+                          socklist.append('win_bot')
                           play_effect(enemy_goal1)
                           while channel2.get_busy()==True: 
                               time.sleep(0.1)

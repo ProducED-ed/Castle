@@ -726,8 +726,7 @@ void BasketLesson(){
       isStart = 1;
     }
     else if (buff == "win\r\n"){
-      SCORE_ROBOT=8;
-      SCORE_MAN=10;
+      SCORE_MAN=3;
       OUTPUT_TO_DISPLAY();
       delay(2000);
       PRINT_SCORE_ROBOT();

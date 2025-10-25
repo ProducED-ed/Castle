@@ -650,6 +650,10 @@ duration   : '1s',
                 $('#safe').addClass('positive');
                 $('#safe_indic').addClass('check');
             }
+            if(inp === 'safe_close') {
+                $('#safe').removeClass('positive');
+                $('#safe_indic').removeClass('check');
+            }
             if(inp === 'workshop') {
                 $('#workshop').addClass('positive');
                 $('#workshop_indic').addClass('check');
@@ -676,13 +680,19 @@ duration   : '1s',
             }
 
             if(inp === 'start_players') {
+                $('#players').removeClass('grey');
+                $('#players').addClass('green');
                 $('#players').addClass('check');
             }
             if(inp === 'stop_players_rest') {
+                $('#players').removeClass('green');
+                $('#players').addClass('grey');
                 $('#players').removeClass('check');
             }
 
             if(inp === 'stop_players') {
+                $('#players').removeClass('green');
+                $('#players').addClass('grey');
                 $('#players').removeClass('check');
                  goal1bot=0;
                  goal2bot=0;
@@ -768,32 +778,25 @@ duration   : '1s',
                     percent: 100
                  });
                     $('#player_1_score').text('3')
+                    $('#basket').addClass('positive');
                     goal10player = 1;
                 }
             }
 
             if(inp === 'first_level') {
                 if(crystal1On==1){
-                    $('#items_memory').progress('increment')
+                    $('#items_memory').progress({
+                    percent: 50
+                 });
                     crystal1On = 0;
-                }
-            }
-            if(inp === 'second_level') {
-                if(crystal2On==1){
-                    $('#items_memory').progress('increment')
-                    crystal2On = 0;
-                }
-            }
-            if(inp === 'third_level') {
-                if(crystal3On==1){
-                    $('#items_memory').progress('increment')
-                    crystal3On = 0;
                 }
             }
             if(inp === 'memory_room_end') {
                 if(crystal4On==1){
-                    $('#items_memory').progress('increment')
-                    crystal4On = 0;
+                    $('#items_memory').progress({
+                    percent: 100
+                 });
+                    $('#open_memory_stash').addClass('positive');
                 }
                 finalAlert=0
             }
