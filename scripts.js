@@ -383,6 +383,13 @@ duration   : '1s',
             if (inp === 'active_second_clock') {
              $('#second_clock').removeClass('disabled');
             } 
+
+            if (inp === 'active_first_clock_2') {
+                $('#first_clock_2').removeClass('disabled');
+            } 
+            if (inp === 'active_second_clock_2') {
+             $('#second_clock_2').removeClass('disabled');
+            } 
             if (inp === 'active_open_mansard_door') {
                 $('#open_mansard_door').removeClass('disabled');
             }
@@ -440,6 +447,9 @@ duration   : '1s',
             if (inp === 'active_ghost') {
                 $('#ghost').removeClass('disabled');
             }
+            if (inp === 'active_crime') {
+                $('#crime').removeClass('disabled');
+            }
             if (inp === 'active_cup') {
                 $('#cup').removeClass('disabled');
             }
@@ -478,6 +488,25 @@ duration   : '1s',
             if(inp === 'second_clock') {
                 $('#second_clock').addClass('positive');
                 $('#second_clock_indic').addClass('check');
+            }
+
+            if(inp === 'crime') {
+                $('#crime').addClass('positive');
+                $('#crime_indic').addClass('check');
+            }
+
+            if(inp === 'crime_close') {
+                $('#crime').removeClass('positive');
+                $('#crime_indic').removeClass('check');
+            }
+
+            if(inp === 'first_clock_2') {
+                $('#first_clock_2').addClass('positive');//добавим кнопке класс postive окрасится в зеленый
+                $('#first_clock_indic_2').addClass('check');//иконка внутри кнопки появится галочка добавили класс к иконке check
+            }
+            if(inp === 'second_clock_2') {
+                $('#second_clock_2').addClass('positive');
+                $('#second_clock_indic_2').addClass('check');
             }
             if(inp === 'open_mansard_door') {
                 $('#open_mansard_door').addClass('positive');
@@ -990,9 +1019,12 @@ duration   : '1s',
                 $('#projector').addClass('disabled');
                 $('#first_clock').addClass('disabled');
                 $('#second_clock').addClass('disabled');
+                $('#first_clock_2').addClass('disabled');
+                $('#second_clock_2').addClass('disabled');
                 $('#open_mansard_door').addClass('disabled');
                 $('#suitcase').addClass('disabled');
                 $('#animals').addClass('disabled');
+                $('#crime').addClass('disabled');
                 $('#wolf').addClass('disabled');
                 $('#open_mansard_stash').addClass('disabled');
                 $('#pedlock').addClass('disabled');
@@ -1051,6 +1083,18 @@ duration   : '1s',
 
     $('#second_clock').click(function(){
         socket.emit('Remote','second_clock')
+    });
+
+    $('#first_clock_2').click(function(){
+        socket.emit('Remote','first_clock_2')//отправляем данные на сервер в декоратор remote строку tumbler
+    });
+
+    $('#second_clock_2').click(function(){
+        socket.emit('Remote','second_clock_2')
+    });
+
+    $('#crime').click(function(){
+        socket.emit('Remote','crime')
     });
     $('#open_mansard_door').click(function(){
         socket.emit('Remote','open_mansard_door')

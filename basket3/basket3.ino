@@ -166,9 +166,15 @@ void loop() {
   // put your main code here, to run repeatedly:
   switch (state) {
     case 0:
+    CheckState();
     if (Serial1.available())
     {
       String buff = Serial1.readString();
+      if (buff == "check_state\r\n"){
+        _restartFlag = 0;
+      _restartGalet = 0;
+        CheckState();
+      }
       if (buff == "ready\r\n"){
         digitalWrite(trollLed, LOW);
         digitalWrite(owlLed, LOW);
@@ -242,26 +248,7 @@ void loop() {
      Basket();
      break;
   case 8:
-    if(!digitalRead(26) && !_restartGalet){
-      Serial1.println("galet_on");
-      _restartGalet = 1;
-      delay(500);
-    }
-    if(digitalRead(26) && _restartGalet){
-      Serial1.println("galet_off");
-      _restartGalet = 0;
-      delay(500);
-    }
-    if(digitalRead(27) && !_restartFlag){
-      Serial1.println("flag2_on");
-      _restartFlag = 1;
-      delay(500);
-    }
-    if(_restartFlag && !digitalRead(27)){
-      Serial1.println("flag2_off");
-      delay(500);
-      _restartFlag = 0;
-    }
+    CheckState();
        SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
        SCORE_MAN = 0;
        buttonSequence = 0;
@@ -326,6 +313,8 @@ void loop() {
 
 void HandleMessagges(String message){
   if(message == "restart\r\n"){
+    _restartFlag = 0;
+        _restartGalet = 0;
       OpenLock(SHERIF_EM1);
       OpenLock(SHERIF_EM2);
       OpenLock(Solenoid);
@@ -346,6 +335,37 @@ void HandleMessagges(String message){
   if(message == "open_mine_door\r\n"){
     OpenLock(SHERIF_EM1);
   }
+}
+
+void CheckState(){
+  if(!digitalRead(26) && !_restartGalet){
+      Serial1.println("galet_on");
+      _restartGalet = 1;
+      delay(500);
+      Serial1.println("galet_on");
+      delay(500);
+    }
+    if(digitalRead(26) && _restartGalet){
+      Serial1.println("galet_off");
+      _restartGalet = 0;
+      delay(500);
+      Serial1.println("galet_off");
+      delay(500);
+    }
+    if(digitalRead(27) && !_restartFlag){
+      Serial1.println("flag2_on");
+      _restartFlag = 1;
+      delay(500);
+      Serial1.println("flag2_on");
+      delay(500);
+    }
+    if(_restartFlag && !digitalRead(27)){
+      Serial1.println("flag2_off");
+      delay(500);
+      _restartFlag = 0;
+      Serial1.println("flag2_off");
+      delay(500);
+    }
 }
 
 
@@ -733,7 +753,8 @@ void BasketLesson(){
       delay(1000);
       PRINT_SCORE_MAN();
       Serial1.println("fr8nmr");
-      state++;
+      state+=2;
+      isStart = 0;
     }
     else{
         HandleMessagges(buff);

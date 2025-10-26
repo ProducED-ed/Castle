@@ -630,6 +630,37 @@ void checkGameEnd() {
   }
 }
 
+void CheckState(){
+  if (!digitalRead(30) && !_restartGalet) {
+        Serial1.println("galet_on");
+        _restartGalet = 1;
+        delay(500);
+        Serial1.println("galet_on");
+        delay(500);
+      }
+      if (digitalRead(30) && _restartGalet) {
+        Serial1.println("galet_off");
+        _restartGalet = 0;
+        delay(500);
+        Serial1.println("galet_off");
+        delay(500);
+      }
+
+      if (digitalRead(27) && !_restartFlag) {
+        Serial1.println("flag1_on");
+        _restartFlag = 1;
+        delay(500);
+        Serial1.println("flag1_on");
+        delay(500);
+      }
+      if (_restartFlag && !digitalRead(27)) {
+        Serial1.println("flag1_off");
+        delay(500);
+        _restartFlag = 0;
+        Serial1.println("flag1_off");
+        delay(500);
+      }
+}
 
 void handleUartCommands() {
   if (Serial1.available()) {
@@ -638,6 +669,11 @@ void handleUartCommands() {
     if (command.endsWith("\r")) {
       command.remove(command.length() - 1);
     }
+    if (command == "check_state"){
+      _restartGalet = 0;
+      _restartFlag = 0;
+        CheckState();
+      }
 
     if (command == "workshop") {
       openLock();
@@ -677,27 +713,9 @@ void handleUartCommands() {
     } else if (command == "restart") {
       fireworkActive = false; // Сбрасываем фейерверк
       //openLock();
-      if (!digitalRead(30) && !_restartGalet) {
-        Serial1.println("galet_on");
-        _restartGalet = 1;
-        delay(500);
-      }
-      if (digitalRead(30) && _restartGalet) {
-        Serial1.println("galet_off");
-        _restartGalet = 0;
-        delay(500);
-      }
-
-      if (digitalRead(27) && !_restartFlag) {
-        Serial1.println("flag1_on");
-        _restartFlag = 1;
-        delay(500);
-      }
-      if (_restartFlag && !digitalRead(27)) {
-        Serial1.println("flag1_off");
-        delay(500);
-        _restartFlag = 0;
-      }
+      _restartGalet = 0;
+      _restartFlag = 0;
+      CheckState();
       lockOpen = false;
       recurringLockActive = false;
       digitalWrite(LOCK_PIN, HIGH);

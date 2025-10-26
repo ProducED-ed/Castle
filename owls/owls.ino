@@ -233,8 +233,17 @@ void handleSerial1Commands() {
       _restartGalet = 0;
     }
 
+    if (command == "check_state"){
+      _restartFlag = 0;
+      _restartGalet = 0;
+        CheckState();
+      }
+
     if (command == "restart") {
+      _restartFlag = 0;
+      _restartGalet = 0;
       // Сброс всех переменных
+      CheckState();
       skipCommand = false;
       fireworkActive = false;
       rainbowActive = false;
@@ -252,28 +261,7 @@ void handleSerial1Commands() {
       state = 0;
       owl = 0;
       F = false;
-      if(!digitalRead(30) && !_restartGalet){
-        Serial1.println("galet_on");
-        _restartGalet = 1;
-        delay(500);
-      }
-    if(digitalRead(30) && _restartGalet){
-      Serial1.println("galet_off");
-      _restartGalet = 0;
-      delay(500);
-    }
-
-
-    if(digitalRead(27) && !_restartFlag){
-      Serial1.println("flag4_on");
-      _restartFlag = 1;
-      delay(500);
-    }
-    if(_restartFlag && !digitalRead(27)){
-      Serial1.println("flag4_off");
-      delay(500);
-      _restartFlag = 0;
-    }
+      
     digitalWrite(PIN_LOKER_DOOR, HIGH);
       delay(100);
       digitalWrite(PIN_LOKER_DOOR, LOW);
@@ -313,6 +301,39 @@ void handleSerial1Commands() {
       FastLED.show();
     }
   }
+}
+
+void CheckState(){
+  if(!digitalRead(30) && !_restartGalet){
+        Serial1.println("galet_on");
+        _restartGalet = 1;
+        delay(500);
+        Serial1.println("galet_on");
+        delay(500);
+      }
+    if(digitalRead(30) && _restartGalet){
+      Serial1.println("galet_off");
+      _restartGalet = 0;
+      delay(500);
+      Serial1.println("galet_off");
+      delay(500);
+    }
+
+
+    if(digitalRead(27) && !_restartFlag){
+      Serial1.println("flag4_on");
+      _restartFlag = 1;
+      delay(500);
+      Serial1.println("flag4_on");
+      delay(500);
+    }
+    if(_restartFlag && !digitalRead(27)){
+      Serial1.println("flag4_off");
+      delay(500);
+      _restartFlag = 0;
+      Serial1.println("flag4_off");
+      delay(500);
+    }
 }
 
 

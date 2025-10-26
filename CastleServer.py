@@ -1152,7 +1152,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('open_bank_door')
              name = "story_2"     
-             time.sleep(3) 
+             time.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_safe',to=None)
              socklist.append('active_safe')
@@ -1164,7 +1164,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('pedlock')
              name = "story_2"     
-             time.sleep(3) 
+             time.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_dog',to=None)
              socklist.append('active_dog')
@@ -1175,6 +1175,7 @@ def Remote(check):
              socklist.append('dog')
              #----отправить на мегу
              serial_write_queue.put('dog')
+             time.sleep(10) 
              name = "story_2"
         if check == 'cat':
              #-----отправка клиенту 
@@ -1186,7 +1187,7 @@ def Remote(check):
              # --- НАЧАЛО ИЗМЕНЕНИЙ: Имитируем реакцию сервера на door_witch ---
              play_effect(door_witch) # 1. Воспроизводим звук открытия
              send_esp32_command(ESP32_API_TRAIN_URL, "fish_open") # 2. Гасим LED рыбы (24) на карте
-
+             time.sleep(10) 
              # 3. Воспроизводим историю
              if(language==1):
                  play_story(story_17_ru) #
@@ -1210,6 +1211,7 @@ def Remote(check):
              socklist.append('open_potions_stash')
              #----отправить на мегу
              serial_write_queue.put('open_potions_stash')
+             time.sleep(10) 
              name = "story_2"   
         if check == 'owl':
              #-----отправка клиенту 
@@ -1220,7 +1222,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('owl_door')
              name = "story_2"     
-             time.sleep(3) 
+             time.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_owls',to=None)
              socklist.append('active_owls')
@@ -1240,6 +1242,7 @@ def Remote(check):
                  play_story(story_14_b_en) #
              if(language==3):
                  play_story(story_14_b_ar) #
+             time.sleep(10)      
         if check == 'projector':
              #-----отправка клиенту 
              socketio.emit('level', 'projector',to=None)
@@ -1272,6 +1275,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('mine')
              name = "story_2" 
+             time.sleep(10) 
              socketio.emit('level', 'active_troll',to=None)
              socklist.append('active_troll')
         if check == 'troll':
@@ -1282,6 +1286,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('troll')
              name = "story_2" 
+             time.sleep(10) 
              socketio.emit('level', 'active_open_bank_door',to=None)
              socklist.append('active_open_bank_door')                        
 
@@ -1293,7 +1298,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('safe')
              name = "story_2"     
-             time.sleep(5) 
+             time.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_workshop',to=None)
              socklist.append('active_workshop')
@@ -1307,8 +1312,32 @@ def Remote(check):
              name = "story_2"     
              time.sleep(5) 
              #-----активируем блок с флагами
+             socketio.emit('level', 'active_first_clock_2',to=None)
+             socklist.append('active_first_clock_2')
+        if check == 'first_clock_2':
+             #-----отправка клиенту 
+             socketio.emit('level', 'first_clock_2',to=None)
+             #-----добавить в историю
+             socklist.append('first_clock_2')
+             #----отправить на мегу
+             serial_write_queue.put('first_clock_2')
+             name = "story_2"     
+             time.sleep(5) 
+             #-----активируем блок с флагами
+             socketio.emit('level', 'active_second_clock_2',to=None)
+             socklist.append('active_second_clock_2')
+        if check == 'second_clock_2':
+             #-----отправка клиенту 
+             socketio.emit('level', 'second_clock_2',to=None)
+             #-----добавить в историю
+             socklist.append('second_clock_2')
+             #----отправить на мегу
+             serial_write_queue.put('second_clock_2')
+             name = "story_2"     
+             time.sleep(5) 
+             #-----активируем блок с флагами
              socketio.emit('level', 'active_ghost',to=None)
-             socklist.append('active_ghost')
+             socklist.append('active_ghost')           
         if check == 'ghost':
              #-----отправка клиенту 
              socketio.emit('level', 'ghost',to=None)
@@ -1350,7 +1379,7 @@ def Remote(check):
              serial_write_queue.put('crystals')
              name = "story_2" 
         if check == 'open_memory_stash':
-             send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
+             send_esp32_command(ESP32_API_TRAIN_URL, "stage_0") 
              #-----отправка клиенту 
              socketio.emit('level', 'first_level',to=None)
              #-----добавить в историю
@@ -1360,6 +1389,13 @@ def Remote(check):
              socklist.append('memory_room_end')
              #----отправить на мегу
              serial_write_queue.put('memory_room_end')
+        if check == 'crime':
+             #-----отправка клиенту 
+             socketio.emit('level', 'crime',to=None)
+             #-----добавить в историю
+             socklist.append('crime')
+             #----отправить на мегу
+             serial_write_queue.put('crime')     
                          
         if check == 'basket':
              #-----отправка клиенту 
@@ -1414,6 +1450,8 @@ def Remote(check):
              serial_write_queue.put('open_memory_door')
         if check=='basket':
              serial_write_queue.put('open_basket_door')
+        if check=='crime':
+             serial_write_queue.put('open_crime_door')     
 
 
 @app.route('/api', methods=['GET', 'POST'])
@@ -2111,64 +2149,74 @@ def serial():
                      if(language==3):
                          play_story(story_2_a_ar)         
                #---режим для событий в ресте показывает что нужно вернуть на свои места
-               if starts == 2:
+               if starts == 2 or starts == 0:
+                     
                      if flag=="flag1_on":
-                          if 'flag1_off' in socklist:
+                          while 'flag1_off' in socklist:
                                    socklist.remove('flag1_off')
                           socketio.emit('level', 'flag1_on',to=None)
                           socklist.append('flag1_on')
                           #if 'Check Flags' not in devices:
-                          devices.append('Check Flags')
+                          #  devices.append('Check Flags')
                      if flag=="flag1_off":
-                          if 'Check Flags' in devices:
-                                   devices.remove('Check Flags')
-                          if 'flag1_on' in socklist:
+                          #if 'Check Flags' in devices:
+                          #         devices.remove('Check Flags')
+                          while 'flag1_on' in socklist:
                                    socklist.remove('flag1_on')
                           socketio.emit('level', 'flag1_off',to=None)
                           socklist.append('flag1_off')
                      if flag=="flag2_on":
-                          if 'flag2_off' in socklist:
+                          while 'flag2_off' in socklist:
                                    socklist.remove('flag2_off')
                           socketio.emit('level', 'flag2_on',to=None)
                           socklist.append('flag2_on')
                           #if 'Check Flags' not in devices:
-                          devices.append('Check Flags')
+                          #  devices.append('Check Flags')
                      if flag=="flag2_off":
-                          if 'Check Flags' in devices:
-                                   devices.remove('Check Flags')
-                          if 'flag2_on' in socklist:
+                          #if 'Check Flags' in devices:
+                          #         devices.remove('Check Flags')
+                          while 'flag2_on' in socklist:
                                    socklist.remove('flag2_on')
                           socketio.emit('level', 'flag2_off',to=None)
                           socklist.append('flag2_off') 
 
                      if flag=="flag3_on":
-                          if 'flag3_off' in socklist:
+                          while 'flag3_off' in socklist:
                                    socklist.remove('flag3_off')
                           socketio.emit('level', 'flag3_on',to=None)
                           socklist.append('flag3_on')
                           #if 'Check Flags' not in devices:
-                          devices.append('Check Flags')
+                          #  devices.append('Check Flags')
                      if flag=="flag3_off":
-                          if 'Check Flags' in devices:
-                                   devices.remove('Check Flags')
-                          if 'flag3_on' in socklist:
+                          #if 'Check Flags' in devices:
+                          #         devices.remove('Check Flags')
+                          while 'flag3_on' in socklist:
                                    socklist.remove('flag3_on')
                           socketio.emit('level', 'flag3_off',to=None)
                           socklist.append('flag3_off') 
                      if flag=="flag4_on":
-                          if 'flag4_off' in socklist:
+                          while 'flag4_off' in socklist:
                                    socklist.remove('flag4_off')
                           socketio.emit('level', 'flag4_on',to=None)
                           socklist.append('flag4_on')
                           #if 'Check Flags' not in devices:
-                          devices.append('Check Flags')
+                          #  devices.append('Check Flags')
                      if flag=="flag4_off":
-                          if 'Check Flags' in devices:
-                                   devices.remove('Check Flags')
-                          if 'flag4_on' in socklist:
+                          #if 'Check Flags' in devices:
+                          #         devices.remove('Check Flags')
+                          while 'flag4_on' in socklist:
                                    socklist.remove('flag4_on')
                           socketio.emit('level', 'flag4_off',to=None)
                           socklist.append('flag4_off') 
+                     if "flag1_on" in socklist or "flag2_on" in socklist or "flag3_on" in socklist or "flag4_on" in socklist:
+                        print('Check Flags Add') 
+                        if 'Check Flags' not in devices:
+                            devices.append('Check Flags')
+                     else:
+                        print('Check Flags remove')
+                        if 'Check Flags' in devices:
+                                   devices.remove('Check Flags')  
+                                   print('Check Flags remove')       
                      if flag == "open_door":
                           if 'close_door' in socklist:
                                    socklist.remove('close_door')
@@ -2250,7 +2298,6 @@ def serial():
                      if flag=="safe_close":
                           if 'Check Safe' in devices:
                                    devices.remove('Check Safe')
-                          
                           if 'safe' in socklist:
                                 socklist.remove('safe')
                           socketio.emit('level', 'safe_close',to=None)
@@ -2262,7 +2309,23 @@ def serial():
                           if 'safe_close' in socklist:
                                 socklist.remove('safe_close')
                           socketio.emit('level', 'safe',to=None)
-                          socklist.append('safe')                
+                          socklist.append('safe')
+
+                     if flag=="crime_close":
+                          if 'Check Crime' in devices:
+                                   devices.remove('Check Crime')
+                          if 'crime' in socklist:
+                                socklist.remove('crime')
+                          socketio.emit('level', 'crime_close',to=None)
+                          socklist.append('crime_close')
+
+                     if flag=="crime_open":
+                          if 'Check Crime' not in devices:
+                            devices.append('Check Crime')
+                          if 'crime_close' in socklist:
+                                socklist.remove('crime_close')
+                          socketio.emit('level', 'crime',to=None)
+                          socklist.append('crime')                       
                                                                                 
                #----если нажали на старт и пришло сообщение от меги что можно играть начинаем обрабатывать сообщения
                if go == 1 and starts == 1:
@@ -3185,14 +3248,20 @@ def serial():
                               play_story(story_37_en)
                           if(language==3):
                               play_story(story_37_ar) 
-                          socketio.emit('level', 'active_ghost',to=None)
-                          socklist.append('active_ghost')        
+                          socketio.emit('level', 'active_first_clock_2',to=None)
+                          socklist.append('active_first_clock_2')        
 
                      if flag=="h_clock":
+                          socketio.emit('level', 'first_clock_2',to=None)
+                          socklist.append('first_clock_2') 
                           #----играем эффект 
                           play_background_music("fon11.mp3")
                           play_effect(h_clock)
+                          socketio.emit('level', 'active_second_clock_2',to=None)
+                          socklist.append('active_second_clock_2')  
                      if flag=="uf_clock":
+                          socketio.emit('level', 'second_clock_2',to=None)
+                          socklist.append('second_clock_2')
                           #----играем эффект 
                           play_background_music("fon12.mp3")
                           play_effect(uf_clock)
@@ -3204,7 +3273,9 @@ def serial():
                           if(language==2):
                               play_story(story_38_en)
                           if(language==3):
-                              play_story(story_38_ar)     
+                              play_story(story_38_ar)
+                          socketio.emit('level', 'active_ghost',to=None)
+                          socklist.append('active_ghost')         
                      if flag=="story_39":
                           #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
                           if(language==1):
@@ -3388,6 +3459,9 @@ def serial():
                           if(language==3):
                               play_story(story_55_ar)
                      if flag=="crime_end":
+                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
+                          socketio.emit('level', 'active_basket',to=None)
+                          socklist.append('active_basket')
                           play_background_music("fon17.mp3")
                           if(language==1):
                               play_story(story_56_ru)  
@@ -4009,15 +4083,17 @@ def serial():
                     #-------прошли игру с кристалами
                      if flag=="memory_room_end":
                          #----отправили на клиента
-                         send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
+                         send_esp32_command(ESP32_API_TRAIN_URL, "stage_0") 
                          socketio.emit('level', 'memory_room_end',to=None)
                          #----добавили в историю
                          socklist.append('memory_room_end')
                          #------играем эффект
                          play_effect(brain_end)
                          #-----активируем последнюю игру
-                         socketio.emit('level', 'active_basket',to=None)
-                         socklist.append('active_basket') 
+                         #socketio.emit('level', 'active_basket',to=None)
+                         #socklist.append('active_basket') 
+                         socketio.emit('level', 'active_crime',to=None)
+                         socklist.append('active_crime') 
                          
                              
                         

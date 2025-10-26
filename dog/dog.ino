@@ -402,6 +402,39 @@ void setup() {
   lastFlagSensorState = digitalRead(FLAG_IR_SENSOR_PIN);
 }
 
+
+void ChechState() {
+  if (!digitalRead(A3) && !_restartGalet) {
+    Serial.println("galet_on");
+    _restartGalet = 1;
+    delay(500);
+    Serial.println("galet_on");
+    delay(500);
+  }
+  if (digitalRead(A3) && _restartGalet) {
+    Serial.println("galet_off");
+    _restartGalet = 0;
+    delay(500);
+     Serial.println("galet_off");
+     delay(500);
+  }
+
+
+  if (digitalRead(7) && !_restartFlag) {
+    Serial.println("flag3_on");
+    _restartFlag = 1;
+    delay(500);
+    Serial.println("flag3_on");
+    delay(500);
+  }
+  if (_restartFlag && !digitalRead(7)) {
+    Serial.println("flag3_off");
+    delay(500);
+    _restartFlag = 0;
+    Serial.println("flag3_off");
+    delay(500);
+  }
+}
 void loop() {
   static unsigned long last_start_ping = 0;
   unsigned long currentMillis = millis();
@@ -449,35 +482,22 @@ void loop() {
           digitalWrite(10, HIGH);  // Включаем светодиод на пине 10
           delay(500);              // Ждем 500 мс
           digitalWrite(10, LOW);   // Выключаем светодиод
-        } else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
+        } 
+        else if (strcmp_P(receivedUartMessageBuffer, PSTR("check_state")) == 0) {
+          _restartFlag = 0;
+          _restartGalet = 0;
+          ChechState();
+        }
+        else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
           currentQuestState = STATE_RESTARTING;
           resetQuestState();
           digitalWrite(10, HIGH);  // Включаем светодиод на пине 10
           delay(500);              // Ждем 500 мс
           digitalWrite(10, LOW);
-          if (!digitalRead(A3) && !_restartGalet) {
-            Serial.println("galet_on");
-            _restartGalet = 1;
-            delay(500);
-          }
-          if (digitalRead(A3) && _restartGalet) {
-            Serial.println("galet_off");
-            _restartGalet = 0;
-            delay(500);
-          }
+          _restartFlag = 0;
+          _restartGalet = 0;
+          ChechState();
 
-
-          if (digitalRead(7) && !_restartFlag) {
-            Serial.println("flag3_on");
-            _restartFlag = 1;
-            delay(500);
-          }
-          if (_restartFlag && !digitalRead(7)) {
-            Serial.println("flag3_off");
-            delay(500);
-            _restartFlag = 0;
-          }
-          
           digitalWrite(DOOR_LOCK_PIN, HIGH);
           doorLockRestartTime = currentMillis;
           doorLockRestartActive = true;

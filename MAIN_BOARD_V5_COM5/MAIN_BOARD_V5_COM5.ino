@@ -719,13 +719,223 @@ void loop() {
 // метод открывания тайников и дверей каждая после своего уровня и до конца игры
 
 void PowerOn() {
-  // опрашиваем дверь пещеры троллей без нее не запустим
-  static bool requestFlag = 0;
-  if (!requestFlag) {
-    delay(2000);
-    Serial2.println("door_request");
-    requestFlag = 1;
+  static bool _dataQueue = 0;
+  static unsigned long _towerTimer = 0;
+  static byte _towerCounter = 0;
+  static bool doorEvent = 0;
+  static bool mansardEvent = 0;
+  static bool libraryEvent = 0;
+  static bool galet1Event = 0;
+  static bool galet2Event = 0;
+  static bool galet3Event = 0;
+  static bool galet4Event = 0;
+  static bool galet5Event = 0;
+  static bool sealEvent = 0;
+  static bool sealSpaceEvent = 0;
+  static bool finalEvent = 0;
+  static bool crimeEvent = 0;
+  static bool safeEvent = 0;
+  static unsigned long bugTimerScroll = 0;
+   if (!digitalReadExpander(3, board3) || !digitalReadExpander(0, board3) || !digitalReadExpander(1, board3) || !digitalReadExpander(2, board3)) {
+    if (safeEvent) {
+      Serial.println("safe_close");
+      safeEvent = 0;
+    }
   }
+
+  if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) {
+    if (!safeEvent) {
+      Serial.println("safe_open");
+      safeEvent = 1;
+    }
+  }
+
+  //OpenAll();
+
+  // опрашиваем сам замок на предметы которые могли оставить
+  if (digitalRead(startDoorPin)) {
+    if (!doorEvent) {
+      Serial.println("open_door");
+      doorEvent = 1;
+    }
+  }
+
+  if (!digitalRead(startDoorPin)) {
+    if (doorEvent) {
+      Serial.println("close_door");
+      doorEvent = 0;
+    }
+  }
+
+  if (!digitalRead(galetSwitchesPin)) {
+    if (!galet1Event) {
+      galet1Event = 1;
+    }
+  }
+  if (digitalRead(galetSwitchesPin)) {
+    if (galet1Event) {
+      galet1Event = 0;
+    }
+  }
+
+  if (digitalReadExpander(4, board4)) {
+    if (!sealEvent) {
+      Serial.println("cristal_up");
+      sealEvent = 1;
+    }
+  }
+
+  if (!digitalReadExpander(4, board4)) {
+    if (sealEvent) {
+      Serial.println("cristal_down");
+      sealEvent = 0;
+    }
+  }
+  //Serial.println(digitalReadExpander(7, board1));
+  if (digitalReadExpander(7, board1)) {
+    if (!finalEvent) {
+      Serial.println("boy_out");
+      finalEvent = 1;
+    }
+  }
+
+  if (!digitalReadExpander(7, board1)) {
+    if (finalEvent) {
+      Serial.println("boy_in");
+      finalEvent = 0;
+    }
+  }
+
+  if (digitalReadExpander(5, board3)) {
+    if (!libraryEvent) {
+      Serial.println("lib_door");
+      libraryEvent = 1;
+    }
+  }
+
+  if (!digitalReadExpander(5, board3)) {
+    if (libraryEvent) {
+      Serial.println("lib_door_in");
+      libraryEvent = 0;
+    }
+  }
+
+  if (!digitalReadExpander(1, board2)) {
+    if (crimeEvent) {
+      Serial.println("crime_close");
+      crimeEvent = 0;
+      delay(100);
+    }
+  }
+
+  if (digitalReadExpander(1, board2)) {
+    if (!crimeEvent) {
+      Serial.println("crime_open");
+      crimeEvent = 1;
+      delay(100);
+    }
+  }
+
+  if (!_dataQueue) {
+    if (millis() - _towerTimer >= 3500) {
+      switch (_towerCounter) {
+        case 0:
+          Serial1.println("check_state");
+          break;
+        case 1:
+          Serial2.println("check_state");
+          break;
+        case 2:
+          Serial3.println("check_state");
+          break;
+        case 3:
+          mySerial.println("check_state");
+          _dataQueue = 1;
+          break;
+      }
+      _towerCounter++;
+      _towerTimer = millis();
+    }
+  }
+
+  if (galet1Event || galet2Event || galet3Event || galet4Event || galet5Event) {
+    if (!mansardEvent) {
+      Serial.println("galet_on");
+      mansardEvent = 1;
+    }
+  }
+
+  if (!galet1Event && !galet2Event && !galet3Event && !galet4Event && !galet5Event) {
+    if (mansardEvent) {
+      Serial.println("galet_off");
+      mansardEvent = 0;
+    }
+  }
+
+  if (Serial1.available()) {
+    String buff = Serial1.readString();
+    if (buff == "flag1_on\r\n") {
+      Serial.println("flag1_on");
+    }
+    if (buff == "flag1_off\r\n") {
+      Serial.println("flag1_off");
+    }
+    if (buff == "galet_on\r\n") {
+        galet2Event = 1;
+    }
+    if (buff == "galet_off\r\n") {
+        galet2Event = 0;
+    }
+  }
+
+  if (Serial2.available()) {
+    String buff = Serial2.readString();
+    if (buff == "flag2_on\r\n") {
+      Serial.println("flag2_on");
+    }
+    if (buff == "flag2_off\r\n") {
+      Serial.println("flag2_off");
+    }
+    if (buff == "galet_on\r\n") {
+        galet3Event = 1;
+    }
+    if (buff == "galet_off\r\n") {
+        galet3Event = 0;
+    }
+  }
+
+  if (Serial3.available()) {
+    String buff = Serial3.readString();
+    if (buff == "flag3_on\r\n") {
+      Serial.println("flag3_on");
+    }
+    if (buff == "flag3_off\r\n") {
+      Serial.println("flag3_off");
+    }
+    if (buff == "galet_on\r\n") {
+        galet4Event = 1;
+    }
+    if (buff == "galet_off\r\n") {
+        galet4Event = 0;
+    }
+  }
+
+  if (mySerial.available()) {
+    String buff = mySerial.readString();
+    if (buff == "flag4_on\r\n") {
+      Serial.println("flag4_on");
+    }
+    if (buff == "flag4_off\r\n") {
+      Serial.println("flag4_off");
+    }
+    if (buff == "galet_on\r\n") {
+        galet5Event = 1;
+    }
+    if (buff == "galet_off\r\n") {
+        galet5Event = 0;
+    }
+  }
+
   if (Serial.available()) {  // есть что на вход?
     String buff = Serial.readStringUntil('\n');
     buff.trim();
@@ -744,7 +954,23 @@ void PowerOn() {
       Serial3.println("start");
       delay(1000);
       Serial.println("startgo");
-      requestFlag = 0;
+      _dataQueue = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
+      _towerTimer = 0;
+      _towerCounter = 0;
+      doorEvent = 0;
+      mansardEvent = 0;
+      libraryEvent = 0;
+      galet1Event = 0;
+      galet2Event = 0;
+      galet3Event = 0;
+      galet4Event = 0;
+      galet5Event = 0;
+      sealEvent = 0;
+      sealSpaceEvent = 0;
+      finalEvent = 0;
+      bugTimerScroll = 0;
       dragonCounter = 0;
       studentCounter = 0;
       professorCounter = 0;
@@ -769,34 +995,30 @@ void PowerOn() {
     // Unlocks(buff);
     if (buff == "restart") {
       OpenAll();
-      requestFlag = 0;
+      _dataQueue = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
+      _towerTimer = 0;
+      _towerCounter = 0;
+      doorEvent = 0;
+      mansardEvent = 0;
+      libraryEvent = 0;
+      galet1Event = 0;
+      galet2Event = 0;
+      galet3Event = 0;
+      galet4Event = 0;
+      galet5Event = 0;
+      sealEvent = 0;
+      sealSpaceEvent = 0;
+      finalEvent = 0;
+      bugTimerScroll = 0;
       RestOn();
-    }
-
-    if (buff == "demoOn") {
-      Serial1.println("demo_on");
-      Serial2.println("demo_on");
-      Serial3.println("demo_on");
-      mySerial.println("demo_on");
-      delay(1000);
-      mySerial.println("demo_on");
-      requestFlag = 0;
-      level = 30;
     }
     if (buff == "ready") {
       Serial1.println("ready");
       Serial2.println("ready");
       Serial3.println("ready");
       mySerial.println("ready");
-    }
-  }
-  if (Serial2.available()) {  // есть что на вход?
-    String buff = Serial2.readString();
-    if (buff == "close_mine\r\n") {
-      _trollDoor = 1;
-    }
-    if (buff == "open_mine\r\n") {
-      _trollDoor = 0;
     }
   }
 }
@@ -1122,6 +1344,7 @@ void ClockGame() {
       KayTimer = millis();
     }
     if (buff == "restart") {
+      repeat = 0;
       OpenAll();
       RestOn();
     }
@@ -1296,7 +1519,14 @@ void GaletGame() {
     }
     if (buff == "restart") {
       OpenAll();
+      galet1 = 0;
+      galet2 = 0;
+      galet3 = 0;
+      galet4 = 0;
+      galet5 = 0;
+      startSteps = 0;
       RestOn();
+      
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -1332,6 +1562,9 @@ void ThreeGame() {
     }
     if (buff == "restart") {
       OpenAll();
+      suitcaseFlag = 0;
+      safeFlag = 0;
+      wolfFlag = 0;
       RestOn();
     }
     if (buff == "soundon") {
@@ -1675,6 +1908,9 @@ void MapGame() {
       Serial3.println("out");
     }
     if (buff == "restart") {
+      game = "";
+      activePotionRoom = 0;
+      potionPulsation = 0;
       OpenAll();
       RestOn();
     }
@@ -1966,6 +2202,8 @@ void Oven() {
       Serial3.println("item_find");
     }
     if (buff == "restart") {
+      goldPulsation = 0;
+      potionPulsation = 0;
       OpenAll();
       RestOn();
     }
@@ -2365,6 +2603,7 @@ void BasketLesson() {
       level += 2;
     }
     if (buff == "restart") {
+      isSend=0;
       OpenAll();
       RestOn();
     }
@@ -2569,6 +2808,24 @@ void Library() {
       digitalWrite(LibraryLight, HIGH);
       level++;
     }
+    if (buff == "first_clock_2") {
+        Serial.println("h_clock");
+        digitalWrite(UfHallLight, HIGH);
+        digitalWrite(HallLight, LOW);
+        ghostState=1;
+    }
+    if (buff == "second_clock_2") {
+       Serial.println("uf_clock");
+        for (int i = 0; i < 3; i++) {
+          digitalWrite(UfHallLight, HIGH);
+          delay(500);
+          digitalWrite(UfHallLight, LOW);
+          delay(500);
+        }
+        digitalWrite(UfHallLight, LOW);
+        digitalWrite(HallLight, LOW);
+        ghostState=2;
+    }
     if (buff == "restart") {
       OpenAll();
       RestOn();
@@ -2721,6 +2978,7 @@ void CentralTowerGame() {
     }
     if (buff == "restart") {
       flag = 0;
+      state = 0;
       OpenAll();
       RestOn();
     }
@@ -2765,11 +3023,19 @@ void CentralTowerGameDown() {
       swipeState = 0;
     }
     if (buff == "restart") {
+       swipeState = 0;
+       puzzleProgress = 0;
+   swipeTimer = 0;
+   lastDebounceTimeLeft = 0;
+   lastDebounceTimeRight = 0;
+   lastSteadyLeftState = HIGH;
+   lastSteadyRightState = HIGH;
+   currentLeftState = HIGH;
+   currentRightState = HIGH;
+   currentTime = millis();
+   initialSwitchReleased = false;
       OpenAll();
       RestOn();
-      initialSwitchReleased = false;
-      puzzleProgress = 0;
-      swipeState = 0;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -3409,6 +3675,7 @@ void SealSpace() {
       OpenLock(MemoryRoomDoor);
       level++;
     } else if (cmd == "restart") {
+      lastPress = 0;
       OpenAll();
       RestOn();
     } else if (cmd == "soundon") {
@@ -3506,7 +3773,16 @@ void CrimeHelp() {
       Serial2.println("win");
       level++;
     }
+    if (buff == "crime") {
+      Serial.println("crime_end");
+      Serial2.println("start_lesson");
+      delay(1000);
+      Serial2.println("start_lesson");
+      flag = 0;
+      level++;
+    }
     if (buff == "restart") {
+      flag=0;
       OpenAll();
       RestOn();
     }
@@ -4951,7 +5227,6 @@ void RestOn() {
   static bool finalEvent = 0;
   static bool crimeEvent = 0;
   static bool safeEvent = 0;
-  static bool safeFlag = 0;
   static unsigned long bugTimerScroll = 0;
   boyServo.detach();
   delay(500);
@@ -5194,17 +5469,17 @@ void RestOn() {
   }
 
   if (!digitalReadExpander(1, board2)) {
-    if (!crimeEvent) {
+    if (crimeEvent) {
       Serial.println("crime_close");
-      crimeEvent = 1;
+      crimeEvent = 0;
       delay(100);
     }
   }
 
   if (digitalReadExpander(1, board2)) {
-    if (crimeEvent) {
+    if (!crimeEvent) {
       Serial.println("crime_open");
-      crimeEvent = 0;
+      crimeEvent = 1;
       delay(100);
     }
   }
@@ -5254,14 +5529,10 @@ void RestOn() {
       Serial.println("flag1_off");
     }
     if (buff == "galet_on\r\n") {
-      if (!galet2Event) {
         galet2Event = 1;
-      }
     }
     if (buff == "galet_off\r\n") {
-      if (galet2Event) {
         galet2Event = 0;
-      }
     }
   }
 
@@ -5274,14 +5545,10 @@ void RestOn() {
       Serial.println("flag2_off");
     }
     if (buff == "galet_on\r\n") {
-      if (!galet3Event) {
         galet3Event = 1;
-      }
     }
     if (buff == "galet_off\r\n") {
-      if (galet3Event) {
         galet3Event = 0;
-      }
     }
   }
 
@@ -5294,14 +5561,10 @@ void RestOn() {
       Serial.println("flag3_off");
     }
     if (buff == "galet_on\r\n") {
-      if (!galet4Event) {
         galet4Event = 1;
-      }
     }
     if (buff == "galet_off\r\n") {
-      if (galet4Event) {
         galet4Event = 0;
-      }
     }
   }
 
@@ -5314,14 +5577,10 @@ void RestOn() {
       Serial.println("flag4_off");
     }
     if (buff == "galet_on\r\n") {
-      if (!galet5Event) {
         galet5Event = 1;
-      }
     }
     if (buff == "galet_off\r\n") {
-      if (galet5Event) {
         galet5Event = 0;
-      }
     }
   }
 
@@ -5331,6 +5590,9 @@ void RestOn() {
     Serial.println(buff);
     if (buff == "open_mansard_door") {
       OpenDoor(MansardDoor);
+    }
+    if (buff == "open_crime_door") {
+      OpenDoor(CrimeDoor);
     }
     if (buff == "open_bank_door") {
       OpenDoor(BankDoor);
@@ -5385,12 +5647,16 @@ void RestOn() {
       sealEvent = 0;
       sealSpaceEvent = 0;
       finalEvent = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
       bugTimerScroll = 0;
       OpenAll();
       //RestOn();
     }
     if (buff == "ready") {
       _dataQueue = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
       _towerTimer = 0;
       _towerCounter = 0;
       doorEvent = 0;
@@ -5568,8 +5834,14 @@ void updateComet() {
   static unsigned long buttonTimer2;
   static unsigned long buttonTimer3;
   static unsigned long buttonTimer4;
-  strip1.clear();
-  strip2.clear();
+  for(int i = 0; i<=152;i++){
+    if(i != 65){
+      strip2.setPixelColor(i, strip2.Color(0, 0, 0));
+    }
+    strip1.setPixelColor(i, strip1.Color(0, 0, 0));
+  }
+  //strip1.clear();
+  //strip2.clear();
 
   for (int i = 0; i < cometLength; i++) {
     int pos = cometPosition + i;
