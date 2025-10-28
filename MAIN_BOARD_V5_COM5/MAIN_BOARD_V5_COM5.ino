@@ -2756,17 +2756,17 @@ void Library() {
         ghostState++;
       }
       break;
-
+    /*
     // Добавляем новое состояние для ожидания третьего стука игрока
     case 5:
       // Ждем, пока игрок постучит по датчику
-      if (analogRead(KnockSens) <= threshold) {
+       if (analogRead(KnockSens) <= threshold) {
         Serial.println("punch");  // Отправляем подтверждение стука на сервер
         ghostState = 6;           // Теперь переходим к финальной загадке со стуком
         delay(300);               // Небольшая задержка для антидребезга датчика
       }
       break;
-
+    */
     case 6:
       if (millis() - KnockInterval >= 3000) {
         if (millis() - KnockIntervalLow >= 100) {
@@ -2859,9 +2859,9 @@ void Library() {
       //поезд
       if (ghostState == 4) {
         Serial.println("story_42");
-        ghostState = 5;
+        ghostState = 6;
       }
-      if (ghostState < 5)
+      if (ghostState < 4)
         ghostState++;
     }
     if (buff == "soundon") {
