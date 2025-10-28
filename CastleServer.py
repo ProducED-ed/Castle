@@ -4545,7 +4545,7 @@ def timer():
               socketio.emit('devices', final_string,to=None)
          
               #print(i)
-         if go >=2:
+         if go == 2 or go == 3:# Сброс только при Restart или Ready
               sec = 0
               tensec = 0
               mins = 0
@@ -4592,5 +4592,6 @@ if __name__ == '__main__':
         print("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         print(f"FATAL: An unexpected error occurred: {e}")
+
 
 
