@@ -1081,6 +1081,7 @@ def Remote(check):
              socklist.append('galet_on')
              #----отправить на мегу
              serial_write_queue.put('open_mansard_door')
+             serial_write_queue.put('student_hide')
              name = "story_2"  
              #---ждем 3 секунды
              time.sleep(3) 
@@ -4591,4 +4592,5 @@ if __name__ == '__main__':
         print("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         print(f"FATAL: An unexpected error occurred: {e}")
+
 
