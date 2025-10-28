@@ -1551,6 +1551,14 @@ void ThreeGame() {
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+    if (buff == "student_hide") {
+      boyServo.attach(49);
+      digitalWrite(HallLight, HIGH);
+      digitalWrite(MansardLight, HIGH);
+      boyServo.write(0);
+      delay(1000);
+      boyServo.detach();
+    }
     if (buff == "suitcase_end") {
       suitcaseFlag = 1;
     }
@@ -1634,6 +1642,14 @@ void Flags() {
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+    if (buff == "student_hide") {
+      boyServo.attach(49);
+      digitalWrite(HallLight, HIGH);
+      digitalWrite(MansardLight, HIGH);
+      boyServo.write(0);
+      delay(1000);
+      boyServo.detach();
+    }
     if (buff == "m2lck") {
       Serial.println("flagsendmr");
       level++;
@@ -1797,6 +1813,14 @@ void MapGame() {
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+    if (buff == "student_hide") {
+      boyServo.attach(49);
+      digitalWrite(HallLight, HIGH);
+      digitalWrite(MansardLight, HIGH);
+      boyServo.write(0);
+      delay(1000);
+      boyServo.detach();
+    }
     if (buff == "key") {
       game = "key";
       mySerial.println("out");
@@ -3169,6 +3193,14 @@ void OpenBank() {
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+    if (buff == "student_hide") {
+      boyServo.attach(49);
+      digitalWrite(HallLight, HIGH);
+      digitalWrite(MansardLight, HIGH);
+      boyServo.write(0);
+      delay(1000);
+      boyServo.detach();
+    }
     if (buff == "open_bank_door") {
       CandleStrip.setPixelColor(0, CandleStrip.Color(0, 0, 0));
       CandleStrip.show();
