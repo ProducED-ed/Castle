@@ -1343,6 +1343,8 @@ def Remote(check):
              socklist.append('ghost')
              #----отправить на мегу
              serial_write_queue.put('ghost_skip')
+             send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+             send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
              name = "story_2" 
         if check == 'cup':
              #-----отправка клиенту 
