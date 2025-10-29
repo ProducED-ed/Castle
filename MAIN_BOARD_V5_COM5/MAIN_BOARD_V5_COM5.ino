@@ -2624,7 +2624,25 @@ void BasketLesson() {
     if (buff == "basket") {
       Serial.println("win");
       Serial2.println("win");
-      level += 2;
+      strip1.clear();
+      strip2.clear();
+      strip1.show();
+      strip2.show();
+      delay(1000);
+      Serial.println("last_on");
+      Serial1.println("firework");
+      delay(500);
+      Serial1.println("firework");
+      Serial2.println("firework");
+      delay(500);
+      Serial2.println("firework");
+      Serial3.println("firework");
+      delay(500);
+      Serial3.println("firework");
+      mySerial.println("firework");
+      delay(500);
+      mySerial.println("firework");
+      level = 20;
     }
     if (buff == "restart") {
       isSend=0;

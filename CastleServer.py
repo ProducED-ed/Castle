@@ -3323,7 +3323,7 @@ def serial():
                           #send_esp32_command(ESP32_API_TRAIN_URL, #"ghost_game_end")
                           #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
                           time.sleep(2.0)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
+                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
                           time.sleep(1.0)
                           if(language==1):
                               play_story(story_44_ru)  
