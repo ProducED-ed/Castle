@@ -3045,7 +3045,6 @@ def serial():
 
                      if flag=="lib_door":
                           #----играем эффект 
-                          
                           play_effect(lib_door)
                           socketio.emit('level', 'active_cup',to=None)
                           socklist.append('active_cup')
@@ -3334,8 +3333,6 @@ def serial():
 
                      if flag=="star_hint":
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_8") 
-                          socketio.emit('level', 'active_cup',to=None)
-                          socklist.append('active_cup')   
                           play_effect(star_hint)
                           send_esp32_command(ESP32_API_TRAIN_URL, "set_time")
                           while channel2.get_busy()==True: 
