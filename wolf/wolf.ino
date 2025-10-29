@@ -515,7 +515,7 @@ void loop() {
   }
 
   helpButton.tick();
-  if (helpButton.isPress()) {
+  if (helpButton.isPress() && ghostFlag == 0) {
     if (state == 0 && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
       delay(50);
