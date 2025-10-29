@@ -508,6 +508,7 @@ void setup() {
       }
 
       if (body == "\"restart\"") {
+		myMP3.stop();
         OUTPUTS.digitalWrite(0, HIGH);
         OUTPUTS.digitalWrite(1, HIGH);
         for (int i = 0; i <= 3; i++) {
