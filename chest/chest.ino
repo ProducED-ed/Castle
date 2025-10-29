@@ -878,13 +878,14 @@ void handlePlayerQueries() {
         // Возобновляем фоновую музыку с места паузы
       }
 
+      // Перезапускаем фон только если игра активна (state == 1)
       if (finishedTrack == TRACK_FON_SUITCASE) {
-        if(!flagTrack){
-          myMP3.playMp3Folder(TRACK_FON_SUITCASE);
+        // Добавляем проверку: перезапускать фон только в состоянии 1
+        if (state == 1 && !flagTrack) {
+          myMP3.playMp3Folder(TRACK_FON_SUITCASE); // Теперь перезапуск условный
           trackTimer = millis();
           flagTrack = 1;
         }
-        // Возобновляем фоновую музыку с места паузы
       }
 
       if(finishedTrack == TRACK_HINT_0_RU || finishedTrack == TRACK_HINT_1_RU || finishedTrack == TRACK_HINT_2_RU || finishedTrack == TRACK_HINT_3_RU || finishedTrack == TRACK_HINT_4_RU
