@@ -1287,9 +1287,6 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('troll')
              name = "story_2" 
-             time.sleep(10) 
-             socketio.emit('level', 'active_open_bank_door',to=None)
-             socklist.append('active_open_bank_door')                        
 
         if check == 'safe':
              #-----отправка клиенту 
@@ -2028,7 +2025,7 @@ def serial():
                    serial_write_queue.put('soundon')#-----отправляем в сериал и череп перестает моргать если трек воспроизводится
                    flagS = 1 #--поднмаем флаг
                    time.sleep(1)
-               while a10>0.01  and fs==0: # до тех пор пока звук не погаснет до значения 0.01 удавляем по 0.01
+               while a10>0.2  and fs==0: # до тех пор пока звук не погаснет до значения 0.1 удавляем по 0.01
                     #a10=(a10*10-1)/10
                     a10 = round(a10,2)-round(0.01,2)
                     pygame.mixer.music.set_volume(round(a10,2))
@@ -4592,6 +4589,4 @@ if __name__ == '__main__':
         print("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         print(f"FATAL: An unexpected error occurred: {e}")
-
-
 
