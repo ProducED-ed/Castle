@@ -1078,7 +1078,8 @@ void handlePlayerQueries() {
       }
 
 
-      if (state == 1 && finishedTrack != TRACK_FON_WOLF) {
+      // Проверяем, что мы в одном из активных игровых состояний (1, 2, 3 или 4)
+      if ((state >= 1 && state <= 4) && finishedTrack != TRACK_FON_WOLF) {
         if (!flagTrack) {
           myMP3.playMp3Folder(TRACK_FON_WOLF);
           trackTimer = millis();
