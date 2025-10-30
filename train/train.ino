@@ -1081,7 +1081,7 @@ void loop() {
   StartTimer();
 
   if (!INPUTS.digitalRead(2)) {
-    if (state == 0 && hintFlag) {
+    if ((state == 0 || state == 1) && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
 	  resumeEngineSound = true;
       delay(50);
@@ -1105,12 +1105,12 @@ void loop() {
       }
       hintFlag = 0;
     }
-    if (state > 0 && state < 3 && hintFlag) {
+    else if (state > 0 && state < 3 && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
 	  resumeEngineSound = true;
       delay(50);
       Serial.println(hint_counter);
-      if (hint_counter == 0 && isStartTrain) {
+      if (hint_counter == 0) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_1_RU);
         }
@@ -1192,11 +1192,11 @@ void loop() {
       }
       hintFlag = 0;
       hint_counter++;
-      if (hint_counter > 2) {
+      if (hint_counter > 3) {
         hint_counter = 0;
       }
     }
-    if (isTrollEnd && hintFlag) {
+    else if (isTrollEnd && hintFlag) {
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_HINT_7_RU);
       }
@@ -1217,7 +1217,7 @@ void loop() {
       }
       hintFlag = 0;
     }
-    if (state > 3 && hintFlag && !isTrollEnd) {
+    else if (state > 3 && hintFlag && !isTrollEnd) {
       if (hint_counter == 0) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_5_RU);
