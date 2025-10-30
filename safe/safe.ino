@@ -237,7 +237,7 @@ void setup() {
         // Проверяем корректность уровня (например, от 0 до 30)
         if (newLevel >= 0 && newLevel <= 30) {
             value = newLevel;
-            myMP3.volume(value);
+            myDFPlayer.volume(value);
             Serial.print("Установлена громкость: ");
             Serial.println(value);
         } else {
