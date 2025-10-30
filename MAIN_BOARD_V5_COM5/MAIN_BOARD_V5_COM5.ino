@@ -5293,8 +5293,8 @@ void RestOn() {
     CauldronStrip.setPixelColor(i, CauldronStrip.Color(255, 255, 255));
     CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 255, 255));
     memory_Led.setPixelColor(i, memory_Led.Color(255, 255, 255));
-    strip1.setPixelColor(i, strip1.Color(255, 255, 255));
-    strip2.setPixelColor(i, strip2.Color(255, 255, 255));
+    strip1.setPixelColor(i, strip1.Color(0, 0, 0));
+    strip2.setPixelColor(i, strip2.Color(0, 0, 0));
     GoldStrip.setPixelColor(i, GoldStrip.Color(255, 255, 255));
   }
   CandleStrip.show();
@@ -5302,8 +5302,8 @@ void RestOn() {
   CauldronRoomStrip.show();
   memory_Led.show();
   GoldStrip.show();
-  //strip1.show();
-  //strip2.show();
+  strip1.show();
+  strip2.show();
   _presentTimer;
   _stages = 0;
   _present = 0;
@@ -5756,8 +5756,8 @@ void RestOn() {
       CauldronStrip.show();
       CauldronRoomStrip.show();
       memory_Led.show();
-      //strip1.show();
-      //strip2.show();
+      strip1.show();
+      strip2.show();
       GoldStrip.show();
       delay(2000);
       level = 0;
