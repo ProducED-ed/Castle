@@ -1002,21 +1002,81 @@ def Effects(effects):
 def WolfSound(wolfsound):
      global wolfLevel
      f1 = open('5.txt','w')
-     f1.write(str(wolfLevel))
+     f1.write(str(wolfsound))
      f1.close()   
      send_esp32_command(ESP32_API_WOLF_URL, "volume_up")
-     wolfLevel = int(wolfLevel)
+     wolfLevel = int(wolfsound)
      socketio.emit('wolf', wolfLevel, to=None, include_self=False)
 
 @socketio.on('WolfDown')
 def WolfSound(wolfsound):
      global wolfLevel
      f1 = open('5.txt','w')
-     f1.write(str(wolfLevel))
+     f1.write(str(wolfsound))
      f1.close()   
      send_esp32_command(ESP32_API_WOLF_URL, "volume_down")
-     wolfLevel = int(wolfLevel)
-     socketio.emit('wolf', wolfLevel, to=None, include_self=False)     
+     wolfLevel = int(wolfsound)
+     socketio.emit('wolf', wolfLevel, to=None, include_self=False) 
+
+@socketio.on('PlatformUp')
+def TrainSound(platformsound):
+     global trainLevel
+     f1 = open('6.txt','w')
+     f1.write(str(platformsound))
+     f1.close()   
+     send_esp32_command(ESP32_API_TRAIN_URL, "volume_up")
+     trainLevel = int(platformsound)
+     socketio.emit('platform', trainLevel, to=None, include_self=False)
+
+@socketio.on('PlatformDown')
+def TrainSound(platformsound):
+     global trainLevel
+     f1 = open('6.txt','w')
+     f1.write(str(platformsound))
+     f1.close()   
+     send_esp32_command(ESP32_API_TRAIN_URL, "volume_down")
+     trainLevel = int(platformsound)
+     socketio.emit('platform', trainLevel, to=None, include_self=False)
+
+@socketio.on('SuitcasesUp')
+def SuitcasesSound(suitcasessound):
+     global suitcaseLevel
+     f1 = open('7.txt','w')
+     f1.write(str(suitcasessound))
+     f1.close()   
+     send_esp32_command(ESP32_API_SUITCASE_URL, "volume_up")
+     suitcaseLevel = int(suitcasessound)
+     socketio.emit('suitcases', suitcaseLevel, to=None, include_self=False)
+
+@socketio.on('SuitcasesDown')
+def SuitcasesSound(suitcasessound):
+     global suitcaseLevel
+     f1 = open('7.txt','w')
+     f1.write(str(suitcasessound))
+     f1.close()   
+     send_esp32_command(ESP32_API_SUITCASE_URL, "volume_down")
+     suitcaseLevel = int(suitcasessound)
+     socketio.emit('suitcases', suitcaseLevel, to=None, include_self=False)     
+
+@socketio.on('SafeUp')
+def SafeSound(safesound):
+     global safeLevel
+     f1 = open('8.txt','w')
+     f1.write(str(safesound))
+     f1.close()   
+     send_esp32_command(ESP32_API_SAFE_URL, "volume_up")
+     safeLevel = int(safesound)
+     socketio.emit('safe', safeLevel, to=None, include_self=False)
+
+@socketio.on('SafeDown')
+def SafeSound(safesound):
+     global safeLevel
+     f1 = open('8.txt','w')
+     f1.write(str(safesound))
+     f1.close()   
+     send_esp32_command(ESP32_API_SAFE_URL, "volume_down")
+     safeLevel = int(safesound)
+     socketio.emit('safe', safeLevel, to=None, include_self=False)  
 
 #декоратор для управления квестом с интерфейса
 @socketio.on('Remote')
@@ -1758,6 +1818,10 @@ def tmr(res):
               socketio.emit('level', 'start_game',to=None)  
         #----если была в рестарте       
         if go == 3 and starts==3:
+             send_esp32_command(ESP32_API_WOLF_URL, "set_level_{wolfLevel}")
+             send_esp32_command(ESP32_API_TRAIN_URL, "set_level_{trainLevel}")
+             send_esp32_command(ESP32_API_SUITCASE_URL, "set_level_{suitcaseLevel}")
+             send_esp32_command(ESP32_API_SAFE_URL, "set_level_{safeLevel}")
              print("start")
              #----очищаем историю 
              socklist.clear() 
@@ -4574,10 +4638,20 @@ def timer():
                 socketio.emit('volume', str(phoneLevel), skip_sid=current_client_sid)
                 socketio.emit('volume1', str(effectLevel), skip_sid=current_client_sid)
                 socketio.emit('volume2', str(voiceLevel), skip_sid=current_client_sid)
+
+                socketio.emit('safe', str(safeLevel), skip_sid=current_client_sid)
+                socketio.emit('suitcases', str(suitcaseLevel), skip_sid=current_client_sid)
+                socketio.emit('platform', str(trainLevel), skip_sid=current_client_sid)
+                socketio.emit('wolf', str(wolfLevel), skip_sid=current_client_sid)
               else:
                 socketio.emit('volume', str(phoneLevel))
                 socketio.emit('volume1', str(effectLevel))
                 socketio.emit('volume2', str(voiceLevel))
+
+                socketio.emit('safe', str(safeLevel))
+                socketio.emit('suitcases', str(suitcaseLevel))
+                socketio.emit('platform', str(trainLevel))
+                socketio.emit('wolf', str(wolfLevel))
 
 
               socketio.emit('level', i ,to=None)

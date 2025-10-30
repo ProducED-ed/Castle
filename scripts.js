@@ -12,10 +12,16 @@ $(document).ready(function(){
   var lev2 = 0
   var lev3 = 0
   var lev4 = 0
+  var lev5 = 0
+  var lev6 = 0
+  var lev7 = 0
   var lev11 = 0
   var lev12 = 0
   var lev13 = 0
   var lev14 = 0
+  var lev15 = 0
+  var lev16 = 0
+  var lev17 = 0
   let arr = [];
  //присваеваем кнопкам громкости переменные и задаем для них таймеры нужны для длительного нажатия
   var timerIntervalDownEffect = 0,
@@ -37,6 +43,21 @@ $(document).ready(function(){
       buttonDownWolf = document.getElementById("wolfDown");
   var timerIntervalUpWolf,
       buttonUpWolf = document.getElementById("wolfUp");    
+
+    var timerIntervalDownPlatform = 0,
+      buttonDownPlatform = document.getElementById("platformDown");
+  var timerIntervalUpPlatform,
+      buttonUpPlatform = document.getElementById("platformUp");  
+
+  var timerIntervalDownSuitcases= 0,
+      buttonDownSuitcases = document.getElementById("suitcasesDown");
+  var timerIntervalUpSuitcases,
+      buttonUpSuitcases = document.getElementById("suitcasesUp");    
+      
+ var timerIntervalDownSafe= 0,
+      buttonDownSafe = document.getElementById("safeDown");
+  var timerIntervalUpSafe,
+      buttonUpSafe = document.getElementById("safeUp");       
     
      //добавляем всем кнопкам класс basic нужен просто для внешки
     $('.button').addClass('basic');
@@ -190,6 +211,34 @@ duration   : '1s',
         //выводим значение еще раз округлив на всякий
         console.log(lev14)
         $('#wolfCount').text(lev14);
+    });
+    socket.on('platform', function (v) {
+        //приводим строку в число 
+        lev5 = Number(v)
+        //приходит в десятичном ввиде округляем и умножаем на 100
+        lev15 = lev5
+        //выводим значение еще раз округлив на всякий
+        console.log(lev15)
+        $('#platformCount').text(lev15);
+    });
+    socket.on('suitcases', function (v) {
+        //приводим строку в число 
+        lev6 = Number(v)
+        //приходит в десятичном ввиде округляем и умножаем на 100
+        lev16 = lev6
+        //выводим значение еще раз округлив на всякий
+        console.log(lev16)
+        $('#suitcasesCount').text(lev16);
+    });
+
+    socket.on('safe', function (v) {
+        //приводим строку в число 
+        lev7 = Number(v)
+        //приходит в десятичном ввиде округляем и умножаем на 100
+        lev17 = lev7
+        //выводим значение еще раз округлив на всякий
+        console.log(lev17)
+        $('#safeCount').text(lev17);
     });
     //настройка для канала с эффектами
     socket.on('volume1', function (v) {
@@ -1408,7 +1457,7 @@ duration   : '1s',
 /////////////////////////////////////////////////////////////
     buttonUpWolf.addEventListener(start, function() {
                     timerIntervalUpWolf = setInterval(function(){
-                        if(lev14<100){
+                        if(lev14<30){
                             lev14 += 1
                             }
                             $('#wolfCount').text(Math.floor(lev14));
@@ -1458,6 +1507,171 @@ duration   : '1s',
                 });
                 buttonDownWolf.addEventListener(stop, function() {
                     clearInterval(timerIntervalDownWolf);
+                });
+
+                /////////////////////////////////////////////////////////////
+    buttonUpPlatform.addEventListener(start, function() {
+                    timerIntervalUpPlatform = setInterval(function(){
+                        if(lev15<30){
+                            lev15 += 1
+                            }
+                            $('#platformCount').text(Math.floor(lev15));
+                        socket.emit('PlatformUp',lev15)
+                        console.log(lev15)
+              }, 100);
+            });
+            
+            buttonUpPlatform.addEventListener(leave, function() {
+              clearInterval(timerIntervalUpPlatform);
+            });
+              $('#platformUp').click(function(){
+                if(lev15<30){
+                    lev15 += 1
+                    }
+                    $('#platformCount').text(Math.floor(lev15));
+                socket.emit('PlatformUp',lev15)
+                console.log(lev15)
+              });
+              buttonUpPlatform.addEventListener(stop, function() {
+                clearInterval(timerIntervalUpPlatform);
+            });
+            
+              //////---------
+            
+              buttonDownPlatform.addEventListener(start, function() {
+                timerIntervalDownPlatform = setInterval(function(){
+                    if(lev15>0){
+                        lev15 -= 1
+                        }
+                        $('#platformCount').text(Math.floor(lev15));
+                    socket.emit('PlatformDown',lev15)
+                    console.log(lev15)
+                }, 100);
+              });
+              
+              buttonDownPlatform.addEventListener(leave, function() {
+                clearInterval(timerIntervalDownPlatform);
+              });
+                $('#platformDown').click(function(){
+                    if(lev15>0){
+                        lev15 -= 1
+                        }
+                        $('#platformCount').text(Math.floor(lev15));
+                    socket.emit('PlatformDown',lev15)
+                    console.log(lev15)
+                });
+                buttonDownPlatform.addEventListener(stop, function() {
+                    clearInterval(timerIntervalDownPlatform);
+                });
+
+                /////////////////////////////////////////////////////////////
+    buttonUpSuitcases.addEventListener(start, function() {
+                    timerIntervalUpSuitcases = setInterval(function(){
+                        if(lev16<30){
+                            lev16 += 1
+                            }
+                            $('#suitcasesCount').text(Math.floor(lev16));
+                        socket.emit('SuitcasesUp',lev16)
+                        console.log(lev16)
+              }, 100);
+            });
+            
+            buttonUpSuitcases.addEventListener(leave, function() {
+              clearInterval(timerIntervalUpSuitcases);
+            });
+              $('#suitcasesUp').click(function(){
+                if(lev16<30){
+                    lev16 += 1
+                    }
+                    $('#suitcasesCount').text(Math.floor(lev16));
+                socket.emit('SuitcasesUp',lev16)
+                console.log(lev16)
+              });
+              buttonUpSuitcases.addEventListener(stop, function() {
+                clearInterval(timerIntervalUpSuitcases);
+            });
+            
+              //////---------
+            
+              buttonDownSuitcases.addEventListener(start, function() {
+                timerIntervalDownSuitcases = setInterval(function(){
+                    if(lev16>0){
+                        lev16 -= 1
+                        }
+                        $('#suitcasesCount').text(Math.floor(lev16));
+                    socket.emit('SuitcasesDown',lev16)
+                    console.log(lev16)
+                }, 100);
+              });
+              
+              buttonDownSuitcases.addEventListener(leave, function() {
+                clearInterval(timerIntervalDownSuitcases);
+              });
+                $('#suitcasesDown').click(function(){
+                    if(lev16>0){
+                        lev16 -= 1
+                        }
+                        $('#suitcasesCount').text(Math.floor(lev16));
+                    socket.emit('SuitcasesDown',lev16)
+                    console.log(lev16)
+                });
+                buttonDownSuitcases.addEventListener(stop, function() {
+                    clearInterval(timerIntervalDownSuitcases);
+                });
+
+                /////////////////////////////////////////////////////////////
+    buttonUpSafe.addEventListener(start, function() {
+                    timerIntervalUpSafe = setInterval(function(){
+                        if(lev17<30){
+                            lev17 += 1
+                            }
+                            $('#safeCount').text(Math.floor(lev17));
+                        socket.emit('SafeUp',lev17)
+                        console.log(lev17)
+              }, 100);
+            });
+            
+            buttonUpSafe.addEventListener(leave, function() {
+              clearInterval(timerIntervalUpSafe);
+            });
+              $('#safeUp').click(function(){
+                if(lev17<30){
+                    lev17 += 1
+                    }
+                    $('#safeCount').text(Math.floor(lev17));
+                socket.emit('SafeUp',lev17)
+                console.log(lev17)
+              });
+              buttonUpSafe.addEventListener(stop, function() {
+                clearInterval(timerIntervalUpSafe);
+            });
+            
+              //////---------
+            
+              buttonDownSafe.addEventListener(start, function() {
+                timerIntervalDownSafe = setInterval(function(){
+                    if(lev17>0){
+                        lev17 -= 1
+                        }
+                        $('#safeCount').text(Math.floor(lev17));
+                    socket.emit('SafeDown',lev17)
+                    console.log(lev17)
+                }, 100);
+              });
+              
+              buttonDownSafe.addEventListener(leave, function() {
+                clearInterval(timerIntervalDownSafe);
+              });
+                $('#safeDown').click(function(){
+                    if(lev17>0){
+                        lev17 -= 1
+                        }
+                        $('#safeCount').text(Math.floor(lev17));
+                    socket.emit('SafeDown',lev17)
+                    console.log(lev17)
+                });
+                buttonDownSafe.addEventListener(stop, function() {
+                    clearInterval(timerIntervalDownSafe);
                 });
 
 

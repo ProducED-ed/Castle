@@ -224,6 +224,27 @@ void setup() {
         myDFPlayer.volume(value);
         Serial.println(value);
       }
+
+      if (body.startsWith("\"set_level_")) {
+    // Извлекаем число из строки "set_level_25"
+    int startPos = body.indexOf('_', 6) + 1; // Находим позицию после второго '_'
+    int endPos = body.lastIndexOf('"'); // Находим позицию закрывающей кавычки
+    
+    if (startPos > 0 && endPos > startPos) {
+        String levelStr = body.substring(startPos, endPos);
+        int newLevel = levelStr.toInt();
+        
+        // Проверяем корректность уровня (например, от 0 до 30)
+        if (newLevel >= 0 && newLevel <= 30) {
+            value = newLevel;
+            myMP3.volume(value);
+            Serial.print("Установлена громкость: ");
+            Serial.println(value);
+        } else {
+            Serial.println("Некорректный уровень громкости");
+        }
+    }
+}
       if(body == "\"day_off\""){
         ledOff();
       }
