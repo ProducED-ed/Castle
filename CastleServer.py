@@ -3162,6 +3162,8 @@ def serial():
                           play_effect(lib_door)
                           socketio.emit('level', 'active_cup',to=None)
                           socklist.append('active_cup')
+                          serial_write_queue.put('student_hide')
+                          time.sleep(1.1)
                           while channel2.get_busy()==True: and go == 1: 
                               time.sleep(0.1)
                           if(language==1):
@@ -3171,12 +3173,9 @@ def serial():
                           if(language==3):
                               play_story(story_46_ar)    
                           send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
-                          serial_write_queue.put('student_hide') 
                           while channel3.get_busy()==True: and go == 1: 
                               time.sleep(0.1)
-                          time.sleep(1.1)    
-
-                          time.sleep(1.1)    
+                          time.sleep(1.1)
                           if(language==1):
                               play_story(story_47_ru)  
                           if(language==2):
