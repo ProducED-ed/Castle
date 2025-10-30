@@ -14,6 +14,7 @@ $(document).ready(function(){
   var lev11 = 0
   var lev12 = 0
   var lev13 = 0
+  var lev14 = 0
   let arr = [];
  //присваеваем кнопкам громкости переменные и задаем для них таймеры нужны для длительного нажатия
   var timerIntervalDownEffect = 0,
@@ -30,6 +31,11 @@ $(document).ready(function(){
       buttonDownVoice = document.getElementById("voiceDown");
   var timerIntervalUpVoice,
       buttonUpVoice = document.getElementById("voiceUp");
+
+  var timerIntervalDownWolf = 0,
+      buttonDownWolf = document.getElementById("wolfDown");
+  var timerIntervalUpWolf,
+      buttonUpWolf = document.getElementById("wolfUp");    
     
      //добавляем всем кнопкам класс basic нужен просто для внешки
     $('.button').addClass('basic');
@@ -1387,6 +1393,51 @@ duration   : '1s',
                 buttonDownVoice.addEventListener(stop, function() {
                     clearInterval(timerIntervalDownVoice);
                 });
+
+
+let wolfTimeout;
+
+function sendWolfLevel() {
+    //socket.emit('Wolf', lev13);
+    console.log('Отправка уровня звука wolf:', lev13);
+}
+
+buttonDownWolf.addEventListener(leave, function() {
+    clearInterval(timerIntervalDownVoice);
+    
+    // Очищаем предыдущий таймаут
+    if (wolfTimeout) {
+        clearTimeout(wolfTimeout);
+    }
+    
+    // Устанавливаем таймаут на отправку через 3 секунды
+    wolfTimeout = setTimeout(sendVoiceLevel, 3000);
+});
+
+$('#wolfDown').click(function(){
+    if(lev14 > 0){
+        lev14 -= 1;
+    }
+    $('#wolfCount').text(Math.floor(lev14));
+    
+    // Сбрасываем таймаут при каждом новом изменении
+    if (wolfTimeout) {
+        clearTimeout(wolfTimeout);
+    }
+    // Устанавливаем новый таймаут
+    wolfTimeout = setTimeout(sendVoiceLevel, 3000);
+});
+
+buttonDownWolf.addEventListener(stop, function() {
+    clearInterval(wolfTimeout);
+    
+    // Если нужно отправить сразу при остановке, а не ждать 3 секунды
+    if (wolfTimeout) {
+        clearTimeout(wolfTimeout);
+        sendWolfLevel(); // Отправляем сразу
+    }
+});
+
       socket.on('timer', function(e) {
 //обновляем текст с таймером
 if (typeof(e) === 'string') {
