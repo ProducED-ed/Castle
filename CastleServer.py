@@ -2579,10 +2579,6 @@ def serial():
                               play_story(story_3_r_ar)
                      #----прошли галетники     
                      if flag=="galet_on":
-                          send_esp32_command(ESP32_API_WOLF_URL, "game")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "game")
-                          send_esp32_command(ESP32_API_SAFE_URL, "game")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
                           #----отправляем на клиента
                           socketio.emit('level', 'open_mansard_door',to=None)
                           #-----добавили в историю
@@ -2610,7 +2606,14 @@ def serial():
                           if(language==2):
                               play_story(story_6_en)
                           if(language==3):
-                              play_story(story_6_ar)  
+                              play_story(story_6_ar)
+                              
+                          while channel3.get_busy()==True: and go == 1: 
+                              time.sleep(0.1)
+                          send_esp32_command(ESP32_API_WOLF_URL, "game")
+                          send_esp32_command(ESP32_API_SUITCASE_URL, "game")
+                          send_esp32_command(ESP32_API_SAFE_URL, "game")
+                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
                           #----меняем переменную хранящую последнюю историю
                           name = "story_2"  
                           #----активируем блок с флагами
