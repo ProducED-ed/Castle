@@ -3056,11 +3056,12 @@ def serial():
                               play_story(story_46_en)
                           if(language==3):
                               play_story(story_46_ar)    
-                          send_esp32_command(ESP32_API_TRAIN_URL, "train_on")    
+                          send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
+                          serial_write_queue.put('student_hide') 
                           while channel3.get_busy()==True: 
                               time.sleep(0.1)
                           time.sleep(1.1)    
-                          serial_write_queue.put('student_hide') 
+
                           time.sleep(1.1)    
                           if(language==1):
                               play_story(story_47_ru)  
@@ -3092,6 +3093,7 @@ def serial():
                           time.sleep(1)
                           socketio.emit('level', 'open_door_puzzle',to=None)
                           socklist.append('open_door_puzzle')
+                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_8")
                           if(language==1):
                               play_story(story_49_ru)  
                           if(language==2):
@@ -3332,7 +3334,6 @@ def serial():
                               play_story(story_44_ar) 
 
                      if flag=="star_hint":
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_8") 
                           play_effect(star_hint)
                           send_esp32_command(ESP32_API_TRAIN_URL, "set_time")
                           while channel2.get_busy()==True: 
