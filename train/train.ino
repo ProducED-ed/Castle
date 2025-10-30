@@ -861,7 +861,17 @@ void setup() {
       }
 
       if (body == "\"stage_8\"") {
+      // 1. Устанавливаем LED 20 (индекс 11) как пройденный (выключаем)
+        DisableLeds[11] = 20;
+        ActiveLeds[11] = -1;
+        FutureLeds[11] = -1;
+        ClickLeds[11] = -1;
 
+        // 2. Устанавливаем LED 17 (индекс 8) как АКТИВНЫЙ (желтый)
+        ActiveLeds[8] = 17;
+        FutureLeds[8] = -1;
+        DisableLeds[8] = -1;
+        ClickLeds[8] = -1;
       }
 
       if (body == "\"stage_9\"") {
