@@ -842,16 +842,40 @@ hint_56_b_ru = pygame.mixer.Sound("hint_56_b_ru.wav")
 f1 = open('1.txt','r')
 a1=f1.read(4)
 f1.close() 
+
+f5 = open('5.txt','r')
+a5=f5.read(4)
+f5.close() 
+wolfLevel = int(a5)
+
+f6 = open('6.txt','r')
+a6=f6.read(4)
+f6.close() 
+trainLevel = int(a6)
+
+f7 = open('7.txt','r')
+a7=f7.read(4)
+f7.close() 
+suitcaseLevel = int(a7)
+
+f8 = open('8.txt','r')
+a8=f8.read(4)
+f8.close() 
+safeLevel = int(a8)
+
 f2 = open('2.txt','r')
 a2=f2.read(4)
 f2.close() 
+
 f3 = open('3.txt','r')
 a3=f3.read(4)
 f3.close() 
+
 f4 = open('4.txt','r')
 a4=f4.read(4)
 language=int(a4)
 f4.close() 
+
 channel1.set_volume(float(a1),float(a1))
 channel2.set_volume(float(a2),float(a2))
 channel3.set_volume(float(a3),float(a3))
@@ -972,8 +996,27 @@ def Effects(effects):
      effectLevel = float(eff)
      channel2.set_volume(float(eff),float(eff)) 
      socketio.emit('volume1', eff, to=None, include_self=False)
-     
      #time.sleep(0)
+
+@socketio.on('WolfUp')
+def WolfSound(wolfsound):
+     global wolfLevel
+     f1 = open('5.txt','w')
+     f1.write(str(wolfLevel))
+     f1.close()   
+     send_esp32_command(ESP32_API_WOLF_URL, "volume_up")
+     wolfLevel = int(wolfLevel)
+     socketio.emit('wolf', wolfLevel, to=None, include_self=False)
+
+@socketio.on('WolfDown')
+def WolfSound(wolfsound):
+     global wolfLevel
+     f1 = open('5.txt','w')
+     f1.write(str(wolfLevel))
+     f1.close()   
+     send_esp32_command(ESP32_API_WOLF_URL, "volume_down")
+     wolfLevel = int(wolfLevel)
+     socketio.emit('wolf', wolfLevel, to=None, include_self=False)     
 
 #декоратор для управления квестом с интерфейса
 @socketio.on('Remote')

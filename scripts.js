@@ -11,6 +11,7 @@ $(document).ready(function(){
   var lev1 = 0
   var lev2 = 0
   var lev3 = 0
+  var lev4 = 0
   var lev11 = 0
   var lev12 = 0
   var lev13 = 0
@@ -180,6 +181,15 @@ duration   : '1s',
         //выводим значение еще раз округлив на всякий
         console.log(Math.floor(lev13))
         $('#voiceCount').text(Math.floor(lev13));
+    });
+    socket.on('wolf', function (v) {
+        //приводим строку в число 
+        lev4 = Number(v)
+        //приходит в десятичном ввиде округляем и умножаем на 100
+        lev14 = lev4
+        //выводим значение еще раз округлив на всякий
+        console.log(lev14)
+        $('#wolfCount').text(lev14);
     });
     //настройка для канала с эффектами
     socket.on('volume1', function (v) {
@@ -1395,48 +1405,61 @@ duration   : '1s',
                 });
 
 
-let wolfTimeout;
+/////////////////////////////////////////////////////////////
+    buttonUpWolf.addEventListener(start, function() {
+                    timerIntervalUpWolf = setInterval(function(){
+                        if(lev14<100){
+                            lev14 += 1
+                            }
+                            $('#wolfCount').text(Math.floor(lev14));
+                        socket.emit('WolfUp',lev14)
+                        console.log(lev14)
+              }, 100);
+            });
+            
+            buttonUpWolf.addEventListener(leave, function() {
+              clearInterval(timerIntervalUpWolf);
+            });
+              $('#wolfUp').click(function(){
+                if(lev14<30){
+                    lev14 += 1
+                    }
+                    $('#wolfCount').text(Math.floor(lev14));
+                socket.emit('WolfUp',lev14)
+                console.log(lev14)
+              });
+              buttonUpWolf.addEventListener(stop, function() {
+                clearInterval(timerIntervalUpWolf);
+            });
+            
+              //////---------
+            
+              buttonDownWolf.addEventListener(start, function() {
+                timerIntervalDownWolf = setInterval(function(){
+                    if(lev14>0){
+                        lev14 -= 1
+                        }
+                        $('#wolfCount').text(Math.floor(lev14));
+                    socket.emit('WolfDown',lev14)
+                    console.log(lev14)
+                }, 100);
+              });
+              
+              buttonDownWolf.addEventListener(leave, function() {
+                clearInterval(timerIntervalDownWolf);
+              });
+                $('#wolfDown').click(function(){
+                    if(lev14>0){
+                        lev14 -= 1
+                        }
+                        $('#wolfCount').text(Math.floor(lev14));
+                    socket.emit('WolfDown',lev14)
+                    console.log(lev14)
+                });
+                buttonDownWolf.addEventListener(stop, function() {
+                    clearInterval(timerIntervalDownWolf);
+                });
 
-function sendWolfLevel() {
-    //socket.emit('Wolf', lev13);
-    console.log('Отправка уровня звука wolf:', lev13);
-}
-
-buttonDownWolf.addEventListener(leave, function() {
-    clearInterval(timerIntervalDownVoice);
-    
-    // Очищаем предыдущий таймаут
-    if (wolfTimeout) {
-        clearTimeout(wolfTimeout);
-    }
-    
-    // Устанавливаем таймаут на отправку через 3 секунды
-    wolfTimeout = setTimeout(sendVoiceLevel, 3000);
-});
-
-$('#wolfDown').click(function(){
-    if(lev14 > 0){
-        lev14 -= 1;
-    }
-    $('#wolfCount').text(Math.floor(lev14));
-    
-    // Сбрасываем таймаут при каждом новом изменении
-    if (wolfTimeout) {
-        clearTimeout(wolfTimeout);
-    }
-    // Устанавливаем новый таймаут
-    wolfTimeout = setTimeout(sendVoiceLevel, 3000);
-});
-
-buttonDownWolf.addEventListener(stop, function() {
-    clearInterval(wolfTimeout);
-    
-    // Если нужно отправить сразу при остановке, а не ждать 3 секунды
-    if (wolfTimeout) {
-        clearTimeout(wolfTimeout);
-        sendWolfLevel(); // Отправляем сразу
-    }
-});
 
       socket.on('timer', function(e) {
 //обновляем текст с таймером
