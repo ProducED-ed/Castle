@@ -92,6 +92,7 @@ const char* password = "questquest";
 int language = 1;
 unsigned long doorTimer;
 bool hintFlag=1;
+int value = 30;
 
 bool safeEndConfirmed = false;      // Флаг подтверждения от сервера
 unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
@@ -134,7 +135,7 @@ void setup() {
     Serial.println(F("!!! ВНИМАНИЕ: Не удалось найти DFPlayer Mini. Проверьте подключение. !!!"));
   } else {
     Serial.println(F("DFPlayer Mini инициализирован."));
-    myDFPlayer.volume(24);
+    myDFPlayer.volume(value);
     myDFPlayer.stop();
   }
 
@@ -209,6 +210,19 @@ void setup() {
           currentState = AWAIT_GAME;
           Serial.println("Состояние: AWAIT_GAME");
         }
+      }
+      if (body == "\"volume_up\"") {
+        value = value + 1;
+        if (value >= 30) value = 30;
+        myDFPlayer.volume(value);
+        Serial.println(value);
+      }
+
+      if (body == "\"volume_down\"") {
+        value = value - 1;
+        if (value <= 0) value = 0;
+        myDFPlayer.volume(value);
+        Serial.println(value);
       }
       if(body == "\"day_off\""){
         ledOff();

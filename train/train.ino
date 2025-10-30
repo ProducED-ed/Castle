@@ -48,6 +48,7 @@ int blinkLedNumber = -1;
 
 int timerLedsCount = 0;
 bool timerIsStarting = true;
+int value = 30;
 
 long enc1Last = 0;  // Предыдущая позиция энкодера 1
 long enc2Last = 0;  // Предыдущая позиция энкодера 2
@@ -391,6 +392,8 @@ void setup() {
   if (!myMP3.begin(mySerial)) {
     Serial.println("DFPlayer Mini not detected!");
   }
+  myMP3.volume(value);
+  myMP3.stop();
 
 
   if (!WiFi.config(local_IP)) {
@@ -437,6 +440,19 @@ void setup() {
         FutureLeds[4] = -1;
         hintFlag = 1;
 		trainEndConfirmed = false; // Сбрасываем флаг
+      }
+      if (body == "\"volume_up\"") {
+        value = value + 1;
+        if (value >= 30) value = 30;
+        myMP3.volume(value);
+        Serial.println(value);
+      }
+
+      if (body == "\"volume_down\"") {
+        value = value - 1;
+        if (value <= 0) value = 0;
+        myMP3.volume(value);
+        Serial.println(value);
       }
       if (body == "\"language_1\"") {
         language = 1;

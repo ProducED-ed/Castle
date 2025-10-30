@@ -121,6 +121,7 @@ const int TRACK_HINT_0_SP = 5;
 const int TRACK_HINT_0_CH = 5;
 
 int hint_counter = 0;
+int value = 30;
 
 const char* ssid = "Castle";
 const char* password = "questquest";
@@ -202,7 +203,7 @@ void setup() {
   if (!myMP3.begin(mySerial)) {
     Serial.println("DFPlayer Mini not detected!");
   }    
-  myMP3.volume(30);
+  myMP3.volume(value);
   myMP3.stop();
 
   if (!WiFi.config(local_IP)) {
@@ -284,6 +285,19 @@ void setup() {
           analogWrite(ledsSym[i], 0);
         }
         digitalWrite(insideLed, LOW);
+      }
+      if (body == "\"volume_up\"") {
+        value = value + 1;
+        if (value >= 30) value = 30;
+        myMP3.volume(value);
+        Serial.println(value);
+      }
+
+      if (body == "\"volume_down\"") {
+        value = value - 1;
+        if (value <= 0) value = 0;
+        myMP3.volume(value);
+        Serial.println(value);
       }
       if(body == "\"start\""){
         state = 0;

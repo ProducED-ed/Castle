@@ -388,6 +388,19 @@ void setup() {
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
       }
+      if (body == "\"volume_up\"") {
+        value = value + 1;
+        if (value >= 30) value = 30;
+        myMP3.volume(value);
+        Serial.println(value);
+      }
+
+      if (body == "\"volume_down\"") {
+        value = value - 1;
+        if (value <= 0) value = 0;
+        myMP3.volume(value);
+        Serial.println(value);
+      }
 	  if (body == "\"confirm_wolf_end\"") {
         wolfEndConfirmed = true;
       }
@@ -1069,7 +1082,7 @@ void handleFadeOut() {
     myMP3.volume(0);
     myMP3.stop();
     delay(50);
-    myMP3.volume(INITIAL_VOLUME); // Возвращаем громкость для следующих треков
+    myMP3.volume(value); // Возвращаем громкость для следующих треков
     myMP3.playMp3Folder(TRACK_FON_WOLF);
     isFadingOut = false; // Завершаем процесс
     Serial.println("Fade out complete. Playing background music.");
@@ -1077,7 +1090,7 @@ void handleFadeOut() {
     // Процесс затухания еще идет
     // Рассчитываем новую громкость на основе прошедшего времени
     float progress = (float)elapsedTime / FADE_DURATION;
-    int newVolume = INITIAL_VOLUME * (1.0 - progress);
+    int newVolume = value * (1.0 - progress);
     myMP3.volume(newVolume);
   }
 }
