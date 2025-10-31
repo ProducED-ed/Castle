@@ -320,12 +320,12 @@ int ghostState = 0;
 
 String dragonHints[] = { "dragon_crystal", "hint_2_b", "hint_2_c", "hint_2_z", "hint_5_b", "hint_5_c" };
 String studentHints[] = { "hint_3_b", "hint_3_c", "hint_3_z", "hint_37_b", "hint_37_c", "hint_44_b", "hint_44_c", "hint_56_b" };
-String professorHints[] = { "hint_6_c", "hint_6_b", "hint_10_b", "hint_10_c", "hint_11_c", "hint_11_b", "hint_11_z" };
-String dwarfHints[] = { "hint_14_c", "hint_14_b", "hint_14_z" };
-String witchHints[] = { "hint_17_c", "hint_17_b", "hint_17_z" };
-String knightHints[] = { "hint_19_c", "hint_19_b", "hint_19_z" };
-String goblinHints[] = { "hint_23_c", "hint_23_b", "hint_23_z" };
-String trollHints[] = { "hint_26_c", "hint_26_b", "hint_26_z" };
+String professorHints[] = { "hint_6_b", "hint_6_c", "hint_10_b", "hint_10_c", "hint_11_b", "hint_11_c", "hint_11_z" };
+String dwarfHints[] = { "hint_14_b", "hint_14_c", "hint_14_z" };
+String witchHints[] = { "hint_17_b", "hint_17_c", "hint_17_z" };
+String knightHints[] = { "hint_19_b", "hint_19_c", "hint_19_z" };
+String goblinHints[] = { "hint_23_b", "hint_23_c", "hint_23_z" };
+String trollHints[] = { "hint_26_b", "hint_26_c", "hint_26_z" };
 String workshopHints[] = { "hint_32_b", "hint_32_c", "hint_32_d", "hint_32_e", "hint_32_z" };
 String directorHints[] = { "hint_49_b", "hint_49_c", "hint_50_b", "hint_50_c", "hint_51_b", "hint_51_c" };
 
@@ -1188,7 +1188,7 @@ void HelpHandler(String from) {
         Serial.println(directorHints[directorCounter]);
       }
       if (level == 14) {
-        directorCounter = (directorCounter == 3) ? 2 : 3;
+        directorCounter = (directorCounter == 2) ? 3 : 2;
         Serial.println(directorHints[directorCounter]);
       }
       if (level > 14 && level < 18) {
@@ -2620,6 +2620,7 @@ void BasketLesson() {
       snitchFlag = 0;
       enemyTimer = millis();
       additionalTimer = millis();
+      Serial2.println("start_basket");
     }
     if (buff == "basket") {
       Serial.println("win");
