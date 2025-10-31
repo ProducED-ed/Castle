@@ -103,6 +103,14 @@ const int TRACK_STORY_16_GE = 8;
 const int TRACK_STORY_16_SP = 8;
 const int TRACK_STORY_16_CH = 8;
 
+// Блок Story 45
+const int TRACK_STORY_45_RU = 45;
+const int TRACK_STORY_45_EN = 55;
+const int TRACK_STORY_45_AR = 65;
+const int TRACK_STORY_45_GE = 12;
+const int TRACK_STORY_45_SP = 12;
+const int TRACK_STORY_45_CH = 12;
+
 // --- Подсказки (9-42) ---
 // Блок Hint 0
 const int TRACK_HINT_0_RU = 15;
@@ -967,6 +975,23 @@ void setup() {
 
       if (body == "\"set_time\"") {
         OUTPUTS.digitalWrite(1, HIGH);
+
+        myMP3.stop(); // Останавливаем любой текущий звук
+        delay(50);    // Даем плееру небольшую паузу
+        
+        if (language == 1)
+          myMP3.playMp3Folder(TRACK_STORY_45_RU);
+        if (language == 2)
+          myMP3.playMp3Folder(TRACK_STORY_45_EN);
+        if (language == 3)
+          myMP3.playMp3Folder(TRACK_STORY_45_AR);
+        if (language == 4)
+          myMP3.playMp3Folder(TRACK_STORY_45_GE);
+        if (language == 5)
+          myMP3.playMp3Folder(TRACK_STORY_45_SP);
+        if (language == 6)
+          myMP3.playMp3Folder(TRACK_STORY_45_CH);
+        // --- КОНЕЦ ДОБАВЛЕНИЯ ---
       }
 
       if (body == "\"day_on\"") {
@@ -1080,7 +1105,7 @@ void loop() {
   MapLeds();
   StartTimer();
 
-  if (!INPUTS.digitalRead(2)) {
+  if (!INPUTS.digitalRead(2) && !ghostFlag) {
     if ((state == 0 || state == 1) && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
 	  resumeEngineSound = true;
