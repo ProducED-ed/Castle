@@ -376,9 +376,9 @@ story_44_en = pygame.mixer.Sound("story_44_en.wav")
 story_44_ar = pygame.mixer.Sound("story_44_ar.wav")
 story_44_ru = pygame.mixer.Sound("story_44_ru.wav")
 
-story_45_en = pygame.mixer.Sound("story_45_en.wav")
-story_45_ar = pygame.mixer.Sound("story_45_ar.wav")
-story_45_ru = pygame.mixer.Sound("story_45_ru.wav")
+#story_45_en = pygame.mixer.Sound("story_45_en.wav")
+#story_45_ar = pygame.mixer.Sound("story_45_ar.wav")
+#story_45_ru = pygame.mixer.Sound("story_45_ru.wav")
 
 story_46_en = pygame.mixer.Sound("story_46_en.wav")
 story_46_ar = pygame.mixer.Sound("story_46_ar.wav")
@@ -3270,8 +3270,8 @@ def serial():
                           play_effect(lib_door)
                           socketio.emit('level', 'active_cup',to=None)
                           socklist.append('active_cup')
-                          serial_write_queue.put('student_hide')
-                          time.sleep(1.1)
+                          ser.write(str.encode('student_hide\n'))
+                          time.sleep(0.1)
                           while channel2.get_busy()==True and go == 1: 
                               time.sleep(0.1)
                           if(language==1):
@@ -3557,14 +3557,14 @@ def serial():
                      if flag=="star_hint":
                           play_effect(star_hint)
                           send_esp32_command(ESP32_API_TRAIN_URL, "set_time")
-                          while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          if(language==1):
-                              play_story(story_45_ru)  
-                          if(language==2):
-                              play_story(story_45_en)
-                          if(language==3):
-                              play_story(story_45_ar)        
+                          #while channel2.get_busy()==True and go == 1: 
+                          #    time.sleep(0.1)
+                          # if(language==1):
+                          #   play_story(story_45_ru)  
+                          #if(language==2):
+                          #    play_story(story_45_en)
+                          #if(language==3):
+                          #    play_story(story_45_ar)        
                           
                      if flag=="mistake_crystal":
                           #----играем эффект
