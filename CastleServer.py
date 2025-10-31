@@ -887,6 +887,7 @@ flagS = 0
 voiceLevel = a3
 effectLevel = a2
 phoneLevel = float(a1)
+story_fade_active = False
 
 # ИЗМЕНЕНИЕ: Убираем автопоиск и жёстко прописываем порт Arduino
 try:
@@ -1976,14 +1977,39 @@ def is_number(str):
         return False  
 
 def play_story(audio_file, loops=0, volume_file='3.txt'):
-     # Получаем соответствующий аудиофайл
-     if audio_file:
-         channel3.play(audio_file, loops=loops)
-         
-         # Устанавливаем громкость
-         with open(volume_file, 'r') as f:
-             volume = float(f.read(4))
-             channel3.set_volume(volume, volume)
+    # Воспроизводит историю/подсказку, АВТОМАТИЧЕСКИ приглушая фоновую музыку.
+    global story_fade_active, phoneLevel, go
+    
+    # 1. Приглушаем фоновую музыку (только если она еще не приглушена)
+    if not story_fade_active and go == 1:
+        story_fade_active = True
+        serial_write_queue.put('soundon')
+        
+        # Получаем текущий phoneLevel
+        try:
+            with open('1.txt', 'r') as f:
+                phoneLevel = float(f.read(4))
+        except Exception as e:
+            print(f"Ошибка чтения файла громкости 1.txt: {e}")
+            pass # Используем старое значение
+
+        temp_vol = phoneLevel 
+        target_vol = 0.1 # Целевая громкость 10%
+        
+        while temp_vol > target_vol and go == 1:
+            temp_vol = round(temp_vol, 2) - 0.01
+            if temp_vol < target_vol: temp_vol = target_vol # Гарантия, что не уйдем ниже
+            pygame.mixer.music.set_volume(round(temp_vol, 2))
+            time.sleep(0.05) # Плавное затухание
+    
+    # 2. Воспроизводим саму историю
+    if audio_file:
+        channel3.play(audio_file, loops=loops)
+        
+        # Устанавливаем громкость истории
+        with open(volume_file, 'r') as f:
+            volume = float(f.read(4))
+            channel3.set_volume(volume, volume)
 
 def play_effect(audio_file, loops=0, volume_file='2.txt'):
     channel2.play(audio_file, loops=loops)
@@ -2139,6 +2165,42 @@ def play_background_music(music_file, volume_file='1.txt', loops=-1):
     except Exception as e:
         print(f"Ошибка при воспроизведении музыки: {e}")
 
+def check_story_and_fade_up():
+    # Проверяет, не завершилась ли история, и восстанавливает громкость фона.
+    # Вызывается в главном цикле serial().
+    global story_fade_active, phoneLevel, go
+    
+    # Проверяем, был ли фон приглушен И канал3 (истории) теперь свободен
+    if story_fade_active and not channel3.get_busy() and go == 1:
+        
+        # 1. Отправляем команду "черепу" (если нужно)
+        serial_write_queue.put('soundoff')
+        
+        # 2. Плавно восстанавливаем громкость фона
+        current_bg_vol = pygame.mixer.music.get_volume()
+        
+        # Перечитываем целевую громкость из файла (на случай, если ее изменили)
+        try:
+            with open('1.txt', 'r') as f:
+                phoneLevel = float(f.read(4))
+        except Exception as e:
+            print(f"Ошибка чтения файла громкости 1.txt: {e}")
+            pass # Используем старое значение phoneLevel
+        
+        temp_vol = current_bg_vol
+        while temp_vol < phoneLevel and go == 1:
+            temp_vol = round(temp_vol, 2) + 0.01
+            if temp_vol > phoneLevel: temp_vol = phoneLevel # Гарантия, что не превысим
+            pygame.mixer.music.set_volume(round(temp_vol, 2))
+            time.sleep(0.01) # Быстрое восстановление
+        
+        # Устанавливаем точное значение (если игра не была остановлена)
+        if go == 1:
+            pygame.mixer.music.set_volume(phoneLevel)
+        
+        # 3. Сбрасываем флаг
+        story_fade_active = False
+
 #здесь уже обрабатываем все сообщения приходящие из меги и отображаем на пульте        
 def serial():
      global flag 
@@ -2159,6 +2221,7 @@ def serial():
      global effectLevel
      global voiceLevel
      global phoneLevel
+     global story_fade_active
      global caveCounter
      global storyBasketFlag
      global catchCount
@@ -2185,13 +2248,13 @@ def serial():
      #алгоритм на понижение громкости работает хитро сорян за имена переменных лучше его не трогай намучаешься капец сам делал долго связано в округлением данных float и урпавлением во время эффекта
      #если нужно быстрее или медленне измени значения sleep
      while True:
-          # ИЗМЕНЕНИЕ: Добавляем блок для отправки сообщений из очереди
+          check_story_and_fade_up() # Проверяем, не закончила ли история играть
+          # Добавляем блок для отправки сообщений из очереди
           try:
               message_to_send = serial_write_queue.get_nowait()
               ser.write(str.encode(message_to_send + '\n'))
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
-          # КОНЕЦ ИЗМЕНЕНИЯ
           #---- иногда для ассинхрона нужно добавлять time.sleep(0)для переключения на другой метод
           time.sleep(0)
           if pygame.mixer.music.get_busy() == False:
@@ -2204,42 +2267,6 @@ def serial():
                     if(language==3):
                         play_story(story_11_ar)
                     nextTrack = 0
-
-          if channel3.get_busy()==True and go == 1:#------если канал с голосом играет
-               a10 = phoneLevel
-               if flagS == 0:#- если флаг равен 0
-                   time.sleep(1)
-                   serial_write_queue.put('soundon')#-----отправляем в сериал и череп перестает моргать если трек воспроизводится
-                   flagS = 1 #--поднмаем флаг
-                   time.sleep(1)
-               while a10>0.1  and fs==0 and go == 1: # Музыка будет угасать до 0.1 (10%)
-                    #a10=(a10*10-1)/10
-                    a10 = round(a10,2)-round(0.01,2)
-                    pygame.mixer.music.set_volume(round(a10,2))
-                    time.sleep(0.05)
-               fs = 1   
-               a20 = 0.00  
-               #после этого поднимаем флаг что бы прибавить до того состояния которое было записано в файле
-          elif go == 1:
-               if flagS == 1:
-                   if starts==1:
-                        time.sleep(1) #--- работает только после того как стартанем
-                        serial_write_queue.put('soundoff')
-                        time.sleep(1)# если воспроизведение закончено начинаем моргать
-                        flagS = 0
-               #-----так же плавно поднимаем громкость
-               while a20 != phoneLevel and fs==1 and go == 1:
-                    a20 = round(a20,2)+0.01
-                    #---постоянно читаем файл что бы не было конфликта защита от дурака
-                    f1 = open('1.txt','r')
-                    a6=f1.read(4)
-                    f1.close() 
-                    phoneLevel = float(a6)
-                    pygame.mixer.music.set_volume(round(a20,2))
-                    if round(a20,2)==phoneLevel:
-                         fs = 0
-                    time.sleep(0.01)
-               fs = 0
                
           # --- ИСПРАВЛЕНО: Добавлен 'elif' для сброса флагов при неактивной игре (restart/pause) ---
           elif go != 1:
