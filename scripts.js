@@ -1284,395 +1284,259 @@ duration   : '1s',
         socket.emit('WLAN', 'ssid=Castle10')
     });
     
-    //управляем громкостью смотри подробнее dmc
-        buttonUpEffect.addEventListener(start, function() {
-            timerIntervalUpEffect = setInterval(function(){
-                if(lev12<100){
-                    lev12 += 1
-                    }
-                    $('#effectCount').text(Math.floor(lev12));
-                    socket.emit('Effects',lev12)
-                   console.log(lev12)
-          }, 100);
-        });
-        
-        buttonUpEffect.addEventListener(leave, function() {
-          clearInterval(timerIntervalUpEffect);
-        });
-        
+			//управляем громкостью
+			// Логика переписана: UI обновляется только при получении ответа от сервера.
 
-          $('#effectUp').click(function(){
-            if(lev12<100){
-                lev12 += 1
-                }
-                $('#effectCount').text(Math.floor(lev12));
-                socket.emit('Effects',lev12)
-                console.log(lev12)
-          });
-          buttonUpEffect.addEventListener(stop, function() {
-            clearInterval(timerIntervalUpEffect);
-          });
-        
-          //////---------
-        
-          buttonDownEffect.addEventListener(start, function() {
-            timerIntervalDownEffect = setInterval(function(){
-                if(lev12>0){
-                    lev12 -= 1
-                    }
-                    $('#effectCount').text(Math.floor(lev12));
-                    socket.emit('Effects',lev12)
-                    console.log(lev12)
-            }, 100);
-          });
-          
-          buttonDownEffect.addEventListener(leave, function() {
-            clearInterval(timerIntervalDownEffect);
-          });
-          
-          
-            $('#effectDown').click(function(){
-                if(lev12>0){
-                    lev12 -= 1
-                    }
-                    $('#effectCount').text(Math.floor(lev12));
-                socket.emit('Effects',lev12)
-                console.log(lev12)
-            });
-            buttonDownEffect.addEventListener(stop, function() {
-                clearInterval(timerIntervalDownEffect);
-              });
+			// --- Effect Sound ---
+			buttonUpEffect.addEventListener(start, function() {
+				timerIntervalUpEffect = setInterval(function(){
+					var newValue = lev12 + 1;
+					if(newValue <= 100){
+						socket.emit('Effects', newValue);
+					} else {
+						clearInterval(timerIntervalUpEffect); // Останавливаем, если достигли максимума
+					}
+			  }, 100);
+			});
+			buttonUpEffect.addEventListener(leave, function() { clearInterval(timerIntervalUpEffect); });
+			buttonUpEffect.addEventListener(stop, function() { clearInterval(timerIntervalUpEffect); });
+			$('#effectUp').click(function(){
+				var newValue = lev12 + 1;
+				if(newValue <= 100){ socket.emit('Effects', newValue); }
+			});
+			
+			buttonDownEffect.addEventListener(start, function() {
+				timerIntervalDownEffect = setInterval(function(){
+					var newValue = lev12 - 1;
+					if(newValue >= 0){
+						socket.emit('Effects', newValue);
+					} else {
+						clearInterval(timerIntervalDownEffect); // Останавливаем, если достигли минимума
+					}
+				}, 100);
+			});
+			buttonDownEffect.addEventListener(leave, function() { clearInterval(timerIntervalDownEffect); });
+			buttonDownEffect.addEventListener(stop, function() { clearInterval(timerIntervalDownEffect); });
+			$('#effectDown').click(function(){
+				var newValue = lev12 - 1;
+				if(newValue >= 0){ socket.emit('Effects', newValue); }
+			});
 
-          ////////////----------------------------------------  
-            buttonUpPhone.addEventListener(start, function() {
-                timerIntervalUpPhone = setInterval(function(){
-                    if(lev11<100){
-                        lev11 += 1
-                        }
-                        $('#phoneCount').text(Math.floor(lev11));
-                    socket.emit('Phone',lev11)
-                    console.log(lev11)
-              }, 100);
-            });
-            
-            buttonUpPhone.addEventListener(leave, function() {
-              clearInterval(timerIntervalUpPhone);
-            });
-              $('#phoneUp').click(function(){
-                if(lev11<100){
-                    lev11 += 1
-                    }
-                    $('#phoneCount').text(Math.floor(lev11));
-                socket.emit('Phone',lev11)
-                console.log(lev11)
-              });
-              buttonUpPhone.addEventListener(stop, function() {
-                clearInterval(timerIntervalUpPhone);
-              });
-            
-              //////---------
-            
-              buttonDownPhone.addEventListener(start, function() {
-                timerIntervalDownPhone = setInterval(function(){
-                    if(lev11>0){
-                        lev11 -= 1
-                        }
-                        $('#phoneCount').text(Math.floor(lev11));
-                    socket.emit('Phone',lev11)
-                    console.log(lev11)
-                }, 100);
-              });
-              
-              buttonDownPhone.addEventListener(leave, function() {
-                clearInterval(timerIntervalDownPhone);
-              });
-                $('#phoneDown').click(function(){
-                    if(lev11>0){
-                        lev11 -= 1
-                        }
-                        $('#phoneCount').text(lev11);
-                    socket.emit('Phone',Math.floor(lev11))
-                    console.log(lev11)
-                });
-                buttonDownPhone.addEventListener(stop, function() {
-                    clearInterval(timerIntervalDownPhone);
-                });
+			// --- Phone Sound ---
+			buttonUpPhone.addEventListener(start, function() {
+				timerIntervalUpPhone = setInterval(function(){
+					var newValue = lev11 + 1;
+					if(newValue <= 100){
+						socket.emit('Phone', newValue);
+					} else {
+						clearInterval(timerIntervalUpPhone);
+					}
+			  }, 100);
+			});
+			buttonUpPhone.addEventListener(leave, function() { clearInterval(timerIntervalUpPhone); });
+			buttonUpPhone.addEventListener(stop, function() { clearInterval(timerIntervalUpPhone); });
+			$('#phoneUp').click(function(){
+				var newValue = lev11 + 1;
+				if(newValue <= 100){ socket.emit('Phone', newValue); }
+			});
 
-                /////-------------------------
-                buttonUpVoice.addEventListener(start, function() {
-                    timerIntervalUpVoice = setInterval(function(){
-                        if(lev13<100){
-                            lev13 += 1
-                            }
-                            $('#voiceCount').text(Math.floor(lev13));
-                        socket.emit('Voice',lev13)
-                        console.log(lev13)
-              }, 100);
-            });
-            
-            buttonUpVoice.addEventListener(leave, function() {
-              clearInterval(timerIntervalUpVoice);
-            });
-              $('#voiceUp').click(function(){
-                if(lev13<100){
-                    lev13 += 1
-                    }
-                    $('#voiceCount').text(Math.floor(lev13));
-                socket.emit('Voice',lev13)
-                console.log(lev13)
-              });
-              buttonUpVoice.addEventListener(stop, function() {
-                clearInterval(timerIntervalUpVoice);
-            });
-            
-              //////---------
-            
-              buttonDownVoice.addEventListener(start, function() {
-                timerIntervalDownVoice = setInterval(function(){
-                    if(lev13>0){
-                        lev13 -= 1
-                        }
-                        $('#voiceCount').text(Math.floor(lev13));
-                    socket.emit('Voice',lev13)
-                    console.log(lev13)
-                }, 100);
-              });
-              
-              buttonDownVoice.addEventListener(leave, function() {
-                clearInterval(timerIntervalDownVoice);
-              });
-                $('#voiceDown').click(function(){
-                    if(lev13>0){
-                        lev13 -= 1
-                        }
-                        $('#voiceCount').text(Math.floor(lev13));
-                    socket.emit('Voice',lev13)
-                    console.log(lev13)
-                });
-                buttonDownVoice.addEventListener(stop, function() {
-                    clearInterval(timerIntervalDownVoice);
-                });
+			buttonDownPhone.addEventListener(start, function() {
+				timerIntervalDownPhone = setInterval(function(){
+					var newValue = lev11 - 1;
+					if(newValue >= 0){
+						socket.emit('Phone', newValue);
+					} else {
+						clearInterval(timerIntervalDownPhone);
+					}
+				}, 100);
+			});
+			buttonDownPhone.addEventListener(leave, function() { clearInterval(timerIntervalDownPhone); });
+			buttonDownPhone.addEventListener(stop, function() { clearInterval(timerIntervalDownPhone); });
+			$('#phoneDown').click(function(){
+				var newValue = lev11 - 1;
+				if(newValue >= 0){ socket.emit('Phone', newValue); }
+			});
+
+			// --- Voice Sound ---
+			buttonUpVoice.addEventListener(start, function() {
+				timerIntervalUpVoice = setInterval(function(){
+					var newValue = lev13 + 1;
+					if(newValue <= 100){
+						socket.emit('Voice', newValue);
+					} else {
+						clearInterval(timerIntervalUpVoice);
+					}
+			  }, 100);
+			});
+			buttonUpVoice.addEventListener(leave, function() { clearInterval(timerIntervalUpVoice); });
+			buttonUpVoice.addEventListener(stop, function() { clearInterval(timerIntervalUpVoice); });
+			$('#voiceUp').click(function(){
+				var newValue = lev13 + 1;
+				if(newValue <= 100){ socket.emit('Voice', newValue); }
+			});
+
+			buttonDownVoice.addEventListener(start, function() {
+				timerIntervalDownVoice = setInterval(function(){
+					var newValue = lev13 - 1;
+					if(newValue >= 0){
+						socket.emit('Voice', newValue);
+					} else {
+						clearInterval(timerIntervalDownVoice);
+					}
+				}, 100);
+			});
+			buttonDownVoice.addEventListener(leave, function() { clearInterval(timerIntervalDownVoice); });
+			buttonDownVoice.addEventListener(stop, function() { clearInterval(timerIntervalDownVoice); });
+			$('#voiceDown').click(function(){
+				var newValue = lev13 - 1;
+				if(newValue >= 0){ socket.emit('Voice', newValue); }
+			});
 
 
-/////////////////////////////////////////////////////////////
-    buttonUpWolf.addEventListener(start, function() {
-                    timerIntervalUpWolf = setInterval(function(){
-                        if(lev14<30){
-                            lev14 += 1
-                            }
-                            $('#wolfCount').text(Math.floor(lev14));
-                        socket.emit('WolfUp',lev14)
-                        console.log(lev14)
-              }, 100);
-            });
-            
-            buttonUpWolf.addEventListener(leave, function() {
-              clearInterval(timerIntervalUpWolf);
-            });
-              $('#wolfUp').click(function(){
-                if(lev14<30){
-                    lev14 += 1
-                    }
-                    $('#wolfCount').text(Math.floor(lev14));
-                socket.emit('WolfUp',lev14)
-                console.log(lev14)
-              });
-              buttonUpWolf.addEventListener(stop, function() {
-                clearInterval(timerIntervalUpWolf);
-            });
-            
-              //////---------
-            
-              buttonDownWolf.addEventListener(start, function() {
-                timerIntervalDownWolf = setInterval(function(){
-                    if(lev14>0){
-                        lev14 -= 1
-                        }
-                        $('#wolfCount').text(Math.floor(lev14));
-                    socket.emit('WolfDown',lev14)
-                    console.log(lev14)
-                }, 100);
-              });
-              
-              buttonDownWolf.addEventListener(leave, function() {
-                clearInterval(timerIntervalDownWolf);
-              });
-                $('#wolfDown').click(function(){
-                    if(lev14>0){
-                        lev14 -= 1
-                        }
-                        $('#wolfCount').text(Math.floor(lev14));
-                    socket.emit('WolfDown',lev14)
-                    console.log(lev14)
-                });
-                buttonDownWolf.addEventListener(stop, function() {
-                    clearInterval(timerIntervalDownWolf);
-                });
+			// --- Wolf Sound ---
+			buttonUpWolf.addEventListener(start, function() {
+				timerIntervalUpWolf = setInterval(function(){
+					var newValue = lev14 + 1;
+					if(newValue <= 30){
+						socket.emit('WolfUp', newValue);
+					} else {
+						clearInterval(timerIntervalUpWolf);
+					}
+			  }, 100);
+			});
+			buttonUpWolf.addEventListener(leave, function() { clearInterval(timerIntervalUpWolf); });
+			buttonUpWolf.addEventListener(stop, function() { clearInterval(timerIntervalUpWolf); });
+			$('#wolfUp').click(function(){
+				var newValue = lev14 + 1;
+				if(newValue <= 30){ socket.emit('WolfUp', newValue); }
+			});
+			
+			buttonDownWolf.addEventListener(start, function() {
+				timerIntervalDownWolf = setInterval(function(){
+					var newValue = lev14 - 1;
+					if(newValue >= 0){
+						socket.emit('WolfDown', newValue);
+					} else {
+						clearInterval(timerIntervalDownWolf);
+					}
+				}, 100);
+			});
+			buttonDownWolf.addEventListener(leave, function() { clearInterval(timerIntervalDownWolf); });
+			buttonDownWolf.addEventListener(stop, function() { clearInterval(timerIntervalDownWolf); });
+			$('#wolfDown').click(function(){
+				var newValue = lev14 - 1;
+				if(newValue >= 0){ socket.emit('WolfDown', newValue); }
+			});
 
-                /////////////////////////////////////////////////////////////
-    buttonUpPlatform.addEventListener(start, function() {
-                    timerIntervalUpPlatform = setInterval(function(){
-                        if(lev15<30){
-                            lev15 += 1
-                            }
-                            $('#platformCount').text(Math.floor(lev15));
-                        socket.emit('PlatformUp',lev15)
-                        console.log(lev15)
-              }, 100);
-            });
-            
-            buttonUpPlatform.addEventListener(leave, function() {
-              clearInterval(timerIntervalUpPlatform);
-            });
-              $('#platformUp').click(function(){
-                if(lev15<30){
-                    lev15 += 1
-                    }
-                    $('#platformCount').text(Math.floor(lev15));
-                socket.emit('PlatformUp',lev15)
-                console.log(lev15)
-              });
-              buttonUpPlatform.addEventListener(stop, function() {
-                clearInterval(timerIntervalUpPlatform);
-            });
-            
-              //////---------
-            
-              buttonDownPlatform.addEventListener(start, function() {
-                timerIntervalDownPlatform = setInterval(function(){
-                    if(lev15>0){
-                        lev15 -= 1
-                        }
-                        $('#platformCount').text(Math.floor(lev15));
-                    socket.emit('PlatformDown',lev15)
-                    console.log(lev15)
-                }, 100);
-              });
-              
-              buttonDownPlatform.addEventListener(leave, function() {
-                clearInterval(timerIntervalDownPlatform);
-              });
-                $('#platformDown').click(function(){
-                    if(lev15>0){
-                        lev15 -= 1
-                        }
-                        $('#platformCount').text(Math.floor(lev15));
-                    socket.emit('PlatformDown',lev15)
-                    console.log(lev15)
-                });
-                buttonDownPlatform.addEventListener(stop, function() {
-                    clearInterval(timerIntervalDownPlatform);
-                });
+			// --- Platform Sound ---
+			buttonUpPlatform.addEventListener(start, function() {
+				timerIntervalUpPlatform = setInterval(function(){
+					var newValue = lev15 + 1;
+					if(newValue <= 30){
+						socket.emit('PlatformUp', newValue);
+					} else {
+						clearInterval(timerIntervalUpPlatform);
+					}
+			  }, 100);
+			});
+			buttonUpPlatform.addEventListener(leave, function() { clearInterval(timerIntervalUpPlatform); });
+			buttonUpPlatform.addEventListener(stop, function() { clearInterval(timerIntervalUpPlatform); });
+			$('#platformUp').click(function(){
+				var newValue = lev15 + 1;
+				if(newValue <= 30){ socket.emit('PlatformUp', newValue); }
+			});
 
-                /////////////////////////////////////////////////////////////
-    buttonUpSuitcases.addEventListener(start, function() {
-                    timerIntervalUpSuitcases = setInterval(function(){
-                        if(lev16<30){
-                            lev16 += 1
-                            }
-                            $('#suitcasesCount').text(Math.floor(lev16));
-                        socket.emit('SuitcasesUp',lev16)
-                        console.log(lev16)
-              }, 100);
-            });
-            
-            buttonUpSuitcases.addEventListener(leave, function() {
-              clearInterval(timerIntervalUpSuitcases);
-            });
-              $('#suitcasesUp').click(function(){
-                if(lev16<30){
-                    lev16 += 1
-                    }
-                    $('#suitcasesCount').text(Math.floor(lev16));
-                socket.emit('SuitcasesUp',lev16)
-                console.log(lev16)
-              });
-              buttonUpSuitcases.addEventListener(stop, function() {
-                clearInterval(timerIntervalUpSuitcases);
-            });
-            
-              //////---------
-            
-              buttonDownSuitcases.addEventListener(start, function() {
-                timerIntervalDownSuitcases = setInterval(function(){
-                    if(lev16>0){
-                        lev16 -= 1
-                        }
-                        $('#suitcasesCount').text(Math.floor(lev16));
-                    socket.emit('SuitcasesDown',lev16)
-                    console.log(lev16)
-                }, 100);
-              });
-              
-              buttonDownSuitcases.addEventListener(leave, function() {
-                clearInterval(timerIntervalDownSuitcases);
-              });
-                $('#suitcasesDown').click(function(){
-                    if(lev16>0){
-                        lev16 -= 1
-                        }
-                        $('#suitcasesCount').text(Math.floor(lev16));
-                    socket.emit('SuitcasesDown',lev16)
-                    console.log(lev16)
-                });
-                buttonDownSuitcases.addEventListener(stop, function() {
-                    clearInterval(timerIntervalDownSuitcases);
-                });
+			buttonDownPlatform.addEventListener(start, function() {
+				timerIntervalDownPlatform = setInterval(function(){
+					var newValue = lev15 - 1;
+					if(newValue >= 0){
+						socket.emit('PlatformDown', newValue);
+					} else {
+						clearInterval(timerIntervalDownPlatform);
+					}
+				}, 100);
+			});
+			buttonDownPlatform.addEventListener(leave, function() { clearInterval(timerIntervalDownPlatform); });
+			buttonDownPlatform.addEventListener(stop, function() { clearInterval(timerIntervalDownPlatform); });
+			$('#platformDown').click(function(){
+				var newValue = lev15 - 1;
+				if(newValue >= 0){ socket.emit('PlatformDown', newValue); }
+			});
 
-                /////////////////////////////////////////////////////////////
-    buttonUpSafe.addEventListener(start, function() {
-                    timerIntervalUpSafe = setInterval(function(){
-                        if(lev17<30){
-                            lev17 += 1
-                            }
-                            $('#safeCount').text(Math.floor(lev17));
-                        socket.emit('SafeUp',lev17)
-                        console.log(lev17)
-              }, 100);
-            });
-            
-            buttonUpSafe.addEventListener(leave, function() {
-              clearInterval(timerIntervalUpSafe);
-            });
-              $('#safeUp').click(function(){
-                if(lev17<30){
-                    lev17 += 1
-                    }
-                    $('#safeCount').text(Math.floor(lev17));
-                socket.emit('SafeUp',lev17)
-                console.log(lev17)
-              });
-              buttonUpSafe.addEventListener(stop, function() {
-                clearInterval(timerIntervalUpSafe);
-            });
-            
-              //////---------
-            
-              buttonDownSafe.addEventListener(start, function() {
-                timerIntervalDownSafe = setInterval(function(){
-                    if(lev17>0){
-                        lev17 -= 1
-                        }
-                        $('#safeCount').text(Math.floor(lev17));
-                    socket.emit('SafeDown',lev17)
-                    console.log(lev17)
-                }, 100);
-              });
-              
-              buttonDownSafe.addEventListener(leave, function() {
-                clearInterval(timerIntervalDownSafe);
-              });
-                $('#safeDown').click(function(){
-                    if(lev17>0){
-                        lev17 -= 1
-                        }
-                        $('#safeCount').text(Math.floor(lev17));
-                    socket.emit('SafeDown',lev17)
-                    console.log(lev17)
-                });
-                buttonDownSafe.addEventListener(stop, function() {
-                    clearInterval(timerIntervalDownSafe);
-                });
+			// --- Suitcases Sound ---
+			buttonUpSuitcases.addEventListener(start, function() {
+				timerIntervalUpSuitcases = setInterval(function(){
+					var newValue = lev16 + 1;
+					if(newValue <= 30){
+						socket.emit('SuitcasesUp', newValue);
+					} else {
+						clearInterval(timerIntervalUpSuitcases);
+					}
+			  }, 100);
+			});
+			buttonUpSuitcases.addEventListener(leave, function() { clearInterval(timerIntervalUpSuitcases); });
+			buttonUpSuitcases.addEventListener(stop, function() { clearInterval(timerIntervalUpSuitcases); });
+			$('#suitcasesUp').click(function(){
+				var newValue = lev16 + 1;
+				if(newValue <= 30){ socket.emit('SuitcasesUp', newValue); }
+			});
+
+			buttonDownSuitcases.addEventListener(start, function() {
+				timerIntervalDownSuitcases = setInterval(function(){
+					var newValue = lev16 - 1;
+					if(newValue >= 0){
+						socket.emit('SuitcasesDown', newValue);
+					} else {
+						clearInterval(timerIntervalDownSuitcases);
+					}
+				}, 100);
+			});
+			buttonDownSuitcases.addEventListener(leave, function() { clearInterval(timerIntervalDownSuitcases); });
+			buttonDownSuitcases.addEventListener(stop, function() { clearInterval(timerIntervalDownSuitcases); });
+			$('#suitcasesDown').click(function(){
+				var newValue = lev16 - 1;
+				if(newValue >= 0){ socket.emit('SuitcasesDown', newValue); }
+			});
+
+			// --- Safe Sound ---
+			buttonUpSafe.addEventListener(start, function() {
+				timerIntervalUpSafe = setInterval(function(){
+					var newValue = lev17 + 1;
+					if(newValue <= 30){
+						socket.emit('SafeUp', newValue);
+					} else {
+						clearInterval(timerIntervalUpSafe);
+					}
+			  }, 100);
+			});
+			buttonUpSafe.addEventListener(leave, function() { clearInterval(timerIntervalUpSafe); });
+			buttonUpSafe.addEventListener(stop, function() { clearInterval(timerIntervalUpSafe); });
+			$('#safeUp').click(function(){
+				var newValue = lev17 + 1;
+				if(newValue <= 30){ socket.emit('SafeUp', newValue); }
+			});
+
+			buttonDownSafe.addEventListener(start, function() {
+				timerIntervalDownSafe = setInterval(function(){
+					var newValue = lev17 - 1;
+					if(newValue >= 0){
+						socket.emit('SafeDown', newValue);
+					} else {
+						clearInterval(timerIntervalDownSafe);
+					}
+				}, 100);
+			});
+			buttonDownSafe.addEventListener(leave, function() { clearInterval(timerIntervalDownSafe); });
+			buttonDownSafe.addEventListener(stop, function() { clearInterval(timerIntervalDownSafe); });
+			
+			$('#safeDown').click(function(){
+				// (последний клик) ---
+				var newValue = lev17 - 1;
+				if(newValue >= 0){ socket.emit('SafeDown', newValue); }
+			});
+			buttonDownSafe.addEventListener(stop, function() {
+				clearInterval(timerIntervalDownSafe);
+			});
 
 
       socket.on('timer', function(e) {
