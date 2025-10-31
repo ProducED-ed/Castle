@@ -109,7 +109,7 @@ void rainbowAnimation() {
 }
 
 void setbutton(GButton &buttonN) {
-  buttonN.setDebounce(10);      // настройка антидребезга (по умолчанию 80 мс)
+  buttonN.setDebounce(50);      // настройка антидребезга (по умолчанию 80 мс)
   buttonN.setTimeout(10);       // настройка таймаута на удержание (по умолчанию 500 мс)
   buttonN.setClickTimeout(10);  // настройка таймаута между кликами (по умолчанию 300 мс)
   buttonN.setType(HIGH_PULL);
@@ -618,7 +618,6 @@ void loop() {
 
   // Общие функции, работающие в любом состоянии
   FastLED.show();
-  delay(10);
   handleSerial1Commands();   // Проверяем команды
   checkOwlButton();  
     handleFlagSensorSimple();  //проверяем флаг
