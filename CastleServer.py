@@ -3678,6 +3678,8 @@ def serial():
                           if(language==3):
                               play_story(story_55_ar)
                      if flag=="crime_end":
+                          socketio.emit('level', 'crime',to=None)
+                          socklist.append('crime')
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
                           socketio.emit('level', 'active_basket',to=None)
                           socklist.append('active_basket')
