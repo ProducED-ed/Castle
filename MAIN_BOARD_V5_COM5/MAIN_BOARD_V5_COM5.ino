@@ -1676,6 +1676,27 @@ void MapGame() {
   static bool activePotionRoom;
   static bool potionPulsation;
 
+  // Переменные для неблокирующей анимации ---
+  static unsigned long potionFadeTimer = 0;
+  static int potionBrightness = 0;
+  static bool potionFading = false;
+
+  // Обработчик неблокирующей анимации ---
+  // Этот блок должен выполняться в каждой итерации MapGame()
+  if (potionFading) {
+    // Проверяем, прошло ли 2 мс
+    if (millis() - potionFadeTimer >= 2) { 
+      potionFadeTimer = millis();
+      CauldronRoomStrip.setBrightness(potionBrightness);
+      CauldronRoomStrip.show();
+      
+      potionBrightness++;
+      if (potionBrightness > 255) {
+        potionFading = false; // Анимация завершена
+      }
+    }
+  }
+
   if (game == "fish") {
     digitalWrite(pinA, 0);
     digitalWrite(pinB, 0);
@@ -1686,14 +1707,16 @@ void MapGame() {
       isPotionDoorOpened = true;
       OpenLock(PotionsRoomDoor);
       activePotionRoom = 1;
-      ////дописать свет
-      for (int j = 0; j <= 255; j++) {
+// --- Запуск неблокирующей анимации ---
+      // Мы больше не блокируем код циклом for с delay()
+      if (!potionFading) { // Убедимся, что не запускаем повторно
+        potionFading = true;
+        potionBrightness = 0;
+        potionFadeTimer = millis();
+        // Устанавливаем цвет один раз
         for (int i = 0; i <= 12; i++) {
           CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 197, 143));
         }
-        CauldronRoomStrip.setBrightness(j);
-        CauldronRoomStrip.show();
-        delay(2);
       }
       game = "";
     }
@@ -1900,14 +1923,15 @@ void MapGame() {
     if (buff == "cat") {
       OpenLock(PotionsRoomDoor);
       activePotionRoom = 1;
-      ////дописать свет
-      for (int j = 0; j <= 255; j++) {
+// --- Запуск неблокирующей анимации (для 'cat') ---
+      if (!potionFading) { // Убедимся, что не запускаем повторно
+        potionFading = true;
+        potionBrightness = 0;
+        potionFadeTimer = millis();
+        // Устанавливаем цвет один раз
         for (int i = 0; i <= 12; i++) {
           CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 197, 143));
         }
-        CauldronRoomStrip.setBrightness(j);
-        CauldronRoomStrip.show();
-        delay(2);
       }
       game = "";
     }
