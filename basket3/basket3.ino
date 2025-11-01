@@ -714,6 +714,7 @@ void _Button_5() {
   }
 }
 void BasketLesson(){
+  static bool isStart;
   boyButton.tick();
   if(boyButton.isPress()){
     if(!isStart){
@@ -725,9 +726,8 @@ void BasketLesson(){
     if(!isStart){
       Serial1.println("boy_out");
     }
-    
   }
-  static bool isStart;
+
   if(isStart){
     bool btnState = digitalRead(BASKET_IR_PIN);
     if(btnState && !basket_ir_read_F){
