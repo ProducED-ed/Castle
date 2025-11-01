@@ -38,7 +38,12 @@ const int board4 = 33;   // Выход Y
 #include <OneWire.h>
 #include "GyverButton.h"
 #include <Servo.h>
-//----------------------
+
+bool isUfBlinking = false;
+int ufBlinkCount = 0;
+unsigned long ufBlinkTimer = 0;
+const int UF_BLINK_TOTAL = 6; // 3 включения + 3 выключения
+
 //---------------экзэмпляры классов
 //-----------коммуникации
 SoftwareSerial mySerial(10, 31);  // rx tx
@@ -432,6 +437,35 @@ void MagicEffect() {
   }
 }
 
+void handleUfBlinking() {
+  // Если мигание не активно, ничего не делаем
+  if (!isUfBlinking) {
+    return;
+  }
+
+  // Проверяем, прошло ли 500 мс
+  if (millis() - ufBlinkTimer >= 500) {
+    ufBlinkTimer = millis(); // Сбрасываем таймер
+
+    if (ufBlinkCount % 2 == 0) {
+      // Четный шаг: включаем свет
+      digitalWrite(UfHallLight, HIGH);
+    } else {
+      // Нечетный шаг: выключаем свет
+      digitalWrite(UfHallLight, LOW);
+    }
+
+    ufBlinkCount++; // Увеличиваем счетчик шагов
+
+    // Если мы выполнили все 6 шагов (3 вкл + 3 выкл)
+    if (ufBlinkCount >= UF_BLINK_TOTAL) {
+      isUfBlinking = false; // Останавливаем мигание
+      digitalWrite(UfHallLight, LOW); // Гарантированно выключаем свет 
+      ufBlinkCount = 0;
+    }
+  }
+}
+
 ///////////////////////////////48 свободный
 void setup() {
   pinMode(firstCrystal, INPUT_PULLUP);
@@ -612,6 +646,7 @@ void setup() {
 }
 void loop() {
   handleLocks();
+  handleUfBlinking();
   //digitalWrite(pinA, 0);
   //digitalWrite(pinB, 0);
   //digitalWrite(pinC, 1);
@@ -1102,8 +1137,9 @@ void HelpHandler(String from) {
         Serial.println(dragonHints[3]);
       }
       if (level == 4) {
-        dragonCounter = (dragonCounter == 4) ? 5 : 4;
         Serial.println(dragonHints[dragonCounter]);
+        dragonCounter = (dragonCounter == 4) ? 5 : 4;
+        
       }
       if (level > 4) {
         Serial.println(dragonHints[3]);
@@ -1122,21 +1158,23 @@ void HelpHandler(String from) {
     //if (!digitalReadExpander(1, board1)) {
     if (studentButton.isPress()) {
       if (level > 1 && level < 4) {
-        studentCounter = (studentCounter == 0) ? 1 : 0;  // Правильно: сначала _b (индекс 0), потом _c (индекс 1)
         Serial.println(studentHints[studentCounter]);
+        studentCounter = (studentCounter == 0) ? 1 : 0;  // Правильно: сначала _b (индекс 0), потом _c (индекс 1)
       }
       if (level > 3 && level < 11) {
         Serial.println(studentHints[2]);
       }
 
       if (level == 11) {
-        studentCounter = (studentCounter == 3) ? 4 : 3;
         Serial.println(studentHints[studentCounter]);
+        studentCounter = (studentCounter == 3) ? 4 : 3;
+        
       }
 
       if (level > 11 && level < 17) {
-        studentCounter = (studentCounter == 5) ? 6 : 5;  // Правильно: сначала _b (индекс 5), потом _c (индекс 6)
         Serial.println(studentHints[studentCounter]);
+        studentCounter = (studentCounter == 5) ? 6 : 5;  // Правильно: сначала _b (индекс 5), потом _c (индекс 6)
+        
       }
 
       if (level == 17) {
@@ -1149,17 +1187,19 @@ void HelpHandler(String from) {
     //if (!digitalReadExpander(7, board3)) {
     if (professorButton.isPress()) {
       if (level > 4 && level < 6) {
-        professorCounter = (professorCounter == 1) ? 0 : 1;
         Serial.println(professorHints[professorCounter]);
+        professorCounter = (professorCounter == 1) ? 0 : 1;
       }
       if (level == 6) {
-        professorCounter = (professorCounter == 2) ? 3 : 2;  // Правильно: сначала _b (индекс 2), потом _c (индекс 3)
         Serial.println(professorHints[professorCounter]);
+        professorCounter = (professorCounter == 2) ? 3 : 2;  // Правильно: сначала _b (индекс 2), потом _c (индекс 3)
+        
       }
       if (level == 7) {
         if (!isPotionDoorOpened || !isDogDoorOpened || !isOwlDoorOpened || !isTrainStarted) {
-          professorCounter = (professorCounter == 5) ? 4 : 5;
           Serial.println(professorHints[professorCounter]);
+          professorCounter = (professorCounter == 5) ? 4 : 5;
+          
         } else {
           Serial.println(professorHints[6]);
         }
@@ -1172,8 +1212,9 @@ void HelpHandler(String from) {
     //гоблин
     if (goblinButton.isPress()) {
       if (level == 9) {
-        goblinCounter = (goblinCounter == 1) ? 0 : 1;
         Serial.println(goblinHints[goblinCounter]);
+        goblinCounter = (goblinCounter == 1) ? 0 : 1;
+        
       }
       if (level > 9 && level < 18) {
         Serial.println(goblinHints[2]);
@@ -1184,16 +1225,19 @@ void HelpHandler(String from) {
     //директор
     if (directorButton.isPress()) {
       if (level == 13) {
-        directorCounter = (directorCounter == 0) ? 1 : 0;
         Serial.println(directorHints[directorCounter]);
+        directorCounter = (directorCounter == 0) ? 1 : 0;
+        
       }
       if (level == 14) {
-        directorCounter = (directorCounter == 2) ? 3 : 2;
         Serial.println(directorHints[directorCounter]);
+        directorCounter = (directorCounter == 2) ? 3 : 2;
+        
       }
       if (level > 14 && level < 18) {
-        directorCounter = (directorCounter == 4) ? 5 : 4;  // Правильно: сначала _b (индекс 4), потом _c (индекс 5)
         Serial.println(directorHints[directorCounter]);
+        directorCounter = (directorCounter == 4) ? 5 : 4;  // Правильно: сначала _b (индекс 4), потом _c (индекс 5)
+        
       }
       flagSound = 0;
     }
@@ -1201,8 +1245,9 @@ void HelpHandler(String from) {
     //ведьма
     if (witchButton.isPress()) {
       if (level == 7 && !isPotionEnd) {
-        witchCounter = (witchCounter == 1) ? 0 : 1;
         Serial.println(witchHints[witchCounter]);
+        witchCounter = (witchCounter == 1) ? 0 : 1;
+        
       }
       if (isPotionEnd) {
         Serial.println(witchHints[2]);
@@ -1213,8 +1258,9 @@ void HelpHandler(String from) {
     //гном
     if (from == "dwaf") {
       if (level == 7 && !isOwlEnd) {
-        dwarfCounter = (dwarfCounter == 1) ? 0 : 1;
         Serial.println(dwarfHints[dwarfCounter]);
+        dwarfCounter = (dwarfCounter == 1) ? 0 : 1;
+        
       }
       if (isOwlEnd) {
         Serial.println(dwarfHints[2]);
@@ -1225,8 +1271,9 @@ void HelpHandler(String from) {
     //рыцарь
     if (from == "knight") {
       if (level == 7 && !isDogEnd) {
-        knightCounter = (knightCounter == 1) ? 0 : 1;
         Serial.println(knightHints[knightCounter]);
+        knightCounter = (knightCounter == 1) ? 0 : 1;
+        
       }
       if (isDogEnd) {
         Serial.println(knightHints[2]);
@@ -1237,8 +1284,9 @@ void HelpHandler(String from) {
     //троль
     if (from == "troll") {
       if (level == 7 && !isTrollEnd) {
-        trollCounter = (trollCounter == 1) ? 0 : 1;
         Serial.println(trollHints[trollCounter]);
+        trollCounter = (trollCounter == 1) ? 0 : 1;
+        
       }
       if (isTrollEnd) {
         Serial.println(trollHints[2]);
@@ -1351,22 +1399,21 @@ void ClockGame() {
   }
 }
 
-/// галетники в первой комнате
+/// Часы в первой комнате
 void Clock2Game() {
   //clock3Button.tick();
   //if (clock3Button.isPress()) {
   if (!digitalReadExpander(2, board2)) {
     Serial.println("clock2");
-    //OpenLock(MansardDoor);
-    for (int i = 0; i < 3; i++) {
-      digitalWrite(UfHallLight, HIGH);
-      delay(500);
-      digitalWrite(UfHallLight, LOW);
-      delay(500);
-    }
-    digitalWrite(UfHallLight, LOW);
-    stepsTimer = millis();
-    level++;
+    if (!isUfBlinking) { // Запускаем, только если еще не мигает
+            isUfBlinking = true;
+            ufBlinkCount = 0;
+            ufBlinkTimer = millis();
+        }
+        // --- (Конец удаления) --- 
+        
+        stepsTimer = millis();
+        level++; 
   }
 
   if (Serial.available()) {
@@ -1378,13 +1425,11 @@ void Clock2Game() {
 
       // Добавлена логика мигания и выключения УФ-светодиода,
       // аналогичная блоку физического взаимодействия.
-      for (int i = 0; i < 3; i++) {
-        digitalWrite(UfHallLight, HIGH);
-        delay(500);
-        digitalWrite(UfHallLight, LOW);
-        delay(500);
+    if (!isUfBlinking) { // Запускаем, только если еще не мигает
+          isUfBlinking = true;
+          ufBlinkCount = 0;
+          ufBlinkTimer = millis();
       }
-      digitalWrite(UfHallLight, LOW);
       stepsTimer = millis();
       level++;
     }
