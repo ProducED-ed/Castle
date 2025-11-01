@@ -1522,7 +1522,7 @@ def Remote(check):
                  
         
      #------- обработка в режиме рестарта   
-     elif go == 2: # --- ИЗМЕНЕНИЕ: Используем elif вместо if для режима рестарта ---
+     elif go == 2 or go == 3: # --- ИЗМЕНЕНИЕ: Используем elif вместо if для режима рестарта ---
         if check=='open_mansard_door':
              serial_write_queue.put('open_mansard_door')
         if check=='suitcase': 
