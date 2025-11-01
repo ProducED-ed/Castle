@@ -716,10 +716,16 @@ void _Button_5() {
 void BasketLesson(){
   boyButton.tick();
   if(boyButton.isPress()){
-    Serial1.println("boy_in");
+    if(!isStart){
+      Serial1.println("boy_in");
+    }
+    
   }
   if(boyButton.isRelease()){
-    Serial1.println("boy_out");
+    if(!isStart){
+      Serial1.println("boy_out");
+    }
+    
   }
   static bool isStart;
   if(isStart){
@@ -763,6 +769,38 @@ void BasketLesson(){
 }
 
 void Basket(){
+  if (Serial1.available())
+    {
+      String buff = Serial1.readString();
+      if (buff == "start_basket\r\n"){
+        basketTimer = millis();
+        digitalWrite(basketLed, HIGH);
+        _startBasket = 1;
+    }
+    else if (buff == "start_basket_robot\r\n"){
+      SCORE_ROBOT++;
+      OUTPUT_TO_DISPLAY();
+      delay(2000);
+      PRINT_SCORE_ROBOT();
+      delay(50);
+    }
+    else if (buff == "win\r\n"){
+      SCORE_MAN=3;
+      OUTPUT_TO_DISPLAY();
+      delay(2000);
+      PRINT_SCORE_ROBOT();
+      delay(1000);
+      PRINT_SCORE_MAN();
+      delay(1000);
+      Serial1.println("fr8nmr");
+      isLoose = 0;
+      state++;
+    }
+    else
+    {
+      HandleMessagges(buff);
+    }
+  }
   boyButton.tick();
   if (SCORE_MAN == 3) {
       delay(1000);
@@ -804,38 +842,6 @@ void Basket(){
 
   if(boyButton.isHold()){
     OUTPUT_TO_DISPLAY();
-    if (Serial1.available())
-    {
-      String buff = Serial1.readString();
-      if (buff == "start_basket\r\n"){
-        basketTimer = millis();
-        digitalWrite(basketLed, HIGH);
-        _startBasket = 1;
-    }
-    else if (buff == "start_basket_robot\r\n"){
-      SCORE_ROBOT++;
-      OUTPUT_TO_DISPLAY();
-      delay(2000);
-      PRINT_SCORE_ROBOT();
-      delay(50);
-    }
-    else if (buff == "win\r\n"){
-      SCORE_MAN=3;
-      OUTPUT_TO_DISPLAY();
-      delay(2000);
-      PRINT_SCORE_ROBOT();
-      delay(1000);
-      PRINT_SCORE_MAN();
-      delay(1000);
-      Serial1.println("fr8nmr");
-      isLoose = 0;
-      state++;
-    }
-    else
-    {
-      HandleMessagges(buff);
-    }
-  }
 
   if(_startBasket){
       if(millis()-basketTimer <= 15000){

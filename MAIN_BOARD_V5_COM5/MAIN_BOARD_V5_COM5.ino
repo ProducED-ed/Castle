@@ -5997,6 +5997,8 @@ void updateComet() {
         }
 
         Serial2.println("start_basket");
+        delay(500);
+        Serial2.println("start_basket");
       }
     }
   } else {
@@ -6016,6 +6018,8 @@ void updateComet() {
         } else {
           Serial.println("catch2");
         }
+        Serial2.println("start_basket");
+        delay(500);
         Serial2.println("start_basket");
       }
     }
@@ -6038,6 +6042,8 @@ void updateComet() {
           Serial.println("catch3");
         }
         Serial2.println("start_basket");
+        delay(500);
+        Serial2.println("start_basket");
       }
     }
   } else {
@@ -6057,6 +6063,8 @@ void updateComet() {
         } else {
           Serial.println("catch4");
         }
+        Serial2.println("start_basket");
+        delay(500);
         Serial2.println("start_basket");
       }
     }
