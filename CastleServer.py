@@ -3203,11 +3203,20 @@ def serial():
                               play_story(story_23_en)
                           if(language==3):
                               play_story(story_23_ar)
-                          while channel3.get_busy()==True and go == 1: 
+                          while channel3.get_busy()==True and go == 1:
                               time.sleep(0.1)
-                          time.sleep(1.0)    
-                          serial_write_queue.put('open_bank')    
-                          time.sleep(5.0)      
+                          time.sleep(1.0)
+                          serial_write_queue.put('open_bank')
+                          # Этот блок немедленно отправит команду 'open_bank', 
+                          # не дожидаясь завершения time.sleep(5.0) и story_24.
+                          while not serial_write_queue.empty():
+                              try:
+                                  message_to_send = serial_write_queue.get_nowait()
+                                  ser.write(str.encode(message_to_send + '\n'))
+                              except eventlet.queue.Empty:
+                                  break # Очередь пуста
+                              time.sleep(0.01) # Даем время на отправку
+                          time.sleep(5.0)
                           if(language==1):
                               play_story(story_24_ru)  
                           if(language==2):
