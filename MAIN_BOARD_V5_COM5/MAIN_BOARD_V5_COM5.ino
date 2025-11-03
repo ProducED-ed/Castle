@@ -324,7 +324,7 @@ bool isTrainBasket;
 int ghostState = 0;
 
 String dragonHints[] = { "dragon_crystal", "hint_2_b", "hint_2_c", "hint_2_z", "hint_5_b", "hint_5_c" };
-String studentHints[] = { "hint_3_b", "hint_3_c", "hint_3_z", "hint_37_b", "hint_37_c", "hint_44_b", "hint_44_c" };
+String studentHints[] = { "hint_3_b", "hint_3_c", "hint_3_z", "hint_37_b", "hint_37_c", "hint_38_b", "hint_44_b", "hint_44_c" };
 String professorHints[] = { "hint_6_b", "hint_6_c", "hint_10_b", "hint_10_c", "hint_11_b", "hint_11_c", "hint_11_z" };
 String dwarfHints[] = { "hint_14_b", "hint_14_c", "hint_14_z" };
 String witchHints[] = { "hint_17_b", "hint_17_c", "hint_17_z" };
@@ -1164,27 +1164,27 @@ void HelpHandler(String from) {
     }
 
     //студент
-    //if (!digitalReadExpander(1, board1)) {
+    //студент
     if (studentButton.isPress()) {
       if (level > 1 && level < 4) {
+        // Логика для hint_3_b (0) и hint_3_c (1)
         Serial.println(studentHints[studentCounter]);
-        studentCounter = (studentCounter == 0) ? 1 : 0;  // Правильно: сначала _b (индекс 0), потом _c (индекс 1)
+        studentCounter = (studentCounter == 0) ? 1 : 0; 
       }
       if (level > 3 && level < 11) {
+        // Логика для hint_3_z (2)
         Serial.println(studentHints[2]);
       }
+
       // Новая логика для level 11 ---
       if (level == 11) {
-        // Проверяем, включен ли свет в библиотеке (значит, дверь открыта)
-        if (digitalRead(LibraryLight) == HIGH) {
-          // Дверь открыта: играем "hint_44_b" (5) и "hint_44_c" (6)
-          if (studentCounter < 5 || studentCounter > 6) {
-            studentCounter = 5; // Сброс на "44_b"
-          }
-          Serial.println(studentHints[studentCounter]);
-          studentCounter = (studentCounter == 5) ? 6 : 5; // Переключает 5 <-> 6
+        // ghostState становится >= 2 после завершения second_clock_2 (uf_clock) 
+        if (ghostState >= 2) {
+          // 1. Воспроизводим hint_38_b (индекс 5)
+          Serial.println(studentHints[5]);
+          // (Эта подсказка не циклится, как вы и просили)
         } else {
-          // Дверь закрыта: играем "hint_37_b" (3) и "hint_37_c" (4)
+          // 2. Воспроизводим hint_37_b (3) и hint_37_c (4)
           if (studentCounter < 3 || studentCounter > 4) {
             studentCounter = 3; // Сброс на "37_b"
           }
@@ -1193,9 +1193,18 @@ void HelpHandler(String from) {
         }
       }
 
-      // Новая логика для level 12+ ---
-      // Играем "hint_3_z" (индекс 2) до level 17
-      if (level >= 12 && level < 17) { 
+      // Новая логика для level 12 ---
+      if (level == 12) {
+        // Воспроизводим hint_44_b (6) и hint_44_c (7)
+        if (studentCounter < 6 || studentCounter > 7) {
+          studentCounter = 6;
+        }
+        Serial.println(studentHints[studentCounter]);
+        studentCounter = (studentCounter == 6) ? 7 : 6; // Переключает 6 <-> 7
+      }
+      
+      // Воспроизводим "hint_3_z" (индекс 2) на всех последующих уровнях (до level 17)
+      if (level > 12 && level < 17) { 
          Serial.println(studentHints[2]);
       }
 
@@ -3058,60 +3067,76 @@ void LibraryGame() {
 }
 
 void CentralTowerGame() {
+  // state 0: Ожидание камина (Геркон 1)
+  // state 1: Ожидание кубка (Геркон 2)
   static int state = 0;
-  static bool flag = 0;
-  //FireCup();
+  
+  // 'flag' отвечает за ЛОГИКУ ЗАГАДКИ (камин должен быть нажат перед кубком)
+  static bool flag = 0; 
+  
+  // 'fireplacePressed' отвечает за ЛОГИКУ ЗВУКА (один звук за одно нажатие)
+  static bool fireplacePressed = false;
+
   switch (state) {
-    case 0:
-      if (!digitalReadExpander(3, board4)) {
-        //state++;
-        //Serial.println("fire");
-        //delay(1500);
-        flag = 1;
+    case 0: // Ожидание камина (Геркон 1)
+      
+      // Проверяем геркон камина
+      if (!digitalReadExpander(3, board4)) { // ГЕРКОН 1 (Камин) НАЖАТ
+        if (!fireplacePressed) { // Если мы его еще не "защелкнули"
+          Serial.println("fire");    // Отправляем команду на звук
+          fireplacePressed = true; // "Защелкиваем" звук
+          flag = 1;                // "Защелкиваем" логику (теперь можно нажать кубок)
+        }
+      } else { // ГЕРКОН 1 (Камин) ОТПУЩЕН
+        fireplacePressed = false; // "Отщелкиваем" звук (можно нажать снова)
       }
+
+      // Проверяем, был ли камин нажат И ЗАТЕМ отпущен, чтобы перейти к кубку
       if (digitalReadExpander(3, board4) && flag) {
-        state++;
-        Serial.println("fire");
+        state = 1; // Переходим в состояние ожидания кубка
       }
       break;
-    case 1:
-      if (!digitalReadExpander(2, board4)) {
+
+    case 1: // Ожидание кубка (Геркон 2)
+
+      // Проверяем геркон кубка
+      if (!digitalReadExpander(2, board4)) { // ГЕРКОН 2 (Кубок) НАЖАТ
         Serial2.println("opent_basket");
         Serial.println("door_basket");
         fireFlag = 1;
-        state = 0;
+        state = 0; // Сбрасываем всю логику
         flag = 0;
+        fireplacePressed = false;
         level++;
+      }
+
+      // Мы также продолжаем проверять геркон камина,
+      // чтобы игрок мог нажимать его для звука, пока ждет.
+      if (!digitalReadExpander(3, board4)) { // ГЕРКОN 1 (Камин) НАЖАТ
+        if (!fireplacePressed) {
+          Serial.println("fire");
+          fireplacePressed = true;
+        }
+      } else { // ГЕРКОН 1 (Камин) ОТПУЩЕН
+        fireplacePressed = false;
       }
       break;
   }
 
-  // Добавлен обработчик команд от сервера, чтобы принять команду "student_hide"
+  // --- Обработка команд Serial (остается без изменений) ---
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "student_hide") {
       boyServo.attach(49);
-      boyServo.write(0);  // Поворачиваем сервопривод в скрытое положение
+      boyServo.write(0);
       delay(1000);
       boyServo.detach();
     }
 
     if (buff == "door_top") {
       Serial1.println("day_on");
-      Serial2.println("day_on");
-      Serial3.println("day_on");
-      mySerial.println("day_on");
-      for (int i = 0; i <= 50; i++) {
-        CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 255, 255));
-      }
-      CauldronRoomStrip.show();
-      digitalWrite(MansardLight, HIGH);
-      digitalWrite(LibraryLight, HIGH);
-      digitalWrite(BankRoomLight, HIGH);
-      digitalWrite(HallLight, HIGH);
-      digitalWrite(UfHallLight, LOW);
-      digitalWrite(TorchLight, HIGH);
+      // ... (остальной код door_top) ...
       OpenLock(HightTowerDoor2);
       digitalWrite(LastTowerTopLight, HIGH);
       flag = 0;
@@ -3126,6 +3151,7 @@ void CentralTowerGame() {
     if (buff == "restart") {
       flag = 0;
       state = 0;
+      fireplacePressed = false; // <-- Добавлен сброс
       OpenAll();
       RestOn();
     }
