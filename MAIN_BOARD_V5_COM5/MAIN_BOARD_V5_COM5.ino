@@ -1176,7 +1176,7 @@ void HelpHandler(String from) {
       // Новая логика для level 11 ---
       if (level == 11) {
         // Проверяем, включен ли свет в библиотеке (значит, дверь открыта)
-        if (digitalRead(LibraryLight) == HIGH) { [cite: 307, 759, 762, 769]
+        if (digitalRead(LibraryLight) == HIGH) {
           // Дверь открыта: играем "hint_44_b" (5) и "hint_44_c" (6)
           if (studentCounter < 5 || studentCounter > 6) {
             studentCounter = 5; // Сброс на "44_b"
@@ -1196,7 +1196,7 @@ void HelpHandler(String from) {
       // Новая логика для level 12+ ---
       // Играем "hint_3_z" (индекс 2) до level 17
       if (level >= 12 && level < 17) { 
-         Serial.println(studentHints[2]); [cite: 323]
+         Serial.println(studentHints[2]);
       }
 
       flagSound = 0;
@@ -1266,13 +1266,13 @@ void HelpHandler(String from) {
            directorCounter = 4;
         }
         Serial.println(directorHints[directorCounter]);
-        directorCounter = (directorCounter == 4) ? 5 : 4; [cite: 511]
+        directorCounter = (directorCounter == 4) ? 5 : 4;
       }
 
       // Добавлен level 17/18 ---
       if (level == 17 || level == 18) {
         // Играем "hint_56_b", который теперь в конце массива (индекс 6)
-        Serial.println(directorHints[6]); [cite: 328]
+        Serial.println(directorHints[6]);
       }
       flagSound = 0;
     }
