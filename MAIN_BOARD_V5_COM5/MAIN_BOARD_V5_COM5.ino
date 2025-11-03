@@ -324,7 +324,7 @@ bool isTrainBasket;
 int ghostState = 0;
 
 String dragonHints[] = { "dragon_crystal", "hint_2_b", "hint_2_c", "hint_2_z", "hint_5_b", "hint_5_c" };
-String studentHints[] = { "hint_3_b", "hint_3_c", "hint_3_z", "hint_37_b", "hint_37_c", "hint_44_b", "hint_44_c", "hint_56_b" };
+String studentHints[] = { "hint_3_b", "hint_3_c", "hint_3_z", "hint_37_b", "hint_37_c", "hint_44_b", "hint_44_c" };
 String professorHints[] = { "hint_6_b", "hint_6_c", "hint_10_b", "hint_10_c", "hint_11_b", "hint_11_c", "hint_11_z" };
 String dwarfHints[] = { "hint_14_b", "hint_14_c", "hint_14_z" };
 String witchHints[] = { "hint_17_b", "hint_17_c", "hint_17_z" };
@@ -332,7 +332,7 @@ String knightHints[] = { "hint_19_b", "hint_19_c", "hint_19_z" };
 String goblinHints[] = { "hint_23_b", "hint_23_c", "hint_23_z" };
 String trollHints[] = { "hint_26_b", "hint_26_c", "hint_26_z" };
 String workshopHints[] = { "hint_32_b", "hint_32_c", "hint_32_d", "hint_32_e", "hint_32_z" };
-String directorHints[] = { "hint_49_b", "hint_49_c", "hint_50_b", "hint_50_c", "hint_51_b", "hint_51_c" };
+String directorHints[] = { "hint_49_b", "hint_49_c", "hint_50_b", "hint_50_c", "hint_51_b", "hint_51_c", "hint_56_b" };
 
 int dragonCounter = 0;
 int studentCounter = 0;
@@ -717,6 +717,15 @@ void loop() {
       Basket();
       break;
     case 20:
+      if (Serial.available()) {
+        String buff = Serial.readStringUntil('\n');
+        buff.trim();
+        if (buff == "restart") {
+          OpenAll();
+          RestOn(); // Вызываем RestOn(), который сбросит ленты и установит level = 25
+          break; // Выходим из case 20
+        }
+      }
       FinalPresentation();
       break;
     case 21:
@@ -1164,22 +1173,32 @@ void HelpHandler(String from) {
       if (level > 3 && level < 11) {
         Serial.println(studentHints[2]);
       }
-
+      // Новая логика для level 11 ---
       if (level == 11) {
-        Serial.println(studentHints[studentCounter]);
-        studentCounter = (studentCounter == 3) ? 4 : 3;
-        
+        // Проверяем, включен ли свет в библиотеке (значит, дверь открыта)
+        if (digitalRead(LibraryLight) == HIGH) { [cite: 307, 759, 762, 769]
+          // Дверь открыта: играем "hint_44_b" (5) и "hint_44_c" (6)
+          if (studentCounter < 5 || studentCounter > 6) {
+            studentCounter = 5; // Сброс на "44_b"
+          }
+          Serial.println(studentHints[studentCounter]);
+          studentCounter = (studentCounter == 5) ? 6 : 5; // Переключает 5 <-> 6
+        } else {
+          // Дверь закрыта: играем "hint_37_b" (3) и "hint_37_c" (4)
+          if (studentCounter < 3 || studentCounter > 4) {
+            studentCounter = 3; // Сброс на "37_b"
+          }
+          Serial.println(studentHints[studentCounter]);
+          studentCounter = (studentCounter == 3) ? 4 : 3; // Переключает 3 <-> 4
+        }
       }
 
-      if (level > 11 && level < 17) {
-        Serial.println(studentHints[studentCounter]);
-        studentCounter = (studentCounter == 5) ? 6 : 5;  // Правильно: сначала _b (индекс 5), потом _c (индекс 6)
-        
+      // Новая логика для level 12+ ---
+      // Играем "hint_3_z" (индекс 2) до level 17
+      if (level >= 12 && level < 17) { 
+         Serial.println(studentHints[2]); [cite: 323]
       }
 
-      if (level == 17) {
-        Serial.println(studentHints[7]);
-      }
       flagSound = 0;
     }
 
@@ -1225,19 +1244,35 @@ void HelpHandler(String from) {
     //директор
     if (directorButton.isPress()) {
       if (level == 13) {
+        if (directorCounter > 1) {
+          directorCounter = 0;
+        }
         Serial.println(directorHints[directorCounter]);
         directorCounter = (directorCounter == 0) ? 1 : 0;
         
       }
       if (level == 14) {
+        if (directorCounter < 2 || directorCounter > 3) {
+          directorCounter = 2; // Устанавливаем на первую подсказку этого уровня ("hint_50_b")
+        }
         Serial.println(directorHints[directorCounter]);
         directorCounter = (directorCounter == 2) ? 3 : 2;
         
       }
-      if (level > 14 && level < 18) {
+      // Изменен диапазон ---
+      if (level > 14 && level < 17) { // БЫЛО: < 18 
+        // Логика для 51_b (4), 51_c (5)
+        if (directorCounter < 4 || directorCounter > 5) { 
+           directorCounter = 4;
+        }
         Serial.println(directorHints[directorCounter]);
-        directorCounter = (directorCounter == 4) ? 5 : 4;  // Правильно: сначала _b (индекс 4), потом _c (индекс 5)
-        
+        directorCounter = (directorCounter == 4) ? 5 : 4; [cite: 511]
+      }
+
+      // Добавлен level 17/18 ---
+      if (level == 17 || level == 18) {
+        // Играем "hint_56_b", который теперь в конце массива (индекс 6)
+        Serial.println(directorHints[6]); [cite: 328]
       }
       flagSound = 0;
     }
@@ -3926,14 +3961,6 @@ void OpenDoor(int pin) {
 void FinalPresentation() {
   digitalWrite(Fireworks, HIGH);
   MagicEffect();
-  if (Serial.available()) {
-    String buff = Serial.readStringUntil('\n');
-    buff.trim();
-    if (buff == "restart") {
-      OpenAll();
-      RestOn();
-    }
-  }
 }
 
 
