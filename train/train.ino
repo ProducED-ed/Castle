@@ -204,6 +204,9 @@ String mapState;
 bool trainEndConfirmed = false;
 // Таймер для периодической отправки этого сообщения
 unsigned long trainEndSendTimer = 0;
+// Таймер для игнорирования датчика стука после команды ghost_knock
+unsigned long ghostIgnoreStartTime = 0;
+const unsigned long GHOST_IGNORE_DURATION = 3000; // 3 секунды
 
 Encoder enc1(33, 25);
 Encoder enc2(35, 32);
@@ -519,7 +522,8 @@ void setup() {
         state = 0;
         FastLED.show();
         hintFlag = 0;
-		trainEndConfirmed = false; // Сбрасываем флаг
+		        trainEndConfirmed = false; // Сбрасываем флаг
+            ghostIgnoreStartTime = 0;
       }
 
       if (body == "\"projector\"") {
@@ -533,6 +537,7 @@ void setup() {
         myMP3.stop();
         delay(150);
         myMP3.playMp3Folder(TRACK_KNOCK);
+        ghostIgnoreStartTime = millis();
       }
       if (body == "\"skip\"") {
         state = 3;
@@ -629,6 +634,7 @@ void setup() {
         skinlightFlashTimer = 0;
         skinup = 0;
         skinlight = 0;
+        ghostIgnoreStartTime = 0;
       }
 
       //
@@ -1864,6 +1870,11 @@ void WorkshopGame() {
 
 void GhostGame() {
   ghost.tick();
+  // --- ДОБАВЛЕНО: Блокировка датчика на 3 секунды ---
+  // Проверяем, находимся ли мы в 3-секундном "тихом" периоде
+  if (millis() - ghostIgnoreStartTime < GHOST_IGNORE_DURATION) {
+    return; // Да, 3 секунды не прошли. Игнорируем тики датчика.
+  }
   if (ghostFlag == 1 and (ghost.isSingle() or ghost.isDouble() or ghost.isTriple())) {
     ghostFlag = 0;
     myMP3.stop();
