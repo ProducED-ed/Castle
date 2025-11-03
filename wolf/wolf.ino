@@ -938,6 +938,32 @@ void WolfGame() {
 
   OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
 
+  // Проверяем геркон ВОЛКА немедленно ---
+  // Это позволяет выиграть "в первой фазе", прервав story_B.
+  if (wolfGerk.isHold()) {
+    auroraEffect(); // Включить анимацию
+    FastLED.show();
+    myMP3.stop();   // Прервать story_B (или любой другой трек)
+    delay(50);
+    
+    // Воспроизвести историю победы story_C
+    if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
+    if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
+    if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
+    if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
+    if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
+    if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+    
+    state = 5; // Переходим в состояние отправки данных о победе 
+    wolfEndSendTimer = millis(); // Готовимся к отправке
+    
+    // Сбрасываем флаги, чтобы не мешать следующему состоянию
+    cloudFiPlaying = false; 
+    TRACK_Flag = false; 
+    
+    return; // Выходим из WolfGame(), так как мы победили
+  }
+
   if (cloudFiPlaying) {
     return;
   }
