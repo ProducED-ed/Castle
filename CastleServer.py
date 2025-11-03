@@ -26,6 +26,7 @@ import os
 import requests
 from requests.exceptions import RequestException
 import eventlet.queue
+import random
 serial_write_queue = eventlet.queue.Queue()
 pending_commands = {} # Словарь для хранения последних команд
 device_timers = {}    # Словарь для отслеживания активных таймеров
@@ -48,6 +49,8 @@ caveCounter = 0
 storyBasketFlag = 0
 catchCount = 0
 enemyCatchCount = 0
+goalCount = 0
+enemyGoalCount = 0
 current_client_sid = None
 sintchEnemyCatchCount = 0
 redSintchEnemyCatchCount = 0
@@ -148,6 +151,8 @@ win = pygame.mixer.Sound('win.wav')
 timeout = pygame.mixer.Sound('timeout.wav')
 swipe_r = pygame.mixer.Sound('swipe_r.wav')
 swipe_l = pygame.mixer.Sound('swipe_l.wav')
+# Списки для голов и историй ---
+player_goal_sounds = [goal2, goal3, goal4, goal5, goal6, goal7]
 
 #тут очень много историй и подсказок так что старайся если будешь добавлять файлы сжимать их предусмотрено много языков так что можно добавлять вплоть до китайского в нашей
 # версии на последний момент было 3 языка просто замени названия
@@ -837,6 +842,36 @@ hint_51_c_ru = pygame.mixer.Sound("hint_51_c_ru.wav")
 hint_56_b_en = pygame.mixer.Sound("hint_56_b_en.wav")
 hint_56_b_ar = pygame.mixer.Sound("hint_56_b_ar.wav")
 hint_56_b_ru = pygame.mixer.Sound("hint_56_b_ru.wav")
+
+player_goal_sounds = [goal2, goal3, goal4, goal5, goal6, goal7]
+
+# Списки историй по языкам (начиная с 'b')
+player_goal_stories_ru = [
+    story_61_b_ru, story_61_c_ru, story_61_d_ru, story_61_e_ru, story_61_f_ru, 
+    story_61_g_ru, story_61_h_ru, story_61_i_ru, story_61_j_ru
+]
+player_goal_stories_en = [
+    story_61_b_en, story_61_c_en, story_61_d_en, story_61_e_en, story_61_f_en, 
+    story_61_g_en, story_61_h_en, story_61_i_en, story_61_j_en
+]
+player_goal_stories_ar = [
+    story_61_b_ar, story_61_c_ar, story_61_d_ar, story_61_e_ar, story_61_f_ar, 
+    story_61_g_ar, story_61_h_ar, story_61_i_ar, story_61_j_ru
+]
+
+# Списки для историй бота
+enemy_goal_stories_ru = [
+    story_65_a_ru, story_65_b_ru, story_65_c_ru, story_65_d_ru, story_65_e_ru, 
+    story_65_f_ru, story_65_g_ru, story_65_h_ru, story_65_i_ru, story_65_j_ru
+]
+enemy_goal_stories_en = [
+    story_65_a_en, story_65_b_en, story_65_c_en, story_65_d_en, story_65_e_en, 
+    story_65_f_en, story_65_g_en, story_65_h_en, story_65_i_en, story_65_j_en
+]
+enemy_goal_stories_ar = [
+    story_65_a_ar, story_65_b_ar, story_65_c_ar, story_65_d_ar, story_65_e_ar, 
+    story_65_f_ar, story_65_g_ar, story_65_h_ar, story_65_i_ar, story_65_j_ar
+]
 
 #---------читаем файлы записываем в переменные 
 f1 = open('1.txt','r')
@@ -1610,22 +1645,21 @@ def handle_data():
           #while channel2.get_busy()==True and go == 1: 
           #     time.sleep(0.1) 
           if mapClickHints == 0:
-               mapClickHints += 1
+               mapClickHints = 1
                if(language==1):
                    play_story(story_12_a_ru)  
                if(language==2):
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
-          if mapClickHints == 1:
-               mapClickHints = -1
+          elif mapClickHints == 1:
+               mapClickHints = 0
                if(language==1):
                    play_story(story_12_b_ru)  
                if(language==2):
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
-          mapClickHints += 1
 
         if 'map' in data and data['map'] == 'fish':
           print("fish")
@@ -1635,22 +1669,21 @@ def handle_data():
           #while channel2.get_busy()==True and go == 1: 
           #     time.sleep(0.1) 
           if mapClickHints == 0:
-               mapClickHints += 1
+               mapClickHints = 1
                if(language==1):
                    play_story(story_12_a_ru)  
                if(language==2):
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
-          if mapClickHints == 1:
-               mapClickHints = -1
+          elif mapClickHints == 1:
+               mapClickHints = 0
                if(language==1):
                    play_story(story_12_b_ru)  
                if(language==2):
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
-          mapClickHints += 1
 
         if 'map' in data and data['map'] == 'key':
           print("key")
@@ -1660,21 +1693,21 @@ def handle_data():
           #while channel2.get_busy()==True and go == 1: 
           #     time.sleep(0.1) 
           if mapClickHints == 0:
+               mapClickHints = 1
                if(language==1):
                    play_story(story_12_a_ru)  
                if(language==2):
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
-          if mapClickHints == 1:
-               mapClickHints = -1
+          elif mapClickHints == 1:
+               mapClickHints = 0
                if(language==1):
                    play_story(story_12_b_ru)  
                if(language==2):
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
-          mapClickHints += 1
 
         if 'map' in data and data['map'] == 'train':
           print("train")
@@ -1684,21 +1717,21 @@ def handle_data():
           #while channel2.get_busy()==True and go == 1: 
           #     time.sleep(0.1) 
           if mapClickHints == 0:
+               mapClickHints = 1
                if(language==1):
                    play_story(story_12_a_ru)  
                if(language==2):
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
-          if mapClickHints == 1:
-               mapClickHints = -1
+          elif mapClickHints == 1:
+               mapClickHints = 0
                if(language==1):
                    play_story(story_12_b_ru)  
                if(language==2):
                    play_story(story_12_b_en)
                if(language==3):
-                   play_story(story_12_b_ar) 
-          mapClickHints += 1          
+                   play_story(story_12_b_ar)
 
         if 'train' in data and data['train'] == 'end':
             print("train_end")
@@ -1729,21 +1762,21 @@ def handle_data():
           while channel2.get_busy()==True and go == 1:
              time.sleep(0.1) 
           if mapClickOut == 0:
+               mapClickOut = 1
                if(language==1):
                    play_story(story_12_c_ru)  
                if(language==2):
                    play_story(story_12_c_en)
                if(language==3):
                    play_story(story_12_c_ar)
-          if mapClickOut == 1:
-               mapClickOut = -1
+          elif mapClickOut == 1:
+               mapClickOut = 0
                if(language==1):
                    play_story(story_12_d_ru)  
                if(language==2):
                    play_story(story_12_d_en)
                if(language==3):
-                   play_story(story_12_d_ar) 
-          mapClickOut += 1
+                   play_story(story_12_d_ar)
 
         if 'ghost' in data and data['ghost'] == 'end':
             print("ghost_map")
@@ -1848,6 +1881,8 @@ def tmr(res):
          starts = 2
          name=""
          flagS = 0
+         goalCount = 0
+         enemyGoalCount = 0
          socketio.emit('level', 'rest',to=None)
          socklist.clear()
          socklist.append('rest')
@@ -2315,6 +2350,8 @@ def serial():
                      redSintchEnemyCatchCount = 0
                      redClickSintchEnemyCatchCount = 0
                      story13Flag = 0
+                     goalCount = 0
+                     enemyGoalCount = 0
                      if language==1: 
                          send_esp32_command(ESP32_API_WOLF_URL, "language_1")
                          send_esp32_command(ESP32_API_TRAIN_URL, "language_1")
@@ -2351,16 +2388,13 @@ def serial():
                          play_story(story_1_en)
                      if(language==3):
                          play_story(story_1_ar)
-                     pygame.mixer.music.set_volume(0.1)    
                      #-----меняем значение переменной
                      name = "start_story_1"    
                      
                      while channel3.get_busy()==True and go == 1: 
                               time.sleep(0.1)
+                     check_story_and_fade_up()
                      send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
-                     with open('1.txt', 'r') as f:
-                         volume = float(f.read(4))
-                     pygame.mixer.music.set_volume(volume)             
                      if(language==1):
                          play_story(story_2_a_ru)  
                      if(language==2):
@@ -2684,15 +2718,9 @@ def serial():
                               play_story(story_3_r_ar)
                      #----прошли галетники     
                      if flag=="galet_on":
-                          #----отправляем на клиента
-                          socketio.emit('level', 'open_mansard_door',to=None)
-                          #-----добавили в историю
-                          socklist.append('open_mansard_door')
-                          #-----играем эффект
-                          play_effect(door_attic)
                           #-----играем фон
                           play_background_music("fon6.mp3")
-                           #---ждем окончания эффекта
+                          #---ждем окончания эффекта
                           while channel2.get_busy()==True and go == 1: 
                               time.sleep(0.1)
                           #----играем историю    
@@ -2705,7 +2733,12 @@ def serial():
 
                           while channel3.get_busy()==True and go == 1: 
                               time.sleep(0.1)
-
+                          #----отправляем на клиента
+                          socketio.emit('level', 'open_mansard_door',to=None)
+                          #-----добавили в историю
+                          socklist.append('open_mansard_door')
+                          #-----играем эффект
+                          play_effect(door_attic)
                           if(language==1):
                               play_story(story_6_ru)  
                           if(language==2):
@@ -3238,6 +3271,16 @@ def serial():
                           play_effect(safe_end)
                           while channel2.get_busy()==True and go == 1: 
                               time.sleep(0.1)
+                          serial_write_queue.put('open_safe')
+                          # Принудительно отправляем команду из очереди немедленно,
+                          # чтобы она ушла на Arduino до начала воспроизведения story_25.
+                          while not serial_write_queue.empty():
+                              try:
+                                  message_to_send = serial_write_queue.get_nowait()
+                                  ser.write(str.encode(message_to_send + '\n'))
+                              except eventlet.queue.Empty:
+                                  break # Очередь пуста
+                              time.sleep(0.01) # Даем время на отправку
                           if(language==1):
                               play_story(story_25_ru)  
                           if(language==2):
@@ -3246,7 +3289,6 @@ def serial():
                               play_story(story_25_ar)
                           while channel3.get_busy()==True and go == 1: 
                               time.sleep(0.1)  
-                          serial_write_queue.put('open_safe')
                           time.sleep(1.1)
                           if(language==1):
                               play_story(story_31_ru)  
@@ -3564,6 +3606,7 @@ def serial():
                               play_story(story_44_ar) 
 
                      if flag=="star_hint":
+                          channel3.stop()
                           play_effect(star_hint)
                           send_esp32_command(ESP32_API_TRAIN_URL, "set_time")
                           #while channel2.get_busy()==True and go == 1: 
@@ -4002,71 +4045,61 @@ def serial():
                                    if(language==3):
                                         play_story(story_60_j_ar) 
                               print(catchCount)      
-                     if flag=="goal_1_player":
-                          play_effect(goal1)
-                          if(language==1):
-                              play_story(story_61_a_ru)  
-                          if(language==2):
-                              play_story(story_61_a_en)
-                          if(language==3):
-                              play_story(story_61_a_ar)    
-                     if flag=="goal_2_player":
-                          play_effect(goal2)
-                          if(language==1):
-                              play_story(story_61_b_ru)  
-                          if(language==2):
-                              play_story(story_61_b_en)
-                          if(language==3):
-                              play_story(story_61_b_ar)    
-                     if flag=="goal_3_player":
-                          play_effect(goal3)
-                          if(language==1):
-                              play_story(story_61_c_ru)  
-                          if(language==2):
-                              play_story(story_61_c_en)
-                          if(language==3):
-                              play_story(story_61_c_ar)    
-                     if flag=="goal_4_player":
-                          play_effect(goal4)
-                          if(language==1):
-                              play_story(story_61_d_ru)  
-                          if(language==2):
-                              play_story(story_61_d_en)
-                          if(language==3):
-                              play_story(story_61_d_ar)    
+                     # --- Логика голов игрока с счетчиком ---
+                     if flag=="goal_1_player" or flag=="goal_2_player" or flag=="goal_3_player" or flag=="goal_4_player":
+                          # 1. Воспроизвести случайный звук гола (goal2-goal7)
+                          play_effect(random.choice(player_goal_sounds))
+                          
+                          # 2. Выбрать правильный список историй по языку
+                          current_story_list = []
+                          if language == 1:
+                              current_story_list = player_goal_stories_ru
+                          elif language == 2:
+                              current_story_list = player_goal_stories_en
+                          elif language == 3:
+                              current_story_list = player_goal_stories_ar
+                          
+                          # 3. Воспроизвести историю по счетчику (начиная с b, c, d...)
+                          if goalCount < len(current_story_list):
+                              play_story(current_story_list[goalCount])
+                          else:
+                              # Если счетчик превысил кол-во историй, проигрываем последнюю
+                              play_story(current_story_list[-1]) 
+                          
+                          # 4. Увеличить счетчик для следующего гола
+                          goalCount += 1
 
-                     if flag=="goal_1_bot":
-                          play_effect(enemy_goal1)
-                          if(language==1):
-                              play_story(story_65_a_ru)  
-                          if(language==2):
-                              play_story(story_65_a_en)
-                          if(language==3):
-                              play_story(story_65_a_ar)    
-                     if flag=="goal_2_bot":
-                          play_effect(enemy_goal2)
-                          if(language==1):
-                              play_story(story_65_b_ru)  
-                          if(language==2):
-                              play_story(story_65_b_en)
-                          if(language==3):
-                              play_story(story_65_b_ar)    
-                     if flag=="goal_3_bot":
-                          play_effect(enemy_goal3)
-                          if(language==1):
-                              play_story(story_65_c_ru)  
-                          if(language==2):
-                              play_story(story_65_c_en)
-                          if(language==3):
-                              play_story(story_65_c_ar)    
-                     if flag=="goal_4_bot":
-                          play_effect(enemy_goal4)
-                          if(language==1):
-                              play_story(story_65_d_ru)  
-                          if(language==2):
-                              play_story(story_65_d_en)
-                          if(language==3):
-                              play_story(story_65_d_ar)  
+                     # Логика голов БОТА с счетчиком ---
+                     if flag=="goal_1_bot" or flag=="goal_2_bot" or flag=="goal_3_bot" or flag=="goal_4_bot":
+                          
+                          # 1. Воспроизвести КОНКРЕТНЫЙ звук гола (в зависимости от флага)
+                          if flag == "goal_1_bot":
+                              play_effect(enemy_goal1)
+                          elif flag == "goal_2_bot":
+                              play_effect(enemy_goal2)
+                          elif flag == "goal_3_bot":
+                              play_effect(enemy_goal3)
+                          elif flag == "goal_4_bot":
+                              play_effect(enemy_goal4)
+
+                          # 2. Выбрать правильный список историй по языку
+                          current_enemy_story_list = []
+                          if language == 1:
+                              current_enemy_story_list = enemy_goal_stories_ru
+                          elif language == 2:
+                              current_enemy_story_list = enemy_goal_stories_en
+                          elif language == 3:
+                              current_enemy_story_list = enemy_goal_stories_ar
+                          
+                          # 3. Воспроизвести историю по счетчику (начиная с a, b, c...)
+                          if enemyGoalCount < len(current_enemy_story_list):
+                              play_story(current_enemy_story_list[enemyGoalCount])
+                          else:
+                              # Если счетчик превысил кол-во историй, проигрываем последнюю
+                              play_story(current_enemy_story_list[-1]) 
+                          
+                          # 4. Увеличить счетчик для следующего гола бота
+                          enemyGoalCount += 1
 
                      if flag=="start_snitch":
                           #----играем эффект 
@@ -4278,17 +4311,8 @@ def serial():
                                if(language==3):
                                     play_story(story_64_b_ar)
                      if flag=="win":
-                          play_effect(win)
-                          socketio.emit('level', 'win_player',to=None)
-                          #-----добавили в историю
-                          socklist.append('win_player')
-                          
-                          send_esp32_command(ESP32_API_WOLF_URL, "firework")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "firework")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
-                          send_esp32_command(ESP32_API_SAFE_URL, "firework")
-                          while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                          # 1. Запускаем фон и ГЛАВНУЮ историю (story_66)
+                          # Они будут играть в фоне на channel3.
                           play_background_music("fon19.mp3")    
                           if(language==1):
                               play_story(story_66_ru)  
@@ -4296,6 +4320,27 @@ def serial():
                               play_story(story_66_en)
                           if(language==3):
                               play_story(story_66_ar)
+
+                          # 2. Отправляем все неблокирующие команды (фейерверки, UI)
+                          socketio.emit('level', 'win_player',to=None)
+                          socklist.append('win_player')
+                          send_esp32_command(ESP32_API_WOLF_URL, "firework")
+                          send_esp32_command(ESP32_API_TRAIN_URL, "firework")
+                          send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
+                          send_esp32_command(ESP32_API_SAFE_URL, "firework")
+                          
+                          # 3. Воспроизвести ПЕРВЫЙ случайный звук гола (goal2-goal7) на channel2
+                          play_effect(random.choice(player_goal_sounds))
+                          while channel2.get_busy()==True and go == 1: 
+                              time.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
+                          
+                          # 4. Воспроизвести ВТОРОЙ случайный звук гола (goal2-goal7) на channel2
+                          play_effect(random.choice(player_goal_sounds))
+                          while channel2.get_busy()==True and go == 1: 
+                              time.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
+
+                          # 5. Воспроизвести звук победы 'win' на channel2
+                          play_effect(win)
                      if flag=="win_robot":
                           socketio.emit('level', 'win_bot',to=None)
                           #-----добавили в историю
