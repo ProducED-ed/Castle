@@ -1038,7 +1038,7 @@ void PowerOn() {
 
     // Unlocks(buff);
     if (buff == "restart") {
-      OpenAll();
+      // OpenAll();
       _dataQueue = 0;
       crimeEvent = 0;
       safeEvent = 0;
@@ -1059,6 +1059,25 @@ void PowerOn() {
       RestOn();
     }
     if (buff == "ready") {
+      // Сбрасываем все флаги проверки состояния
+      _dataQueue = 0;
+      _towerTimer = 0;
+      _towerCounter = 0;
+      doorEvent = 0;
+      mansardEvent = 0;
+      libraryEvent = 0;
+      galet1Event = 0;
+      galet2Event = 0;
+      galet3Event = 0;
+      galet4Event = 0;
+      galet5Event = 0;
+      sealEvent = 0;
+      sealSpaceEvent = 0;
+      finalEvent = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
+      bugTimerScroll = 0;
+
       Serial1.println("ready");
       Serial2.println("ready");
       Serial3.println("ready");
@@ -4056,11 +4075,10 @@ void handleLocks() {
 
 void OpenAll() {
   for (int i = 0; i < DOORS; i++) {
-    digitalWrite(doors[i], HIGH);
-  }
-  delay(500);  // полсекунды открыты
-  for (int i = 0; i < DOORS; i++) {
-    digitalWrite(doors[i], LOW);
+    digitalWrite(doors[i], HIGH); // Включаем ОДИН замок
+    delay(300);                   // Держим его включенным 300 мс (0.3 сек)
+    digitalWrite(doors[i], LOW);  // Выключаем ОДИН замок
+    delay(100);                   // Пауза 100 мс (0.1 сек) перед следующим замком
   }
 }
 
@@ -5401,6 +5419,11 @@ void RestOn() {
   static bool crimeEvent = 0;
   static bool safeEvent = 0;
   static unsigned long bugTimerScroll = 0;
+  static bool firstRun = true;
+  if (firstRun) {
+    OpenAll();
+    firstRun = false; // Сбрасываем флаг
+  }
   boyServo.detach();
   delay(500);
   digitalWrite(MansardLight, HIGH);
@@ -5552,6 +5575,7 @@ void RestOn() {
   isTrainBasket = 0;
   ghostState = 0;
 
+  // Этот сброс нужен, чтобы 'handleLocks' (в игровом режиме) не срабатывал.
   for (int i = 0; i < DOORS; i++) {
     active[i] = false;
   }
@@ -5824,12 +5848,10 @@ void RestOn() {
       safeEvent = 0;
       bugTimerScroll = 0;
       OpenAll();
-      //RestOn();
     }
     if (buff == "ready") {
+      firstRun = true;
       _dataQueue = 0;
-      crimeEvent = 0;
-      safeEvent = 0;
       _towerTimer = 0;
       _towerCounter = 0;
       doorEvent = 0;
@@ -5843,7 +5865,13 @@ void RestOn() {
       sealEvent = 0;
       sealSpaceEvent = 0;
       finalEvent = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
       bugTimerScroll = 0;
+      for (int i = 0; i < DOORS; i++) {
+        active[i] = false;
+      }
+
       Serial1.println("ready");
       delay(500);
       Serial1.println("ready");
