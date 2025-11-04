@@ -1870,9 +1870,12 @@ void WorkshopGame() {
 
 void GhostGame() {
   ghost.tick();
-  // --- ДОБАВЛЕНО: Блокировка датчика на 3 секунды ---
+  // --- ДОБАВЛЕНО: Блокировка и ОЧИСТКА датчика на 3 секунды ---
   // Проверяем, находимся ли мы в 3-секундном "тихом" периоде
   if (millis() - ghostIgnoreStartTime < GHOST_IGNORE_DURATION) {
+    ghost.isSingle();
+    ghost.isDouble();
+    ghost.isTriple();
     return; // Да, 3 секунды не прошли. Игнорируем тики датчика.
   }
   if (ghostFlag == 1 and (ghost.isSingle() or ghost.isDouble() or ghost.isTriple())) {
