@@ -922,8 +922,8 @@ duration   : '1s',
             if(inp === 'start_error') {
                 if(start_error==1 && devices.trim().length > 0){
                     swal.fire({
-                        title: "Error!",
-                        icon: "error",
+                        title: "Attention",
+                        icon: "warning",
                         html: 'Not connected :' + '&nbsp&nbsp'+devices
                    })
                    start_error = 0;
