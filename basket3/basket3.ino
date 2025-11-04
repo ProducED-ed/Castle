@@ -719,16 +719,14 @@ void BasketLesson(){
   if(boyButton.isPress()){
     if(!isStart){
       Serial1.println("boy_in");
-      delay(1000);
-      Serial1.println("boy_in");
+      delay(100);
     }
     
   }
   if(boyButton.isRelease()){
     if(!isStart){
       Serial1.println("boy_out");
-      delay(1000);
-      Serial1.println("boy_out");
+      delay(100);
     }
   }
 
