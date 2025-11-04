@@ -1912,41 +1912,57 @@ def tmr(res):
           #-----перейдет только если был в рестарте или просто запущен
          print("ready")
          if go == 2 or go == 0:
-               if test_esp32() == True:
-                    print("ready")
+               # --- Очищаем список ошибок ПЕРЕД началом проверки ---
+               global devices
+               devices.clear()
+               # 1. Проверяем ESP (эта функция очищает 'devices' в начале)
+               test_esp32()
+               
+               # 2. ОТПРАВЛЯЕМ 'ready' на Arduino.
+               # Arduino НЕМЕДЛЕННО сбросит свои флаги и начнет 
+               # проверку состояния (start_door, safe_open и т.д.)
+               serial_write_queue.put('ready')
+
+               # 3. Даем 5 секунд, используя НЕБЛОКИРУЮЩИЙ eventlet.sleep().
+               #    Это позволяет потоку serial() работать и ПОЛУЧАТЬ ошибки от Arduino.
+               eventlet.sleep(5.0) # <-- БЫЛО time.sleep(1.0)
+               
+               # 4. Теперь проверяем 'devices'. К этому моменту он
+               #    содержит И ошибки ESP, И ошибки Arduino.
+               if len(devices) == 0:
+                    # --- ВСЕ В ПОРЯДКЕ ---
+                    print("ready: OK")
                     socklist.clear()
-                    devices.clear()
-                    serial_write_queue.put('ready')
+                    socketio.emit('level', 'ready',to=None)
+                    
+                    # Отправляем команды ESP (теперь, когда уверены, что все хорошо)
                     send_esp32_command(ESP32_API_WOLF_URL, "ready")
                     send_esp32_command(ESP32_API_TRAIN_URL, "ready")
                     send_esp32_command(ESP32_API_SUITCASE_URL, "ready")
                     send_esp32_command(ESP32_API_SAFE_URL, "ready")
-                    #----отправим на клиента
-                    socketio.emit('level', 'ready',to=None)
-                    go=3 
-                    #---очистим список  
                     
-                    #-----добавим демо
-                    socklist.append('ready')
-                    #----обновим значение флага
+                    go=3 
                     starts = 3
-                    #----остановим музыку на всякий
+                    socklist.append('ready')
                     channel3.stop() 
                     channel2.stop() 
                     pygame.mixer.music.stop()
                     play_background_music("fon1.mp3", loops=-1)
                else:
+                    # --- НАЙДЕНЫ ОШИБКИ (Либо ESP, либо Arduino) ---
+                    print(f"ready: FAILED. devices={devices}")
                     socklist.clear()
                     socketio.emit('level', 'start_error',to=None)
                     socklist.append('start_error')
+                    
                     final_string = ', '.join(str(device) for device in set(devices))
                     socklist.append(final_string)
                     socketio.emit('devices', final_string,to=None)
                     
-         # --- НАЧАЛО ИЗМЕНЕНИЯ: Снимаем блокировку в конце ---
+         # --- Снимаем блокировку в конце ---
          socketio.emit('level', 'ready_finished') # Команда для UI, чтобы разблокировать кнопку
          is_processing_ready = False
-         # --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
 #данный декоратор срабатывает каждые 100 мс сюда заносятся файлы которые очень легко могут потеряться например кнопки если быстро нажимать и отправляем данные по игре
 @socketio.on('Game')
 def checkQuesst(receivedData):
@@ -2089,9 +2105,8 @@ def send_esp32_command(api_url, command, timeout=6, max_retries=4, retry_delay=1
         return _send_command()      
 
 def test_esp32():
-    # Указываем, что мы меняем глобальный список и очищаем его
+     # Добавляет ошибки ESP в глобальный список.
     global devices
-    devices.clear()
     device_configs = [
         ("A wolf in the forest", ESP32_API_WOLF_URL),
         ("Platform", ESP32_API_TRAIN_URL),
@@ -2107,8 +2122,13 @@ def test_esp32():
             response = requests.post(url, json="hc", timeout=5)
             response.raise_for_status()
             success_count += 1
+            # --- Если ESP заработал, но был в списке ошибок, удаляем ---
+            if device_name in devices:
+                devices.remove(device_name)
         except RequestException as e:
-            devices.append(device_name)
+            # --- Добавляем, только если еще не в списке ---
+            if device_name not in devices:
+                devices.append(device_name)
 
     # Результат
     
@@ -2117,9 +2137,6 @@ def test_esp32():
     final_string = ', '.join(str(device) for device in set(devices))
     print(final_string)
     socketio.emit('devices',final_string ,to=None)
-    if success_count == 4 and len(devices) == 0:
-        socklist.clear()
-        devices.clear()
     return success_count == 4 and len(devices) == 0 
                 
 def _send_command_internal(api_url, command, timeout=6, max_retries=4, retry_delay=1):
@@ -2409,7 +2426,7 @@ def serial():
                      if(language==3):
                          play_story(story_2_a_ar)         
                #---режим для событий в ресте показывает что нужно вернуть на свои места
-               if starts == 2 or starts == 0:
+               if starts == 2 or starts == 0 or starts == 3:
                      
                      if flag=="flag1_on":
                           while 'flag1_off' in socklist:
