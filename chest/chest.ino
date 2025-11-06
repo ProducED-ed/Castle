@@ -362,6 +362,7 @@ void setup() {
         timerEndLed = millis();
       timerEndLock = millis();
         state = 3;
+        myMP3.disableLoop();
         myMP3.stop();
         delay(50);
         myMP3.playMp3Folder(TRACK_SUITCASE_END);
