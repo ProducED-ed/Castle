@@ -735,8 +735,8 @@ void BasketLesson(){
     if(btnState && !basket_ir_read_F){
       state++;
       digitalWrite(basketLed, LOW);
-      Serial1.println("fr61nmr");
-      delay(1000);
+      Serial.println("lesson_goal");
+      delay(5000);
       Serial1.println("lesson_basket_done");
       basket_ir_read_F = 1;
       _startBasket = 0;
