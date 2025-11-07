@@ -773,7 +773,7 @@ void loop() {
     FireCup();
   }
 
-  if (level > 0 && level < 18) {
+  if (level > 0 && level < 19) {
     HelpHandler("");
   }
 
@@ -3445,10 +3445,15 @@ void Scrolls() {
       break;
     case 4:
       ScrollFive();
-      //if(millis()-safeTimer>=4000){
-      //  OpenLock(BankStashDoor);
-      //  level++;
-      //}
+      break;
+    // ScrollFive() устанавливает scrollNumber = 5  и safeTimer.
+    // Этот case 5: "ловит" это состояние, ждет 4 секунды и
+    // наконец переключает Arduino на level 10 (Oven).
+    case 5:
+      if (millis() - safeTimer >= 4000) { // 4-секундная задержка после "safe_end"
+        OpenLock(BankStashDoor);
+        level++; // Переходим на level 10 (Oven) 
+      }
       break;
   }
   if (Serial.available()) {
