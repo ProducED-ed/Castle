@@ -154,7 +154,22 @@ $('.ui.dropdown')
      var start_error = 1;
      var devices = "";
      
-     var finalAlert = 1;
+     // Инициализация прогресс-баров ---
+     $('#safe_progress').progress({
+        percent: 0
+     });
+     $('#troll_progress').progress({
+        percent: 0
+     });
+     $('#ghost_progress').progress({
+        percent: 0
+     });
+     $('#owls_progress').progress({
+        percent: 0
+     });
+	 $('#spell_progress').progress({
+        percent: 0
+     });
 
  //настройка подключения не менять
      output = document.getElementById('output');//присвоим переменной значение элемента с id output 
@@ -441,6 +456,101 @@ duration   : '1s',
             if (inp === 'modal_end') {
                     swal.close();     
             }
+			
+			// Логика для иконок и прогресс-баров ---
+
+            // 1. Workshop (Иконки)
+            if (inp === 'helmet') {
+                $('#helmet_icon').addClass('green');
+            }
+            if (inp === 'broom') {
+                $('#broom_icon').addClass('green');
+            }
+
+            // 2. Safe (Прогресс-бар)
+            if (inp === 'safe_step_1') {
+                $('#safe_progress').progress({ percent: 20 });
+            }
+            if (inp === 'safe_step_2') {
+                $('#safe_progress').progress({ percent: 40 });
+            }
+            if (inp === 'safe_step_3') {
+                $('#safe_progress').progress({ percent: 60 });
+            }
+			if (inp === 'safe_step_4') {
+                $('#safe_progress').progress({ percent: 80 });
+            }
+            if (inp === 'safe_end') { // 'safe_end' - это 5-й шаг
+                $('#safe_progress').progress({ percent: 100 });
+            }
+            if (inp === 'safe_reset') {
+                $('#safe_progress').progress({ percent: 0 });
+            }
+
+            // 3. Troll Game (Прогресс-бар)
+            if (inp === 'cave_search1') { // aluminium
+                $('#troll_progress').progress({ percent: 25 });
+            }
+            if (inp === 'cave_search2') { // bronze
+                $('#troll_progress').progress({ percent: 50 });
+            }
+            if (inp === 'cave_search3') { // copper
+                $('#troll_progress').progress({ percent: 75 });
+            }
+            if (inp === 'cave_end') { // 4-й шаг
+                $('#troll_progress').progress({ percent: 100 });
+            }
+
+            // 4. Ghost Game (Прогресс-бар)
+            if (inp === 'story_40') { // Шаг 1 (поезд)
+                $('#ghost_progress').progress({ percent: 20 });
+            }
+            if (inp === 'story_41') { // Шаг 2 (волк)
+                $('#ghost_progress').progress({ percent: 40 });
+            }
+            if (inp === 'story_42') { // Шаг 3 (поезд)
+                $('#ghost_progress').progress({ percent: 60 });
+            }
+            if (inp === 'punch') { // Шаг 4 (финальный стук 'punch' -> 'stage_7')
+                $('#ghost_progress').progress({ percent: 80 });
+            }
+            if (inp === 'set_time') { // Шаг 5 (подсказка 'star_hint' -> 'set_time')
+                $('#ghost_progress').progress({ percent: 100 });
+            }
+
+            // 5. Owls (Прогресс-бар)
+            if (inp === 'owl_flew_1') {
+                $('#owls_progress').progress({ percent: 25 });
+            }
+            if (inp === 'owl_flew_2') {
+                $('#owls_progress').progress({ percent: 50 });
+            }
+            if (inp === 'owl_flew_3') {
+                $('#owls_progress').progress({ percent: 75 });
+            }
+            if (inp === 'owl_flew_4' || inp === 'owl_end') { // 'owl_end' также завершает
+                $('#owls_progress').progress({ percent: 100 });
+            }
+			
+			if (inp === 'spell_step_1') {
+                $('#spell_progress').progress({ percent: 20 });
+            }
+            if (inp === 'spell_step_2') {
+                $('#spell_progress').progress({ percent: 40 });
+            }
+            if (inp === 'spell_step_3') {
+                $('#spell_progress').progress({ percent: 60 });
+            }
+            if (inp === 'spell_step_4') {
+                $('#spell_progress').progress({ percent: 80 });
+            }
+            if (inp === 'spell_step_5') { // 'spell_step_5' - это 5-й шаг (успех)
+                $('#spell_progress').progress({ percent: 100 });
+            }
+            if (inp === 'spell_reset') {
+                $('#spell_progress').progress({ percent: 0 });
+            }
+			
            //тут у нас обрабатываются сообщения об октвации игр
            if (inp === 'active_first_clock') {
                 $('#first_clock').removeClass('disabled');
@@ -996,6 +1106,16 @@ duration   : '1s',
                 $('.button').removeClass('positive');
                 $('.button').removeClass('disabled');
                 $('.icon').removeClass('check');
+				
+				// Сброс иконок и прогресс-баров ---
+                $('#helmet_icon').removeClass('green');
+                $('#broom_icon').removeClass('green');
+
+                $('#safe_progress').progress({ percent: 0 });
+                $('#troll_progress').progress({ percent: 0 });
+                $('#ghost_progress').progress({ percent: 0 });
+                $('#owls_progress').progress({ percent: 0 });
+				$('#spell_progress').progress({ percent: 0 });
 
                 $('#first_door').removeClass('open');
                 $('#first_door').removeClass('green');
