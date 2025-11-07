@@ -1057,7 +1057,50 @@ void PowerOn() {
       //Serial.println("modal");
     }
 
-    // Unlocks(buff);
+    if (buff == "open_mansard_door") {
+      OpenDoor(MansardDoor);
+    }
+    if (buff == "open_crime_door") {
+      OpenDoor(CrimeDoor);
+    }
+    if (buff == "open_bank_door") {
+      OpenDoor(BankDoor);
+    }
+    if (buff == "open_potion_door") {
+      OpenDoor(PotionsRoomDoor);
+    }
+    if (buff == "open_owl_door") {
+      mySerial.println("open_door");
+    }
+    if (buff == "open_dog_door") {
+      Serial3.println("open_door");
+    }
+    if (buff == "open_low_tower_door") {
+      OpenDoor(HightTowerDoor);
+    }
+    if (buff == "open_high_tower_door") {
+      OpenDoor(HightTowerDoor2);
+    }
+    if (buff == "open_library_door") {
+      OpenDoor(LibraryDoor);
+    }
+    if (buff == "open_workshop_door") {
+      Serial1.println("open_door");
+    }
+    if (buff == "open_safe_door") {
+      OpenDoor(BankStashDoor);
+    }
+    if (buff == "open_memory_door") {
+      OpenDoor(MemoryRoomDoor);
+    }
+    if (buff == "open_basket_door") {
+      Serial2.println("open_door");
+    }
+    if (buff == "open_mine_door") {
+      Serial2.println("open_mine_door");
+    }
+
+      Unlocks(buff);
     if (buff == "restart") {
       // OpenAll();
       _dataQueue = 0;
@@ -3897,7 +3940,7 @@ void CrimeHelp() {
 
 void OpenDoor(int pin) {
   digitalWrite(pin, 1);
-  delay(100);
+  delay(300);
   digitalWrite(pin, 0);
 }
 
@@ -5827,7 +5870,7 @@ void RestOn() {
       GoldStrip.show();
       delay(2000);
       level = 0;
-      return;
+      // return;
     }
   }
   level = 25;
