@@ -180,6 +180,25 @@ bool helpFlag;
 bool flagSound = 1;
 bool _trollDoor = 0;
 
+// Глобальные флаги состояния для PowerOn() и RestOn()
+bool _dataQueue = 0;
+unsigned long _towerTimer = 0;
+byte _towerCounter = 0;
+bool doorEvent = 0;
+bool mansardEvent = 0;
+bool libraryEvent = 0;
+bool galet1Event = 0;
+bool galet2Event = 0;
+bool galet3Event = 0;
+bool galet4Event = 0;
+bool galet5Event = 0;
+bool sealEvent = 0;
+bool sealSpaceEvent = 0;
+bool finalEvent = 0;
+bool crimeEvent = 0;
+bool safeEvent = 0;
+unsigned long bugTimerScroll = 0;
+
 ///////////////////таймеры туть
 unsigned long FireInterval = 0;
 unsigned long CauldronFireInterval = 0;
@@ -473,7 +492,7 @@ void setup() {
   pinMode(thirdCrystal, INPUT_PULLUP);
   pinMode(fourCrystal, INPUT_PULLUP);
 
-  pinMode(WindowSens, INPUT);
+  pinMode(WindowSens, INPUT_PULLUP);
 
   pinMode(MansardDoor, OUTPUT);
   pinMode(PotionsRoomDoor, OUTPUT);
@@ -635,10 +654,10 @@ void setup() {
   pinMode(pinA, OUTPUT);
   pinMode(pinB, OUTPUT);
   pinMode(pinC, OUTPUT);
-  pinMode(board1, INPUT);
-  pinMode(board2, INPUT);
-  pinMode(board3, INPUT);
-  pinMode(board4, INPUT);
+  pinMode(board1, INPUT_PULLUP);
+  pinMode(board2, INPUT_PULLUP);
+  pinMode(board3, INPUT_PULLUP);
+  pinMode(board4, INPUT_PULLUP);
 
   boyServo.attach(49);
   boyServo.write(0);
@@ -763,6 +782,7 @@ void loop() {
 // метод открывания тайников и дверей каждая после своего уровня и до конца игры
 
 void PowerOn() {
+  /*
   static bool _dataQueue = 0;
   static unsigned long _towerTimer = 0;
   static byte _towerCounter = 0;
@@ -780,6 +800,7 @@ void PowerOn() {
   static bool crimeEvent = 0;
   static bool safeEvent = 0;
   static unsigned long bugTimerScroll = 0;
+  */
    if (!digitalReadExpander(3, board3) || !digitalReadExpander(0, board3) || !digitalReadExpander(1, board3) || !digitalReadExpander(2, board3)) {
     if (safeEvent) {
       Serial.println("safe_close");
@@ -2229,6 +2250,7 @@ void Oven() {
   if (Serial1.available()) {
     String buff = Serial1.readString();
     //Serial.println(buff);
+    // Пересылка событий helmet и broom 
     if (buff == "help\r\n") {
       HelpHandler("workshop");
     }
@@ -2305,6 +2327,7 @@ void Oven() {
     }
     if (buff == "workshop") {
       Serial1.println("skip");
+      /*
       Serial.println("story_35");
       Serial1.println("item_end");
       Serial2.println("item_end");
@@ -2345,6 +2368,7 @@ void Oven() {
       digitalWrite(TorchLight, LOW);
       digitalWrite(HallLight, HIGH);
       level++;
+      */
     }
     if (buff == "skin") {
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
@@ -3273,6 +3297,13 @@ void CentralTowerGameDown() {
 
         if (puzzleProgress == 0 || puzzleProgress == 2 || puzzleProgress == 4) {
           puzzleProgress++;
+
+          // Отправка шагов ---
+          if (puzzleProgress == 1) Serial.println("spell_step_1");
+          if (puzzleProgress == 3) Serial.println("spell_step_3");
+          if (puzzleProgress == 5) {
+            Serial.println("spell_step_5"); // Это 5-й шаг (успех)
+          }
           if (puzzleProgress == 5) {  // ПОБЕДА
             OpenLock(HightTowerDoor);
             digitalWrite(TorchLight, HIGH);
@@ -3283,6 +3314,7 @@ void CentralTowerGameDown() {
           }
         } else {  // Неправильная последовательность
           Serial.println("swipe_wrong_sequence");
+          Serial.println("spell_reset");
           puzzleProgress = 0;
         }
         swipeState = 3;  // Cooldown
@@ -3302,8 +3334,13 @@ void CentralTowerGameDown() {
 
         if (puzzleProgress == 1 || puzzleProgress == 3) {
           puzzleProgress++;
+
+          // Отправка шагов ---
+          if (puzzleProgress == 2) Serial.println("spell_step_2");
+          if (puzzleProgress == 4) Serial.println("spell_step_4");
         } else {  // Неправильная последовательность
           Serial.println("swipe_wrong_sequence");
+          Serial.println("spell_reset");
           puzzleProgress = 0;
         }
         swipeState = 3;  // Cooldown
@@ -3449,411 +3486,268 @@ void Scrolls() {
   //HelpButton("help_19");
 }
 
+// ПРАВИЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ:
+// Шаг 1 (ScrollOne):   Геркон 1 (Пин 2, board3)
+// Шаг 2 (ScrollTwo):   Геркон 2 (Пин 0, board3)
+// Шаг 3 (ScrollThree): Геркон 3 (Пин 3, board3)
+// Шаг 4 (ScrollFour):  Геркон 2 (Пин 0, board3)
+// Шаг 5 (ScrollFive):  Геркон 4 (Пин 1, board3)
+
 void ScrollOne() {
-  ///--------
+  // --- ШАГ 1: ЖДЕМ ГЕРКОН 1 (Пин 2, board3) ---
+  
+  // --- Проверка ГЕРКОНА 1 (Правильный) ---
   if (!digitalReadExpander(2, board3)) {
-    //if (!digitalReadExpander(0, board3)) {
-    if (!Scroll1On && (millis() - code1Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll1On = 1;
-    }
-    if (millis() - code1Timer >= 2000) {
-      if (!Scroll11On) {
-        scrollNumber++;
-        Serial.println("safe_fix");
-        Scroll11On = 1;
-      }
+    if (!Scroll1On && (millis() - code1Timer >= 300)) { Serial.println("safe_turn"); Scroll1On = 1; code1Timer = millis(); }
+    if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
+      scrollNumber = 1; // Успех, переход на шаг 2
+      Serial.println("safe_fix");
+      Serial.println("safe_step_1");
+      Scroll11On = 1; 
     }
   } else {
-    Scroll11On = 0;
-    Scroll1On = 0;
-    code1Timer = millis();
+    Scroll11On = 0; Scroll1On = 0; code1Timer = millis();
   }
 
-  ///--------
-  if (!digitalReadExpander(1, board3)) {
-    if (!Scroll2On && (millis() - code2Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll2On = 1;
-    }
-    if (millis() - code2Timer >= 2000) {
-      //scrollNumber++;
-      if (!Scroll21On) {
-        Serial.println("safe_fix");
-        Scroll21On = 1;
-      }
-    }
-  } else {
-    Scroll2On = 0;
-    Scroll21On = 0;
-    code2Timer = millis();
-  }
-
-  ///--------
-  //if (!digitalReadExpander(2, board3)) {
+  // --- Проверка ГЕРКОНА 2 (Ошибка) ---
   if (!digitalReadExpander(0, board3)) {
-    if (!Scroll3On && (millis() - code3Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll3On = 1;
-    }
-    if (millis() - code3Timer >= 2000) {
-      if (!Scroll31On) {
-        Serial.println("safe_fix");
-        Scroll31On = 1;
-      }
+    if (!Scroll2On && (millis() - code2Timer >= 300)) { Serial.println("safe_turn"); Scroll2On = 1; code2Timer = millis(); }
+    if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll21On = 1;
     }
   } else {
-    Scroll3On = 0;
-    Scroll31On = 0;
-    code3Timer = millis();
+    Scroll2On = 0; Scroll21On = 0; code2Timer = millis();
   }
-  ///--------
+
+  // --- Проверка ГЕРКОНА 3 (Ошибка) ---
   if (!digitalReadExpander(3, board3)) {
-    if (!Scroll4On && (millis() - code4Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll4On = 1;
+    if (!Scroll3On && (millis() - code3Timer >= 300)) { Serial.println("safe_turn"); Scroll3On = 1; code3Timer = millis(); }
+    if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll31On = 1;
     }
+  } else {
+    Scroll3On = 0; Scroll31On = 0; code3Timer = millis();
+  }
+  
+  // --- Проверка ГЕРКОНА 4 (Ошибка) ---
+  if (!digitalReadExpander(1, board3)) {
+    if (!Scroll4On && (millis() - code4Timer >= 300)) { Serial.println("safe_turn"); Scroll4On = 1; code4Timer = millis(); }
     if (millis() - code4Timer >= 2000) {
       if (!Scroll41On) {
-        Serial.println("safe_fix");
-        Scroll41On = 1;
+        scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll41On = 1;
       }
     }
   } else {
-    Scroll4On = 0;
-    Scroll41On = 0;
-    code4Timer = millis();
+    Scroll4On = 0; Scroll41On = 0; code4Timer = millis();
   }
 }
+
 void ScrollTwo() {
-  ///--------
-  //if (!digitalReadExpander(0, board3)) {
+  // --- ШАГ 2: ЖДЕМ ГЕРКОН 2 (Пин 0, board3) ---
+
+  // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
-    if (!Scroll1On && (millis() - code1Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll1On = 1;
-    }
-    if (millis() - code1Timer >= 2000) {
-      if (!Scroll11On) {
-        Scroll11On = 1;
-        scrollNumber = 0;
-        Scroll11On = 0;
-        Scroll1On = 0;
-        code1Timer = millis();
-        Serial.println("safe_fix");
-      }
+    if (!Scroll1On && (millis() - code1Timer >= 300)) { Serial.println("safe_turn"); Scroll1On = 1; code1Timer = millis(); }
+    if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
+      Scroll11On = 1; 
+      scrollNumber = 1; // Устанавливаем Шаг 1
+      Serial.println("safe_fix"); 
+      Serial.println("safe_reset"); // Сначала сброс
+      Serial.println("safe_step_1"); // Потом засчитываем Шаг 1
+      Scroll1On = 0; code1Timer = millis(); 
     }
   } else {
-    Scroll11On = 0;
-    Scroll1On = 0;
-    code1Timer = millis();
+    Scroll11On = 0; Scroll1On = 0; code1Timer = millis();
   }
 
-  ///--------
-  //if (!digitalReadExpander(1, board3)) {
+  // --- Проверка ГЕРКОНА 2 (Правильный) ---
   if (!digitalReadExpander(0, board3)) {
-    if (!Scroll2On && (millis() - code2Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll2On = 1;
-    }
-    if (millis() - code2Timer >= 2000) {
-      if (!Scroll21On) {
-        scrollNumber++;
-        Serial.println("safe_fix");
-        Scroll21On = 1;
-      }
+    if (!Scroll2On && (millis() - code2Timer >= 300)) { Serial.println("safe_turn"); Scroll2On = 1; code2Timer = millis(); }
+    if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
+      scrollNumber = 2; // Успех, переход на шаг 3
+      Serial.println("safe_fix");
+      Serial.println("safe_step_2");
+      Scroll21On = 1;
     }
   } else {
-    Scroll2On = 0;
-    Scroll21On = 0;
-    code2Timer = millis();
+    Scroll2On = 0; Scroll21On = 0; code2Timer = millis();
   }
 
-  ///--------
-  //if (!digitalReadExpander(2, board3)) {
-  if (!digitalReadExpander(1, board3)) {
-    if (!Scroll3On && (millis() - code3Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll3On = 1;
-    }
-    if (millis() - code3Timer >= 2000) {
-      if (!Scroll31On) {
-        scrollNumber = 0;
-        Scroll31On = 1;
-        Serial.println("safe_fix");
-      }
-    }
-  } else {
-    Scroll3On = 0;
-    Scroll31On = 0;
-    code3Timer = millis();
-  }
-  ///--------
+  // --- Проверка ГЕРКОНА 3 (Ошибка) ---
   if (!digitalReadExpander(3, board3)) {
-    if (!Scroll4On && (millis() - code4Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll4On = 1;
-    }
-    if (millis() - code4Timer >= 2000) {
-      if (!Scroll41On) {
-        scrollNumber = 0;
-        Scroll41On = 1;
-        Serial.println("safe_fix");
-      }
+    if (!Scroll3On && (millis() - code3Timer >= 300)) { Serial.println("safe_turn"); Scroll3On = 1; code3Timer = millis(); }
+    if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll31On = 1;
     }
   } else {
-    Scroll4On = 0;
-    Scroll41On = 0;
-    code4Timer = millis();
+    Scroll3On = 0; Scroll31On = 0; code3Timer = millis();
+  }
+  
+  // --- Проверка ГЕРКОНА 4 (Ошибка) ---
+  if (!digitalReadExpander(1, board3)) {
+    if (!Scroll4On && (millis() - code4Timer >= 300)) { Serial.println("safe_turn"); Scroll4On = 1; code4Timer = millis(); }
+    if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll41On = 1;
+    }
+  } else {
+    Scroll4On = 0; Scroll41On = 0; code4Timer = millis();
   }
 }
+
 void ScrollThree() {
-  ///--------
-  if (!digitalReadExpander(1, board3)) {
-    //if (!digitalReadExpander(0, board3)) {
-    if (!Scroll1On && (millis() - code1Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll1On = 1;
-    }
-    if (millis() - code1Timer >= 2000) {
-      if (!Scroll11On) {
-        Scroll11On = 1;
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-      }
-    }
-  } else {
-    Scroll11On = 0;
-    Scroll1On = 0;
-    code1Timer = millis();
-  }
+  // --- ШАГ 3: ЖДЕМ ГЕРКОН 3 (Пин 1, board3) ---
 
-  ///--------
-  //if (!digitalReadExpander(1, board3)) {
-  if (!digitalReadExpander(0, board3)) {
-    if (!Scroll2On && (millis() - code2Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll2On = 1;
-    }
-    if (millis() - code2Timer >= 2000) {
-      if (!Scroll21On) {
-        Serial.println("safe_fix");
-        scrollNumber = 0;
-        Scroll21On = 1;
-      }
-    }
-  } else {
-    Scroll2On = 0;
-    Scroll21On = 0;
-    code2Timer = millis();
-  }
-
-  ///--------
-  //if (!digitalReadExpander(2, board3)) {
-  if (!digitalReadExpander(3, board3)) {
-    if (!Scroll3On && (millis() - code3Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll3On = 1;
-    }
-    if (millis() - code3Timer >= 2000) {
-
-      if (!Scroll31On) {
-        scrollNumber++;
-        Serial.println("safe_fix");
-        Scroll31On = 1;
-      }
-    }
-  } else {
-    Scroll3On = 0;
-    Scroll31On = 0;
-    code3Timer = millis();
-  }
-  ///--------
-  //if (!digitalReadExpander(3, board3)) {
+  // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
-    if (!Scroll4On && (millis() - code4Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll4On = 1;
-    }
-    if (millis() - code4Timer >= 2000) {
-      if (!Scroll41On) {
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-        Scroll41On = 1;
-      }
+    if (!Scroll1On && (millis() - code1Timer >= 300)) { Serial.println("safe_turn"); Scroll1On = 1; code1Timer = millis(); }
+    if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
+      Scroll11On = 1; 
+      scrollNumber = 1; // Устанавливаем Шаг 1
+      Serial.println("safe_fix"); 
+      Serial.println("safe_reset"); 
+      Serial.println("safe_step_1"); 
     }
   } else {
-    Scroll4On = 0;
-    Scroll41On = 0;
-    code4Timer = millis();
+    Scroll11On = 0; Scroll1On = 0; code1Timer = millis();
+  }
+
+  // --- Проверка ГЕРКОНА 2 (Ошибка) ---
+  if (!digitalReadExpander(0, board3)) {
+    if (!Scroll2On && (millis() - code2Timer >= 300)) { Serial.println("safe_turn"); Scroll2On = 1; code2Timer = millis(); }
+    if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll21On = 1;
+    }
+  } else {
+    Scroll2On = 0; Scroll21On = 0; code2Timer = millis();
+  }
+  
+  // --- Проверка ГЕРКОНА 3 (Правильный) ---
+  if (!digitalReadExpander(3, board3)) {
+    if (!Scroll3On && (millis() - code3Timer >= 300)) { Serial.println("safe_turn"); Scroll3On = 1; code3Timer = millis(); }
+    if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
+      scrollNumber = 3; // Успех, переход на шаг 4
+      Serial.println("safe_fix");
+      Serial.println("safe_step_3");
+      Scroll31On = 1;
+    }
+  } else {
+    Scroll3On = 0; Scroll31On = 0; code3Timer = millis();
+  }
+
+  // --- Проверка ГЕРКОНА 4 (Ошибка) ---
+  if (!digitalReadExpander(1, board3)) {
+    if (!Scroll4On && (millis() - code4Timer >= 300)) { Serial.println("safe_turn"); Scroll4On = 1; code4Timer = millis(); }
+    if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll41On = 1;
+    }
+  } else {
+    Scroll4On = 0; Scroll41On = 0; code4Timer = millis();
   }
 }
 
 void ScrollFour() {
-  ///--------
-  // if (!digitalReadExpander(0, board3)) {
-  //if (!digitalReadExpander(3, board3)) {
+  // --- ШАГ 4: ЖДЕМ ГЕРКОН 2 (Пин 0, board3) ---
+
+  // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
-    if (!Scroll1On && (millis() - code1Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll1On = 1;
-    }
-    if (millis() - code1Timer >= 2000) {
-      if (!Scroll11On) {
-        Scroll11On = 1;
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-      }
+    if (!Scroll1On && (millis() - code1Timer >= 300)) { Serial.println("safe_turn"); Scroll1On = 1; code1Timer = millis(); }
+    if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
+      Scroll11On = 1; 
+      scrollNumber = 1; // Устанавливаем Шаг 1
+      Serial.println("safe_fix"); 
+      Serial.println("safe_reset"); 
+      Serial.println("safe_step_1"); 
     }
   } else {
-    Scroll11On = 0;
-    Scroll1On = 0;
-    code1Timer = millis();
+    Scroll11On = 0; Scroll1On = 0; code1Timer = millis();
   }
 
-  ///--------
-  if (!digitalReadExpander(1, board3)) {
-    if (!Scroll2On && (millis() - code2Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll2On = 1;
-    }
-    if (millis() - code2Timer >= 2000) {
-      scrollNumber = 0;
-      if (!Scroll21On) {
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-        Scroll21On = 1;
-      }
-    }
-  } else {
-    Scroll2On = 0;
-    Scroll21On = 0;
-    code2Timer = millis();
-  }
-
-  ///--------
-  //if (!digitalReadExpander(2, board3)) {
-  if (!digitalReadExpander(3, board3)) {
-    if (!Scroll3On && (millis() - code3Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll3On = 1;
-    }
-    if (millis() - code3Timer >= 2000) {
-      if (!Scroll31On) {
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-        Scroll31On = 1;
-      }
-    }
-  } else {
-    Scroll3On = 0;
-    Scroll31On = 0;
-    code3Timer = millis();
-  }
-  ///--------
-  //if (!digitalReadExpander(3, board3)) {
+  // --- Проверка ГЕРКОНА 2 (Правильный) ---
   if (!digitalReadExpander(0, board3)) {
-    if (!Scroll4On && (millis() - code4Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll4On = 1;
-    }
-    if (millis() - code4Timer >= 2000) {
-      if (!Scroll41On) {
-        scrollNumber++;
-        Serial.println("safe_fix");
-        Scroll41On = 1;
-      }
+    if (!Scroll2On && (millis() - code2Timer >= 300)) { Serial.println("safe_turn"); Scroll2On = 1; code2Timer = millis(); }
+    if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
+      scrollNumber = 4; // Успех, переход на шаг 5
+      Serial.println("safe_fix");
+      Serial.println("safe_step_4");
+      Scroll21On = 1;
     }
   } else {
-    Scroll4On = 0;
-    Scroll41On = 0;
-    code4Timer = millis();
+    Scroll2On = 0; Scroll21On = 0; code2Timer = millis();
+  }
+
+  // --- Проверка ГЕРКОНА 3 (Ошибка) ---
+  if (!digitalReadExpander(3, board3)) {
+    if (!Scroll3On && (millis() - code3Timer >= 300)) { Serial.println("safe_turn"); Scroll3On = 1; code3Timer = millis(); }
+    if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll31On = 1;
+    }
+  } else {
+    Scroll3On = 0; Scroll31On = 0; code3Timer = millis();
+  }
+
+  // --- Проверка ГЕРКОНА 4 (Ошибка) ---
+  if (!digitalReadExpander(1, board3)) {
+    if (!Scroll4On && (millis() - code4Timer >= 300)) { Serial.println("safe_turn"); Scroll4On = 1; code4Timer = millis(); }
+    if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll41On = 1;
+    }
+  } else {
+    Scroll4On = 0; Scroll41On = 0; code4Timer = millis();
   }
 }
 
 void ScrollFive() {
-  ///--------
-  if (!digitalReadExpander(0, board3)) {
-    if (!Scroll4On && (millis() - code4Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll4On = 1;
-    }
-    if (millis() - code1Timer >= 2000) {
-      if (!Scroll41On) {
-        Scroll41On = 1;
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-      }
-    }
-  } else {
-    Scroll41On = 0;
-    Scroll4On = 0;
-    code4Timer = millis();
-  }
+  // --- ШАГ 5: ЖДЕМ ГЕРКОН 4 (Пин 3, board3) ---
 
-  ///--------
-  //if (!digitalReadExpander(1, board3)) {
-  if (!digitalReadExpander(3, board3)) {
-    if (!Scroll2On && (millis() - code2Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll2On = 1;
-    }
-    if (millis() - code2Timer >= 2000) {
-      scrollNumber = 0;
-      if (!Scroll21On) {
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-        Scroll21On = 1;
-      }
-    }
-  } else {
-    Scroll2On = 0;
-    Scroll21On = 0;
-    code2Timer = millis();
-  }
-
-  ///--------
+  // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
-    if (!Scroll3On && (millis() - code3Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll3On = 1;
-    }
-    if (millis() - code3Timer >= 2000) {
-      if (!Scroll31On) {
-        scrollNumber = 0;
-        Serial.println("safe_fix");
-        Scroll31On = 1;
-      }
+    if (!Scroll1On && (millis() - code1Timer >= 300)) { Serial.println("safe_turn"); Scroll1On = 1; code1Timer = millis(); }
+    if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
+      Scroll11On = 1; 
+      scrollNumber = 1; // Устанавливаем Шаг 1
+      Serial.println("safe_fix"); 
+      Serial.println("safe_reset"); 
+      Serial.println("safe_step_1"); 
     }
   } else {
-    Scroll3On = 0;
-    Scroll31On = 0;
-    code3Timer = millis();
+    Scroll11On = 0; Scroll1On = 0; code1Timer = millis();
   }
-  ///--------
-  //if (!digitalReadExpander(3, board3)) {
-  if (!digitalReadExpander(1, board3)) {
-    if (!Scroll1On && (millis() - code1Timer >= 300)) {
-      Serial.println("safe_turn");
-      Scroll1On = 1;
-    }
-    if (millis() - code1Timer >= 2000) {
-      if (!Scroll11On) {
-        scrollNumber++;
-        Serial.println("safe_end");
-        GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
-        GoldStrip.show();
-        safeTimer = millis();
-        Scroll11On = 1;
-      }
+  
+  // --- Проверка ГЕРКОНА 2 (Ошибка) ---
+  if (!digitalReadExpander(0, board3)) {
+    if (!Scroll2On && (millis() - code2Timer >= 300)) { Serial.println("safe_turn"); Scroll2On = 1; code2Timer = millis(); }
+    if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll21On = 1;
     }
   } else {
-    Scroll1On = 0;
-    Scroll11On = 0;
-    code1Timer = millis();
+    Scroll2On = 0; Scroll21On = 0; code2Timer = millis();
+  }
+
+  // --- Проверка ГЕРКОНА 3 (Ошибка) ---
+  if (!digitalReadExpander(3, board3)) {
+    if (!Scroll3On && (millis() - code3Timer >= 300)) { Serial.println("safe_turn"); Scroll3On = 1; code3Timer = millis(); }
+    if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
+      scrollNumber = 0; Serial.println("safe_fix"); Serial.println("safe_reset"); Scroll31On = 1;
+    }
+  } else {
+    Scroll3On = 0; Scroll31On = 0; code3Timer = millis();
+  }
+
+  // --- Проверка ГЕРКОНА 4 (Правильный - Финал) ---
+  if (!digitalReadExpander(1, board3)) {
+    if (!Scroll4On && (millis() - code4Timer >= 300)) { Serial.println("safe_turn"); Scroll4On = 1; code4Timer = millis(); }
+    if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
+      scrollNumber = 5; // Успех, ФИНАЛ
+      Serial.println("safe_end");
+      GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
+      GoldStrip.show();
+      safeTimer = millis();
+      Scroll41On = 1;
+    }
+  } else {
+    Scroll4On = 0; Scroll41On = 0; code4Timer = millis();
   }
 }
-
 
 void SealSpace() {
   static unsigned long lastPress = 0;
@@ -5402,6 +5296,7 @@ void HelpButton(String help) {
 }
 
 void RestOn() {
+  /*
   static bool _dataQueue = 0;
   static unsigned long _towerTimer = 0;
   static byte _towerCounter = 0;
@@ -5419,6 +5314,7 @@ void RestOn() {
   static bool crimeEvent = 0;
   static bool safeEvent = 0;
   static unsigned long bugTimerScroll = 0;
+  */
   static bool firstRun = true;
   if (firstRun) {
     OpenAll();
@@ -5434,14 +5330,28 @@ void RestOn() {
   digitalWrite(HallLight, HIGH);
   digitalWrite(UfHallLight, HIGH);
   digitalWrite(LibraryLight, HIGH);
-  for (int i = 0; i <= 200; i++) {
-    CandleStrip.setPixelColor(i, CandleStrip.Color(255, 255, 255));
-    CauldronStrip.setPixelColor(i, CauldronStrip.Color(255, 255, 255));
-    CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 255, 255));
-    memory_Led.setPixelColor(i, memory_Led.Color(255, 255, 255));
+  uint32_t restartColor = GoldStrip.Color(0, 0, 200); // Используем синий вместо белого
+
+  for (int i = 0; i < GoldStrip.numPixels(); i++) {
+    GoldStrip.setPixelColor(i, restartColor);
+  }
+  for (int i = 0; i < CandleStrip.numPixels(); i++) {
+    CandleStrip.setPixelColor(i, restartColor);
+  }
+  for (int i = 0; i < CauldronStrip.numPixels(); i++) {
+    CauldronStrip.setPixelColor(i, restartColor);
+  }
+  for (int i = 0; i < CauldronRoomStrip.numPixels(); i++) {
+    CauldronRoomStrip.setPixelColor(i, restartColor);
+  }
+  for (int i = 0; i < memory_Led.numPixels(); i++) {
+    memory_Led.setPixelColor(i, restartColor);
+  }
+  for (int i = 0; i < strip1.numPixels(); i++) {
     strip1.setPixelColor(i, strip1.Color(0, 0, 0));
+  }
+  for (int i = 0; i < strip2.numPixels(); i++) {
     strip2.setPixelColor(i, strip2.Color(0, 0, 0));
-    GoldStrip.setPixelColor(i, GoldStrip.Color(255, 255, 255));
   }
   CandleStrip.show();
   CauldronStrip.show();
