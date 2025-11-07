@@ -820,7 +820,7 @@ void Basket(){
       OpenLock(Solenoid);
       SCORE_ROBOT = 0;
       isLoose = 1;
-      //state++;
+      state++; // Переходим в состояние 8 (idle), чтобы остановить игру
     }
   if(boyButton.isPress()){
     OUTPUT_TO_DISPLAY();
