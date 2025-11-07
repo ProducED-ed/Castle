@@ -555,10 +555,11 @@ void loop() {
           digitalWrite(ROOF_LIGHTING_PIN, LOW);
         }
         // NOVYY BLOK: Obrabotka komand dlya ostanovki pulsacii kristalla
-        else if (strcmp_P(receivedUartMessageBuffer, MSG_CRYSTAL) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_GOLD) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_POTION) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_SKIN) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_METAL) == 0) {
+        // которое он сам вызвал, отправляя "crystal".
+        else if (strcmp_P(receivedUartMessageBuffer, MSG_GOLD) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_POTION) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_SKIN) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_METAL) == 0) {
           if (currentQuestState == STATE_GAME_FINISHED) {
-            isCrystalPulsating = false;  // Ostanavlivaem pulsaciyu
-            smoothTurnOnCrystal();       // I vklyuchaem postoyannoe svechenie
+            isCrystalPulsating = false; // Остановка пульсации
+            smoothTurnOnCrystal();      // Включение постоянного света
           }
         }
         // NOVYY BLOK: Obrabotka komandy dlya polnogo vyklyucheniya kristalla
