@@ -198,6 +198,7 @@ bool finalEvent = 0;
 bool crimeEvent = 0;
 bool safeEvent = 0;
 unsigned long bugTimerScroll = 0;
+bool firstRun = true;
 
 ///////////////////таймеры туть
 unsigned long FireInterval = 0;
@@ -1046,6 +1047,7 @@ void PowerOn() {
       directorCounter = 0;
       goblinCounter = 0;
       witchCounter = 0;
+      firstRun = true;
       isPotionDoorOpened = false;
       isDogDoorOpened = false;
       isOwlDoorOpened = false;
@@ -1146,6 +1148,28 @@ void PowerOn() {
       Serial2.println("ready");
       Serial3.println("ready");
       mySerial.println("ready");
+
+      // Немедленно перепроверяем состояние и отправляем ошибки СЕЙЧАС,
+      // пока сервер (CastleServer.py) "спит" 5 секунд и ждет ответа.
+      
+      delay(200); // Короткая пауза, чтобы Serial успел очиститься
+
+      // Копируем проверки из верхней части PowerOn()
+      if (digitalRead(startDoorPin)) { Serial.println("open_door"); }
+      if (!digitalRead(galetSwitchesPin)) { Serial.println("galet_on"); }
+      if (digitalReadExpander(4, board4)) { Serial.println("cristal_up"); }
+      if (digitalReadExpander(7, board1)) { Serial.println("boy_out"); }
+      if (digitalReadExpander(5, board3)) { Serial.println("lib_door"); }
+      if (digitalReadExpander(1, board2)) { Serial.println("crime_open"); }
+      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) { Serial.println("safe_open"); }
+
+      // Также нужно запросить состояние у башен СНОВА.
+      // Команда "ready" (которую мы отправили выше) заставляет башни сброситься,
+      // но нам нужно, чтобы они прислали *текущее* состояние.
+      Serial1.println("check_state");
+      Serial2.println("check_state");
+      Serial3.println("check_state");
+      mySerial.println("check_state");
     }
   }
 }
@@ -5363,7 +5387,7 @@ void RestOn() {
   static bool safeEvent = 0;
   static unsigned long bugTimerScroll = 0;
   */
-  static bool firstRun = true;
+  // static bool firstRun = true;
   if (firstRun) {
     OpenAll();
     firstRun = false; // Сбрасываем флаг
@@ -5808,7 +5832,7 @@ void RestOn() {
       OpenAll();
     }
     if (buff == "ready") {
-      firstRun = true;
+      // firstRun = true;
       _dataQueue = 0;
       _towerTimer = 0;
       _towerCounter = 0;
@@ -5842,6 +5866,23 @@ void RestOn() {
       mySerial.println("ready");
       delay(500);
       mySerial.println("ready");
+      delay(200); // Короткая пауза
+
+      // Копируем проверки
+      if (digitalRead(startDoorPin)) { Serial.println("open_door"); }
+      if (!digitalRead(galetSwitchesPin)) { Serial.println("galet_on"); }
+      if (digitalReadExpander(4, board4)) { Serial.println("cristal_up"); }
+      if (digitalReadExpander(7, board1)) { Serial.println("boy_out"); }
+      if (digitalReadExpander(5, board3)) { Serial.println("lib_door"); }
+      if (digitalReadExpander(1, board2)) { Serial.println("crime_open"); }
+      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) { Serial.println("safe_open"); }
+
+      // Повторно запрашиваем состояние башен
+      Serial1.println("check_state");
+      Serial2.println("check_state");
+      Serial3.println("check_state");
+      mySerial.println("check_state");
+
       digitalWrite(MansardLight, LOW);
       digitalWrite(MansardLight, LOW);
       digitalWrite(LastTowerTopLight, LOW);
