@@ -1578,7 +1578,7 @@ def Remote(check):
                  
         
      #------- обработка в режиме рестарта   
-     elif go == 2 or go == 3: # --- ИЗМЕНЕНИЕ: Используем elif вместо if для режима рестарта ---
+     elif go == 0 or go == 2 or go == 3: # Используем elif вместо if для режима рестарта ---
         if check=='open_mansard_door':
              serial_write_queue.put('open_mansard_door')
         if check=='suitcase': 
@@ -2310,6 +2310,7 @@ def serial():
      global fire0Flag
      global fire1Flag
      global fire2Flag
+     global socklist
      effectLeveltmp = 0
      voiceLeveltmp = 0
      phoneLeveltmp = 0
@@ -3319,38 +3320,25 @@ def serial():
                      if flag=="safe_turn":
                           #----играем эффект 
                           play_effect(safe_turn)
-                          socklist.append('safe_turn') # Для сброса, если понадобится
-                     if flag=="safe_fix":
-                          #----играем эффект 
-                          play_effect(safe_fix)
-                     if flag=="safe_step_1":
-                          socklist.append('safe_step_1')
-                     if flag=="safe_step_2":
-                          socklist.append('safe_step_2')
-                     if flag=="safe_step_3":
-                          socklist.append('safe_step_3')
-                     if flag=="safe_step_4":
-                          socklist.append('safe_step_4')
-                     # 'safe_end' уже обрабатывается ниже
-                     if flag=="safe_reset":
-                          socklist.append('safe_reset')
+                          socklist.append('safe_turn')
                      if flag=="safe_end":
-                          socklist.append('safe_end') # Отправляем команду на пульт для 100%
-                          #----играем эффект 
+                          socklist.append('safe_end')
+                          
+                          # Вся остальная логика 'safe_end', которая у вас уже была
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
                           play_effect(safe_end)
                           while channel2.get_busy()==True and go == 1: 
                               time.sleep(0.1)
                           serial_write_queue.put('open_safe')
-                          # Принудительно отправляем команду из очереди немедленно,
-                          # чтобы она ушла на Arduino до начала воспроизведения story_25.
+                          
                           while not serial_write_queue.empty():
                               try:
                                   message_to_send = serial_write_queue.get_nowait()
                                   ser.write(str.encode(message_to_send + '\n'))
                               except eventlet.queue.Empty:
-                                  break # Очередь пуста
-                              time.sleep(0.01) # Даем время на отправку
+                                  break 
+                              time.sleep(0.01) 
+                              
                           if(language==1):
                               play_story(story_25_ru)  
                           if(language==2):
@@ -3384,7 +3372,26 @@ def serial():
                           socketio.emit('level', 'active_workshop',to=None)
                           socklist.append('active_workshop')
                           socketio.emit('level', 'safe',to=None)
-                          socklist.append('safe')  
+                          socklist.append('safe')
+                     
+                     # Список ВСЕХ команд, которые управляют шкалой сейфа
+                     safe_commands_list = ['safe_step_1', 'safe_step_2', 'safe_step_3', 'safe_step_4', 'safe_end', 'safe_reset']
+
+                     # Проверяем, пришел ли флаг, связанный с сейфом
+                     if flag in safe_commands_list:
+                         
+                         # --- Логика ОЧИСТКИ ---
+                         # (Теперь это будет работать, т.к. 'global socklist' объявлен вверху)
+                         socklist = [item for item in socklist if item not in safe_commands_list]
+                         
+                         # --- Логика ДОБАВЛЕНИЯ ---
+                         # Добавляем ТОЛЬКО ОДНУ, самую свежую команду
+                         socklist.append(flag)
+                             
+                         # --- Логика ЭФФЕКТОВ/ДЕЙСТВИЙ (кроме 'safe_end') ---
+                         if flag != 'safe_end':
+                             # Воспроизводим звук для 'reset' и 'step' ОДИН РАЗ
+                             play_effect(safe_fix)
 
                      if flag=="lib_door":
                           #----играем эффект 
@@ -3643,6 +3650,7 @@ def serial():
                               play_story(story_39_ar) 
                      if flag=="story_40":
                           send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
+                          socklist.append('story_40') # Добавляем флаг для UI
                           if(language==1):
                               play_story(story_40_ru)  
                           if(language==2):
@@ -3651,6 +3659,7 @@ def serial():
                               play_story(story_40_ar)  
                      if flag=="story_41":
                           send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
+                          socklist.append('story_41') # Добавляем флаг для UI
                           if(language==1):
                               play_story(story_41_ru)  
                           if(language==2):
@@ -3658,6 +3667,7 @@ def serial():
                           if(language==3):
                               play_story(story_41_ar)
                      if flag=="story_42":
+                          socklist.append('story_42') # Добавляем флаг для UI
                           if(language==1):
                               play_story(story_42_ru)  
                           if(language==2):
@@ -3667,7 +3677,8 @@ def serial():
                      if flag=="punch":
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_7") 
                           socketio.emit('level', 'ghost',to=None)
-                          socklist.append('ghost') 
+                          socklist.append('ghost')
+                          socklist.append('punch') # Добавляем флаг для UI
                           if(language==1):
                               play_story(story_43_ru)  
                           if(language==2):
@@ -4141,6 +4152,11 @@ def serial():
                               print(catchCount)      
                      # --- Логика голов игрока с счетчиком ---
                      if flag=="goal_1_player" or flag=="goal_2_player" or flag=="goal_3_player" or flag=="goal_4_player":
+                          # Добавляем инкрементальные флаги для UI
+                          if flag == "goal_1_player":
+                              socklist.append('goal_1_player')
+                          if flag == "goal_2_player":
+                              socklist.append('goal_2_player')
                           # 1. Воспроизвести случайный звук гола (goal2-goal7)
                           play_effect(random.choice(player_goal_sounds))
                           
@@ -4165,7 +4181,11 @@ def serial():
 
                      # Логика голов БОТА с счетчиком ---
                      if flag=="goal_1_bot" or flag=="goal_2_bot" or flag=="goal_3_bot" or flag=="goal_4_bot":
-                          
+                          # Добавляем инкрементальные флаги для UI
+                          if flag == "goal_1_bot":
+                              socklist.append('goal_1_bot')
+                          if flag == "goal_2_bot":
+                              socklist.append('goal_2_bot')
                           # 1. Воспроизвести КОНКРЕТНЫЙ звук гола (в зависимости от флага)
                           if flag == "goal_1_bot":
                               play_effect(enemy_goal1)
