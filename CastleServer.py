@@ -1203,7 +1203,7 @@ def Remote(check):
              serial_write_queue.put('first_clock')
              #----добавили в историю
              socklist.append('first_clock')
-             time.sleep(3)
+             eventlet.sleep(3)
              #------активируем блок с галетниками
              socketio.emit('level', 'active_second_clock',to=None)
              socklist.append('active_second_clock') 
@@ -1219,7 +1219,7 @@ def Remote(check):
              serial_write_queue.put('second_clock')
              name = "story_2"  
              #---ждем 3 секунды
-             time.sleep(3) 
+             eventlet.sleep(3) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_open_mansard_door',to=None)
              socklist.append('active_open_mansard_door')
@@ -1233,7 +1233,7 @@ def Remote(check):
              serial_write_queue.put('student_hide')
              name = "story_2"  
              #---ждем 3 секунды
-             time.sleep(3) 
+             eventlet.sleep(3) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_suitcase',to=None)
              socklist.append('active_suitcase')
@@ -1302,7 +1302,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('open_bank_door')
              name = "story_2"     
-             time.sleep(10) 
+             eventlet.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_safe',to=None)
              socklist.append('active_safe')
@@ -1314,7 +1314,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('pedlock')
              name = "story_2"     
-             time.sleep(10) 
+             eventlet.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_dog',to=None)
              socklist.append('active_dog')
@@ -1325,7 +1325,7 @@ def Remote(check):
              socklist.append('dog')
              #----отправить на мегу
              serial_write_queue.put('dog')
-             time.sleep(10) 
+             eventlet.sleep(10) 
              name = "story_2"
         if check == 'cat':
              #-----отправка клиенту 
@@ -1337,7 +1337,7 @@ def Remote(check):
              # --- Имитируем реакцию сервера на door_witch ---
              play_effect(door_witch) # 1. Воспроизводим звук открытия
              send_esp32_command(ESP32_API_TRAIN_URL, "fish_open") # 2. Гасим LED рыбы (24) на карте
-             time.sleep(10) 
+             eventlet.sleep(10) 
              # 3. Воспроизводим историю
              if(language==1):
                  play_story(story_17_ru) #
@@ -1360,7 +1360,7 @@ def Remote(check):
              socklist.append('open_potions_stash')
              #----отправить на мегу
              serial_write_queue.put('open_potions_stash')
-             time.sleep(10) 
+             eventlet.sleep(10) 
              name = "story_2"   
         if check == 'owl':
              #-----отправка клиенту 
@@ -1371,7 +1371,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('owl_door')
              name = "story_2"     
-             time.sleep(10) 
+             eventlet.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_owls',to=None)
              socklist.append('active_owls')
@@ -1395,7 +1395,7 @@ def Remote(check):
                  play_story(story_14_b_en) #
              if(language==3):
                  play_story(story_14_b_ar) #
-             time.sleep(10)      
+             eventlet.sleep(10)      
         if check == 'projector':
              #-----отправка клиенту 
              socketio.emit('level', 'projector',to=None)
@@ -1405,7 +1405,7 @@ def Remote(check):
              send_esp32_command(ESP32_API_TRAIN_URL, "projector")
              serial_write_queue.put('train_active')
              name = "story_2"     
-             time.sleep(3) 
+             eventlet.sleep(3) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_train',to=None)
              socklist.append('active_train') 
@@ -1428,7 +1428,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('mine')
              name = "story_2" 
-             time.sleep(10) 
+             eventlet.sleep(10) 
              socketio.emit('level', 'active_troll',to=None)
              socklist.append('active_troll')
         if check == 'troll':
@@ -1454,7 +1454,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('safe')
              name = "story_2"     
-             time.sleep(10) 
+             eventlet.sleep(10) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_workshop',to=None)
              socklist.append('active_workshop')
@@ -1466,7 +1466,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('workshop')
              name = "story_2"     
-             time.sleep(5) 
+             eventlet.sleep(5) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_first_clock_2',to=None)
              socklist.append('active_first_clock_2')
@@ -1478,7 +1478,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('first_clock_2')
              name = "story_2"     
-             time.sleep(5) 
+             eventlet.sleep(5) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_second_clock_2',to=None)
              socklist.append('active_second_clock_2')
@@ -1490,7 +1490,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('second_clock_2')
              name = "story_2"     
-             time.sleep(5) 
+             eventlet.sleep(5) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_ghost',to=None)
              socklist.append('active_ghost')           
@@ -1516,7 +1516,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('cup')
              name = "story_2"
-             time.sleep(5) 
+             eventlet.sleep(5) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_spell',to=None)
              socklist.append('active_spell')  
@@ -1530,7 +1530,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('spell')
              name = "story_2"
-             time.sleep(5) 
+             eventlet.sleep(5) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_crystals',to=None)
              socklist.append('active_crystals')
@@ -1661,10 +1661,10 @@ def handle_data():
         if 'map' in data and data['map'] == 'owl':
           print("owl")
           serial_write_queue.put('owl')
-          time.sleep(1.0)
+          eventlet.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True and go == 1: 
-          #     time.sleep(0.1) 
+          #     eventlet.sleep(0.1) 
           if mapClickHints == 0:
                mapClickHints = 1
                if(language==1):
@@ -1685,10 +1685,10 @@ def handle_data():
         if 'map' in data and data['map'] == 'fish':
           print("fish")
           serial_write_queue.put('fish')
-          time.sleep(1.0)
+          eventlet.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True and go == 1: 
-          #     time.sleep(0.1) 
+          #     eventlet.sleep(0.1) 
           if mapClickHints == 0:
                mapClickHints = 1
                if(language==1):
@@ -1709,10 +1709,10 @@ def handle_data():
         if 'map' in data and data['map'] == 'key':
           print("key")
           serial_write_queue.put('key')
-          time.sleep(1.0)
+          eventlet.sleep(1.0)
           play_effect(map_click)
           #while channel2.get_busy()==True and go == 1: 
-          #     time.sleep(0.1) 
+          #     eventlet.sleep(0.1) 
           if mapClickHints == 0:
                mapClickHints = 1
                if(language==1):
@@ -1733,10 +1733,10 @@ def handle_data():
         if 'map' in data and data['map'] == 'train':
           print("train")
           serial_write_queue.put('train')
-          time.sleep(1.0) 
+          eventlet.sleep(1.0) 
           play_effect(map_click)
           #while channel2.get_busy()==True and go == 1: 
-          #     time.sleep(0.1) 
+          #     eventlet.sleep(0.1) 
           if mapClickHints == 0:
                mapClickHints = 1
                if(language==1):
@@ -1781,7 +1781,7 @@ def handle_data():
           serial_write_queue.put('out')
           play_effect(map_out)
           while channel2.get_busy()==True and go == 1:
-             time.sleep(0.1) 
+             eventlet.sleep(0.1) 
           if mapClickOut == 0:
                mapClickOut = 1
                if(language==1):
@@ -1943,7 +1943,7 @@ def tmr(res):
 
                # 3. Даем 5 секунд, используя НЕБЛОКИРУЮЩИЙ eventlet.sleep().
                #    Это позволяет потоку serial() работать и ПОЛУЧАТЬ ошибки от Arduino.
-               eventlet.sleep(5.0) # <-- БЫЛО time.sleep(1.0)
+               eventlet.sleep(5.0) # <-- БЫЛО eventlet.sleep(1.0)
                
                # 4. Теперь проверяем 'devices'. К этому моменту он
                #    содержит И ошибки ESP, И ошибки Arduino.
@@ -2073,7 +2073,7 @@ def play_story(audio_file, loops=0, volume_file='3.txt'):
             temp_vol = round(temp_vol, 2) - 0.01
             if temp_vol < target_vol: temp_vol = target_vol # Гарантия, что не уйдем ниже
             pygame.mixer.music.set_volume(round(temp_vol, 2))
-            time.sleep(0.05) # Плавное затухание
+            eventlet.sleep(0.05) # Плавное затухание
     
     # 2. Воспроизводим саму историю
     if audio_file:
@@ -2269,7 +2269,7 @@ def check_story_and_fade_up():
             temp_vol = round(temp_vol, 2) + 0.01
             if temp_vol > phoneLevel: temp_vol = phoneLevel # Гарантия, что не превысим
             pygame.mixer.music.set_volume(round(temp_vol, 2))
-            time.sleep(0.01) # Быстрое восстановление
+            eventlet.sleep(0.01) # Быстрое восстановление
         
         # Устанавливаем точное значение (если игра не была остановлена)
         if go == 1:
@@ -2311,6 +2311,7 @@ def serial():
      global fire1Flag
      global fire2Flag
      global socklist
+     global devices
      effectLeveltmp = 0
      voiceLeveltmp = 0
      phoneLeveltmp = 0
@@ -2333,8 +2334,8 @@ def serial():
               ser.write(str.encode(message_to_send + '\n'))
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
-          #---- иногда для ассинхрона нужно добавлять time.sleep(0)для переключения на другой метод
-          time.sleep(0)
+          #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
+          eventlet.sleep(0)
           if pygame.mixer.music.get_busy() == False:
                if nextTrack == 1:
                     play_background_music("fon8.mp3")
@@ -2346,7 +2347,7 @@ def serial():
                         play_story(story_11_ar)
                     nextTrack = 0
                
-          # --- ИСПРАВЛЕНО: Добавлен 'elif' для сброса флагов при неактивной игре (restart/pause) ---
+          # Добавлен 'elif' для сброса флагов при неактивной игре (restart/pause) ---
           elif go != 1:
                fs = 0      # Сбрасываем флаг, чтобы fade-in не запустился
                flagS = 0   # Сбрасываем флаг, чтобы 'soundoff' не отправился
@@ -2356,19 +2357,19 @@ def serial():
           if ser.in_waiting > 0:
                line = ser.readline().decode('utf-8', errors='ignore').rstrip()
                flag = line
-               time.sleep(0.1)
+               eventlet.sleep(0.1)
                print(flag)
                for i in socklist:
                     #----- постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume', str(phoneLevel))
                     #     phoneLeveltmp = phoneLevel
                     #     print(phoneLevel)
-                    ##time.sleep(0.01)
+                    ##eventlet.sleep(0.01)
                     #if effectLevel is not effectLeveltmp:
                     # ----постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume1', str(effectLevel))
                     #     effectLeveltmp = effectLevel
-                    ##time.sleep(0.01)
+                    ##eventlet.sleep(0.01)
                     #if voiceLevel is not voiceLeveltmp:
                     # ----постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume2', str(voiceLevel))
@@ -2424,7 +2425,7 @@ def serial():
                      socketio.emit('level', 'start_game',to=None)
                      #-----играем фон
                      play_background_music("fon2.mp3")
-                     time.sleep(8.0)
+                     eventlet.sleep(8.0)
                      #-----играем историю
                      if(language==1):
                          play_story(story_1_ru)  
@@ -2436,7 +2437,7 @@ def serial():
                      name = "start_story_1"    
                      
                      while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                      check_story_and_fade_up()
                      send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
                      if(language==1):
@@ -2653,7 +2654,7 @@ def serial():
                           play_effect(door_act)
 
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1) 
+                              eventlet.sleep(0.1) 
                           #----играем историю    
                           if(language==1):
                               play_story(story_3_ru)  
@@ -2662,10 +2663,10 @@ def serial():
                           if(language==3):
                               play_story(story_3_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.1) 
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.1) 
                           serial_write_queue.put('kay_repeat') 
-                          time.sleep(1.1)     
+                          eventlet.sleep(1.1)     
                           #------активируем блок на пульте с тумблером
                           socketio.emit('level', 'active_first_clock',to=None)
                           socklist.append('active_first_clock')
@@ -2678,7 +2679,7 @@ def serial():
                           play_effect(h_clock)
                           #-----ждем окончания эффекта
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1) 
+                              eventlet.sleep(0.1) 
                           #----играем историю    
                           if(language==1):
                               play_story(story_3_a_ru)  
@@ -2702,7 +2703,7 @@ def serial():
                           play_effect(uf_clock)
                           #-----ждем окончания эффекта
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1) 
+                              eventlet.sleep(0.1) 
                           #----играем историю    
                           if(language==1):
                               play_story(story_3_b_ru)  
@@ -2712,10 +2713,10 @@ def serial():
                               play_story(story_3_b_ar)  
 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)  
+                              eventlet.sleep(0.1)  
 
                           serial_write_queue.put('after_story_clock2')
-                          time.sleep(1.0)     
+                          eventlet.sleep(1.0)     
                           #-----изменяем переменную
                           name = "story_1"  
                           #-----активируем блок с галетниками
@@ -2726,7 +2727,7 @@ def serial():
                           play_effect(steps)
                           #-----ждем окончания эффекта
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1) 
+                              eventlet.sleep(0.1) 
 
                           if(language==1):
                               play_story(story_3_c_ru)  
@@ -2736,14 +2737,14 @@ def serial():
                               play_story(story_3_c_ar)
 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)         
+                              eventlet.sleep(0.1)         
 
                           serial_write_queue.put('student_hide')
-                          time.sleep(1.0)
+                          eventlet.sleep(1.0)
 
                           send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_off")
                           send_esp32_command(ESP32_API_TRAIN_URL, "train_light_on")
-                          time.sleep(1.0)
+                          eventlet.sleep(1.0)
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_1")
                           play_background_music("fon5.mp3")
                           if(language==1):
@@ -2766,7 +2767,7 @@ def serial():
                           play_background_music("fon6.mp3")
                           #---ждем окончания эффекта
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           #----играем историю    
                           if(language==1):
                               play_story(story_5_ru)  
@@ -2776,7 +2777,7 @@ def serial():
                               play_story(story_5_ar)
 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           #----отправляем на клиента
                           socketio.emit('level', 'open_mansard_door',to=None)
                           #-----добавили в историю
@@ -2791,7 +2792,7 @@ def serial():
                               play_story(story_6_ar)
                               
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           send_esp32_command(ESP32_API_WOLF_URL, "game")
                           send_esp32_command(ESP32_API_SUITCASE_URL, "game")
                           send_esp32_command(ESP32_API_SAFE_URL, "game")
@@ -2865,7 +2866,7 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           play_background_music("fon7.mp3", loops=0) 
                           if(language==1):
                               play_story(story_10_ru)  
@@ -2893,8 +2894,8 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
                           send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
                           #while channel2.get_busy()==True and go == 1: 
-                              #time.sleep(0.1)
-                          time.sleep(2.0)
+                              #eventlet.sleep(0.1)
+                          eventlet.sleep(2.0)
                           if story13Flag == 0:
                                story13Flag = 1
                                if(language==1):
@@ -2905,7 +2906,7 @@ def serial():
                                     play_story(story_13_ar)
  
                                while channel3.get_busy()==True and go == 1: 
-                                    time.sleep(0.1)     
+                                    eventlet.sleep(0.1)     
                                
  
                           if(language==1):
@@ -2914,7 +2915,7 @@ def serial():
                               play_story(story_14_a_en)
                           if(language==3):
                               play_story(story_14_a_ar)
-                          while channel3.get_busy()==True and go == 1: time.sleep(0.1) # Ждем завершения story_14_a
+                          while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_14_a
                           send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                           #----активируем игру с совами
                           socketio.emit('level', 'active_owls',to=None)
@@ -2953,8 +2954,8 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "fish_open")
                           send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
                           #while channel2.get_busy()==True and go == 1: 
-                          #    time.sleep(0.1)
-                          time.sleep(2.0)
+                          #    eventlet.sleep(0.1)
+                          eventlet.sleep(2.0)
                           if story13Flag == 0:
                                story13Flag = 1
                                if(language==1):
@@ -2965,7 +2966,7 @@ def serial():
                                     play_story(story_13_ar)
  
                                while channel3.get_busy()==True and go == 1: 
-                                    time.sleep(0.1)     
+                                    eventlet.sleep(0.1)     
 
                           if(language==1):
                               play_story(story_17_ru)  
@@ -3039,7 +3040,7 @@ def serial():
                           play_effect(bottle_end)
 
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
 
                           #------играем голос    
                           if(language==1):
@@ -3049,7 +3050,7 @@ def serial():
                           if(language==3):
                               play_story(story_18_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)    
+                              eventlet.sleep(0.1)    
                           #----активируем игру с метлой
                      #------сделали ошибку с бутылкой     
                      if flag=="mistake_bottle":
@@ -3079,10 +3080,10 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
                           # Убираем ожидание завершения эффекта
                           # while channel2.get_busy()==True and go == 1: 
-                          #    time.sleep(0.1)
+                          #    eventlet.sleep(0.1)
                           
                           # Добавляем фиксированную задержку 2 секунды
-                          time.sleep(2.0)
+                          eventlet.sleep(2.0)
  
                           if story13Flag == 0:
                                story13Flag = 1
@@ -3094,7 +3095,7 @@ def serial():
                                     play_story(story_13_ar)
  
                                while channel3.get_busy()==True and go == 1: 
-                                    time.sleep(0.1)
+                                    eventlet.sleep(0.1)
 
                           if(language==1):
                               play_story(story_19_ru)  
@@ -3102,7 +3103,7 @@ def serial():
                               play_story(story_19_en)
                           if(language==3):
                               play_story(story_19_ar)
-                          while channel3.get_busy()==True and go == 1: time.sleep(0.1) # Ждем завершения story_19
+                          while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_19
                           send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                           #----активируем игру с собакой
                           socketio.emit('level', 'active_dog',to=None)
@@ -3124,7 +3125,7 @@ def serial():
                           play_effect(dog_lock)
 
                           #while channel2.get_busy()==True and go == 1: 
-                          #    time.sleep(0.1)
+                          #    eventlet.sleep(0.1)
 
                           if(language==1):
                               play_story(story_21_ru)  
@@ -3158,7 +3159,7 @@ def serial():
 
                      if flag=="story_22_a":
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_22_a_ru)  
                           if(language==2):
@@ -3168,7 +3169,7 @@ def serial():
 
                      if flag=="story_22_b":
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_22_b_ru)  
                           if(language==2):
@@ -3178,7 +3179,7 @@ def serial():
                        
                      if flag=="story_22_c":
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_22_c_ru)  
                           if(language==2):
@@ -3198,9 +3199,9 @@ def serial():
                           socklist.append('mine')
                           # Убираем ожидание завершения эффекта
                           # while channel2.get_busy()==True and go == 1:
-                          #     time.sleep(0.1)
+                          #     eventlet.sleep(0.1)
                           # Добавляем фиксированную задержку 2 секунды
-                          time.sleep(2.0)
+                          eventlet.sleep(2.0)
                           if(language==1):
                               play_story(story_26_ru)  
                           if(language==2):
@@ -3208,13 +3209,13 @@ def serial():
                           if(language==3):
                               play_story(story_26_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)    
+                              eventlet.sleep(0.1)    
                      if flag=="cave_search1":
                           #----играем эффект 
                           play_effect(cave_search)
                           socklist.append('cave_search1')
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_27_a_ru)  
                           if(language==2):
@@ -3222,15 +3223,15 @@ def serial():
                           if(language==3):
                               play_story(story_27_a_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.1)        
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.1)        
                           serial_write_queue.put('cave_search1')    
                      if flag=="cave_search2":
                           #----играем эффект 
                           play_effect(cave_search)
                           socklist.append('cave_search2')
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_27_b_ru)  
                           if(language==2):
@@ -3238,17 +3239,17 @@ def serial():
                           if(language==3):
                               play_story(story_27_b_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.1)         
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.1)         
                           serial_write_queue.put('cave_search2')        
                      if flag=="cave_search3":
                           #----играем эффект 
                           play_effect(cave_search)
                           socklist.append('cave_search3')
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_27_c_ru)  
                           if(language==2):
@@ -3256,8 +3257,8 @@ def serial():
                           if(language==3):
                               play_story(story_27_c_ar) 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.1)        
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.1)        
                           serial_write_queue.put('cave_search3')                          
                      if flag=="cave_end":
                           #----играем эффект 
@@ -3267,7 +3268,7 @@ def serial():
                           play_effect(cave_end)
                           send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_30_ru)  
                           if(language==2):
@@ -3287,7 +3288,7 @@ def serial():
                           socklist.append('open_bank_door')
                           play_effect(door_bank)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_23_ru)  
                           if(language==2):
@@ -3295,19 +3296,19 @@ def serial():
                           if(language==3):
                               play_story(story_23_ar)
                           while channel3.get_busy()==True and go == 1:
-                              time.sleep(0.1)
-                          time.sleep(1.0)
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.0)
                           serial_write_queue.put('open_bank')
                           # Этот блок немедленно отправит команду 'open_bank', 
-                          # не дожидаясь завершения time.sleep(5.0) и story_24.
+                          # не дожидаясь завершения eventlet.sleep(5.0) и story_24.
                           while not serial_write_queue.empty():
                               try:
                                   message_to_send = serial_write_queue.get_nowait()
                                   ser.write(str.encode(message_to_send + '\n'))
                               except eventlet.queue.Empty:
                                   break # Очередь пуста
-                              time.sleep(0.01) # Даем время на отправку
-                          time.sleep(5.0)
+                              eventlet.sleep(0.01) # Даем время на отправку
+                          eventlet.sleep(5.0)
                           if(language==1):
                               play_story(story_24_ru)  
                           if(language==2):
@@ -3316,7 +3317,7 @@ def serial():
                               play_story(story_24_ar)
 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)     
+                              eventlet.sleep(0.1)     
                      if flag=="safe_turn":
                           #----играем эффект 
                           play_effect(safe_turn)
@@ -3328,7 +3329,7 @@ def serial():
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
                           play_effect(safe_end)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           serial_write_queue.put('open_safe')
                           
                           while not serial_write_queue.empty():
@@ -3337,7 +3338,7 @@ def serial():
                                   ser.write(str.encode(message_to_send + '\n'))
                               except eventlet.queue.Empty:
                                   break 
-                              time.sleep(0.01) 
+                              eventlet.sleep(0.01) 
                               
                           if(language==1):
                               play_story(story_25_ru)  
@@ -3346,8 +3347,8 @@ def serial():
                           if(language==3):
                               play_story(story_25_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)  
-                          time.sleep(1.1)
+                              eventlet.sleep(0.1)  
+                          eventlet.sleep(1.1)
                           if(language==1):
                               play_story(story_31_ru)  
                           if(language==2):
@@ -3356,13 +3357,13 @@ def serial():
                               play_story(story_31_ar)
                               
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           serial_write_queue.put('open_workshop')
-                          time.sleep(1.1)          
+                          eventlet.sleep(1.1)          
                           play_effect(door_workshop)
                           play_background_music("fon9.mp3", loops=0)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_32_ru)  
                           if(language==2):
@@ -3399,9 +3400,9 @@ def serial():
                           socketio.emit('level', 'active_cup',to=None)
                           socklist.append('active_cup')
                           ser.write(str.encode('student_hide\n'))
-                          time.sleep(0.1)
+                          eventlet.sleep(0.1)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_46_ru)  
                           if(language==2):
@@ -3410,8 +3411,8 @@ def serial():
                               play_story(story_46_ar)    
                           send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.1)
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.1)
                           if(language==1):
                               play_story(story_47_ru)  
                           if(language==2):
@@ -3420,7 +3421,7 @@ def serial():
                               play_story(story_47_ar)
 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)        
+                              eventlet.sleep(0.1)        
 
                           #send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
 
@@ -3432,14 +3433,14 @@ def serial():
                           if(language==3):
                               play_story(story_48_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           play_effect(door_top)
                           send_esp32_command(ESP32_API_WOLF_URL, "day_on")
                           send_esp32_command(ESP32_API_TRAIN_URL, "day_on")
                           send_esp32_command(ESP32_API_SUITCASE_URL, "day_on")
                           send_esp32_command(ESP32_API_SAFE_URL, "day_on") 
                           serial_write_queue.put('door_top')
-                          time.sleep(1)
+                          eventlet.sleep(1)
                           socketio.emit('level', 'open_door_puzzle',to=None)
                           socklist.append('open_door_puzzle')
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_8")
@@ -3456,7 +3457,7 @@ def serial():
                           #----играем эффект 
                           play_effect(door_basket)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_50_ru)  
                           if(language==2):
@@ -3464,7 +3465,7 @@ def serial():
                           if(language==3):
                               play_story(story_50_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)    
+                              eventlet.sleep(0.1)    
                           play_effect(lose1)
                           socketio.emit('level', 'active_spell',to=None)
                           socklist.append('active_spell')
@@ -3502,7 +3503,7 @@ def serial():
                           socketio.emit('level', 'crystals',to=None)
                           socklist.append('crystals')  
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           if(language==1):
                               play_story(story_51_ru)  
                           if(language==2):
@@ -3558,7 +3559,7 @@ def serial():
                           play_effect(craft_success)
                           socklist.append('broom')
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)    
+                              eventlet.sleep(0.1)    
                           if(language==1):
                               play_story(story_33_ru)  
                           if(language==2):
@@ -3570,7 +3571,7 @@ def serial():
                           play_effect(craft_success)
                           socklist.append('helmet')
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)    
+                              eventlet.sleep(0.1)    
                           if(language==1):
                               play_story(story_34_ru)  
                           if(language==2):
@@ -3589,8 +3590,8 @@ def serial():
                           if(language==3):
                               play_story(story_35_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.0)
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.0)
                           send_esp32_command(ESP32_API_WOLF_URL, "day_off")
                           send_esp32_command(ESP32_API_TRAIN_URL, "day_off")
                           send_esp32_command(ESP32_API_SUITCASE_URL, "day_off")
@@ -3603,9 +3604,9 @@ def serial():
                           if(language==3):
                               play_story(story_36_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           serial_write_queue.put('student_open')
-                          time.sleep(1.0)     
+                          eventlet.sleep(1.0)     
                           if(language==1):
                               play_story(story_37_ru)  
                           if(language==2):
@@ -3630,7 +3631,7 @@ def serial():
                           play_background_music("fon12.mp3")
                           play_effect(uf_clock)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
                           if(language==1):
                               play_story(story_38_ru)  
@@ -3686,13 +3687,13 @@ def serial():
                           if(language==3):
                               play_story(story_43_ar) 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           serial_write_queue.put('open_library')
                           #send_esp32_command(ESP32_API_TRAIN_URL, #"ghost_game_end")
                           #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
-                          time.sleep(2.0)
+                          eventlet.sleep(2.0)
                           send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
-                          time.sleep(1.0)
+                          eventlet.sleep(1.0)
                           if(language==1):
                               play_story(story_44_ru)  
                           if(language==2):
@@ -3732,7 +3733,7 @@ def serial():
                           #-----играем эффект
                           play_effect(level_up)  
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           #------играем голос    
                           if(language==1):
                               play_story(story_54_ru)  
@@ -3746,7 +3747,7 @@ def serial():
                           socklist.append('second_level')
                           play_effect(level_up)  
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           #------играем голос    
                           if(language==1):
                               play_story(story_53_ru)  
@@ -3760,7 +3761,7 @@ def serial():
                           socklist.append('first_level')
                           play_effect(level_up)  
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           #------играем голос    
                           if(language==1):
                               play_story(story_52_ru)  
@@ -3791,10 +3792,10 @@ def serial():
                           if(language==3):
                               play_story(story_57_ar) 
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           play_effect(applause)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)    
+                              eventlet.sleep(0.1)    
                           if(language==1):
                               play_story(story_58_ru)  
                           if(language==2):
@@ -3802,10 +3803,10 @@ def serial():
                           if(language==3):
                               play_story(story_58_ar)
                           while channel3.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
-                          time.sleep(1.0)    
+                              eventlet.sleep(0.1)
+                          eventlet.sleep(1.0)    
                           serial_write_queue.put('start_game_basket') 
-                          time.sleep(1.0)
+                          eventlet.sleep(1.0)
                           socketio.emit('level', 'active_basket',to=None)
                           socklist.append('active_basket')     
                      if flag=="story_59":
@@ -4446,12 +4447,12 @@ def serial():
                           # 3. Воспроизвести ПЕРВЫЙ случайный звук гола (goal2-goal7) на channel2
                           play_effect(random.choice(player_goal_sounds))
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
+                              eventlet.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
                           
                           # 4. Воспроизвести ВТОРОЙ случайный звук гола (goal2-goal7) на channel2
                           play_effect(random.choice(player_goal_sounds))
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
+                              eventlet.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
 
                           # 5. Воспроизвести звук победы 'win' на channel2
                           play_effect(win)
@@ -4461,7 +4462,7 @@ def serial():
                           socklist.append('win_bot')
                           play_effect(enemy_goal1)
                           while channel2.get_busy()==True and go == 1: 
-                              time.sleep(0.1)
+                              eventlet.sleep(0.1)
                           play_background_music("fon17.mp3")    
                           if(language==1):
                               play_story(story_67_ru)  
@@ -4518,7 +4519,7 @@ def serial():
                           #----переводим флаги в окончание игры
                           starts= 2
                           go = -1
-                          time.sleep(0.5)
+                          eventlet.sleep(0.5)
                      if flag=="hint_2_b":
                          hintCount+=1
                          if(language==1):
@@ -4818,7 +4819,7 @@ def serial():
                      if flag=="hint_38_b":
                          hintCount+=1
                          while channel3.get_busy()==True and go == 1: 
-                             time.sleep(0.1)
+                             eventlet.sleep(0.1)
                          
                          if(language==1):
                              play_story(hint_38_b_ru)
@@ -4927,7 +4928,7 @@ def timer():
     flagtime = 0
     start = 0
     while True:
-         time.sleep(0)
+         eventlet.sleep(0)
          for i in socklist:
               if current_client_sid:
                 socketio.emit('volume', str(phoneLevel), skip_sid=current_client_sid)
@@ -4962,7 +4963,7 @@ def timer():
               h = 0
               sync = "0:00:00"
               socketio.emit('timer', sync,to=None)
-              time.sleep(1)
+              eventlet.sleep(1)
          if starts==1:
                flagtime=1
                sec=sec+1
@@ -4980,7 +4981,7 @@ def timer():
                     mins=0
                     tenmins=0
                     h=h+1
-               time.sleep(1)
+               eventlet.sleep(1)
                sync = str(h)+":"+str(tenmins)+str(mins)+":"+str(tensec)+str(sec)
                rateTime = sync
                socketio.emit('timer', sync,to=None)
