@@ -153,6 +153,8 @@ $('.ui.dropdown')
      var modal=0;
      var start_error = 1;
      var devices = "";
+	 // Добавляем флаги состояния для Сейфа
+     var safeStep1 = 0, safeStep2 = 0, safeStep3 = 0, safeStep4 = 0, safeStep5 = 0;
      
      // Инициализация прогресс-баров ---
      $('#safe_progress').progress({
@@ -378,6 +380,7 @@ duration   : '1s',
       modal=0;
       finalAlert = 1;
       start_error = 1;
+	  safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
     });
     //нажали на рестарт обрати внимание данные шлем на сервер пока на пульте ничего не отображается
     $('#Restart').click(function(){
@@ -436,6 +439,7 @@ duration   : '1s',
       scroll4 = 0;
       scroll5 = 0;
       start_error = 0
+	  safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
 
       //finalAlert = 0;
     });
@@ -469,22 +473,39 @@ duration   : '1s',
 
             // 2. Safe (Прогресс-бар)
             if (inp === 'safe_step_1') {
-                $('#safe_progress').progress({ percent: 20 });
+                if(safeStep1 == 0){ // Запускаем, только если флаг = 0
+                    $('#safe_progress').progress({ percent: 20 });
+                    safeStep1 = 1; // Устанавливаем флаг, чтобы не "дергаться"
+                }
             }
             if (inp === 'safe_step_2') {
-                $('#safe_progress').progress({ percent: 40 });
+                 if(safeStep2 == 0){
+                    $('#safe_progress').progress({ percent: 40 });
+                    safeStep2 = 1;
+                 }
             }
             if (inp === 'safe_step_3') {
-                $('#safe_progress').progress({ percent: 60 });
+                if(safeStep3 == 0){
+                    $('#safe_progress').progress({ percent: 60 });
+                    safeStep3 = 1;
+                }
             }
 			if (inp === 'safe_step_4') {
-                $('#safe_progress').progress({ percent: 80 });
+                if(safeStep4 == 0){
+                    $('#safe_progress').progress({ percent: 80 });
+                    safeStep4 = 1;
+                }
             }
             if (inp === 'safe_end') { // 'safe_end' - это 5-й шаг
-                $('#safe_progress').progress({ percent: 100 });
+                if(safeStep5 == 0){
+                    $('#safe_progress').progress({ percent: 100 });
+                    safeStep5 = 1;
+                }
             }
             if (inp === 'safe_reset') {
                 $('#safe_progress').progress({ percent: 0 });
+                // Сбрасываем все флаги, чтобы можно было начать заново
+                safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
             }
 
             // 3. Troll Game (Прогресс-бар)
@@ -1110,6 +1131,9 @@ duration   : '1s',
 				// Сброс иконок и прогресс-баров ---
                 $('#helmet_icon').removeClass('green');
                 $('#broom_icon').removeClass('green');
+				// Добавляем сброс флагов и прогресс-бара Сейфа
+                safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
+                $('#safe_progress').progress({ percent: 0 });
 
                 $('#safe_progress').progress({ percent: 0 });
                 $('#troll_progress').progress({ percent: 0 });
