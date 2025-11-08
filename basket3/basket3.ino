@@ -176,7 +176,7 @@ void loop() {
       _restartGalet = 0;
         CheckState();
       }
-      if (buff == "ready"){
+      if (buff == "ready" || buff == "restart"){
         digitalWrite(trollLed, LOW);
         digitalWrite(owlLed, LOW);
         digitalWrite(basketLed, LOW);
@@ -185,25 +185,32 @@ void loop() {
         digitalWrite(SHERIF_EM2, LOW);
         digitalWrite(Solenoid, LOW);
         
-        SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
+        SCORE_ROBOT = 0; 
         SCORE_MAN = 0;
         buttonSequence = 0;
         trollSequence = 0;
         score = 0;
         upHelp=0;
-       _startBasket=0;
-       light=0;
-       lightFlashTimer=0;
-       basket_ir_read_F = 0; 
-       doorFlags=0;
-       metallClick=0;
-       doorTimer=0;
-       doorDef=0;
-       basketTimer=0;
-       disp.clear();
-       strip.clear();
-       strip.show();
-       disp.point(0);
+        _startBasket=0;
+        light=0;
+        lightFlashTimer=0;
+        basket_ir_read_F = 0; 
+        doorFlags=0;
+        metallClick=0;
+        doorTimer=0;
+        doorDef=0;
+        basketTimer=0;
+        disp.clear();
+        strip.clear();
+        strip.show();
+        disp.point(0);
+
+        // Сбрасываем флаги состояния для CheckState()
+        _restartGalet = 0;
+        _restartFlag = 0;
+        
+        // Если это 'ready', переходим в state 0 (остаемся), если 'restart' - тоже 0
+        // (Логика 'start' переводит в state 1)
       }
       else if (buff == "start"){
         state++;
