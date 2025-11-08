@@ -66,7 +66,7 @@ void setup() {
   Serial.setTimeout(10);
 
   Serial1.begin(9600);
-  Serial1.setTimeout(10);
+  Serial1.setTimeout(100);
 
   pinMode(trollLed, OUTPUT);
   pinMode(SHERIF_EM1, OUTPUT);
@@ -169,13 +169,14 @@ void loop() {
     CheckState();
     if (Serial1.available())
     {
-      String buff = Serial1.readString();
-      if (buff == "check_state\r\n"){
+      String buff = Serial1.readStringUntil('\n');
+      buff.trim();
+      if (buff == "check_state"){
         _restartFlag = 0;
       _restartGalet = 0;
         CheckState();
       }
-      if (buff == "ready\r\n"){
+      if (buff == "ready"){
         digitalWrite(trollLed, LOW);
         digitalWrite(owlLed, LOW);
         digitalWrite(basketLed, LOW);
@@ -204,7 +205,7 @@ void loop() {
        strip.show();
        disp.point(0);
       }
-      else if (buff == "start\r\n"){
+      else if (buff == "start"){
         state++;
       }
       else{
@@ -312,7 +313,7 @@ void loop() {
 }
 
 void HandleMessagges(String message){
-  if(message == "restart\r\n"){
+  if(message == "restart"){
     _restartFlag = 0;
         _restartGalet = 0;
       OpenLock(SHERIF_EM1);
@@ -323,16 +324,16 @@ void HandleMessagges(String message){
       delay(100);
     state = 8;
   }
-  if(message == "day_on\r\n"){
+  if(message == "day_on"){
     digitalWrite(trollLed, HIGH);
   }
-  if(message == "day_off\r\n"){
+  if(message == "day_off"){
     digitalWrite(trollLed, LOW);
   }
-  if(message == "open_door\r\n"){
+  if(message == "open_door"){
     OpenLock(SHERIF_EM2);
   }
-  if(message == "open_mine_door\r\n"){
+  if(message == "open_mine_door"){
     OpenLock(SHERIF_EM1);
   }
 }
@@ -376,22 +377,23 @@ void WorkShopGame(){
   }
   if (Serial1.available())
   {
-    String buff = Serial1.readString();
-    if (buff == "item_find\r\n"){
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff == "item_find"){
       metallClick = 0;
       strip.setPixelColor(2, strip.Color(0, 128, 128));
       strip.show();
     }
-    else if (buff == "item_end\r\n"){
+    else if (buff == "item_end"){
       metallClick = 0;
       strip.setPixelColor(2, strip.Color(0, 0, 0));
       strip.show();
       state++;
     }
-     else if (buff == "light_on\r\n"){
+     else if (buff == "light_on"){
         digitalWrite(owlLed,HIGH);
     }
-    else if (buff == "light_off\r\n"){
+    else if (buff == "light_off"){
         digitalWrite(owlLed,LOW);
     }
     else{
@@ -404,14 +406,15 @@ void WorkShopGame(){
 void StartTrollGame(){
   if (Serial1.available())
   {
-    String buff = Serial1.readString();
-    if (buff == "start_troll\r\n"){
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff == "start_troll"){
       state++;
     }
-    else if (buff == "light_on\r\n"){
+    else if (buff == "light_on"){
         digitalWrite(owlLed,HIGH);
     }
-    else if (buff == "light_off\r\n"){
+    else if (buff == "light_off"){
         digitalWrite(owlLed,LOW);
     }
     else{
@@ -439,26 +442,27 @@ void TrollGame(){
     }
     if (Serial1.available())
     {
-      String buff = Serial1.readString();
-      if (buff == "light_on\r\n"){
+      String buff = Serial1.readStringUntil('\n');
+      buff.trim();
+      if (buff == "light_on"){
           digitalWrite(owlLed,HIGH);
       }
-      else if (buff == "light_off\r\n"){
+      else if (buff == "light_off"){
           digitalWrite(owlLed,LOW);
       }
-      else if (buff == "cave_search1\r\n"){
+      else if (buff == "cave_search1"){
          trollSequence=1;
          isTrollFixed = 0;
       }
-      else if (buff == "cave_search2\r\n"){
+      else if (buff == "cave_search2"){
           trollSequence=2;
           isTrollFixed = 0;
       }
-      else if (buff == "cave_search3\r\n"){
+      else if (buff == "cave_search3"){
           trollSequence=3;
           isTrollFixed = 0;
       }
-      else if (buff == "troll\r\n"){
+      else if (buff == "troll"){
           strip.clear();
           strip.show();
           Serial1.println("cave_end");
@@ -497,14 +501,15 @@ void OpenDoor(){
     butt4.tick();
     if (Serial1.available())
     {
-      String buff = Serial1.readString();
-      if (buff == "light_on\r\n"){
+      String buff = Serial1.readStringUntil('\n');
+      buff.trim();
+      if (buff == "light_on"){
           digitalWrite(owlLed,HIGH);
       }
-      else if (buff == "light_off\r\n"){
+      else if (buff == "light_off"){
           digitalWrite(owlLed,LOW);
       }
-      else if (buff == "mine\r\n"){
+      else if (buff == "mine"){
           OpenLock(SHERIF_EM1);
           digitalWrite(trollLed, HIGH);
           Serial1.println("door_cave");
@@ -749,12 +754,13 @@ void BasketLesson(){
   
   if (Serial1.available())
   {
-    String buff = Serial1.readString();
-    if (buff == "start_basket\r\n"){
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff == "start_basket"){
       digitalWrite(basketLed, HIGH);
       isStart = 1;
     }
-    else if (buff == "win\r\n"){
+    else if (buff == "win"){
       SCORE_MAN=3;
       OUTPUT_TO_DISPLAY();
       delay(2000);
@@ -774,20 +780,21 @@ void BasketLesson(){
 void Basket(){
   if (Serial1.available())
     {
-      String buff = Serial1.readString();
-      if (buff == "start_basket\r\n"){
+      String buff = Serial1.readStringUntil('\n');
+      buff.trim();
+      if (buff == "start_basket"){
         basketTimer = millis();
         digitalWrite(basketLed, HIGH);
         _startBasket = 1;
     }
-    else if (buff == "start_basket_robot\r\n"){
+    else if (buff == "start_basket_robot"){
       SCORE_ROBOT++;
       OUTPUT_TO_DISPLAY();
       delay(2000);
       PRINT_SCORE_ROBOT();
       delay(50);
     }
-    else if (buff == "win\r\n"){
+    else if (buff == "win"){
       SCORE_MAN=3;
       OUTPUT_TO_DISPLAY();
       delay(2000);
@@ -948,11 +955,12 @@ void OUTPUT_TO_DISPLAY() { // Вывод на дисплей счета
 void OpenBasket(){
   if (Serial1.available())
   {
-    String buff = Serial1.readString();
-    if (buff == "opent_basket\r\n"){
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff == "opent_basket"){
       OpenLock(SHERIF_EM2);
     }
-    else if (buff == "start_lesson\r\n"){
+    else if (buff == "start_lesson"){
       state++;
     }
     else{
