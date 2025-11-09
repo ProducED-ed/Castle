@@ -527,9 +527,16 @@ void loop() {
             smoothTurnOffCrystal();
           }
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_READY) == 0) {
+          // ---------------------------------------------------------------------------------
+          // ИЗМЕНЕНО: Добавлена принудительная проверка состояния при команде "ready".
+          // ПРИЧИНА: Чтобы башня сообщала о уже активных датчиках (например,
+          // оставленном флаге) сразу после перезапуска сервера, а не только при
+          // изменении их состояния.
+          // ---------------------------------------------------------------------------------
           resetQuestState();
           _restartFlag = 0;
           _restartGalet = 0;
+          CheckState(); // <-- ДОБАВЛЕНО: Немедленная проверка состояния
           currentQuestState = STATE_WAITING_FOR_START;
           if (digitalRead(CAPSULE_REED_PIN) == HIGH) {
             Serial.println((__FlashStringHelper *)MSG_DOG_NRD);
