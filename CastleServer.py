@@ -3884,8 +3884,8 @@ def serial():
                           if(language==3):
                               play_story(story_56_ar)
                      if flag=="lesson_goal":
-                          # 1. Воспроизводим случайный звук гола (Эффект, Канал 2)
-                          play_effect(random.choice(player_goal_sounds))
+                          # 1. Воспроизводим звук аплодисментов (Эффект, Канал 2)
+                          play_effect(applause)
                           
                           # 2. Воспроизводим story_61_a (История, Канал 3)
                           # Эта история будет автоматически прервана, если поступит другая команда play_story()
