@@ -1274,14 +1274,14 @@ def Remote(check):
              serial_write_queue.put('student_hide')
              name = "story_2"  
              #---ждем 3 секунды
-             eventlet.sleep(3) 
+             #eventlet.sleep(3) 
              #-----активируем блок с флагами
-             socketio.emit('level', 'active_suitcase',to=None)
-             socklist.append('active_suitcase')
-             socketio.emit('level', 'active_animals',to=None)
-             socklist.append('active_animals')  
-             socketio.emit('level', 'active_wolf',to=None)
-             socklist.append('active_wolf')   
+             #socketio.emit('level', 'active_suitcase',to=None)
+             #socklist.append('active_suitcase')
+             #socketio.emit('level', 'active_animals',to=None)
+             #socklist.append('active_animals')  
+             #socketio.emit('level', 'active_wolf',to=None)
+             #socklist.append('active_wolf')   
         if check=='suitcase':
              #-----отправка клиенту 
              socketio.emit('level', 'suitcase',to=None)
@@ -1978,6 +1978,10 @@ def tmr(res):
                # --- Очищаем список ошибок ПЕРЕД началом проверки ---
                global devices
                devices.clear()
+               
+               # --- Отправляем команду на очистку UI перед проверкой ---
+               socketio.emit('clear_check_flags', to=None)
+               
                # 1. Проверяем ESP (эта функция очищает 'devices' в начале)
                test_esp32()
                
