@@ -176,7 +176,9 @@ void loop() {
       _restartGalet = 0;
         CheckState();
       }
-      if (buff == "ready" || buff == "restart"){
+      // Обработчик 'ready' ТОЛЬКО сбрасывает переменные и флаги
+            if (buff == "ready" || buff == "restart"){
+
         digitalWrite(trollLed, LOW);
         digitalWrite(owlLed, LOW);
         digitalWrite(basketLed, LOW);
@@ -322,7 +324,7 @@ void loop() {
 void HandleMessagges(String message){
   if(message == "restart"){
     _restartFlag = 0;
-        _restartGalet = 0;
+    _restartGalet = 0;
       OpenLock(SHERIF_EM1);
       OpenLock(SHERIF_EM2);
       OpenLock(Solenoid);
