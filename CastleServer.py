@@ -20,6 +20,8 @@ import pygame
 import pygame.mixer
 #библа для логирования тоже убирает лишние данные с консоли
 import logging
+import os
+from logging.handlers import RotatingFileHandler
 #библиотека для работы с системой много крутых фишек тоже почитай
 from subprocess import call
 import os
@@ -27,6 +29,45 @@ import requests
 from requests.exceptions import RequestException
 import eventlet.queue
 import random
+
+# Create logs directory if it doesn't exist
+if not os.path.exists('logs'):
+    os.mkdir('logs')
+
+# Get the root logger
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)  # Set the lowest level for the root logger
+
+# Создаем ДВА разных форматтера ---
+ 
+# Форматтер 1: Детальный (для ФАЙЛА)
+file_formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Форматтер 2: Короткий (только сообщение, для КОНСОЛИ)
+console_formatter = logging.Formatter('%(message)s')
+
+# Create a rotating file handler for DEBUG messages (Подробный лог в файл)
+file_handler = RotatingFileHandler('logs/castle.log', maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+file_handler.setLevel(logging.DEBUG) # Файл пишет ВСЁ (DEBUG и выше)
+file_handler.setFormatter(file_formatter) # Используем ДЕТАЛЬНЫЙ форматтер
+
+# Create a stream handler for INFO messages (Короткий лог в консоль)
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO) # Консоль пишет только INFO и выше
+stream_handler.setFormatter(console_formatter) # ИСПОЛЬЗУЕМ КОРОТКИЙ ФОРМАТТЕР
+
+# Add handlers to the logger
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+# Reduce verbosity of other libraries
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
+logging.getLogger('engineio').setLevel(logging.ERROR)
+logging.getLogger('socketio').setLevel(logging.ERROR)
+
 serial_write_queue = eventlet.queue.Queue()
 pending_commands = {} # Словарь для хранения последних команд
 device_timers = {}    # Словарь для отслеживания активных таймеров
@@ -935,10 +976,10 @@ try:
     # Указываем порт, найденный через утилиту serial.tools.list_ports
     ARDUINO_PORT = '/dev/ttyUSB0' 
     ser = serial.Serial(ARDUINO_PORT, 9600, timeout=1)
-    print(f"INFO: Successfully connected to Arduino on port {ARDUINO_PORT}")
+    logger.info(f"Successfully connected to Arduino on port {ARDUINO_PORT}")
 except serial.SerialException as e:
-    print(f"FATAL: Could not open serial port {ARDUINO_PORT}. Error: {e}")
-    print("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
+    logger.critical(f"Could not open serial port {ARDUINO_PORT}. Error: {e}")
+    logger.critical("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
     exit() # Завершаем работу, если не удалось подключиться
 # КОНЕЦ ИЗМЕНЕНИЯ
 
@@ -1624,23 +1665,23 @@ def handle_data():
     global mapClickOut 
     if request.method == 'POST':
         data = request.get_json()
-        print("Received from client:", data)
+        logger.info(f"[API_IN] Received data: {data}")
         if 'suitcase' in data and data['suitcase'] == 'end':
-          print("suitcase")
+          logger.debug("'suitcase: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "case_finish")
           serial_write_queue.put('suitcase_end')
           socketio.emit('level', 'suitcase',to=None)
           socklist.append('suitcase')
           send_esp32_command(ESP32_API_SUITCASE_URL, "confirm_suitcase_end")
         if 'safe' in data and data['safe'] == 'end':
-          print("safe")
+          logger.debug("'safe: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "safe_finish")
           serial_write_queue.put('safe_end')
           socketio.emit('level', 'animals',to=None)
           socklist.append('animals')
           send_esp32_command(ESP32_API_SAFE_URL, "confirm_safe_end")
         if 'wolf' in data and data['wolf'] == 'end':
-          print("wolf")
+          logger.debug("'wolf: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "wolf_finish")
           serial_write_queue.put('wolf_end')
           socketio.emit('level', 'wolf',to=None)
@@ -1649,7 +1690,7 @@ def handle_data():
          
         # --- ИЗМЕНЕНИЕ: Добавляем логику для TRAIN (projector end) ---
         elif 'projector' in data and data['projector'] == 'end':
-            print("projector")
+            logger.debug("'projector: end' logic triggered.")
             socketio.emit('level', 'projector',to=None)
             socklist.append('projector')
             serial_write_queue.put('train_active')
@@ -1659,7 +1700,7 @@ def handle_data():
         # --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
         if 'map' in data and data['map'] == 'owl':
-          print("owl")
+          logger.debug("'map: owl' logic triggered.")
           serial_write_queue.put('owl')
           eventlet.sleep(1.0)
           play_effect(map_click)
@@ -1683,7 +1724,7 @@ def handle_data():
                    play_story(story_12_b_ar)
 
         if 'map' in data and data['map'] == 'fish':
-          print("fish")
+          logger.debug("'map: fish' logic triggered.")
           serial_write_queue.put('fish')
           eventlet.sleep(1.0)
           play_effect(map_click)
@@ -1707,7 +1748,7 @@ def handle_data():
                    play_story(story_12_b_ar)
 
         if 'map' in data and data['map'] == 'key':
-          print("key")
+          logger.debug("'map: key' logic triggered.")
           serial_write_queue.put('key')
           eventlet.sleep(1.0)
           play_effect(map_click)
@@ -1731,7 +1772,7 @@ def handle_data():
                    play_story(story_12_b_ar)
 
         if 'map' in data and data['map'] == 'train':
-          print("train")
+          logger.debug("'map: train' logic triggered.")
           serial_write_queue.put('train')
           eventlet.sleep(1.0) 
           play_effect(map_click)
@@ -1755,7 +1796,7 @@ def handle_data():
                    play_story(story_12_b_ar)
 
         if 'train' in data and data['train'] == 'end':
-            print("train_end")
+            logger.debug("'train: end' logic triggered.")
             serial_write_queue.put('train_end')
             socketio.emit('level', 'train',to=None)
             socklist.append('train')
@@ -1765,19 +1806,19 @@ def handle_data():
             send_esp32_command(ESP32_API_TRAIN_URL, "confirm_train_end")
 
         if 'projector' in data and data['projector'] == 'end':
-            print("projector")
+            logger.debug("'projector: end' logic triggered.")
             socketio.emit('level', 'projector',to=None)
             socklist.append('projector')
             socketio.emit('level', 'active_train',to=None)
             socklist.append('active_train')
 
         if 'train' in data and data['train'] == 'skin':
-            print("skin")
+            logger.debug("'train: skin' logic triggered.")
             serial_write_queue.put('skin')
             play_effect(item_find)    
   
         if 'map' in data and data['map'] == 'out':
-          print("out")
+          logger.debug("'map: out' logic triggered.")
           serial_write_queue.put('out')
           play_effect(map_out)
           while channel2.get_busy()==True and go == 1:
@@ -1800,7 +1841,7 @@ def handle_data():
                    play_story(story_12_d_ar)
 
         if 'ghost' in data and data['ghost'] == 'end':
-            print("ghost_map")
+            logger.debug("'ghost: end' logic triggered.")
             serial_write_queue.put('ghost')
                  
 
@@ -1830,7 +1871,7 @@ def tmr(res):
      global rating
      global star
      global is_processing_ready
-     print(res)
+     logger.info(f"[SOCKET_IN] Command: {res}")
     #----на всякий случай отправим данные о выборе языка 
      if language==1: 
          socketio.emit('lang', 'russian', to=None)
@@ -1853,6 +1894,7 @@ def tmr(res):
                channel3.pause() 
                channel2.pause() 
                go=-1
+               logger.debug("State changed: Game paused.")
      #-----пришло сообщение старт с пульта          
      if res =='start':
           #channel2.play(sound2, loops = -1) 
@@ -1874,22 +1916,25 @@ def tmr(res):
               channel3.unpause() 
               channel2.unpause() 
               #----отправим на клиента
-              socketio.emit('level', 'start_game',to=None)  
+              socketio.emit('level', 'start_game',to=None)
+              logger.debug("State changed: Game unpaused.")
         #----если была в рестарте       
         if go == 3 and starts==3:
              send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{wolfLevel}")
              send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{trainLevel}")
              send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{suitcaseLevel}")
              send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{safeLevel}")
-             print("start")
+             logger.info("Start command received")
              #----очищаем историю 
              socklist.clear() 
              serial_write_queue.put('start')
              go=1
              starts = 1
+             logger.debug("State changed: Game started from 'ready' state.")
         
      #----нажали на рестарт   
      if res =='restart':
+         logger.debug("State changed: Game restarted.")
          serial_write_queue.put('restart')
          send_esp32_command(ESP32_API_WOLF_URL, "restart")
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
@@ -1928,7 +1973,7 @@ def tmr(res):
          is_processing_ready = True
          socketio.emit('level', 'ready_processing') # Команда для UI, чтобы заблокировать кнопку
           #-----перейдет только если был в рестарте или просто запущен
-         print("ready")
+         logger.info("Ready command received")
          if go == 2 or go == 0:
                # --- Очищаем список ошибок ПЕРЕД началом проверки ---
                global devices
@@ -1949,8 +1994,10 @@ def tmr(res):
                #    содержит И ошибки ESP, И ошибки Arduino.
                if len(devices) == 0:
                     # --- ВСЕ В ПОРЯДКЕ ---
-                    print("ready: OK")
+                    logger.info("Ready: OK")
                     socklist.clear()
+                    # Принудительно закрываем модальное окно с ошибкой (если оно было)
+                    socketio.emit('level', 'modal_end', to=None)
                     socketio.emit('level', 'ready',to=None)
                     
                     # Отправляем команды ESP (теперь, когда уверены, что все хорошо)
@@ -1966,9 +2013,10 @@ def tmr(res):
                     channel2.stop() 
                     pygame.mixer.music.stop()
                     play_background_music("fon1.mp3", loops=-1)
+                    logger.debug("State changed: System is ready for game start.")
                else:
                     # --- НАЙДЕНЫ ОШИБКИ (Либо ESP, либо Arduino) ---
-                    print(f"ready: FAILED. devices={devices}")
+                    logger.warning(f"Ready: FAILED. Devices: {devices}")
                     socklist.clear()
                     socketio.emit('level', 'start_error',to=None)
                     socklist.append('start_error')
@@ -2050,6 +2098,7 @@ def is_number(str):
         return False  
 
 def play_story(audio_file, loops=0, volume_file='3.txt'):
+    logger.debug(f"Executing play_story for audio file.")
     # Воспроизводит историю/подсказку, АВТОМАТИЧЕСКИ приглушая фоновую музыку.
     global story_fade_active, phoneLevel, go
     
@@ -2063,7 +2112,7 @@ def play_story(audio_file, loops=0, volume_file='3.txt'):
             with open('1.txt', 'r') as f:
                 phoneLevel = float(f.read(4))
         except Exception as e:
-            print(f"Ошибка чтения файла громкости 1.txt: {e}")
+            logger.error(f"Ошибка чтения файла громкости 1.txt (в play_story): {e}")
             pass # Используем старое значение
 
         temp_vol = phoneLevel 
@@ -2100,16 +2149,14 @@ def send_esp32_command(api_url, command, timeout=6, max_retries=4, retry_delay=1
             try:
                 response = requests.post(api_url, json=command, timeout=timeout)
                 response.raise_for_status()
-                print(f"Команда {command} выполнена успешно")
+                logger.info(f"ESP32 command '{command}' to {api_url} successful.")
                 return response
             except RequestException as e:
-                print(f"Попытка {attempt + 1}/{max_retries} не удалась: {e}")
+                logger.error(f"ESP32 command '{command}' to {api_url} FAILED after all retries.")
                 if attempt < max_retries - 1:
-                    print(f"Повтор через {current_delay} секунд...")
                     time.sleep(current_delay)
                     current_delay *= 2
                 else:
-                    print(f"Все попытки отправки команды {command} на {api_url} не удались")
                     return None
     
     if async_mode:
@@ -2150,10 +2197,10 @@ def test_esp32():
 
     # Результат
     
-    print(f"Итог: {success_count}/4 устройств доступно")
-    print(devices)
+    logger.info(f"Hardware check: {success_count}/4 ESP32 devices available.")
+    logger.debug(f"Hardware check: Raw 'devices' list: {devices}")
     final_string = ', '.join(str(device) for device in set(devices))
-    print(final_string)
+    logger.debug(f"Hardware check: Final string for UI: '{final_string}'")
     socketio.emit('devices',final_string ,to=None)
     return success_count == 4 and len(devices) == 0 
                 
@@ -2164,16 +2211,14 @@ def _send_command_internal(api_url, command, timeout=6, max_retries=4, retry_del
         try:
             response = requests.post(api_url, json=command, timeout=timeout)
             response.raise_for_status()
-            print(f"Команда {command} для {api_url} выполнена успешно")
+            logger.info(f"ESP32 command '{command}' to {api_url} successful.")
             return response
         except RequestException as e:
-            print(f"Попытка {attempt + 1}/{max_retries} для {api_url} не удалась: {e}")
             if attempt < max_retries - 1:
-                print(f"Повтор через {current_delay} секунд...")
                 time.sleep(current_delay)
                 current_delay *= 2
             else:
-                print(f"Все попытки отправки команды {command} на {api_url} не удались")
+                logger.error(f"ESP32 command '{command}' to {api_url} FAILED after all retries.")
                 return None
 
 def send_esp32_command(api_url, command, debounce=False, delay=0.5):
@@ -2238,9 +2283,9 @@ def play_background_music(music_file, volume_file='1.txt', loops=-1):
             pygame.mixer.music.set_volume(volume)
             
     except FileNotFoundError:
-        print(f"Ошибка: файл {music_file} или {volume_file} не найден")
+        logger.error(f"Ошибка: файл {music_file} или {volume_file} не найден")
     except Exception as e:
-        print(f"Ошибка при воспроизведении музыки: {e}")
+        logger.error(f"Ошибка при воспроизведении музыки: {e}")
 
 def check_story_and_fade_up():
     # Проверяет, не завершилась ли история, и восстанавливает громкость фона.
@@ -2261,7 +2306,7 @@ def check_story_and_fade_up():
             with open('1.txt', 'r') as f:
                 phoneLevel = float(f.read(4))
         except Exception as e:
-            print(f"Ошибка чтения файла громкости 1.txt: {e}")
+            logger.error(f"Ошибка чтения файла громкости 1.txt (в check_story_fade_up, 1-я проверка): {e}")
             pass # Используем старое значение phoneLevel
         
         temp_vol = current_bg_vol
@@ -2331,6 +2376,7 @@ def serial():
           # Добавляем блок для отправки сообщений из очереди
           try:
               message_to_send = serial_write_queue.get_nowait()
+              logger.info(f"[SERIAL_OUT] Sent: {message_to_send}")
               ser.write(str.encode(message_to_send + '\n'))
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
@@ -2357,8 +2403,9 @@ def serial():
           if ser.in_waiting > 0:
                line = ser.readline().decode('utf-8', errors='ignore').rstrip()
                flag = line
+               logger.debug(f"Raw serial data received: {line}")
                eventlet.sleep(0.1)
-               print(flag)
+               logger.info(f"[SERIAL_IN] {flag}")
                for i in socklist:
                     #----- постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume', str(phoneLevel))
@@ -2594,7 +2641,7 @@ def serial():
                           socklist.append('close_door_puzzle')
 
                      if flag=="safe_close":
-                          if 'Check Safe' in devices:
+                          if 'Check Bank Safe' in devices:
                                    devices.remove('Check Bank Safe')
                           if 'safe' in socklist:
                                 socklist.remove('safe')
@@ -2602,7 +2649,7 @@ def serial():
                           socklist.append('safe_close')
 
                      if flag=="safe_open":
-                          if 'Check Safe' not in devices:
+                          if 'Check Bank Safe' not in devices:
                             devices.append('Check Bank Safe')
                           if 'safe_close' in socklist:
                                 socklist.remove('safe_close')
@@ -4992,14 +5039,14 @@ def timer():
 #------наша основная программа крутиться здесь сам сервер порт можно измнить(при желании) методы таймер и сериал работают ассинхронно
 if __name__ == '__main__':
     try:
-        print("INFO: Starting background tasks...")
+        logger.info("Starting background tasks...")
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
-        print("INFO: Starting Flask-SocketIO server on http://0.0.0.0:3000")
+        logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:
-        print(f"FATAL: Could not start server. Error: {e}")
-        print("HINT: The port 3000 might be in use by another application.")
+        logger.critical(f"Could not start server. Error: {e}")
+        logger.critical("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
-        print(f"FATAL: An unexpected error occurred: {e}")
+        logger.critical(f"An unexpected error occurred: {e}")
 
