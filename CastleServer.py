@@ -2851,8 +2851,8 @@ def serial():
                           socklist.append('active_suitcase')
                           socketio.emit('level', 'active_animals',to=None)
                           socklist.append('active_animals')
-                          socketio.emit('level', 'active_swolf',to=None)
-                          socklist.append('active_swolf')
+                          socketio.emit('level', 'active_wolf',to=None)
+                          socklist.append('active_wolf')
                      if flag=="three_game_end":
                           send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
                           socketio.emit('level', 'active_open_mansard_stash',to=None)
