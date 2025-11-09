@@ -313,6 +313,13 @@ duration   : '1s',
             devices = r;
         }
     });
+	
+    // --- Обработчик для очистки флагов проверки ---
+    socket.on('clear_check_flags', function() {
+        devices = ""; // Очищаем строку с ошибками
+        console.log("Client-side check flags cleared.");
+    });
+    
     //нажатие на паузу отправляет данные сперва на сервер потом если ответ с сервера придет что кнопка обработана она окраситься в желтый см ниже
     $('#Pause').click(function(){
         socket.emit('time', 'pause');
