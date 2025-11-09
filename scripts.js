@@ -595,7 +595,7 @@ duration   : '1s',
             if (inp === 'active_animals') {
                 $('#animals').removeClass('disabled');
             }
-            if (inp === 'active_swolf') {
+            if (inp === 'active_wolf') {
                 $('#wolf').removeClass('disabled');
             }
             if (inp === 'active_open_mansard_stash') {
