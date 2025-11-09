@@ -707,6 +707,7 @@ void handleUartCommands() {
       isFirstFire0 = true;
       _restartGalet = 0;
       _restartFlag = 0;
+      CheckState(); // <-- ДОБАВЛЕНО: Принудительная проверка состояния при "ready"
     } else if (command == "restart") {
       fireworkActive = false; // Сбрасываем фейерверк
       //openLock();
