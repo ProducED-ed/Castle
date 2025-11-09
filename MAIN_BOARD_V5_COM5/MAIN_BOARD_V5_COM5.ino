@@ -783,6 +783,187 @@ void loop() {
 // метод открывания тайников и дверей каждая после своего уровня и до конца игры
 
 void PowerOn() {
+  if (Serial.available()) {  // есть что на вход?
+    String buff = Serial.readStringUntil('\n');
+    buff.trim();
+    // Serial.println(buff);
+    if (buff == "start") {
+      ////////рассылка всем башня
+      //if (_trollDoor && !digitalRead(startDoorPin))
+      //{
+      boyServo.attach(49);
+      boyServo.write(0);
+      Serial.println("modalend");
+      delay(100);
+      mySerial.println("start");
+      Serial1.println("start");
+      Serial2.println("start");
+      Serial3.println("start");
+      delay(1000);
+      Serial.println("startgo");
+      _dataQueue = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
+      _towerTimer = 0;
+      _towerCounter = 0;
+      doorEvent = 0;
+      mansardEvent = 0;
+      libraryEvent = 0;
+      galet1Event = 0;
+      galet2Event = 0;
+      galet3Event = 0;
+      galet4Event = 0;
+      galet5Event = 0;
+      sealEvent = 0;
+      sealSpaceEvent = 0;
+      finalEvent = 0;
+      bugTimerScroll = 0;
+      dragonCounter = 0;
+      studentCounter = 0;
+      professorCounter = 0;
+      dwarfCounter = 0;
+      knightCounter = 0;
+      trollCounter = 0;
+      workshopCounter = 0;
+      directorCounter = 0;
+      goblinCounter = 0;
+      witchCounter = 0;
+      firstRun = true;
+      isPotionDoorOpened = false;
+      isDogDoorOpened = false;
+      isOwlDoorOpened = false;
+      isTrainStarted = false;
+      dragonTimer = millis();
+      level++;
+      //}
+      //else
+      //Serial.println("modal");
+    }
+
+    if (buff == "open_mansard_door") {
+      OpenDoor(MansardDoor);
+    }
+    else if (buff == "open_crime_door") {
+      OpenDoor(CrimeDoor);
+    }
+    else if (buff == "open_bank_door") {
+      OpenDoor(BankDoor);
+    }
+    else if (buff == "open_potion_door") {
+      OpenDoor(PotionsRoomDoor);
+    }
+    else if (buff == "open_owl_door") {
+      mySerial.println("open_door");
+    }
+    else if (buff == "open_dog_door") {
+      Serial3.println("open_door");
+    }
+    else if (buff == "open_low_tower_door") {
+      OpenDoor(HightTowerDoor);
+    }
+    else if (buff == "open_high_tower_door") {
+      OpenDoor(HightTowerDoor2);
+    }
+    else if (buff == "open_library_door") {
+      OpenDoor(LibraryDoor);
+    }
+    else if (buff == "open_workshop_door") {
+      Serial1.println("open_door");
+    }
+    else if (buff == "open_safe_door") {
+      OpenDoor(BankStashDoor);
+    }
+    else if (buff == "open_memory_door") {
+      OpenDoor(MemoryRoomDoor);
+    }
+    else if (buff == "open_basket_door") {
+      Serial2.println("open_door");
+    }
+    else if (buff == "open_mine_door") {
+      Serial2.println("open_mine_door");
+    }
+    // --- "restart" и "ready" больше не попадают в Unlocks() ---
+    else if (buff != "restart" && buff != "ready") {
+      Unlocks(buff);
+    }
+    if (buff == "restart") {
+      // OpenAll();
+      _dataQueue = 0;
+      crimeEvent = 0;
+      safeEvent = 0;
+      _towerTimer = 0;
+      _towerCounter = 0;
+      doorEvent = 0;
+      mansardEvent = 0;
+      libraryEvent = 0;
+      galet1Event = 0;
+      galet2Event = 0;
+      galet3Event = 0;
+      galet4Event = 0;
+      galet5Event = 0;
+      sealEvent = 0;
+      sealSpaceEvent = 0;
+      finalEvent = 0;
+      bugTimerScroll = 0;
+      Serial1.println("restart"); // workshop
+      Serial2.println("restart"); // basket3
+      Serial3.println("restart"); // dog
+      mySerial.println("restart"); // owls
+      OpenAll(); // Открываем локальные двери (Банк и т.д.)
+      RestOn();
+    }
+    if (buff == "ready") {
+      // Сбрасываем все флаги проверки состояния
+      _dataQueue = 0;
+      _towerTimer = 0;
+      _towerCounter = 0;
+      doorEvent = 0;
+      mansardEvent = 0;
+      libraryEvent = 0;
+      galet1Event = 0;
+      galet2Event = 0;
+      galet3Event = 0;
+      galet4Event = 0;
+      galet5Event = 0;
+      sealEvent = 0;
+      sealSpaceEvent = 0;
+      finalEvent = 0;
+      // crimeEvent = 0;
+      // safeEvent = 0;
+      bugTimerScroll = 0;
+
+      Serial1.println("ready");
+      Serial2.println("ready");
+      Serial3.println("ready");
+      mySerial.println("ready");
+      delay(200); // Короткая пауза
+
+      // Немедленно перепроверяем состояние и отправляем ошибки СЕЙЧАС,
+      // пока сервер (CastleServer.py) "спит" 5 секунд и ждет ответа.
+      
+      delay(200); // Короткая пауза, чтобы Serial успел очиститься
+
+      // Копируем проверки из верхней части PowerOn()
+      if (digitalRead(startDoorPin)) { Serial.println("open_door"); }
+      if (!digitalRead(galetSwitchesPin) || galet2Event || galet3Event || galet4Event || galet5Event) { 
+        Serial.println("galet_on");
+      }
+      if (digitalReadExpander(4, board4)) { Serial.println("cristal_up"); }
+      if (digitalReadExpander(7, board1)) { Serial.println("boy_out"); }
+      if (digitalReadExpander(5, board3)) { Serial.println("lib_door"); }
+      if (digitalReadExpander(1, board2)) { Serial.println("crime_open"); }
+      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) { Serial.println("safe_open"); }
+
+      // Также нужно запросить состояние у башен СНОВА.
+      // Команда "ready" (которую мы отправили выше) заставляет башни сброситься,
+      // но нам нужно, чтобы они прислали *текущее* состояние.
+      Serial1.println("check_state");
+      Serial2.println("check_state");
+      Serial3.println("check_state");
+      mySerial.println("check_state");
+    }
+    return;
+  }
   /*
   static bool _dataQueue = 0;
   static unsigned long _towerTimer = 0;
@@ -1002,176 +1183,7 @@ void PowerOn() {
     }
   }
 
-  if (Serial.available()) {  // есть что на вход?
-    String buff = Serial.readStringUntil('\n');
-    buff.trim();
-    // Serial.println(buff);
-    if (buff == "start") {
-      ////////рассылка всем башня
-      //if (_trollDoor && !digitalRead(startDoorPin))
-      //{
-      boyServo.attach(49);
-      boyServo.write(0);
-      Serial.println("modalend");
-      delay(100);
-      mySerial.println("start");
-      Serial1.println("start");
-      Serial2.println("start");
-      Serial3.println("start");
-      delay(1000);
-      Serial.println("startgo");
-      _dataQueue = 0;
-      crimeEvent = 0;
-      safeEvent = 0;
-      _towerTimer = 0;
-      _towerCounter = 0;
-      doorEvent = 0;
-      mansardEvent = 0;
-      libraryEvent = 0;
-      galet1Event = 0;
-      galet2Event = 0;
-      galet3Event = 0;
-      galet4Event = 0;
-      galet5Event = 0;
-      sealEvent = 0;
-      sealSpaceEvent = 0;
-      finalEvent = 0;
-      bugTimerScroll = 0;
-      dragonCounter = 0;
-      studentCounter = 0;
-      professorCounter = 0;
-      dwarfCounter = 0;
-      knightCounter = 0;
-      trollCounter = 0;
-      workshopCounter = 0;
-      directorCounter = 0;
-      goblinCounter = 0;
-      witchCounter = 0;
-      firstRun = true;
-      isPotionDoorOpened = false;
-      isDogDoorOpened = false;
-      isOwlDoorOpened = false;
-      isTrainStarted = false;
-      dragonTimer = millis();
-      level++;
-      //}
-      //else
-      //Serial.println("modal");
-    }
-
-    if (buff == "open_mansard_door") {
-      OpenDoor(MansardDoor);
-    }
-    if (buff == "open_crime_door") {
-      OpenDoor(CrimeDoor);
-    }
-    if (buff == "open_bank_door") {
-      OpenDoor(BankDoor);
-    }
-    if (buff == "open_potion_door") {
-      OpenDoor(PotionsRoomDoor);
-    }
-    if (buff == "open_owl_door") {
-      mySerial.println("open_door");
-    }
-    if (buff == "open_dog_door") {
-      Serial3.println("open_door");
-    }
-    if (buff == "open_low_tower_door") {
-      OpenDoor(HightTowerDoor);
-    }
-    if (buff == "open_high_tower_door") {
-      OpenDoor(HightTowerDoor2);
-    }
-    if (buff == "open_library_door") {
-      OpenDoor(LibraryDoor);
-    }
-    if (buff == "open_workshop_door") {
-      Serial1.println("open_door");
-    }
-    if (buff == "open_safe_door") {
-      OpenDoor(BankStashDoor);
-    }
-    if (buff == "open_memory_door") {
-      OpenDoor(MemoryRoomDoor);
-    }
-    if (buff == "open_basket_door") {
-      Serial2.println("open_door");
-    }
-    if (buff == "open_mine_door") {
-      Serial2.println("open_mine_door");
-    }
-
-      Unlocks(buff);
-    if (buff == "restart") {
-      // OpenAll();
-      _dataQueue = 0;
-      crimeEvent = 0;
-      safeEvent = 0;
-      _towerTimer = 0;
-      _towerCounter = 0;
-      doorEvent = 0;
-      mansardEvent = 0;
-      libraryEvent = 0;
-      galet1Event = 0;
-      galet2Event = 0;
-      galet3Event = 0;
-      galet4Event = 0;
-      galet5Event = 0;
-      sealEvent = 0;
-      sealSpaceEvent = 0;
-      finalEvent = 0;
-      bugTimerScroll = 0;
-      RestOn();
-    }
-    if (buff == "ready") {
-      // Сбрасываем все флаги проверки состояния
-      _dataQueue = 0;
-      _towerTimer = 0;
-      _towerCounter = 0;
-      doorEvent = 0;
-      mansardEvent = 0;
-      libraryEvent = 0;
-      galet1Event = 0;
-      galet2Event = 0;
-      galet3Event = 0;
-      galet4Event = 0;
-      galet5Event = 0;
-      sealEvent = 0;
-      sealSpaceEvent = 0;
-      finalEvent = 0;
-      crimeEvent = 0;
-      safeEvent = 0;
-      bugTimerScroll = 0;
-
-      Serial1.println("ready");
-      Serial2.println("ready");
-      Serial3.println("ready");
-      mySerial.println("ready");
-
-      // Немедленно перепроверяем состояние и отправляем ошибки СЕЙЧАС,
-      // пока сервер (CastleServer.py) "спит" 5 секунд и ждет ответа.
-      
-      delay(200); // Короткая пауза, чтобы Serial успел очиститься
-
-      // Копируем проверки из верхней части PowerOn()
-      if (digitalRead(startDoorPin)) { Serial.println("open_door"); }
-      if (!digitalRead(galetSwitchesPin)) { Serial.println("galet_on"); }
-      if (digitalReadExpander(4, board4)) { Serial.println("cristal_up"); }
-      if (digitalReadExpander(7, board1)) { Serial.println("boy_out"); }
-      if (digitalReadExpander(5, board3)) { Serial.println("lib_door"); }
-      if (digitalReadExpander(1, board2)) { Serial.println("crime_open"); }
-      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) { Serial.println("safe_open"); }
-
-      // Также нужно запросить состояние у башен СНОВА.
-      // Команда "ready" (которую мы отправили выше) заставляет башни сброситься,
-      // но нам нужно, чтобы они прислали *текущее* состояние.
-      Serial1.println("check_state");
-      Serial2.println("check_state");
-      Serial3.println("check_state");
-      mySerial.println("check_state");
-    }
-  }
+  
 }
 
 int levenshteinDistance(String s1, String s2) {
@@ -5389,7 +5401,7 @@ void RestOn() {
   */
   // static bool firstRun = true;
   if (firstRun) {
-    OpenAll();
+    // OpenAll();
     firstRun = false; // Сбрасываем флаг
   }
   boyServo.detach();
@@ -5667,16 +5679,12 @@ void RestOn() {
     if (millis() - _towerTimer >= 2500) {
       switch (_towerCounter) {
         case 0:
-          Serial1.println("restart");
           break;
         case 1:
-          Serial2.println("restart");
           break;
         case 2:
-          Serial3.println("restart");
           break;
         case 3:
-          mySerial.println("restart");
           _dataQueue = 1;
           break;
       }
@@ -5829,6 +5837,10 @@ void RestOn() {
       crimeEvent = 0;
       safeEvent = 0;
       bugTimerScroll = 0;
+      Serial1.println("restart");
+      Serial2.println("restart");
+      Serial3.println("restart");
+      mySerial.println("restart");
       OpenAll();
     }
     if (buff == "ready") {
@@ -5855,22 +5867,16 @@ void RestOn() {
       }
 
       Serial1.println("ready");
-      delay(500);
-      Serial1.println("ready");
-      Serial2.println("ready");
-      delay(500);
       Serial2.println("ready");
       Serial3.println("ready");
-      delay(500);
-      Serial3.println("ready");
-      mySerial.println("ready");
-      delay(500);
       mySerial.println("ready");
       delay(200); // Короткая пауза
 
       // Копируем проверки
       if (digitalRead(startDoorPin)) { Serial.println("open_door"); }
-      if (!digitalRead(galetSwitchesPin)) { Serial.println("galet_on"); }
+      // --- ИЗМЕНЕНИЕ 2: Добавлена проверка флагов от башен (Serial1-3, mySerial) ---
+      if (!digitalRead(galetSwitchesPin) || galet2Event || galet3Event || galet4Event || galet5Event) { 
+        Serial.println("galet_on"); }
       if (digitalReadExpander(4, board4)) { Serial.println("cristal_up"); }
       if (digitalReadExpander(7, board1)) { Serial.println("boy_out"); }
       if (digitalReadExpander(5, board3)) { Serial.println("lib_door"); }
@@ -5909,12 +5915,12 @@ void RestOn() {
       strip1.show();
       strip2.show();
       GoldStrip.show();
-      delay(2000);
+      // delay(2000);
       level = 0;
       // return;
     }
   }
-  level = 25;
+  // level = 25;
 }
 
 void Restart() {
