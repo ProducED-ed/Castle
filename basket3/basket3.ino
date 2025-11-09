@@ -163,165 +163,129 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // --- НАЧАЛО ИЗМЕНЕНИЯ: Вся логика loop() переработана для корректной обработки команд ---
   switch (state) {
     case 0:
-    CheckState();
-    if (Serial1.available())
-    {
-      String buff = Serial1.readStringUntil('\n');
-      buff.trim();
-      if (buff == "check_state"){
-        _restartFlag = 0;
-      _restartGalet = 0;
-        CheckState();
-      }
-      // Обработчик 'ready' ТОЛЬКО сбрасывает переменные и флаги
-            if (buff == "ready" || buff == "restart"){
+      CheckState();
+      if (Serial1.available()) { // ИСПОЛЬЗУЕМ Serial1 для связи с главной платой
+        String buff = Serial1.readStringUntil('\n');
+        buff.trim();
 
-        digitalWrite(trollLed, LOW);
-        digitalWrite(owlLed, LOW);
-        digitalWrite(basketLed, LOW);
+        if (buff == "restart") {
+          // 1. Открываем обе двери
+          OpenLock(SHERIF_EM1); // Дверь тролля/шахты
+          OpenLock(SHERIF_EM2); // Дверь баскетбола
 
-        digitalWrite(SHERIF_EM1, LOW);
-        digitalWrite(SHERIF_EM2, LOW);
-        digitalWrite(Solenoid, LOW);
-        
-        SCORE_ROBOT = 0; 
-        SCORE_MAN = 0;
-        buttonSequence = 0;
-        trollSequence = 0;
-        score = 0;
-        upHelp=0;
-        _startBasket=0;
-        light=0;
-        lightFlashTimer=0;
-        basket_ir_read_F = 0; 
-        doorFlags=0;
-        metallClick=0;
-        doorTimer=0;
-        doorDef=0;
-        basketTimer=0;
-        disp.clear();
-        strip.clear();
-        strip.show();
-        disp.point(0);
+          // 2. Сбрасываем все игровые переменные
+          digitalWrite(trollLed, LOW);
+          digitalWrite(owlLed, LOW);
+          digitalWrite(basketLed, LOW);
+          digitalWrite(SHERIF_EM1, LOW);
+          digitalWrite(SHERIF_EM2, LOW);
+          digitalWrite(Solenoid, LOW);
+          SCORE_ROBOT = 0;
+          SCORE_MAN = 0;
+          buttonSequence = 0;
+          trollSequence = 0;
+          score = 0;
+          _startBasket=0;
+          disp.clear();
+          strip.clear();
+          strip.show();
+          disp.point(0);
+          _restartGalet = 0;
+          _restartFlag = 0;
 
-        // Сбрасываем флаги состояния для CheckState()
-        _restartGalet = 0;
-        _restartFlag = 0;
-        
-        // Если это 'ready', переходим в state 0 (остаемся), если 'restart' - тоже 0
-        // (Логика 'start' переводит в state 1)
+          // 3. Остаемся в state 0, готовые к следующей команде
+          state = 0;
+        }
+        else if (buff == "ready") {
+          // При 'ready' просто сбрасываем переменные, НЕ открывая двери
+          digitalWrite(trollLed, LOW);
+          digitalWrite(owlLed, LOW);
+          digitalWrite(basketLed, LOW);
+          SCORE_ROBOT = 0;
+          SCORE_MAN = 0;
+          buttonSequence = 0;
+          trollSequence = 0;
+          score = 0;
+          _startBasket=0;
+          disp.clear();
+          strip.clear();
+          strip.show();
+          disp.point(0);
+          _restartGalet = 0;
+          _restartFlag = 0;
+          state = 0;
+        }
+        else if (buff == "start") {
+          state++; // Переходим в игровой режим (state 1)
+        }
+        else if (buff == "check_state") {
+          _restartFlag = 0;
+          _restartGalet = 0;
+          CheckState();
+        }
+        else {
+          // Обработка команд пропуска (open_door)
+          HandleMessagges(buff);
+        }
       }
-      else if (buff == "start"){
-        state++;
+      break;
+
+    case 1:
+      galetButton.tick();
+      if (galetButton.isPress()) {
+        Serial1.println("galet_on");
       }
-      else{
-        HandleMessagges(buff);
+      if (galetButton.isRelease()) {
+        Serial1.println("galet_off");
       }
-    }
-     break;  
-   case 1:
-   galetButton.tick();
-    if(galetButton.isPress()){
-      Serial1.println("galet_on");
-    }
-    if(galetButton.isRelease()){
-      Serial1.println("galet_off");
-    }
-    flagButton.tick();
-    if(flagButton.isPress()){
-      Serial1.println("flag2_on");
-    }
-    if(flagButton.isRelease()){
-      Serial1.println("flag2_off");
-    }
-   StartTrollGame();
-     break;
-   case 2:
-   OpenDoor();
-     break;
-   case 3:
-   TrollGame();
-     break;
-   case 4:
-    WorkShopGame();
-     break;
+      flagButton.tick();
+      if (flagButton.isPress()) {
+        Serial1.println("flag2_on");
+      }
+      if (flagButton.isRelease()) {
+        Serial1.println("flag2_off");
+      }
+      StartTrollGame();
+      break;
+    case 2:
+      OpenDoor();
+      break;
+    case 3:
+      TrollGame();
+      break;
+    case 4:
+      WorkShopGame();
+      break;
     case 5:
-    OpenBasket();
-     break;
-   case 6:
-    BasketLesson();
-     break;  
-  case 7:
-     Basket();
-     break;
-  case 8:
-    CheckState();
-       SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
-       SCORE_MAN = 0;
-       buttonSequence = 0;
-       trollSequence = 0;
-       score = 0;
-       upHelp=0;
-       _startBasket=0;
-       light=0;
-       lightFlashTimer=0;
-       basket_ir_read_F = 0; 
-       doorFlags=0;
-       metallClick=0;
-       doorTimer=0;
-       doorDef=0;
-       basketTimer=0;
-      digitalWrite(trollLed, HIGH);
-      digitalWrite(owlLed, HIGH);
-      digitalWrite(basketLed, HIGH);
-
-     if (Serial1.available())
-    {
-      String buff = Serial1.readString();
-      if (buff == "ready\r\n"){
-        digitalWrite(trollLed, LOW);
-        digitalWrite(owlLed, LOW);
-        digitalWrite(basketLed, LOW);
-
-        digitalWrite(SHERIF_EM1, LOW);
-        digitalWrite(SHERIF_EM2, LOW);
-        digitalWrite(Solenoid, LOW);
-        _restartFlag = 0;
-        _restartGalet = 0;
-        SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
-        SCORE_MAN = 0;
-        buttonSequence = 0;
-        trollSequence = 0;
-        score = 0;
-        upHelp=0;
-       _startBasket=0;
-       light=0;
-       lightFlashTimer=0;
-       basket_ir_read_F = 0; 
-       doorFlags=0;
-       metallClick=0;
-       doorTimer=0;
-       doorDef=0;
-       basketTimer=0;
-       disp.clear();
-       strip.clear();
-       strip.show();
-       disp.point(0);
-       state = 0;
+      OpenBasket();
+      break;
+    case 6:
+      BasketLesson();
+      break;
+    case 7:
+      Basket();
+      break;
+    case 8:
+       if (Serial1.available()){
+        String buff = Serial1.readStringUntil('\n');
+        buff.trim();
+        if (buff == "ready"){
+          state = 0; // Возвращаемся в исходное состояние
+        }
       }
-      else{
-        HandleMessagges(buff);
-      }
-    }
- }
- HelpButton();
- DoorDefender();
+      break;
+  }
+  HelpButton();
+  DoorDefender();
+  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 }
 
-void HandleMessagges(String message){
+void HandleMessagges(String message) {
+  // --- НАЧАЛО ИЗМЕНЕНИЯ: Удалена обработка "restart", т.к. она перенесена в case 0 ---
+  /*
   if(message == "restart"){
     _restartFlag = 0;
     _restartGalet = 0;
@@ -333,6 +297,8 @@ void HandleMessagges(String message){
       delay(100);
     state = 8;
   }
+  */
+  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
   if(message == "day_on"){
     digitalWrite(trollLed, HIGH);
   }
@@ -347,35 +313,33 @@ void HandleMessagges(String message){
   }
 }
 
-void CheckState(){
-  if(!digitalRead(26) && !_restartGalet){
+void CheckState() {
+  // Проверяем состояние галетника (pin 26)
+  if (!digitalRead(26)) { // Если галетник активен (LOW)
+    if (!_restartGalet) {    // И если мы еще не отправляли сообщение
       Serial1.println("galet_on");
-      _restartGalet = 1;
-      delay(500);
-      Serial1.println("galet_on");
-      delay(500);
+      _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
     }
-    if(digitalRead(26) && _restartGalet){
+  } else {                   // Если галетник неактивен (HIGH)
+    if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("galet_off");
-      _restartGalet = 0;
-      delay(500);
-      Serial1.println("galet_off");
-      delay(500);
+      _restartGalet = 0;    // Сбрасываем флаг
     }
-    if(digitalRead(27) && !_restartFlag){
+  }
+
+  // Проверяем состояние флага (pin 27)
+  // Для flagButton используется LOW_PULL, поэтому активное состояние - HIGH
+  if (digitalRead(27)) { // Если флаг на месте (HIGH)
+    if (!_restartFlag) {    // И если мы еще не отправляли сообщение
       Serial1.println("flag2_on");
-      _restartFlag = 1;
-      delay(500);
-      Serial1.println("flag2_on");
-      delay(500);
+      _restartFlag = 1;     // Устанавливаем флаг
     }
-    if(_restartFlag && !digitalRead(27)){
+  } else {                  // Если флага нет (LOW)
+    if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("flag2_off");
-      delay(500);
-      _restartFlag = 0;
-      Serial1.println("flag2_off");
-      delay(500);
+      _restartFlag = 0;   // Сбрасываем флаг
     }
+  }
 }
 
 

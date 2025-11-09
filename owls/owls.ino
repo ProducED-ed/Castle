@@ -303,37 +303,33 @@ void handleSerial1Commands() {
   }
 }
 
-void CheckState(){
-  if(!digitalRead(30) && !_restartGalet){
-        Serial1.println("galet_on");
-        _restartGalet = 1;
-        delay(500);
-        Serial1.println("galet_on");
-        delay(500);
-      }
-    if(digitalRead(30) && _restartGalet){
+void CheckState() {
+  // Проверяем состояние геркона "лодка" (pin 30)
+  if (!digitalRead(30)) { // Если геркон активен (LOW)
+    if (!_restartGalet) {    // И если мы еще не отправляли сообщение
+      Serial1.println("galet_on");
+      _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
+    }
+  } else {                   // Если геркон неактивен (HIGH)
+    if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("galet_off");
-      _restartGalet = 0;
-      delay(500);
-      Serial1.println("galet_off");
-      delay(500);
+      _restartGalet = 0;    // Сбрасываем флаг
     }
+  }
 
-
-    if(digitalRead(27) && !_restartFlag){
+  // Проверяем состояние ИК датчика "Флаг" (pin 27)
+  // Судя по handleFlagSensorSimple, HIGH - это "on", LOW - "off"
+  if (digitalRead(27)) { // Если флаг на месте (HIGH)
+    if (!_restartFlag) {    // И если мы еще не отправляли сообщение
       Serial1.println("flag4_on");
-      _restartFlag = 1;
-      delay(500);
-      Serial1.println("flag4_on");
-      delay(500);
+      _restartFlag = 1;     // Устанавливаем флаг
     }
-    if(_restartFlag && !digitalRead(27)){
+  } else {                  // Если флага нет (LOW)
+    if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("flag4_off");
-      delay(500);
-      _restartFlag = 0;
-      Serial1.println("flag4_off");
-      delay(500);
+      _restartFlag = 0;   // Сбрасываем флаг
     }
+  }
 }
 
 
