@@ -1986,9 +1986,9 @@ def tmr(res):
                # проверку состояния (start_door, safe_open и т.д.)
                serial_write_queue.put('ready')
 
-               # 3. Даем 5 секунд, используя НЕБЛОКИРУЮЩИЙ eventlet.sleep().
+               # 3. Даем 4 секунд, используя НЕБЛОКИРУЮЩИЙ eventlet.sleep().
                #    Это позволяет потоку serial() работать и ПОЛУЧАТЬ ошибки от Arduino.
-               eventlet.sleep(5.0) # <-- БЫЛО eventlet.sleep(1.0)
+               eventlet.sleep(4.0) # <-- БЫЛО eventlet.sleep(1.0)
                
                # 4. Теперь проверяем 'devices'. К этому моменту он
                #    содержит И ошибки ESP, И ошибки Arduino.
