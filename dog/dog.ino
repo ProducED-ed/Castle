@@ -403,36 +403,32 @@ void setup() {
 }
 
 
-void ChechState() {
-  if (!digitalRead(A3) && !_restartGalet) {
-    Serial.println("galet_on");
-    _restartGalet = 1;
-    delay(500);
-    Serial.println("galet_on");
-    delay(500);
-  }
-  if (digitalRead(A3) && _restartGalet) {
-    Serial.println("galet_off");
-    _restartGalet = 0;
-    delay(500);
-     Serial.println("galet_off");
-     delay(500);
+void CheckState() { // ИСПРАВЛЕНО: опечатка в имени функции
+  // Проверяем состояние геркона "роза" (pin A3)
+  if (!digitalRead(A3)) { // Если геркон активен (LOW)
+    if (!_restartGalet) {    // И если мы еще не отправляли сообщение
+      Serial.println("galet_on");
+      _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
+    }
+  } else {                   // Если геркон неактивен (HIGH)
+    if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
+      Serial.println("galet_off");
+      _restartGalet = 0;    // Сбрасываем флаг
+    }
   }
 
-
-  if (digitalRead(7) && !_restartFlag) {
-    Serial.println("flag3_on");
-    _restartFlag = 1;
-    delay(500);
-    Serial.println("flag3_on");
-    delay(500);
-  }
-  if (_restartFlag && !digitalRead(7)) {
-    Serial.println("flag3_off");
-    delay(500);
-    _restartFlag = 0;
-    Serial.println("flag3_off");
-    delay(500);
+  // Проверяем состояние ИК-датчика "флаг" (pin 7)
+  // Для flagButton используется LOW_PULL, поэтому активное состояние - HIGH
+  if (digitalRead(7)) { // Если флаг на месте (HIGH)
+    if (!_restartFlag) {    // И если мы еще не отправляли сообщение
+      Serial.println("flag3_on");
+      _restartFlag = 1;     // Устанавливаем флаг
+    }
+  } else {                  // Если флага нет (LOW)
+    if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
+      Serial.println("flag3_off");
+      _restartFlag = 0;   // Сбрасываем флаг
+    }
   }
 }
 void loop() {
@@ -486,7 +482,7 @@ void loop() {
         else if (strcmp_P(receivedUartMessageBuffer, PSTR("check_state")) == 0) {
           _restartFlag = 0;
           _restartGalet = 0;
-          ChechState();
+          CheckState();
         }
         else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
           currentQuestState = STATE_RESTARTING;
@@ -496,7 +492,7 @@ void loop() {
           digitalWrite(10, LOW);
           _restartFlag = 0;
           _restartGalet = 0;
-          ChechState();
+          CheckState();
 
           digitalWrite(DOOR_LOCK_PIN, HIGH);
           doorLockRestartTime = currentMillis;
