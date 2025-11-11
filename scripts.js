@@ -520,12 +520,13 @@ duration   : '1s',
             // Блокируем все предыдущие шаги ---
             // Устанавливаем все флаги, чтобы "заморозить" шкалу на 100%
             // и игнорировать любые запоздалые сообщения 'safe_step_1' и т.д.
-			$('#safe_progress').progress({ percent: 100 });
-			safeStep1 = 1;
-						safeStep2 = 1;
-						safeStep3 = 1;
-			safeStep4 = 1;
-						safeStep5 = 1;
+            $('#safe_progress').progress({ percent: 100 });
+            safeStep1 = 1;
+            safeStep2 = 1;
+            safeStep3 = 1;
+            safeStep4 = 1;
+            safeStep5 = 1;
+            }
             if (inp === 'safe_reset') {
                 $('#safe_progress').progress({ percent: 0 });
                 // Сбрасываем все флаги, чтобы можно было начать заново
