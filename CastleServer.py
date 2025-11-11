@@ -3018,6 +3018,16 @@ def serial():
                logger.debug(f"Raw serial data received: {line}")
                eventlet.sleep(0.1)
                logger.info(f"[SERIAL_IN] {flag}")
+               # Логирование смены уровня ---
+               if flag.startswith("level_"):
+                   try:
+                       # Извлекаем номер уровня (например, "level_5" -> "5")
+                       level_number = flag.split('_')[1]
+                       # Логируем на уровне DEBUG (только в файл)
+                       logger.debug(f"ARDUINO LEVEL: Main board transitioned to level {level_number}")
+                   except Exception as e:
+                       logger.warning(f"Could not parse level from Arduino: {flag}. Error: {e}")
+               # --- 
                for i in socklist:
                     #----- постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume', str(phoneLevel))
