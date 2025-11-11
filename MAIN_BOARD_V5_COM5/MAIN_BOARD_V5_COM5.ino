@@ -203,6 +203,8 @@ bool crimeEvent = 0;
 bool safeEvent = 0;
 unsigned long bugTimerScroll = 0;
 bool firstRun = true;
+bool helpsBankTimerWaiting = false; // Флаг: ждем, пока сервер доиграет подсказку
+bool isBankerFirstHint = true;
 
 ///////////////////таймеры туть
 unsigned long FireInterval = 0;
@@ -824,7 +826,7 @@ void PowerOn() {
       dwarfCounter = 0; knightCounter = 0; trollCounter = 0; workshopCounter = 0;
       directorCounter = 0; goblinCounter = 0; witchCounter = 0; firstRun = true;
       isPotionDoorOpened = false; isDogDoorOpened = false; isOwlDoorOpened = false;
-      isTrainStarted = false; dragonTimer = millis();
+      isTrainStarted = false; isBankerFirstHint = true; dragonTimer = millis();
       level++; // Переход на уровень 1
     }
     else if (buff == "open_mansard_door")   { OpenDoor(MansardDoor); }
@@ -3174,9 +3176,14 @@ void CentralTowerGameDown() {
 
 /////нужно подуть в окно
 void OpenBank() {
-  if (millis() - helpsBankTimer >= 30000) {
+  // Условие для немедленного первого запуска ---
+  // Проверяем, не ждем ли мы уже ответа (helpsBankTimerWaiting == false) И
+  // (Это первый запуск ИЛИ прошло 30 секунд)
+  bool timeToPlay = (millis() - helpsBankTimer >= 30000);
+
+  if (!helpsBankTimerWaiting && (isBankerFirstHint || timeToPlay)) {
     int helpCounter = 0;
-    helpCounter = random(0, 4);
+    helpCounter = random(0, 3); // (для 3-х вариантов a, b, c) 
     switch (helpCounter) {
       case 0:
         Serial.println("story_22_a");
@@ -3188,7 +3195,10 @@ void OpenBank() {
         Serial.println("story_22_c");
         break;
     }
-    helpsBankTimer = millis();
+    // НЕ СБРАСЫВАЕМ ТАЙМЕР. Вместо этого, взводим флаг ожидания.
+    helpsBankTimerWaiting = true;
+    // Сбрасываем флаг первого запуска ---
+    isBankerFirstHint = false;
   }
 
   Fire();
@@ -3200,11 +3210,18 @@ void OpenBank() {
     //digitalWrite(BankRoomLight, HIGH);
     //OpenLock(BankDoor);
     level++;
+    helpsBankTimerWaiting = false; // [ДОБАВЛЕНО] Сброс флага при выходе с уровня
+    // Восстанавливаем флаг при выходе с уровня ---
+    isBankerFirstHint = true;
   }
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
-    if (buff == "student_hide") {
+    if (buff == "story_22_done") {
+      helpsBankTimer = millis(); // Вот ТЕПЕРЬ сбрасываем таймер
+      helpsBankTimerWaiting = false; // Снимаем флаг ожидания
+    }
+    else if (buff == "student_hide") {
       boyServo.attach(49);
       digitalWrite(HallLight, HIGH);
       digitalWrite(MansardLight, HIGH);
@@ -3212,7 +3229,7 @@ void OpenBank() {
       delay(1000);
       boyServo.detach();
     }
-    if (buff == "open_bank_door") {
+    else if (buff == "open_bank_door") {
       CandleStrip.setPixelColor(0, CandleStrip.Color(0, 0, 0));
       CandleStrip.show();
       Serial.println("miror");
@@ -3221,16 +3238,19 @@ void OpenBank() {
       //OpenLock(BankDoor);
       level++;
     }
-    if (buff == "restart") {
+    else if (buff == "restart") {
       OpenAll();
       RestOn();
       level = 25;
+      helpsBankTimerWaiting = false;
+      // Восстанавливаем флаг при рестарте ---
+      isBankerFirstHint = true;
       return;
     }
-    if (buff == "soundon") {
+    else if (buff == "soundon") {
       flagSound = 0;
     }
-    if (buff == "soundoff") {
+    else if (buff == "soundoff") {
       flagSound = 1;
     }
   }
@@ -5250,6 +5270,8 @@ void RestOn() {
   NumKnock = 0;
   doorFlags = 1;
   flagStory = 1;
+  helpsBankTimerWaiting = false;
+  isBankerFirstHint = true;
 
   previousMillis = 0;
   interval = 10;               // Интервал обновления (мс)
