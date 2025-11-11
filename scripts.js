@@ -308,9 +308,19 @@ duration   : '1s',
             rate = r;
         }
     });
-     socket.on('devices', function (r) {
+    socket.on('devices', function (r) {
         if (typeof (r) === 'string') {
-            devices = r;
+            devices = r; // 1. Обновляем глобальную переменную 'devices'
+            
+            // 2. ПРОВЕРЯЕМ: Если строка с ошибками не пустая, показываем модальное окно
+            if (devices.trim().length > 0) {
+                 swal.fire({
+                     title: "Attention",
+                     icon: "warning",
+                     html: 'Not connected : ' + '&nbsp&nbsp' + devices
+                })
+            }
+            // 3. Если строка пустая (нет ошибок), ничего не делаем.
         }
     });
 	
@@ -324,10 +334,13 @@ duration   : '1s',
     $('#Pause').click(function(){
         socket.emit('time', 'pause');
     }); 
-    //нажали на демо отправили на сервер сообщение
+    //нажали на Ready отправили на сервер сообщение
     $('#Ready').click(function(){
+		// Немедленная очистка состояния ошибки при клике ---
+        devices = "";      // 1. Очищаем переменную с текстом ошибок
+        swal.close();      // 2. Принудительно закрываем открытое модальное окно
+        // 3. Отправляем команду на сервер
         socket.emit('time', 'ready');
-        start_error = 1
     }); 
     //нажатие на старт тоже отправляем данные на сервак и отпускаем флаги
     $('#Start').click(function(){
@@ -1057,18 +1070,7 @@ duration   : '1s',
                 }
                
             }
-            if(inp === 'start_error') {
-                if(start_error==1 && devices.trim().length > 0){
-                    swal.fire({
-                        title: "Attention",
-                        icon: "warning",
-                        html: 'Not connected :' + '&nbsp&nbsp'+devices
-                   })
-                   start_error = 0;
-            }
-        }
-    
-            
+
             
 // выбор языка
             if(inp === 'russian') {
