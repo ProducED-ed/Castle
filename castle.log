@@ -7785,3 +7785,62 @@
 2025-11-09 11:31:16 - root - INFO - ESP32 command 'restart' to http://192.168.0.201/data successful.
 2025-11-09 11:31:16 - urllib3.connectionpool - DEBUG - http://192.168.0.204:80 "POST /data HTTP/1.1" 200 21
 2025-11-09 11:31:16 - root - INFO - ESP32 command 'restart' to http://192.168.0.204/data successful.
+2025-11-09 11:53:06 - root - INFO - [SOCKET_IN] Command: ready
+2025-11-09 11:53:06 - root - INFO - Ready command received
+2025-11-09 11:53:06 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.201:80
+2025-11-09 11:53:06 - urllib3.connectionpool - DEBUG - http://192.168.0.201:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:06 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.202:80
+2025-11-09 11:53:07 - urllib3.connectionpool - DEBUG - http://192.168.0.202:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:07 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.203:80
+2025-11-09 11:53:07 - urllib3.connectionpool - DEBUG - http://192.168.0.203:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:07 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.204:80
+2025-11-09 11:53:07 - urllib3.connectionpool - DEBUG - http://192.168.0.204:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:07 - root - INFO - Hardware check: 4/4 ESP32 devices available.
+2025-11-09 11:53:07 - root - DEBUG - Hardware check: Raw 'devices' list: []
+2025-11-09 11:53:07 - root - DEBUG - Hardware check: Final string for UI: ''
+2025-11-09 11:53:07 - root - INFO - [SERIAL_OUT] Sent: ready
+2025-11-09 11:53:11 - root - INFO - Ready: OK
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.201:80
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.202:80
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.203:80
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.204:80
+2025-11-09 11:53:11 - root - DEBUG - State changed: System is ready for game start.
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - http://192.168.0.201:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:11 - root - INFO - ESP32 command 'ready' to http://192.168.0.201/data successful.
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - http://192.168.0.202:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:11 - root - INFO - ESP32 command 'ready' to http://192.168.0.202/data successful.
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - http://192.168.0.203:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:11 - root - INFO - ESP32 command 'ready' to http://192.168.0.203/data successful.
+2025-11-09 11:53:11 - urllib3.connectionpool - DEBUG - http://192.168.0.204:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:11 - root - INFO - ESP32 command 'ready' to http://192.168.0.204/data successful.
+2025-11-09 11:53:16 - root - INFO - [SOCKET_IN] Command: start
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.201:80
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.202:80
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.203:80
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.204:80
+2025-11-09 11:53:16 - root - INFO - Start command received
+2025-11-09 11:53:16 - root - DEBUG - State changed: Game started from 'ready' state.
+2025-11-09 11:53:16 - root - INFO - [SERIAL_OUT] Sent: start
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - http://192.168.0.202:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - http://192.168.0.204:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:16 - root - INFO - ESP32 command 'set_level_20' to http://192.168.0.204/data successful.
+2025-11-09 11:53:16 - root - INFO - ESP32 command 'set_level_20' to http://192.168.0.202/data successful.
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - http://192.168.0.201:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:16 - root - INFO - ESP32 command 'set_level_20' to http://192.168.0.201/data successful.
+2025-11-09 11:53:16 - urllib3.connectionpool - DEBUG - http://192.168.0.203:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:16 - root - INFO - ESP32 command 'set_level_20' to http://192.168.0.203/data successful.
+2025-11-09 11:53:38 - root - INFO - [SOCKET_IN] Command: restart
+2025-11-09 11:53:38 - root - DEBUG - State changed: Game restarted.
+2025-11-09 11:53:38 - root - INFO - [SERIAL_OUT] Sent: restart
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.201:80
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.202:80
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.203:80
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): 192.168.0.204:80
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - http://192.168.0.202:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:38 - root - INFO - ESP32 command 'restart' to http://192.168.0.202/data successful.
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - http://192.168.0.203:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:38 - root - INFO - ESP32 command 'restart' to http://192.168.0.203/data successful.
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - http://192.168.0.201:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:38 - root - INFO - ESP32 command 'restart' to http://192.168.0.201/data successful.
+2025-11-09 11:53:38 - urllib3.connectionpool - DEBUG - http://192.168.0.204:80 "POST /data HTTP/1.1" 200 21
+2025-11-09 11:53:38 - root - INFO - ESP32 command 'restart' to http://192.168.0.204/data successful.
