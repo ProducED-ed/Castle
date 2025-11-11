@@ -1620,6 +1620,7 @@ def WLAN(ssid):
 @socketio.on('connect')
 def handle_connect():
     global current_client_sid
+    global socklist
     current_client_sid = request.sid
     socketio.emit('volume', str(phoneLevel))
     socketio.emit('volume1', str(effectLevel))
@@ -1628,6 +1629,13 @@ def handle_connect():
     socketio.emit('platform', str(trainLevel))
     socketio.emit('suitcases', str(suitcaseLevel))
     socketio.emit('safe', str(safeLevel))
+    
+    # Отправка всей истории новому клиенту ---
+    # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
+    # Мы отправляем только этому 'sid', чтобы не спамить других
+    logger.debug(f"New client connected ({request.sid}). Sending full state history ({len(socklist)} items).")
+    for i in socklist:
+        socketio.emit('level', i, to=request.sid)
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -2660,9 +2668,11 @@ def checkQuesst(receivedData):
           socketio.emit('level', 'NORMAL',to=None)
      if flag=="LOW":
           socketio.emit('level', 'LOW',to=None)
-     for i in socklist:
-
-         socketio.emit('level', i ,to=None)
+     # --- ИЗМЕНЕНИЕ: Закомментирован цикл - он вызывает 'state-storm' и race conditions ---
+     # --- Синхронизация истории теперь происходит ОДИН РАЗ в @socketio.on('connect') ---
+     # for i in socklist:
+     #
+     #    socketio.emit('level', i ,to=None)
 
      
      
@@ -3028,21 +3038,24 @@ def serial():
                    except Exception as e:
                        logger.warning(f"Could not parse level from Arduino: {flag}. Error: {e}")
                # --- 
-               for i in socklist:
-                    #----- постоянно обновляем данные по громкости синхроним 
-                    socketio.emit('volume', str(phoneLevel))
-                    #     phoneLeveltmp = phoneLevel
-                    #     print(phoneLevel)
-                    ##eventlet.sleep(0.01)
-                    #if effectLevel is not effectLeveltmp:
-                    # ----постоянно обновляем данные по громкости синхроним 
-                    socketio.emit('volume1', str(effectLevel))
-                    #     effectLeveltmp = effectLevel
-                    ##eventlet.sleep(0.01)
-                    #if voiceLevel is not voiceLeveltmp:
-                    # ----постоянно обновляем данные по громкости синхроним 
-                    socketio.emit('volume2', str(voiceLevel))
-                    socketio.emit('level', i ,to=None)
+               # --- Этот цикл также вызывает 'state-storm' и race conditions ---
+               # --- Он не нужен, т.к. @socketio.on('Game') шлет громкость, ---
+               # --- а эта функция (serial) сама отправляет 'level' (напр., 'open_door') ниже по коду ---
+               # for i in socklist:
+               #      #----- постоянно обновляем данные по громкости синхроним 
+               #      socketio.emit('volume', str(phoneLevel))
+               #      #     phoneLeveltmp = phoneLevel
+               #      #     print(phoneLevel)
+               #      ##eventlet.sleep(0.01)
+               #      #if effectLevel is not effectLeveltmp:
+               #      # ----постоянно обновляем данные по громкости синхроним 
+               #      socketio.emit('volume1', str(effectLevel))
+               #      #     effectLeveltmp = effectLevel
+               #      ##eventlet.sleep(0.01)
+               #      #if voiceLevel is not voiceLeveltmp:
+               #      # ----постоянно обновляем данные по громкости синхроним 
+               #      socketio.emit('volume2', str(voiceLevel))
+               #      socketio.emit('level', i ,to=None)
                #проверяем если пришло значение в виде цифры отправляем на метод на клиенте volt
                if is_number(flag):
                     socketio.emit('volt', flag,to=None)
