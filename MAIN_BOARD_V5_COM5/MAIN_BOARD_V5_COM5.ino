@@ -784,7 +784,7 @@ void loop() {
     FireCup();
   }
 
-  if (level > 0 && level < 19) {
+  if (level > 0 && level < 20) {
     HelpHandler("");
   }
 
@@ -1949,7 +1949,7 @@ void MapGame() {
       potionPulsation = 0;
       //Serial2.println("item_find");
       Serial.println("item_find");
-      Serial3.println("item_find");
+      // Serial3.println("item_find");
     }
   }
 }
@@ -2070,8 +2070,8 @@ void Oven() {
     if (buff == "story_35\r\n") {
       Serial.println("story_35");
       Serial1.println("item_end");
-      Serial2.println("item_end");
-      Serial3.println("item_end");
+      // Serial2.println("item_end");
+      // Serial3.println("item_end");
       delay(1000);
       Serial1.println("day_off");
       Serial2.println("day_off");
@@ -2170,8 +2170,8 @@ void Oven() {
       goldPulsation = 0;
       potionPulsation = 0;
       Serial1.println("skin");
-      Serial2.println("item_find");
-      Serial3.println("item_find");
+      // Serial2.println("item_find");
+      // Serial3.println("item_find");
     }
     if (buff == "restart") {
       goldPulsation = 0;
