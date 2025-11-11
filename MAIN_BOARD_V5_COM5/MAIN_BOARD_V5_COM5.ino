@@ -746,8 +746,9 @@ void loop() {
         buff.trim();
         if (buff == "restart") {
           OpenAll();
-          RestOn(); // Вызываем RestOn(), который сбросит ленты и установит level = 25
-          break; // Выходим из case 20
+          RestOn(); // Вызываем функцию сброса, чтобы очистить ленты и переменные
+          level = 25; // ИЗМЕНЕНИЕ: Принудительно устанавливаем состояние на 25 (RestOn)
+          break;      // Выходим из switch, чтобы не вызвать FinalPresentation() в этом же цикле
         }
       }
       FinalPresentation();
@@ -1210,6 +1211,8 @@ void StartDoor() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
   }
 }
@@ -1306,6 +1309,8 @@ void Clock2Game() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
   }
 }
@@ -1435,7 +1440,8 @@ void GaletGame() {
       galet5 = 0;
       startSteps = 0;
       RestOn();
-      
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -1483,6 +1489,8 @@ void ThreeGame() {
       safeFlag = 0;
       wolfFlag = 0;
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -1574,6 +1582,8 @@ void Flags() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
   }
 }
@@ -1870,6 +1880,8 @@ void MapGame() {
       potionPulsation = 0;
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -2166,6 +2178,8 @@ void Oven() {
       potionPulsation = 0;
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -2585,6 +2599,8 @@ void BasketLesson() {
       isSend=0;
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
   }
 }
@@ -2701,6 +2717,8 @@ void Basket() {
     } else if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     } else if (buff == "soundoff") {
       flagSound = 1;
     } else if (buff == "help")
@@ -2808,6 +2826,8 @@ void Library() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "ghost_skip") {
       Serial.println("punch");
@@ -2878,6 +2898,8 @@ void LibraryGame() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -2977,6 +2999,8 @@ void CentralTowerGame() {
       fireplacePressed = false; // <-- Добавлен сброс
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -3032,6 +3056,8 @@ void CentralTowerGameDown() {
    initialSwitchReleased = false;
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -3198,6 +3224,8 @@ void OpenBank() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -3259,6 +3287,8 @@ void Scrolls() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -3557,6 +3587,8 @@ void SealSpace() {
       lastPress = 0;
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     } else if (cmd == "soundon") {
       flagSound = 0;
       Serial.println("Sound ON");
@@ -3612,6 +3644,8 @@ void MemoryRoom() {
     if (buff == "restart") {
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -3664,6 +3698,8 @@ void CrimeHelp() {
       flag=0;
       OpenAll();
       RestOn();
+      level = 25;
+      return;
     }
     if (buff == "soundon") {
       flagSound = 0;
