@@ -890,6 +890,602 @@ hint_56_b_en = pygame.mixer.Sound("hint_56_b_en.wav")
 hint_56_b_ar = pygame.mixer.Sound("hint_56_b_ar.wav")
 hint_56_b_ru = pygame.mixer.Sound("hint_56_b_ru.wav")
 
+# --- ДОБАВЛЕНО: Карта для логирования имен звуковых файлов ---
+# Эта карта сопоставляет объект pygame.mixer.Sound с его именем файла (или переменной)
+# для удобочитаемого лога.
+try:
+    _SOUND_NAME_MAP = {
+        # Эффекты
+        door_act: "door_act.wav",
+        h_clock: "h_clock.wav",
+        uf_clock: "uf_clock.wav",
+        steps: "steps.wav",
+        clock2: "uf_clock.wav",
+        door_attic: "door_attic.wav",
+        flags: "flags.wav",
+        train: "train.wav",
+        door_owl: "door_owl.wav",
+        owl_flew: "door_owl.wav",
+        map_click: "map_click.wav",
+        map_out: "map_out.wav",
+        door_witch: "door_witch.wav",
+        bottle1: "bottle1.wav",
+        bottle2: "bottle2.wav",
+        bottle3: "bottle3.wav",
+        bottle4: "bottle4.wav",
+        bottle_fall: "bottle_fall.wav",
+        bottle_end: "bottle_end.wav",
+        door_dog: "door_dog.wav",
+        dog_growl: "dog_growl.wav",
+        dog_sleep: "dog_sleep.wav",
+        dog_lock: "dog_lock.wav",
+        door_bank: "door_bank.wav",
+        safe_turn: "safe_turn.wav",
+        safe_fix: "safe_fix.wav",
+        safe_end: "safe_end.wav",
+        cave_click: "cave_click.wav",
+        door_cave: "door_cave.wav",
+        door_workshop: "door_workshop.wav",
+        cave_search: "cave_search.wav",
+        cave_end: "cave_end.wav",
+        fire1: "fire1.wav",
+        fire2: "fire2.wav",
+        fire3: "fire3.wav",
+        fire0: "fire0.wav",
+        item_find: "item_find.wav",
+        item_add: "item_add.wav",
+        craft_success: "craft_success.wav",
+        door_library: "door_library.wav",
+        star_hint: "star_hint.wav",
+        lib_door: "lib_door.wav",
+        door_top: "door_top.wav",
+        door_basket: "door_basket.wav",
+        lose1: "lose1.wav",
+        door_spell: "door_spell.wav",
+        cristal_up: "cristal_up.wav",
+        true_crystal: "true_crystal.wav",
+        brain_end: "brain_end.wav",
+        level_up: "level_up.wav",
+        mistake_crystal: "mistake_crystal.wav",
+        start_crystal: "start_crystal.wav",
+        applause: "applause.wav",
+        flying_ball: "flying_ball.wav",
+        catch1: "catch1.wav",
+        catch2: "catch2.wav",
+        catch3: "catch3.wav",
+        catch4: "catch3.wav",
+        goal1: "goal1.wav",
+        goal2: "goal2.wav",
+        goal3: "goal3.wav",
+        goal4: "goal4.wav",
+        goal5: "goal5.wav",
+        goal6: "goal6.wav",
+        goal7: "goal7.wav",
+        enemy_catch1: "enemy_catch1.wav",
+        enemy_catch2: "enemy_catch2.wav",
+        enemy_catch3: "enemy_catch3.wav",
+        enemy_catch4: "enemy_catch4.wav",
+        enemy_goal1: "enemy_goal1.wav",
+        enemy_goal2: "enemy_goal2.wav",
+        enemy_goal3: "enemy_goal3.wav",
+        enemy_goal4: "enemy_goal4.wav",
+        win: "win.wav",
+        timeout: "timeout.wav",
+        swipe_r: "swipe_r.wav",
+        swipe_l: "swipe_l.wav",
+        fireplace: "fireplace.wav",
+
+        # Истории
+        story_1_en: "story_1_en.wav",
+        story_1_ar: "story_1_ar.wav",
+        story_1_ru: "story_1_ru.wav",
+        story_2_a_en: "story_2_a_en.wav",
+        story_2_a_ar: "story_2_a_ar.wav",
+        story_2_a_ru: "story_2_a_ru.wav",
+        story_2_b_en: "story_2_b_en.wav",
+        story_2_b_ar: "story_2_b_ar.wav",
+        story_2_b_ru: "story_2_b_ru.wav",
+        story_2_r_en: "story_2_r_en.wav",
+        story_2_r_ar: "story_2_r_ar.wav",
+        story_2_r_ru: "story_2_r_ru.wav",
+        story_3_en: "story_3_en.wav",
+        story_3_ar: "story_3_ar.wav",
+        story_3_ru: "story_3_ru.wav",
+        story_3_r_en: "story_3_r_en.wav",
+        story_3_r_ar: "story_3_r_ar.wav",
+        story_3_r_ru: "story_3_r_ru.wav",
+        story_3_a_en: "story_3_a_en.wav",
+        story_3_a_ar: "story_3_a_ar.wav",
+        story_3_a_ru: "story_3_a_ru.wav",
+        story_3_b_en: "story_3_b_en.wav",
+        story_3_b_ar: "story_3_b_ar.wav",
+        story_3_b_ru: "story_3_b_ru.wav",
+        story_3_c_en: "story_3_c_en.wav",
+        story_3_c_ar: "story_3_c_ar.wav",
+        story_3_c_ru: "story_3_c_ru.wav",
+        story_4_en: "story_4_en.wav",
+        story_4_ar: "story_4_ar.wav",
+        story_4_ru: "story_4_ru.wav",
+        story_5_en: "story_5_en.wav",
+        story_5_ar: "story_5_ar.wav",
+        story_5_ru: "story_5_ru.wav",
+        story_6_en: "story_6_en.wav",
+        story_6_ar: "story_6_ar.wav",
+        story_6_ru: "story_6_ru.wav",
+        story_10_en: "story_10_en.wav",
+        story_10_ar: "story_10_ar.wav",
+        story_10_ru: "story_10_ru.wav",
+        story_11_en: "story_11_en.wav",
+        story_11_ar: "story_11_ar.wav",
+        story_11_ru: "story_11_ru.wav",
+        story_12_a_en: "story_12_a_en.wav",
+        story_12_a_ar: "story_12_a_ar.wav",
+        story_12_a_ru: "story_12_a_ru.wav",
+        story_12_b_en: "story_12_b_en.wav",
+        story_12_b_ar: "story_12_b_ar.wav",
+        story_12_b_ru: "story_12_b_ru.wav",
+        story_12_c_en: "story_12_c_en.wav",
+        story_12_c_ar: "story_12_c_ar.wav",
+        story_12_c_ru: "story_12_c_ru.wav",
+        story_12_d_en: "story_12_d_en.wav",
+        story_12_d_ar: "story_12_d_ar.wav",
+        story_12_d_ru: "story_12_d_ru.wav",
+        story_13_en: "story_13_en.wav",
+        story_13_ar: "story_13_ar.wav",
+        story_13_ru: "story_13_ru.wav",
+        story_14_a_en: "story_14_a_en.wav",
+        story_14_a_ar: "story_14_a_ar.wav",
+        story_14_a_ru: "story_14_a_ru.wav",
+        story_14_b_en: "story_14_b_en.wav",
+        story_14_b_ar: "story_14_b_ar.wav",
+        story_14_b_ru: "story_14_b_ru.wav",
+        story_17_en: "story_17_en.wav",
+        story_17_ar: "story_17_ar.wav",
+        story_17_ru: "story_17_ru.wav",
+        story_18_en: "story_18_en.wav",
+        story_18_ar: "story_18_ar.wav",
+        story_18_ru: "story_18_ru.wav",
+        story_19_en: "story_19_en.wav",
+        story_19_ar: "story_19_ar.wav",
+        story_19_ru: "story_19_ru.wav",
+        story_20_a_en: "story_20_a_en.wav",
+        story_20_a_ar: "story_20_a_ar.wav",
+        story_20_a_ru: "story_20_a_ru.wav",
+        story_20_b_en: "story_20_b_en.wav",
+        story_20_b_ar: "story_20_b_ar.wav",
+        story_20_b_ru: "story_20_b_ru.wav",
+        story_20_c_en: "story_20_c_en.wav",
+        story_20_c_ar: "story_20_c_ar.wav",
+        story_20_c_ru: "story_20_c_ru.wav",
+        story_21_en: "story_21_en.wav",
+        story_21_ar: "story_21_ar.wav",
+        story_21_ru: "story_21_ru.wav",
+        story_22_a_en: "story_22_a_en.wav",
+        story_22_a_ar: "story_22_a_ar.wav",
+        story_22_a_ru: "story_22_a_ru.wav",
+        story_22_b_en: "story_22_b_en.wav",
+        story_22_b_ar: "story_22_b_ar.wav",
+        story_22_b_ru: "story_22_b_ru.wav",
+        story_22_c_en: "story_22_c_en.wav",
+        story_22_c_ar: "story_22_c_ar.wav",
+        story_22_c_ru: "story_22_c_ru.wav",
+        story_23_en: "story_23_en.wav",
+        story_23_ar: "story_23_ar.wav",
+        story_23_ru: "story_23_ru.wav",
+        story_24_en: "story_24_en.wav",
+        story_24_ar: "story_24_ar.wav",
+        story_24_ru: "story_24_ru.wav",
+        story_25_en: "story_25_en.wav",
+        story_25_ar: "story_25_ar.wav",
+        story_25_ru: "story_25_ru.wav",
+        story_26_en: "story_26_en.wav",
+        story_26_ar: "story_26_ar.wav",
+        story_26_ru: "story_26_ru.wav",
+        story_27_a_en: "story_27_a_en.wav",
+        story_27_a_ar: "story_27_a_ar.wav",
+        story_27_a_ru: "story_27_a_ru.wav",
+        story_27_b_en: "story_27_b_en.wav",
+        story_27_b_ar: "story_27_b_ar.wav",
+        story_27_b_ru: "story_27_b_ru.wav",
+        story_27_c_en: "story_27_c_en.wav",
+        story_27_c_ar: "story_27_c_ar.wav",
+        story_27_c_ru: "story_27_c_ru.wav",
+        story_30_en: "story_30_en.wav",
+        story_30_ar: "story_30_ar.wav",
+        story_30_ru: "story_30_ru.wav",
+        story_31_en: "story_31_en.wav",
+        story_31_ar: "story_31_ar.wav",
+        story_31_ru: "story_31_ru.wav",
+        story_32_en: "story_32_en.wav",
+        story_32_ar: "story_32_ar.wav",
+        story_32_ru: "story_32_ru.wav",
+        story_32_a_en: "story_32_a_en.wav",
+        story_32_a_ar: "story_32_a_ar.wav",
+        story_32_a_ru: "story_32_a_ru.wav",
+        story_32_b_en: "story_32_b_en.wav",
+        story_32_b_ar: "story_32_b_ar.wav",
+        story_32_b_ru: "story_32_b_ru.wav",
+        story_32_c_en: "story_32_c_en.wav",
+        story_32_c_ar: "story_32_c_ar.wav",
+        story_32_c_ru: "story_32_c_ru.wav",
+        story_33_en: "story_33_en.wav",
+        story_33_ar: "story_33_ar.wav",
+        story_33_ru: "story_33_ru.wav",
+        story_34_en: "story_34_en.wav",
+        story_34_ar: "story_34_ar.wav",
+        story_34_ru: "story_34_ru.wav",
+        story_35_en: "story_35_en.wav",
+        story_35_ar: "story_35_ar.wav",
+        story_35_ru: "story_35_ru.wav",
+        story_36_en: "story_36_en.wav",
+        story_36_ar: "story_36_ar.wav",
+        story_36_ru: "story_36_ru.wav",
+        story_37_en: "story_37_en.wav",
+        story_37_ar: "story_37_ar.wav",
+        story_37_ru: "story_37_ru.wav",
+        story_38_en: "story_38_en.wav",
+        story_38_ar: "story_38_ar.wav",
+        story_38_ru: "story_38_ru.wav",
+        story_39_en: "story_39_en.wav",
+        story_39_ar: "story_39_ar.wav",
+        story_39_ru: "story_39_ru.wav",
+        story_40_en: "story_40_en.wav",
+        story_40_ar: "story_40_ar.wav",
+        story_40_ru: "story_40_ru.wav",
+        story_41_en: "story_41_en.wav",
+        story_41_ar: "story_41_ar.wav",
+        story_41_ru: "story_41_ru.wav",
+        story_42_en: "story_42_en.wav",
+        story_42_ar: "story_42_ar.wav",
+        story_42_ru: "story_42_ru.wav",
+        story_43_en: "story_43_en.wav",
+        story_43_ar: "story_43_ar.wav",
+        story_43_ru: "story_43_ru.wav",
+        story_44_en: "story_44_en.wav",
+        story_44_ar: "story_44_ar.wav",
+        story_44_ru: "story_44_ru.wav",
+        story_46_en: "story_46_en.wav",
+        story_46_ar: "story_46_ar.wav",
+        story_46_ru: "story_46_ru.wav",
+        story_47_en: "story_47_en.wav",
+        story_47_ar: "story_47_ar.wav",
+        story_47_ru: "story_47_ru.wav",
+        story_48_en: "story_48_en.wav",
+        story_48_ar: "story_48_ar.wav",
+        story_48_ru: "story_48_ru.wav",
+        story_49_en: "story_49_en.wav",
+        story_49_ar: "story_49_ar.wav",
+        story_49_ru: "story_49_ru.wav",
+        story_50_en: "story_50_en.wav",
+        story_50_ar: "story_50_ar.wav",
+        story_50_ru: "story_50_ru.wav",
+        story_51_en: "story_51_en.wav",
+        story_51_ar: "story_51_ar.wav",
+        story_51_ru: "story_51_ru.wav",
+        story_52_en: "story_52_en.wav",
+        story_52_ar: "story_52_ar.wav",
+        story_52_ru: "story_52_ru.wav",
+        story_53_en: "story_53_en.wav",
+        story_53_ar: "story_53_ar.wav",
+        story_53_ru: "story_53_ru.wav",
+        story_54_en: "story_54_en.wav",
+        story_54_ar: "story_54_ar.wav",
+        story_54_ru: "story_54_ru.wav",
+        story_55_en: "story_55_en.wav",
+        story_55_ar: "story_55_ar.wav",
+        story_55_ru: "story_55_ru.wav",
+        story_56_en: "story_56_en.wav",
+        story_56_ar: "story_56_ar.wav",
+        story_56_ru: "story_56_ru.wav",
+        story_57_en: "story_57_en.wav",
+        story_57_ar: "story_57_ar.wav",
+        story_57_ru: "story_57_ru.wav",
+        story_58_en: "story_58_en.wav",
+        story_58_ar: "story_58_ar.wav",
+        story_58_ru: "story_58_ru.wav",
+        story_59_en: "story_59_en.wav",
+        story_59_ar: "story_59_ar.wav",
+        story_59_ru: "story_59_ru.wav",
+        story_60_a_en: "story_60_a_en.wav",
+        story_60_a_ar: "story_60_a_ar.wav",
+        story_60_a_ru: "story_60_a_ru.wav",
+        story_60_b_en: "story_60_b_en.wav",
+        story_60_b_ar: "story_60_b_ar.wav",
+        story_60_b_ru: "story_60_b_ru.wav",
+        story_60_c_en: "story_60_c_en.wav",
+        story_60_c_ar: "story_60_c_ar.wav",
+        story_60_c_ru: "story_60_c_ru.wav",
+        story_60_d_en: "story_60_d_en.wav",
+        story_60_d_ar: "story_60_d_ar.wav",
+        story_60_d_ru: "story_60_d_ru.wav",
+        story_60_e_en: "story_60_e_en.wav",
+        story_60_e_ar: "story_60_e_ar.wav",
+        story_60_e_ru: "story_60_e_ru.wav",
+        story_60_f_en: "story_60_f_en.wav",
+        story_60_f_ar: "story_60_f_ar.wav",
+        story_60_f_ru: "story_60_f_ru.wav",
+        story_60_g_en: "story_60_g_en.wav",
+        story_60_g_ar: "story_60_g_ar.wav",
+        story_60_g_ru: "story_60_g_ru.wav",
+        story_60_h_en: "story_60_h_en.wav",
+        story_60_h_ar: "story_60_h_ar.wav",
+        story_60_h_ru: "story_60_h_ru.wav",
+        story_60_i_en: "story_60_i_en.wav",
+        story_60_i_ar: "story_60_i_ar.wav",
+        story_60_i_ru: "story_60_i_ru.wav",
+        story_60_j_en: "story_60_j_en.wav",
+        story_60_j_ar: "story_60_j_ar.wav",
+        story_60_j_ru: "story_60_j_ru.wav",
+        story_61_a_en: "story_61_a_en.wav",
+        story_61_a_ar: "story_61_a_ar.wav",
+        story_61_a_ru: "story_61_a_ru.wav",
+        story_61_b_en: "story_61_b_en.wav",
+        story_61_b_ar: "story_61_b_ar.wav",
+        story_61_b_ru: "story_61_b_ru.wav",
+        story_61_d_en: "story_61_d_en.wav",
+        story_61_d_ar: "story_61_d_ar.wav",
+        story_61_d_ru: "story_61_d_ru.wav",
+        story_61_e_en: "story_61_e_en.wav",
+        story_61_e_ar: "story_61_e_ar.wav",
+        story_61_e_ru: "story_61_e_ru.wav",
+        story_61_f_en: "story_61_f_en.wav",
+        story_61_f_ar: "story_61_f_ar.wav",
+        story_61_f_ru: "story_61_f_ru.wav",
+        story_61_g_en: "story_61_g_en.wav",
+        story_61_g_ar: "story_61_g_ar.wav",
+        story_61_g_ru: "story_61_g_ru.wav",
+        story_61_h_en: "story_61_h_en.wav",
+        story_61_h_ar: "story_61_h_ar.wav",
+        story_61_h_ru: "story_61_h_ru.wav",
+        story_61_i_en: "story_61_i_en.wav",
+        story_61_i_ar: "story_61_i_ar.wav",
+        story_61_i_ru: "story_61_i_ru.wav",
+        story_61_j_en: "story_61_j_en.wav",
+        story_61_j_ar: "story_61_j_ar.wav",
+        story_61_j_ru: "story_61_j_ru.wav",
+        story_61_c_en: "story_61_c_en.wav",
+        story_61_c_ar: "story_61_c_ar.wav",
+        story_61_c_ru: "story_61_c_ru.wav",
+        story_62_a_en: "story_62_a_en.wav",
+        story_62_a_ar: "story_62_a_ar.wav",
+        story_62_a_ru: "story_62_a_ru.wav",
+        story_62_b_en: "story_62_b_en.wav",
+        story_62_b_ar: "story_62_b_ar.wav",
+        story_62_b_ru: "story_62_b_ru.wav",
+        story_62_c_en: "story_62_c_en.wav",
+        story_62_c_ar: "story_62_c_ar.wav",
+        story_62_c_ru: "story_62_c_ru.wav",
+        story_62_d_en: "story_62_d_en.wav",
+        story_62_d_ar: "story_62_d_ar.wav",
+        story_62_d_ru: "story_62_d_ru.wav",
+        story_62_e_en: "story_62_e_en.wav",
+        story_62_e_ar: "story_62_e_ar.wav",
+        story_62_e_ru: "story_62_e_ru.wav",
+        story_63_a_en: "story_63_a_en.wav",
+        story_63_a_ar: "story_63_a_ar.wav",
+        story_63_a_ru: "story_63_a_ru.wav",
+        story_63_b_en: "story_63_b_en.wav",
+        story_63_b_ar: "story_63_b_ar.wav",
+        story_63_b_ru: "story_63_b_ru.wav",
+        story_63_c_en: "story_63_c_en.wav",
+        story_63_c_ar: "story_63_c_ar.wav",
+        story_63_c_ru: "story_63_c_ru.wav",
+        story_63_d_en: "story_63_d_en.wav",
+        story_63_d_ar: "story_63_d_ar.wav",
+        story_63_d_ru: "story_63_d_ru.wav",
+        story_63_e_en: "story_63_e_en.wav",
+        story_63_e_ar: "story_63_e_ar.wav",
+        story_63_e_ru: "story_63_e_ru.wav",
+        story_63_f_en: "story_63_f_en.wav",
+        story_63_f_ar: "story_63_f_ar.wav",
+        story_63_f_ru: "story_63_f_ru.wav",
+        story_63_g_en: "story_63_g_en.wav",
+        story_63_g_ar: "story_63_g_ar.wav",
+        story_63_g_ru: "story_63_g_ru.wav",
+        story_63_h_en: "story_63_h_en.wav",
+        story_63_h_ar: "story_63_h_ar.wav",
+        story_63_h_ru: "story_63_h_ru.wav",
+        story_63_i_en: "story_63_i_en.wav",
+        story_63_i_ar: "story_63_i_ar.wav",
+        story_63_i_ru: "story_63_i_ru.wav",
+        story_63_j_en: "story_63_j_en.wav",
+        story_63_j_ar: "story_63_j_ar.wav",
+        story_63_j_ru: "story_63_j_ru.wav",
+        story_64_a_en: "story_64_a_en.wav",
+        story_64_a_ar: "story_64_a_ar.wav",
+        story_64_a_ru: "story_64_a_ru.wav",
+        story_64_b_en: "story_64_b_en.wav",
+        story_64_b_ar: "story_64_b_ar.wav",
+        story_64_b_ru: "story_64_b_ru.wav",
+        story_65_a_en: "story_65_a_en.wav",
+        story_65_a_ar: "story_65_a_ar.wav",
+        story_65_a_ru: "story_65_a_ru.wav",
+        story_65_b_en: "story_65_b_en.wav",
+        story_65_b_ar: "story_65_b_ar.wav",
+        story_65_b_ru: "story_65_b_ru.wav",
+        story_65_c_en: "story_65_c_en.wav",
+        story_65_c_ar: "story_65_c_ar.wav",
+        story_65_c_ru: "story_65_c_ru.wav",
+        story_65_d_en: "story_65_d_en.wav",
+        story_65_d_ar: "story_65_d_ar.wav",
+        story_65_d_ru: "story_65_d_ru.wav",
+        story_65_e_en: "story_65_e_en.wav",
+        story_65_e_ar: "story_65_e_ar.wav",
+        story_65_e_ru: "story_65_e_ru.wav",
+        story_65_f_en: "story_65_f_en.wav",
+        story_65_f_ar: "story_65_f_ar.wav",
+        story_65_f_ru: "story_65_f_ru.wav",
+        story_65_g_en: "story_65_g_en.wav",
+        story_65_g_ar: "story_65_g_ar.wav",
+        story_65_g_ru: "story_65_g_ru.wav",
+        story_65_h_en: "story_65_h_en.wav",
+        story_65_h_ar: "story_65_h_ar.wav",
+        story_65_h_ru: "story_65_h_ru.wav",
+        story_65_i_en: "story_65_i_en.wav",
+        story_65_i_ar: "story_65_i_ar.wav",
+        story_65_i_ru: "story_65_i_ru.wav",
+        story_65_j_en: "story_65_j_en.wav",
+        story_65_j_ar: "story_65_j_ar.wav",
+        story_65_j_ru: "story_65_j_ru.wav",
+        story_66_en: "story_66_en.wav",
+        story_66_ar: "story_66_ar.wav",
+        story_66_ru: "story_66_ru.wav",
+        story_67_en: "story_67_en.wav",
+        story_67_ar: "story_67_ar.wav",
+        story_67_ru: "story_67_ru.wav",
+        story_68_en: "story_68_en.wav",
+        story_68_ar: "story_68_ar.wav",
+        story_68_ru: "story_68_ru.wav",
+
+        # Подсказки
+        hint_2_b_en: "hint_2_b_en.wav",
+        hint_2_b_ar: "hint_2_b_ar.wav",
+        hint_2_b_ru: "hint_2_b_ru.wav",
+        hint_2_c_en: "hint_2_c_en.wav",
+        hint_2_c_ar: "hint_2_c_ar.wav",
+        hint_2_c_ru: "hint_2_c_ru.wav",
+        hint_2_z_en: "hint_2_z_en.wav",
+        hint_2_z_ar: "hint_2_z_ar.wav",
+        hint_2_z_ru: "hint_2_z_ru.wav",
+        hint_3_b_en: "hint_3_b_en.wav",
+        hint_3_b_ar: "hint_3_b_ar.wav",
+        hint_3_b_ru: "hint_3_b_ru.wav",
+        hint_3_c_en: "hint_3_c_en.wav",
+        hint_3_c_ar: "hint_3_c_ar.wav",
+        hint_3_c_ru: "hint_3_c_ru.wav",
+        hint_3_z_en: "hint_3_z_en.wav",
+        hint_3_z_ar: "hint_3_z_ar.wav",
+        hint_3_z_ru: "hint_3_z_ru.wav",
+        hint_5_b_en: "hint_5_b_en.wav",
+        hint_5_b_ar: "hint_5_b_ar.wav",
+        hint_5_b_ru: "hint_5_b_ru.wav",
+        hint_5_c_en: "hint_5_c_en.wav",
+        hint_5_c_ar: "hint_5_c_ar.wav",
+        hint_5_c_ru: "hint_5_c_ru.wav",
+        hint_6_b_en: "hint_6_b_en.wav",
+        hint_6_b_ar: "hint_6_b_ar.wav",
+        hint_6_b_ru: "hint_6_b_ru.wav",
+        hint_6_c_en: "hint_6_c_en.wav",
+        hint_6_c_ar: "hint_6_c_ar.wav",
+        hint_6_c_ru: "hint_6_c_ru.wav",
+        hint_10_b_en: "hint_10_b_en.wav",
+        hint_10_b_ar: "hint_10_b_ar.wav",
+        hint_10_b_ru: "hint_10_b_ru.wav",
+        hint_10_c_en: "hint_10_c_en.wav",
+        hint_10_c_ar: "hint_10_c_ar.wav",
+        hint_10_c_ru: "hint_10_c_ru.wav",
+        hint_11_b_en: "hint_11_b_en.wav",
+        hint_11_b_ar: "hint_11_b_ar.wav",
+        hint_11_b_ru: "hint_11_b_ru.wav",
+        hint_11_c_en: "hint_11_c_en.wav",
+        hint_11_c_ar: "hint_11_c_ar.wav",
+        hint_11_c_ru: "hint_11_c_ru.wav",
+        hint_11_z_en: "hint_11_z_en.wav",
+        hint_11_z_ar: "hint_11_z_ar.wav",
+        hint_11_z_ru: "hint_11_z_ru.wav",
+        hint_14_b_en: "hint_14_b_en.wav",
+        hint_14_b_ar: "hint_14_b_ar.wav",
+        hint_14_b_ru: "hint_14_b_ru.wav",
+        hint_14_c_en: "hint_14_c_en.wav",
+        hint_14_c_ar: "hint_14_c_ar.wav",
+        hint_14_c_ru: "hint_14_c_ru.wav",
+        hint_14_z_en: "hint_14_z_en.wav",
+        hint_14_z_ar: "hint_14_z_ar.wav",
+        hint_14_z_ru: "hint_14_z_ru.wav",
+        hint_17_b_en: "hint_17_b_en.wav",
+        hint_17_b_ar: "hint_17_b_ar.wav",
+        hint_17_b_ru: "hint_17_b_ru.wav",
+        hint_17_c_en: "hint_17_c_en.wav",
+        hint_17_c_ar: "hint_17_c_ar.wav",
+        hint_17_c_ru: "hint_17_c_ru.wav",
+        hint_17_z_en: "hint_17_z_en.wav",
+        hint_17_z_ar: "hint_17_z_ar.wav",
+        hint_17_z_ru: "hint_17_z_ru.wav",
+        hint_19_b_en: "hint_19_b_en.wav",
+        hint_19_b_ar: "hint_19_b_ar.wav",
+        hint_19_b_ru: "hint_19_b_ru.wav",
+        hint_19_c_en: "hint_19_c_en.wav",
+        hint_19_c_ar: "hint_19_c_ar.wav",
+        hint_19_c_ru: "hint_19_c_ru.wav",
+        hint_19_z_en: "hint_19_z_en.wav",
+        hint_19_z_ar: "hint_19_z_ar.wav",
+        hint_19_z_ru: "hint_19_z_ru.wav",
+        hint_23_b_en: "hint_23_b_en.wav",
+        hint_23_b_ar: "hint_23_b_ar.wav",
+        hint_23_b_ru: "hint_23_b_ru.wav",
+        hint_23_c_en: "hint_23_c_en.wav",
+        hint_23_c_ar: "hint_23_c_ar.wav",
+        hint_23_c_ru: "hint_23_c_ru.wav",
+        hint_23_z_en: "hint_23_z_en.wav",
+        hint_23_z_ar: "hint_23_z_ar.wav",
+        hint_23_z_ru: "hint_23_z_ru.wav",
+        hint_26_b_en: "hint_26_b_en.wav",
+        hint_26_b_ar: "hint_26_b_ar.wav",
+        hint_26_b_ru: "hint_26_b_ru.wav",
+        hint_26_c_en: "hint_26_c_en.wav",
+        hint_26_c_ar: "hint_26_c_ar.wav",
+        hint_26_c_ru: "hint_26_c_ru.wav",
+        hint_26_z_en: "hint_26_z_en.wav",
+        hint_26_z_ar: "hint_26_z_ar.wav",
+        hint_26_z_ru: "hint_26_z_ru.wav",
+        hint_32_b_en: "hint_32_b_en.wav",
+        hint_32_b_ar: "hint_32_b_ar.wav",
+        hint_32_b_ru: "hint_32_b_ru.wav",
+        hint_32_c_en: "hint_32_c_en.wav",
+        hint_32_c_ar: "hint_32_c_ar.wav",
+        hint_32_c_ru: "hint_32_c_ru.wav",
+        hint_32_d_en: "hint_32_d_en.wav",
+        hint_32_d_ar: "hint_32_d_ar.wav",
+        hint_32_d_ru: "hint_32_d_ru.wav",
+        hint_32_e_en: "hint_32_e_en.wav",
+        hint_32_e_ar: "hint_32_e_ar.wav",
+        hint_32_e_ru: "hint_32_e_ru.wav",
+        hint_32_z_en: "hint_32_z_en.wav",
+        hint_32_z_ar: "hint_32_z_ar.wav",
+        hint_32_z_ru: "hint_32_z_ru.wav",
+        hint_37_b_en: "hint_37_b_en.wav",
+        hint_37_b_ar: "hint_37_b_ar.wav",
+        hint_37_b_ru: "hint_37_b_ru.wav",
+        hint_37_c_en: "hint_37_c_en.wav",
+        hint_37_c_ar: "hint_37_c_ar.wav",
+        hint_37_c_ru: "hint_37_c_ru.wav",
+        hint_38_b_en: "hint_38_b_en.wav",
+        hint_38_b_ar: "hint_38_b_ar.wav",
+        hint_38_b_ru: "hint_38_b_ru.wav",
+        hint_44_b_en: "hint_44_b_en.wav",
+        hint_44_b_ar: "hint_44_b_ar.wav",
+        hint_44_b_ru: "hint_44_b_ru.wav",
+        hint_44_c_en: "hint_44_c_en.wav",
+        hint_44_c_ar: "hint_44_c_ar.wav",
+        hint_44_c_ru: "hint_44_c_ru.wav",
+        hint_49_b_en: "hint_49_b_en.wav",
+        hint_49_b_ar: "hint_49_b_ar.wav",
+        hint_49_b_ru: "hint_49_b_ru.wav",
+        hint_49_c_en: "hint_49_c_en.wav",
+        hint_49_c_ar: "hint_49_c_ar.wav",
+        hint_49_c_ru: "hint_49_c_ru.wav",
+        hint_50_b_en: "hint_50_b_en.wav",
+        hint_50_b_ar: "hint_50_b_ar.wav",
+        hint_50_b_ru: "hint_50_b_ru.wav",
+        hint_50_c_en: "hint_50_c_en.wav",
+        hint_50_c_ar: "hint_50_c_ar.wav",
+        hint_50_c_ru: "hint_50_c_ru.wav",
+        hint_51_b_en: "hint_51_b_en.wav",
+        hint_51_b_ar: "hint_51_b_ar.wav",
+        hint_51_b_ru: "hint_51_b_ru.wav",
+        hint_51_c_en: "hint_51_c_en.wav",
+        hint_51_c_ar: "hint_51_c_ar.wav",
+        hint_51_c_ru: "hint_51_c_ru.wav",
+        hint_56_b_en: "hint_56_b_en.wav",
+        hint_56_b_ar: "hint_56_b_ar.wav",
+        hint_56_b_ru: "hint_56_b_ru.wav",
+    }
+except NameError:
+    # Это может случиться, если скрипт запущен не полностью,
+    # но в рабочей среде все переменные должны быть определены.
+    _SOUND_NAME_MAP = {}
+    logger.warning("NameError during _SOUND_NAME_MAP creation. Some sounds may not be defined yet.")
+
 player_goal_sounds = [goal2, goal3, goal4, goal5, goal6, goal7]
 
 # Списки историй по языкам (начиная с 'b')
@@ -2021,13 +2617,11 @@ def tmr(res):
                else:
                     # --- НАЙДЕНЫ ОШИБКИ (Либо ESP, либо Arduino) ---
                     logger.warning(f"Ready: FAILED. Devices: {devices}")
-                    socklist.clear()
-                    socketio.emit('level', 'start_error',to=None)
-                    socklist.append('start_error')
+                    socklist.clear() # Очищаем socklist от старых данных
                     
+                    # --- Просто отправляем клиенту строку с ошибками ---
                     final_string = ', '.join(str(device) for device in set(devices))
-                    socklist.append(final_string)
-                    socketio.emit('devices', final_string,to=None)
+                    socketio.emit('devices', final_string, to=None)
                     
          # --- Снимаем блокировку в конце ---
          socketio.emit('level', 'ready_finished') # Команда для UI, чтобы разблокировать кнопку
@@ -2052,9 +2646,6 @@ def checkQuesst(receivedData):
      socketio.emit('platform', str(trainLevel))
      socketio.emit('suitcases', str(suitcaseLevel))
      socketio.emit('safe', str(safeLevel))
-     
-     final_string_devices = ', '.join(str(device) for device in set(devices))
-     socketio.emit('devices', final_string_devices, to=None)
      
      if go==2:
           socketio.emit('level', 'rest',to=None)  
@@ -2102,7 +2693,15 @@ def is_number(str):
         return False  
 
 def play_story(audio_file, loops=0, volume_file='3.txt'):
-    logger.debug(f"Executing play_story for audio file.")
+    try:
+        # Пытаемся найти имя файла в карте
+        audio_name = _SOUND_NAME_MAP.get(audio_file, "UNKNOWN_STORY_OBJECT")
+        # DEBUG, чтобы не писать в консоль
+        logger.debug(f"Playing story: {audio_name}")
+    except Exception as e:
+        # На случай, если что-то пойдет не так с логированием
+        logger.error(f"Error logging story name: {e}")
+        logger.debug(f"Executing play_story for audio file.") # Старый лог как запасной
     # Воспроизводит историю/подсказку, АВТОМАТИЧЕСКИ приглушая фоновую музыку.
     global story_fade_active, phoneLevel, go
     
@@ -2138,6 +2737,15 @@ def play_story(audio_file, loops=0, volume_file='3.txt'):
             channel3.set_volume(volume, volume)
 
 def play_effect(audio_file, loops=0, volume_file='2.txt'):
+    # --- Логирование эффекта ---
+    try:
+        # Пытаемся найти имя файла в карте
+        audio_name = _SOUND_NAME_MAP.get(audio_file, "UNKNOWN_EFFECT_OBJECT")
+        # --- DEBUG, чтобы не писать в консоль ---
+        logger.debug(f"Playing effect: {audio_name}")
+    except Exception as e:
+        logger.error(f"Error logging effect name: {e}")
+        
     channel2.play(audio_file, loops=loops)
     
     # Читаем громкость из файла и устанавливаем
@@ -2425,8 +3033,6 @@ def serial():
                     # ----постоянно обновляем данные по громкости синхроним 
                     socketio.emit('volume2', str(voiceLevel))
                     socketio.emit('level', i ,to=None)
-                    final_string = ', '.join(str(device) for device in set(devices))
-                    socketio.emit('devices', final_string,to=None)
                #проверяем если пришло значение в виде цифры отправляем на метод на клиенте volt
                if is_number(flag):
                     socketio.emit('volt', flag,to=None)
@@ -3209,24 +3815,40 @@ def serial():
                               play_story(story_20_c_ar)         
 
                      if flag=="story_22_a":
+                          # 1. Ждем, пока канал освободится
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
+                          # 2. Воспроизводим историю
                           if(language==1):
                               play_story(story_22_a_ru)  
                           if(language==2):
                               play_story(story_22_a_en)
                           if(language==3):
-                              play_story(story_22_a_ar)  
+                              play_story(story_22_a_ar)
+                              
+                          # 3. Ждем, пока ВОСПРОИЗВЕДЕНИЕ ЗАКОНЧИТСЯ
+                          while channel3.get_busy()==True and go == 1:
+                              eventlet.sleep(0.1)
+                          # 4. Отправляем подтверждение на Arduino
+                          serial_write_queue.put('story_22_done')
 
                      if flag=="story_22_b":
+                          # 1. Ждем, пока канал освободится
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
+                          # 2. Воспроизводим историю
                           if(language==1):
                               play_story(story_22_b_ru)  
                           if(language==2):
                               play_story(story_22_b_en)
                           if(language==3):
-                              play_story(story_22_b_ar)                  
+                              play_story(story_22_b_ar)
+                             
+                          # 3. Ждем, пока ВОСПРОИЗВЕДЕНИЕ ЗАКОНЧИТСЯ
+                          while channel3.get_busy()==True and go == 1:
+                              eventlet.sleep(0.1)
+                          # 4. Отправляем подтверждение на Arduino
+                          serial_write_queue.put('story_22_done')
                        
                      if flag=="story_22_c":
                           while channel3.get_busy()==True and go == 1: 
@@ -3236,8 +3858,14 @@ def serial():
                           if(language==2):
                               play_story(story_22_c_en)
                           if(language==3):
-                              play_story(story_22_c_ar)     
-                                                         
+                              play_story(story_22_c_ar)
+                              
+                          # 3. Ждем, пока ВОСПРОИЗВЕДЕНИЕ ЗАКОНЧИТСЯ
+                          while channel3.get_busy()==True and go == 1:
+                              eventlet.sleep(0.1)
+                          # 4. Отправляем подтверждение на Arduino
+                          serial_write_queue.put('story_22_done')
+                          
                      if flag=="cave_click":
                           #----играем эффект 
                           play_effect(cave_click)
@@ -4980,31 +5608,6 @@ def timer():
     start = 0
     while True:
          eventlet.sleep(0)
-         for i in socklist:
-              if current_client_sid:
-                socketio.emit('volume', str(phoneLevel), skip_sid=current_client_sid)
-                socketio.emit('volume1', str(effectLevel), skip_sid=current_client_sid)
-                socketio.emit('volume2', str(voiceLevel), skip_sid=current_client_sid)
-
-                socketio.emit('safe', str(safeLevel), skip_sid=current_client_sid)
-                socketio.emit('suitcases', str(suitcaseLevel), skip_sid=current_client_sid)
-                socketio.emit('platform', str(trainLevel), skip_sid=current_client_sid)
-                socketio.emit('wolf', str(wolfLevel), skip_sid=current_client_sid)
-              else:
-                socketio.emit('volume', str(phoneLevel))
-                socketio.emit('volume1', str(effectLevel))
-                socketio.emit('volume2', str(voiceLevel))
-
-                socketio.emit('safe', str(safeLevel))
-                socketio.emit('suitcases', str(suitcaseLevel))
-                socketio.emit('platform', str(trainLevel))
-                socketio.emit('wolf', str(wolfLevel))
-
-
-              socketio.emit('level', i ,to=None)
-              final_string = ', '.join(str(device) for device in set(devices))
-              socketio.emit('devices', final_string,to=None)
-         
               #print(i)
          if go == 2 or go == 3:# Сброс только при Restart или Ready
               sec = 0
