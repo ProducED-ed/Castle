@@ -2524,6 +2524,7 @@ def tmr(res):
               logger.debug("State changed: Game unpaused.")
         #----если была в рестарте       
         if go == 3 and starts==3:
+             socklist.clear()
              send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{wolfLevel}")
              send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{trainLevel}")
              send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{suitcaseLevel}")
@@ -3458,19 +3459,19 @@ def serial():
 
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
-                          #----отправляем на клиента
-                          socketio.emit('level', 'open_mansard_door',to=None)
-                          #-----добавили в историю
-                          socklist.append('open_mansard_door')
-                          #-----играем эффект
-                          play_effect(door_attic)
                           if(language==1):
                               play_story(story_6_ru)  
                           if(language==2):
                               play_story(story_6_en)
                           if(language==3):
                               play_story(story_6_ar)
-                              
+                          #-----играем эффект
+                          play_effect(door_attic)
+                          #----отправляем на клиента
+                          socketio.emit('level', 'open_mansard_door',to=None)
+                          #-----добавили в историю
+                          socklist.append('open_mansard_door')
+                          
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
                           send_esp32_command(ESP32_API_WOLF_URL, "game")
