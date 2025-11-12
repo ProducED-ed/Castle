@@ -197,6 +197,11 @@ bool ghostFlag;
 bool isSendOut;
 bool isTrollEnd = 0;
 bool resumeEngineSound = false;
+bool skinReedLatched = false;
+unsigned long lastSkinDebounceTime = 0;
+bool lastSkinSteadyState = false; // (false = отпущено)
+bool skinState = false;           // (false = отпущено)
+const unsigned long DEBOUNCE_DELAY = 50; // 50мс антидребезг
 
 String mapState;
 
@@ -635,6 +640,10 @@ void setup() {
         skinup = 0;
         skinlight = 0;
         ghostIgnoreStartTime = 0;
+        skinReedLatched = false;
+        lastSkinDebounceTime = 0;
+        lastSkinSteadyState = false;
+        skinState = false;
       }
 
       //
@@ -1025,6 +1034,9 @@ void setup() {
         myMP3.playMp3Folder(TRACK_GHOST);  // Запускаем трек
         myMP3.enableLoop();                // Включаем повтор для текущего трека
         ghostFlag = 1;
+        // Запускаем 3-секундный таймер игнорирования ЗДЕСЬ,
+        // чтобы GhostGame() начал отсчет времени (для защиты от вибрации самого плеера).
+        ghostIgnoreStartTime = millis();
       }
       if (body == "\"ghost_game_end\"") {
         ghostFlag = 0;
@@ -1857,32 +1869,84 @@ void SkinPulsation() {
 }
 
 void WorkshopGame() {
-  if (!INPUTS.digitalRead(0)) {
-    if (!isSkinPulsation) {
-      SendData("{\"train\":\"skin\"}");
-      isSkinPulsation = 1;
+  
+  // --- Шаг 1: Логика "Антидребезга" (Debouncing) ---
+  bool currentSkinReading = !INPUTS.digitalRead(0); // Чтение с геркона (true = нажат) 
+  unsigned long currentTime = millis();
+
+  if (currentSkinReading != lastSkinSteadyState) {
+    // Состояние изменилось, сбросить таймер
+    lastSkinDebounceTime = currentTime;
+  }
+
+  if ((currentTime - lastSkinDebounceTime) > DEBOUNCE_DELAY) {
+    // Состояние стабильно уже 50ms
+    if (currentSkinReading != skinState) {
+      skinState = currentSkinReading; // Фиксируем новое стабильное состояние
     }
   }
+  lastSkinSteadyState = currentSkinReading;
+  // Теперь мы используем "skinState", а не "isSkinPressed"
+  // --- Конец логики "Антидребезга" ---
+
+
+  // --- Шаг 2: Логика квеста (использует стабильное "skinState") ---
+  if (skinState) {
+    // 2. Геркон ЗАЖАТ (стабильно)
+    if (!skinReedLatched) {
+      // Это первое нажатие, которое мы еще не обработали
+      skinReedLatched = true; // Запираем флаг 
+      isSkinPulsation = true;  // Включаем пульсацию 
+      SendData("{\"train\":\"skin\"}"); // Отправляем сообщение ТОЛЬКО ОДИН РАЗ 
+    }
+    // Если skinReedLatched уже true (геркон удерживается),
+    // мы ничего не делаем.
+    
+  } else {
+    // 3. Геркон ОТПУЩЕН (стабильно)
+    skinReedLatched = false; // Мы готовы к новому нажатию 
+  }
+
+  // 4. Анимация пульсации.
   if (isSkinPulsation) {
     SkinPulsation();
   }
 }
 
 void GhostGame() {
-  ghost.tick();
-  // --- ДОБАВЛЕНО: Блокировка и ОЧИСТКА датчика на 3 секунды ---
-  // Проверяем, находимся ли мы в 3-секундном "тихом" периоде
-  if (millis() - ghostIgnoreStartTime < GHOST_IGNORE_DURATION) {
-    ghost.isSingle();
-    ghost.isDouble();
-    ghost.isTriple();
-    return; // Да, 3 секунды не прошли. Игнорируем тики датчика.
+  // ghost.tick(); // Не нужно, так как в setup() стоит setTickMode(AUTO)
+  // 1. Проверяем, была ли ВООБЩЕ получена команда "ghost_game".
+  //    Если таймер = 0, команда еще не приходила.
+  if (ghostIgnoreStartTime == 0) {
+    // Команда "ghost_game" еще не поступала.
+    // Ничего не делаем и просто выходим.
+    return; // Выходим, не слушая стук
   }
+
+  // 2. Проверяем, активен ли 3-секундный "тихий" период ПОСЛЕ команды "ghost_game".
+  if (millis() - ghostIgnoreStartTime < GHOST_IGNORE_DURATION) {
+    // Да, мы в 3-секундном окне (пока играет звук).
+    
+    // ВАЖНО: Мы НЕ ВЫЗЫВАЕМ isSingle/isDouble/isTriple здесь.
+    // Если мы их вызовем, они "потратят" стук игрока,
+    // который может произойти в этот момент.
+    
+    return; // Просто выходим, игнорируя датчик
+  }
+  // Если мы дошли сюда, значит:
+  // 1. Команда "ghost_game" была получена (таймер != 0).
+  // 2. 3-секундный "тихий" период прошел.
+  // Теперь МОЖНО слушать реальный стук игрока.
+
   if (ghostFlag == 1 and (ghost.isSingle() or ghost.isDouble() or ghost.isTriple())) {
-    ghostFlag = 0;
+    ghostFlag = 0; // Прекращаем слушать (ghostFlag = 0)
     myMP3.stop();
     Serial.println("ghost_game_WIN");
     SendData("{\"ghost\":\"end\"}");
+
+    // ВАЖНО: Сбрасываем таймер в 0, чтобы подготовиться
+    // к СЛЕДУЮЩЕЙ команде "ghost_game" в игре.
+    ghostIgnoreStartTime = 0;
   }
 }
 
