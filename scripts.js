@@ -6,6 +6,7 @@ $(document).ready(function(){
   var stop = mobile ? "touchend" : "mouseup"; //так же меняет методы mouseup на touchend
   var leave = mobile ? "touchend" : "mouseleave";//mouseleave на touchend
   var timeRate = '';
+  var currentGameState = '';
   var rate = '';
   var count_help = '';
   var lev1 = 0
@@ -478,9 +479,13 @@ duration   : '1s',
             }
             //закрываем окно автоматически как закрыли все двери
             if (inp === 'modal_end') {
-                    swal.close();     
+                    swal.close();
             }
 			
+			// Вся игровая логика теперь "обернута" в проверку состояния ---
+            // Это предотвращает срабатывание "старых" игровых событий (например, 'four_bottle')
+            // если клиент находится в режиме 'rest' или 'ready' (Symptom 1).
+            if (currentGameState === 'start_game') {
 			// Логика для иконок и прогресс-баров ---
 
             // 1. Workshop (Иконки)
@@ -1073,7 +1078,7 @@ duration   : '1s',
                     bugAlert = 1;
                     }
                 }
-               
+			}
             }
 
             
@@ -1123,6 +1128,7 @@ duration   : '1s',
             
             ////////////////////////////////
             if(inp === 'rest') {
+				currentGameState = 'rest';
                 //если пришло с сервера rest все скидываем обновляем приводим к виду по умолчанию
                 $('#Restart').css('border','red 2px solid');
                 $('#estart').addClass('loading'); 
@@ -1195,6 +1201,7 @@ duration   : '1s',
      
             }
             if(inp === 'pause_game') {
+				currentGameState = 'pause_game';
                 $('#Restart').css('border','white 2px solid') ;
                 $('#estart').removeClass('loading'); 
                 $('#Start').css('border','white 2px solid') ;
@@ -1202,6 +1209,7 @@ duration   : '1s',
                 $('#Ready').css('border','white 2px solid') ;
             }
             if(inp === 'start_game') {
+				currentGameState = 'start_game';
                 restflag = 0;
                 $('#Ready').css('border','grey 2px solid');
                 $('#ready_icon').removeClass('orange');
@@ -1214,6 +1222,11 @@ duration   : '1s',
                 $('#estart').removeClass('loading'); 
                 $('#Start').css('border','green 2px solid');
                 $('#Pause').css('border','white 2px solid');
+				// Добавляем сброс иконок дверей (для Symptom 2) ---
+                $('#first_door').removeClass('open');
+                $('#first_door').removeClass('green');
+                $('#door_puzzle').removeClass('open');
+                $('#door_puzzle').removeClass('green');
                 if(disBut==0){
                 $('.button').removeClass('positive');
                 $('.icon').removeClass('check');
@@ -1275,6 +1288,7 @@ duration   : '1s',
                 }
             }
             if(inp === 'ready') {
+				currentGameState = 'ready';
                 $('#Restart').css('border','white 2px solid');
                 $('#estart').removeClass('loading');
                 $('#Start').css('border','white 2px solid');
