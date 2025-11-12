@@ -595,6 +595,15 @@ void loop() {
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_LIGHT_OFF) == 0) {
           digitalWrite(ROOF_LIGHTING_PIN, LOW);
         }
+        // On ispol'zuetsya dlya OSTANOVKI pul'sacii, kogda vybran DRUGOY predmet.
+        else if (strcmp_P(receivedUartMessageBuffer, MSG_ITEM_FIND) == 0) {
+          if (currentQuestState == STATE_GAME_FINISHED) {
+            if (isCrystalPulsating) {
+              isCrystalPulsating = false; // Ostanavlivaem pul'saciyu
+              smoothTurnOffCrystal();     // i plavno gasim svet
+            }
+          }
+        }
 
         // Sbros bufera dlya sleduyushchego soobshcheniya
         receivedUartMessageIndex = 0;
@@ -921,17 +930,52 @@ void loop() {
 
   // NOVYY BLOK: Logika pulsacii kristalla
   if (isCrystalPulsating) {
-    // Esli svet ne menyaet yarkost v dannyy moment
-    if (!crystalFadingIn && !crystalFadingOut)  // должно быть или????
-    {
-      // Esli dostig maksimuma - nachinaem zatuhanie
+  // 1. Logika PULSACII (kogda flag isCrystalPulsating = true)
+  if (currentMillis - lastCrystalFadeTime >= CRYSTAL_FADE_INTERVAL) { // Ispol'zuem sushchestvuyushchie konstanty
+    lastCrystalFadeTime = currentMillis;
+
+    if (crystalFadingIn) { // Ispol'zuem 'crystalFadingIn' kak napravlenie (true = vverkh)
+      currentCrystalBrightness += CRYSTAL_FADE_STEP;
       if (currentCrystalBrightness >= 255) {
-        smoothTurnOffCrystal();
+        currentCrystalBrightness = 255;
+        crystalFadingIn = false; // Menyaem napravlenie na "vniz"
       }
-      // Esli dostig minimuma - nachinaem vozgoranie
-      else if (currentCrystalBrightness <= 0) {
-        smoothTurnOnCrystal();
+    } else {
+      currentCrystalBrightness -= CRYSTAL_FADE_STEP;
+      if (currentCrystalBrightness <= 0) {
+        currentCrystalBrightness = 0;
+        crystalFadingIn = true; // Menyaem napravlenie na "vverkh"
       }
     }
+    analogWrite(CRYSTAL_LIGHT_PIN, currentCrystalBrightness);
   }
+  // Sbros flaga FadingOut, on ne ispol'zuetsya v etom rezhime
+  crystalFadingOut = false;
+
+} else if (crystalFadingIn) {
+  // 2. Logika plavnogo VKLYUCHENIYA (kogda NE pulsaciya, napr. komanda 'skin')
+  if (currentMillis - lastCrystalFadeTime >= CRYSTAL_FADE_INTERVAL) {
+    currentCrystalBrightness += CRYSTAL_FADE_STEP;
+    if (currentCrystalBrightness > 255)
+      currentCrystalBrightness = 255;
+    analogWrite(CRYSTAL_LIGHT_PIN, currentCrystalBrightness);
+    lastCrystalFadeTime = currentMillis;
+    if (currentCrystalBrightness == 255) {
+      crystalFadingIn = false; // Zavershili
+    }
+  }
+} else if (crystalFadingOut) {
+  // 3. Logika plavnogo VIKLYUCHENIYA (kogda NE pulsaciya)
+  if (currentMillis - lastCrystalFadeTime >= CRYSTAL_FADE_INTERVAL) {
+    currentCrystalBrightness -= CRYSTAL_FADE_STEP;
+    if (currentCrystalBrightness < 0)
+      currentCrystalBrightness = 0;
+    analogWrite(CRYSTAL_LIGHT_PIN, currentCrystalBrightness);
+    lastCrystalFadeTime = currentMillis;
+    if (currentCrystalBrightness == 0) {
+      crystalFadingOut = false; // Zavershili
+      crystalFadingIn = true; // Sbrasyvaem napravlenie pulsacii na "vverkh" dlya sleduyushchego raza
+    }
+  }
+}
 }
