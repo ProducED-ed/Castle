@@ -105,6 +105,8 @@ fire0Flag = 0
 owlFlewCount = 0
 last_story_55_play_time = 0
 is_processing_ready = False
+mansard_galets = set()
+last_mansard_count = 0
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 pygame.mixer.pre_init(44100, -16, 2, 2048)
@@ -1869,23 +1871,74 @@ def Remote(check):
              socketio.emit('level', 'active_open_mansard_door',to=None)
              socklist.append('active_open_mansard_door')
         if check=='open_mansard_door':
-             #-----отправка клиенту 
+             # 1. Логика, которая уже была (отправка на Arduino и UI)
              socketio.emit('level', 'open_mansard_door',to=None)
-             #-----добавить в историю
-             socklist.append('galet_on')
-             #----отправить на мегу
+             socklist.append('open_mansard_door') # Исправлено (было 'galet_on')
              serial_write_queue.put('open_mansard_door')
-             serial_write_queue.put('student_hide')
-             name = "story_2"  
-             #---ждем 3 секунды
-             #eventlet.sleep(3) 
-             #-----активируем блок с флагами
-             #socketio.emit('level', 'active_suitcase',to=None)
-             #socklist.append('active_suitcase')
-             #socketio.emit('level', 'active_animals',to=None)
-             #socklist.append('active_animals')  
-             #socketio.emit('level', 'active_wolf',to=None)
-             #socklist.append('active_wolf')   
+             serial_write_queue.put('student_hide') # Эта команда была в оригинале, оставляем
+             # --- Логика для 100% прогресс-бара при СКИПЕ ---
+             
+             # 1. Отправляем 100% на пульт
+             socketio.emit('level', 'mansard_progress_100', to=None)
+             
+             # 2. Очищаем старые значения прогресса из socklist (0-80%)
+             for i in range(0, 100, 20): 
+                old_event_name = f"mansard_progress_{i}"
+                while old_event_name in socklist:
+                    try:
+                        socklist.remove(old_event_name)
+                    except ValueError:
+                        pass
+             
+             # 3. Добавляем 100% в socklist
+             if 'mansard_progress_100' not in socklist:
+                socklist.append('mansard_progress_100')
+             
+             # 4. Обновляем внутреннее состояние сервера, чтобы оно соответствовало 100%
+             # (Это "защита" от будущих физ. сигналов 'galet_off')
+             mansard_galets.update(['g1', 'g2', 'g3', 'g4', 'g5']) # Имитируем, что все 5 включены
+             last_mansard_count = 5 # Устанавливаем счетчик на 5
+             
+             # 2. Добавляем всю пропущенную логику из 'if flag=="galet_on":'
+             play_background_music("fon6.mp3")
+             play_effect(door_attic) # Эффект открытия
+             
+             # 3. Воспроизводим истории
+             if(language==1):
+                 play_story(story_5_ru)  
+             if(language==2):
+                 play_story(story_5_en)
+             if(language==3):
+                 play_story(story_5_ar)
+
+             while channel3.get_busy()==True and go == 1: 
+                 eventlet.sleep(0.1)
+             
+             if(language==1):
+                 play_story(story_6_ru)  
+             if(language==2):
+                 play_story(story_6_en)
+             if(language==3):
+                 play_story(story_6_ar)
+
+             while channel3.get_busy()==True and go == 1: 
+                 eventlet.sleep(0.1)
+
+             # 4. Активируем ESP32 и Train
+             send_esp32_command(ESP32_API_WOLF_URL, "game")
+             send_esp32_command(ESP32_API_SUITCASE_URL, "game")
+             send_esp32_command(ESP32_API_SAFE_URL, "game")
+             send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
+             
+             # 5. Активируем кнопки на пульте
+             socketio.emit('level', 'active_suitcase',to=None)
+             socklist.append('active_suitcase')
+             socketio.emit('level', 'active_animals',to=None)
+             socklist.append('active_animals')
+             socketio.emit('level', 'active_wolf',to=None)
+             socklist.append('active_wolf')
+
+             name = "story_2"
         if check=='suitcase':
              #-----отправка клиенту 
              socketio.emit('level', 'suitcase',to=None)
@@ -2474,6 +2527,7 @@ def tmr(res):
      global hintCount
      global rating
      global star
+     global mansard_galets, last_mansard_count
      global is_processing_ready
      logger.info(f"[SOCKET_IN] Command: {res}")
     #----на всякий случай отправим данные о выборе языка 
@@ -2834,7 +2888,7 @@ def _send_command_internal(api_url, command, timeout=6, max_retries=4, retry_del
         try:
             response = requests.post(api_url, json=command, timeout=timeout)
             response.raise_for_status()
-            logger.info(f"ESP32 command '{command}' to {api_url} successful.")
+            logger.debug(f"ESP32 command '{command}' to {api_url} successful.")
             return response
         except RequestException as e:
             if attempt < max_retries - 1:
@@ -2950,6 +3004,7 @@ def check_story_and_fade_up():
 def serial():
      global flag 
      global mus
+     global mansard_galets, last_mansard_count
      flag = "0"
      mus = 1
      global go
@@ -3064,6 +3119,8 @@ def serial():
                if flag == "startgo":
                      #-----очистим историю
                      socklist.clear()
+                     mansard_galets.clear()
+                     last_mansard_count = 0
                      fire2Flag = 0
                      fire1Flag = 0
                      fire0Flag = 0
@@ -3442,6 +3499,62 @@ def serial():
                               play_story(story_3_r_en)
                           if(language==3):
                               play_story(story_3_r_ar)
+                     # --- Логика для Прогресс-бара Mansard Game (5 галетников) ---
+                          
+                     # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
+                     galet_signals = {
+                         "galet1": "g1", "galet2": "g2", "galet3": "g3", "galet4": "g4", "galet5": "g5"
+                     }
+                     galet_off_signals = {
+                         "galet1_off": "g1", "galet2_off": "g2", "galet3_off": "g3", "galet4_off": "g4", "galet5_off": "g5"
+                     }
+                  
+                     changed = False
+                  
+                     # 2. Проверяем, пришел ли сигнал ВКЛ
+                     if flag in galet_signals:
+                         # Добавляем, только если его еще не было
+                         if galet_signals[flag] not in mansard_galets:
+                             mansard_galets.add(galet_signals[flag])
+                             changed = True
+                  
+                     # 3. Проверяем, пришел ли сигнал ВЫКЛ
+                     if flag in galet_off_signals:
+                         # Удаляем, только если он там был
+                         if galet_off_signals[flag] in mansard_galets:
+                             mansard_galets.discard(galet_off_signals[flag])
+                             changed = True
+
+                     # 4. Если состояние изменилось, обновляем UI
+                     if changed:
+                         current_count = len(mansard_galets)
+                      
+                         # Проверяем, отличается ли новое значение от старого (чтобы не спамить)
+                         if current_count != last_mansard_count:
+                             percent = current_count * 20
+                             event_name = f"mansard_progress_{percent}" # например, "mansard_progress_40"
+                          
+                             # 4.1. Отправляем в SocketIO
+                             socketio.emit('level', event_name, to=None)
+                          
+                             # 4.2. Обновляем историю (socklist)
+                             # Удаляем старое значение прогресса из истории
+                             old_percent = last_mansard_count * 20
+                             old_event_name = f"mansard_progress_{old_percent}"
+                          
+                             # Используем цикл while, чтобы удалить ВСЕ старые вхождения
+                             while old_event_name in socklist:
+                                 try:
+                                     socklist.remove(old_event_name)
+                                 except ValueError:
+                                     pass # На случай, если что-то пошло не так
+                                  
+                             socklist.append(event_name)
+                          
+                             # 4.3. Обновляем последнее известное значение
+                             last_mansard_count = current_count
+                             logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
+                     # --- Конец Логики Прогресс-бара Mansard Game ---
                      #----прошли галетники     
                      if flag=="galet_on":
                           #-----играем фон
@@ -3465,6 +3578,7 @@ def serial():
                               play_story(story_6_en)
                           if(language==3):
                               play_story(story_6_ar)
+                          serial_write_queue.put('open_mansard_door')
                           #-----играем эффект
                           play_effect(door_attic)
                           #----отправляем на клиента
@@ -4250,9 +4364,16 @@ def serial():
                                   play_story(story_32_c_en)
                               if(language==3):
                                   play_story(story_32_c_ar)
-                     if flag=="item_find":
-                          #----играем эффект 
+                     # Teper' my lovim lyuboye soobshcheniye, nachinayushcheyesya s "item_find"
+                     if flag.startswith("item_find"):
+                          # flag (naprimer, "item_find:crystal") uzhe budet v logakh
+                          # blagodarya "logger.info(f"[SERIAL_IN] {flag}")" vyshe.
+                          
+                          # 1. Vosproizvodim obshchiy zvuk
                           play_effect(item_find)
+                          
+                          # 2. Otpravlyayem obshchuyu komandu na ESP-kartu (train.ino)
+                          #    (train.ino ostanovit svoyu pul'saciyu pri poluchenii "item_find")
                           send_esp32_command(ESP32_API_TRAIN_URL, "item_find")
                      if flag=="item_add":
                           #----играем эффект 
