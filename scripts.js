@@ -161,6 +161,9 @@ $('.ui.dropdown')
      $('#safe_progress').progress({
         percent: 0
      });
+	 $('#mansard_progress').progress({
+        percent: 0
+     });
      $('#troll_progress').progress({
         percent: 0
      });
@@ -600,6 +603,26 @@ duration   : '1s',
             }
             if (inp === 'spell_reset') {
                 $('#spell_progress').progress({ percent: 0 });
+            }
+			
+			// 6. Mansard Game (Прогресс-бар)
+            if (inp === 'mansard_progress_0') {
+                $('#mansard_progress').progress({ percent: 0 });
+            }
+            if (inp === 'mansard_progress_20') {
+                $('#mansard_progress').progress({ percent: 20 });
+            }
+            if (inp === 'mansard_progress_40') {
+                $('#mansard_progress').progress({ percent: 40 });
+            }
+            if (inp === 'mansard_progress_60') {
+                $('#mansard_progress').progress({ percent: 60 });
+            }
+            if (inp === 'mansard_progress_80') {
+                $('#mansard_progress').progress({ percent: 80 });
+            }
+            if (inp === 'mansard_progress_100') {
+                $('#mansard_progress').progress({ percent: 100 });
             }
 			
            //тут у нас обрабатываются сообщения об октвации игр
@@ -1160,6 +1183,7 @@ duration   : '1s',
                 $('#ghost_progress').progress({ percent: 0 });
                 $('#owls_progress').progress({ percent: 0 });
 				$('#spell_progress').progress({ percent: 0 });
+				$('#mansard_progress').progress({ percent: 0 });
 
                 $('#first_door').removeClass('open');
                 $('#first_door').removeClass('green');
@@ -1179,7 +1203,7 @@ duration   : '1s',
                 $('#items_memory').progress({
                     percent: 0
                 });
-                
+                $('#mansard_progress').progress({ percent: 0 });
                 
                 $('#players').removeClass('grey');
                 $('#players').removeClass('disabled');
