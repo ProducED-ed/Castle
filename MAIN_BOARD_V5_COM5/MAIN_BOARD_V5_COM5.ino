@@ -228,6 +228,7 @@ const int threshold = 300;  // пороговое значение для пье
 int scrollNumber = 0;       // последовательность свитков
 ////////////
 byte level = 0;  // уровни для квеста установить какой нужен в случае проверки
+byte previousLevel = 0; // Переменная для отслеживания смены уровня ---
 byte Bottle = 0;
 String BotScore = "";
 byte OwlScore = 0;
@@ -673,6 +674,11 @@ void setup() {
 void loop() {
   handleLocks();
   handleUfBlinking();
+  if (level != previousLevel) {
+    Serial.print("level_"); // Отправляем префикс
+    Serial.println(level);  // Отправляем номер нового уровня
+    previousLevel = level;  // Обновляем "предыдущий" уровень
+  }
   //digitalWrite(pinA, 0);
   //digitalWrite(pinB, 0);
   //digitalWrite(pinC, 1);
@@ -853,11 +859,7 @@ void PowerOn() {
       OpenAll(); // Открываем локальные двери
       RestOn();  // Переходим в состояние сброса
     }
-    // ---------------------------------------------------------------------------------
-    // ИЗМЕНЕНО: Логика обработки "ready".
-    // ПРИЧИНА: Убраны лишние команды check_state, которые вызывали дублирование
-    // сообщений. Теперь главная плата проверяет только свои сенсоры, а башни
-    // проверяют свои состояния самостоятельно по команде "ready".
+    // Логика обработки "ready".
     // ---------------------------------------------------------------------------------
     else if (buff == "ready") {
       // 1. Сбрасываем флаги состояния для новой проверки
@@ -882,11 +884,26 @@ void PowerOn() {
       if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) { Serial.println("safe_open"); }
       
       // 4. Переходим в состояние прослушивания
+      // Гасим весь свет и очищаем ленты
+      digitalWrite(MansardLight, LOW);
+      digitalWrite(LastTowerTopLight, LOW);
+      digitalWrite(Fireworks, LOW);
+      digitalWrite(BankRoomLight, LOW);
+      digitalWrite(TorchLight, LOW);
+      digitalWrite(HallLight, LOW);
+      digitalWrite(UfHallLight, LOW);
+      digitalWrite(LibraryLight, LOW);
+      
+      // Очистка всех NeoPixel лент.
+      for (int s = 0; s < STRIPS; s++) {
+        strips[s]->clear();
+        strips[s]->show();
+      }
+      // 5. Переходим в состояние прослушивания
       readyListenTimer = millis();
       level = 26;
     }
   }
-  // ВАЖНО: Весь код для постоянной проверки сенсоров (поллинг) удален.
   // Теперь PowerOn() только ждет и обрабатывает входящие команды.
 }
 
@@ -1860,9 +1877,12 @@ void MapGame() {
     if (buff == "mine") {
       Serial2.println("mine");
     }
-    if (buff == "troll") {
-      Serial2.println("troll");
+    // Корректная обработка СКИПА игры с троллем ---
+    if (buff == "troll") { 
+      // Serial2.println("troll"); // Не отправляем команду башне, т.к. это СКИП
+      Serial.println("cave_end"); // Немедленно отправляем серверу, что игра окончена (для story_30)
       isTrollEnd = 1;
+    // Немедленно помечаем, что игра пройдена
     }
 
     if (buff == "train") {
@@ -3258,6 +3278,44 @@ void OpenBank() {
 }
 
 void Scrolls() {
+  // Немедленный выход после победы ---
+  if (scrollNumber == 5) {
+    // В этом состоянии мы ждем 4 секунды в case 5: для перехода на level 10.
+    // Если мы здесь, но не в case 5:, значит, игра уже была завершена (например, через Skip),
+    // или мы ждем перехода. Мы должны игнорировать герконы.
+
+    // Но мы должны убедиться, что отрабатывает case 5: для перехода
+    if (millis() - safeTimer >= 4000) {
+        OpenLock(BankStashDoor); 
+        level++; // Переходим на level 10 (Oven) 
+    }
+    // Если safeTimer еще не истек, мы просто выходим из Scrolls()
+    // и игнорируем ВСЕ герконы.
+    
+    // Также обрабатываем входящие команды, если игра пройдена, 
+    // чтобы не блокировать serial (команды open_safe, restart).
+    if (Serial.available()) {
+        String buff = Serial.readStringUntil('\n'); 
+        buff.trim(); 
+        if (buff == "open_safe") {
+            OpenLock(BankStashDoor);
+        }
+        else if (buff == "restart") {
+            OpenAll();
+            RestOn();
+            level = 25;
+            return;
+        }
+        else if (buff == "soundon") {
+            flagSound = 0;
+        }
+        else if (buff == "soundoff") {
+            flagSound = 1;
+        }
+    }
+    HelpTowersHandler(); 
+    return; // Немедленно выходим, чтобы не проверять ScrollOne-Four
+  }
   switch (scrollNumber) {
     case 0:
       ScrollOne();
@@ -3278,10 +3336,7 @@ void Scrolls() {
     // Этот case 5: "ловит" это состояние, ждет 4 секунды и
     // наконец переключает Arduino на level 10 (Oven).
     case 5:
-      if (millis() - safeTimer >= 4000) { // 4-секундная задержка после "safe_end"
-        OpenLock(BankStashDoor);
-        level++; // Переходим на level 10 (Oven) 
-      }
+
       break;
   }
   if (Serial.available()) {
@@ -3293,7 +3348,7 @@ void Scrolls() {
       level++;
     }
     if (buff == "safe") {
-      scrollNumber++;
+      scrollNumber = 5;
       Serial.println("safe_end");
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
       GoldStrip.show();
