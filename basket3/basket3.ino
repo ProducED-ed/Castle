@@ -163,7 +163,7 @@ void setup() {
 }
 
 void loop() {
-  // --- НАЧАЛО ИЗМЕНЕНИЯ: Вся логика loop() переработана для корректной обработки команд ---
+  // --- Вся логика loop() переработана для корректной обработки команд ---
   switch (state) {
     case 0:
       CheckState();
@@ -171,6 +171,7 @@ void loop() {
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
 
+        /*
         if (buff == "restart") {
           // 1. Открываем обе двери
           OpenLock(SHERIF_EM1); // Дверь тролля/шахты
@@ -199,7 +200,8 @@ void loop() {
           // 3. Остаемся в state 0, готовые к следующей команде
           state = 0; 
         }
-        else if (buff == "ready") {
+        */
+        if (buff == "ready") {
           // ---------------------------------------------------------------------------------
           // ИЗМЕНЕНО: Добавлена принудительная проверка состояния при команде "ready".
           // ПРИЧИНА: Чтобы башня сообщала о уже активных датчиках (например,
@@ -288,30 +290,49 @@ void loop() {
         if (buff == "ready"){
           state = 0; // Возвращаемся в исходное состояние
         }
+        // Добавляем вызов HandleMessagges, чтобы команда restart работала
+        // даже если игра уже завершена (находится в state 8)
+        else {
+          HandleMessagges(buff);
+        }
       }
       break;
   }
   HelpButton();
   DoorDefender();
-  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 }
 
 void HandleMessagges(String message) {
-  // --- НАЧАЛО ИЗМЕНЕНИЯ: Удалена обработка "restart", т.к. она перенесена в case 0 ---
-  /*
+  // --- Обработка "restart", есть и в case 0 ---
   if(message == "restart"){
-    _restartFlag = 0;
-    _restartGalet = 0;
-      OpenLock(SHERIF_EM1);
-      OpenLock(SHERIF_EM2);
-      OpenLock(Solenoid);
-      galetButton.resetStates();
-      flagButton.resetStates();
-      delay(100);
-    state = 8;
+      // 1. Открываем обе двери
+      OpenLock(SHERIF_EM1); // Дверь тролля/шахты
+      OpenLock(SHERIF_EM2); // Дверь баскетбола
+
+      // 2. Сбрасываем все игровые переменные
+      digitalWrite(trollLed, LOW);
+      digitalWrite(owlLed, LOW);
+      digitalWrite(basketLed, LOW);
+      digitalWrite(SHERIF_EM1, LOW);
+      digitalWrite(SHERIF_EM2, LOW);
+      digitalWrite(Solenoid, LOW);
+      SCORE_ROBOT = 0;
+      SCORE_MAN = 0;
+      buttonSequence = 0;
+      trollSequence = 0;
+      score = 0;
+      _startBasket=0;
+      disp.clear();
+      strip.clear();
+      strip.show();
+      disp.point(0);
+      _restartGalet = 0;
+      _restartFlag = 0;
+      
+      // 3. Принудительно возвращаем в state 0
+      state = 0;
+      return; // Выходим, чтобы не обрабатывать другие 'if'
   }
-  */
-  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
   if(message == "day_on"){
     digitalWrite(trollLed, HIGH);
   }
@@ -319,6 +340,10 @@ void HandleMessagges(String message) {
     digitalWrite(trollLed, LOW);
   }
   if(message == "open_door"){
+    OpenLock(SHERIF_EM2);
+  }
+  // Добавлена команда, которую отправляет MAIN_BOARD при активации кубка
+  if(message == "opent_basket"){ 
     OpenLock(SHERIF_EM2);
   }
   if(message == "open_mine_door"){
@@ -813,7 +838,7 @@ void Basket(){
       OpenLock(Solenoid);
       SCORE_ROBOT = 0;
       isLoose = 1;
-      state++; // Переходим в состояние 8 (idle), чтобы остановить игру
+      // state++; // Переходим в состояние 8 (idle), чтобы остановить игру
     }
   if(boyButton.isPress()){
     OUTPUT_TO_DISPLAY();
@@ -943,10 +968,7 @@ void OpenBasket(){
   {
     String buff = Serial1.readStringUntil('\n');
     buff.trim();
-    if (buff == "opent_basket"){
-      OpenLock(SHERIF_EM2);
-    }
-    else if (buff == "start_lesson"){
+    if (buff == "start_lesson"){
       state++;
     }
     else{
