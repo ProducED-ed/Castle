@@ -116,7 +116,10 @@ bool isDogDoorOpened = false;  // Дверь рыцаря (собака/ключ
 bool isOwlDoorOpened = false;  // Дверь гнома (сова) открыта
 
 bool isTrainStarted = false;  // Игра с поездом (после проектора) активна
-//-------------------
+
+bool lessonSaluteActive = false; // Флаг для анимации салюта в уроке
+bool discoBallsActive = false;   // Флаг для диско-шаров при голе
+unsigned long discoBallsTimer = 0; // Таймер для диско-шаров
 //----------------RFID
 OneWire myRFID(13);  // рфидка на котле в комнате зельеварения
 
@@ -674,6 +677,20 @@ void setup() {
 void loop() {
   handleLocks();
   handleUfBlinking();
+  // Таймер диско-шаров ---
+  if (discoBallsActive) {
+    if (millis() - discoBallsTimer >= 5000) { // 5 секунд
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW); // Выключаем
+    } else {
+      // Поддерживаем включенным, пока таймер идет.
+      // MagicEffect() в level 20 может перебить этот сигнал,
+      // но MagicEffect() в lessonSaluteActive не должен.
+      if (!lessonSaluteActive) { // Не включаем, если уже идет салют
+           digitalWrite(Fireworks, HIGH); 
+      }
+    }
+  }
   if (level != previousLevel) {
     Serial.print("level_"); // Отправляем префикс
     Serial.println(level);  // Отправляем номер нового уровня
@@ -1413,7 +1430,6 @@ void GaletGame() {
 
   if (galet1 && galet2 && galet3 && galet4 && galet5) {
     delay(200);
-    OpenLock(MansardDoor);
     Serial.println("galet_on");
     galet1 = 0;
     galet2 = 0;
@@ -1421,7 +1437,6 @@ void GaletGame() {
     galet4 = 0;
     galet5 = 0;
     startSteps = 0;
-    level++;
   }
 
   if (Serial.available()) {
@@ -1441,7 +1456,6 @@ void GaletGame() {
     if (buff == "open_mansard_door") {
       delay(200);
       OpenLock(MansardDoor);
-      Serial.println("galet_on");
       galet1 = 0;
       galet2 = 0;
       galet3 = 0;
@@ -2031,9 +2045,10 @@ void Oven() {
     if (!potionPulsation) {
       potionPulsation = 1;
       Serial1.println("potion");
-      Serial.println("item_find");
+      Serial.println("item_find:potion");
       Serial2.println("item_find");
       Serial3.println("item_find");
+      mySerial.println("item_find");
       goldPulsation = 0;
     }
   }
@@ -2042,9 +2057,10 @@ void Oven() {
     if (!goldPulsation) {
       goldPulsation = 1;
       Serial1.println("gold");
-      Serial.println("item_find");
+      Serial.println("item_find:gold");
       Serial2.println("item_find");
       Serial3.println("item_find");
+      mySerial.println("item_find");
       potionPulsation = 0;
     }
   }
@@ -2092,8 +2108,9 @@ void Oven() {
     if (buff == "story_35\r\n") {
       Serial.println("story_35");
       Serial1.println("item_end");
-      // Serial2.println("item_end");
-      // Serial3.println("item_end");
+      Serial2.println("item_end");
+      Serial3.println("item_end");
+      mySerial.println("item_end");
       delay(1000);
       Serial1.println("day_off");
       Serial2.println("day_off");
@@ -2146,6 +2163,7 @@ void Oven() {
       Serial1.println("item_end");
       Serial2.println("item_end");
       Serial3.println("item_end");
+      mySerial.println("item_end");
       delay(1000);
       Serial1.println("day_off");
       Serial2.println("day_off");
@@ -2192,8 +2210,10 @@ void Oven() {
       goldPulsation = 0;
       potionPulsation = 0;
       Serial1.println("skin");
-      // Serial2.println("item_find");
-      // Serial3.println("item_find");
+      Serial.println("item_find:skin");
+      Serial2.println("item_find");
+      Serial3.println("item_find");
+      mySerial.println("item_find");
     }
     if (buff == "restart") {
       goldPulsation = 0;
@@ -2221,8 +2241,9 @@ void Oven() {
       goldPulsation = 0;
       potionPulsation = 0;
       Serial1.println("metal");
+      Serial.println("item_find:metal");
       Serial3.println("item_find");
-      Serial.println("item_find");
+      mySerial.println("item_find");
     }
     if (buff == "help\r\n") {
       HelpHandler("troll");
@@ -2239,8 +2260,9 @@ void Oven() {
       goldPulsation = 0;
       potionPulsation = 0;
       Serial1.println("crystal");
+      Serial.println("item_find:crystal");
       Serial2.println("item_find");
-      Serial.println("item_find");
+      mySerial.println("item_find");
     }
     if (buff == "help\r\n") {
       HelpHandler("knight");
@@ -2554,30 +2576,48 @@ void FourBottle() {
 
 void BasketLesson() {
   static bool isSend;
-  BasketEffectLesson();
+  // BasketEffectLesson();
   if (isTrainBasket) {
     if (!isSend) {
       Serial.println("story_59");
       isSend = 1;
     }
   }
+
+  // Логика анимации ---
+  if (lessonSaluteActive) {
+    MagicEffect(); // 1. Показываем салют, если игрок встал на платформу
+  } else if (!snitchFlag) {
+    BasketEffectLesson(); // 2. Показываем комету, если игра (урок) началась
+  }
   if (Serial2.available()) {
     String buf = Serial2.readString();
 
     if (buf == "boy_in\r\n") {
       Serial.println("boy_in");
-      snitchFlag = 0;
+      lessonSaluteActive = true;
+      // snitchFlag = 0;
     }
     if (buf == "boy_out\r\n") {
       Serial.println("boy_out");
-      snitchFlag = 1;
+      lessonSaluteActive = false;
+      snitchFlag = 1; // Возвращаем флаг, чтобы остановить комету
+      digitalWrite(Fireworks, LOW); // Гарантированно выключаем пин салюта/шаров
       strip1.clear();
       strip2.clear();
       strip1.show();
       strip2.show();
     }
+    // Обработка гола в уроке ---
+    if (buf == "lesson_goal\r\n") {
+      Serial.println("lesson_goal");
+    }
     if (buf == "lesson_basket_done\r\n") {
       Serial.println("flying_ball");
+      // Выключаем все анимации при выходе ---
+      lessonSaluteActive = false;
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW);
       snitchFlag = 0;
       enemyTimer = millis();
       additionalTimer = millis();
@@ -2589,12 +2629,25 @@ void BasketLesson() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "start_game_basket") {
+      // Выключаем салют, очищаем ленты, запускаем комету ---
+      lessonSaluteActive = false;
+      digitalWrite(Fireworks, LOW);
+      
+      // Очищаем ленты от салюта перед запуском кометы
+      strip1.clear();
+      strip2.clear();
+      strip1.show();
+      strip2.show();
       snitchFlag = 0;
       enemyTimer = millis();
       additionalTimer = millis();
       Serial2.println("start_basket");
     }
     if (buff == "basket") {
+      // Сброс флагов при скипе ---
+      lessonSaluteActive = false;
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW);
       Serial.println("win");
       Serial2.println("win");
       strip1.clear();
@@ -2618,6 +2671,10 @@ void BasketLesson() {
       level = 20;
     }
     if (buff == "restart") {
+      // Сброс флагов при рестарте ---
+      lessonSaluteActive = false;
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW);
       isSend=0;
       OpenAll();
       RestOn();
@@ -2660,6 +2717,7 @@ void Basket() {
       Serial.println("goal_2_bot");
     }
     if (buf == "fr8nmr\r\n") {
+      // Выключить диско-шары при победе ---
       Serial.println("win");
       strip1.clear();
       strip2.clear();
@@ -2686,12 +2744,18 @@ void Basket() {
       enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_1_player");
+      // Включаем диско-шары ---
+      discoBallsActive = true;
+      discoBallsTimer = millis();
     }
     if (buf == "fr62nmr\r\n") {
       snitchFlag = 0;
       enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_2_player");
+      // Включаем диско-шары ---
+      discoBallsActive = true;
+      discoBallsTimer = millis();
     }
 
     if (buf == "start_snitch\r\n") {
@@ -2702,6 +2766,9 @@ void Basket() {
     }
 
     if (buf == "fr9nmr\r\n") {
+      // Выключить диско-шары при проигрыше ---
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW);
       Serial.println("win_robot");
       strip1.clear();
       strip2.clear();
@@ -2737,6 +2804,9 @@ void Basket() {
       mySerial.println("firework");
       level = 20;
     } else if (buff == "restart") {
+      // Выключить диско-шары при рестарте ---
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW);
       OpenAll();
       RestOn();
       level = 25;
