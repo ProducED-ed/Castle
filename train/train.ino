@@ -850,13 +850,16 @@ void setup() {
         isTrollEnd = 1;       // Устанавливаем флаг завершения игры с троллем
       }
       if (body == "\"stage_4\"") {
-        ActiveLeds[13] = -1;  //
-        ClickLeds[13] = -1;   //
+        ActiveLeds[13] = -1;
+        ClickLeds[13] = -1;
 
-        // Активируем следующий этап (LED 15)
-        FutureLeds[6] = -1;   //
-        ActiveLeds[6] = 15;   // Индекс 6 -> LED 15
-        state = 4;            //
+        FutureLeds[6] = -1;
+        ActiveLeds[6] = 15;
+        state = 4;
+
+        // Включаем статическое свечение кожи
+        leds1[0] = CRGB(0, 128, 0); // Статический зеленый
+        FastLED.show();
       }
 
       if (body == "\"stage_5\"") {
@@ -976,8 +979,13 @@ void setup() {
       if (body == "\"train_on\"") {
         myMP3.playMp3Folder(TRACK_TRAIN);
       }
-      if (body == "\"item_find\"") {
+      if (body == "\"item_find\"") {        
+        // 1. Останавливаем пульсацию
+        isSkinPulsation = 0;
         
+        // 2. Включаем статическое свечение (возвращаем в состояние "доступен")
+        leds1[0] = CRGB(0, 128, 0);
+        FastLED.show();
       }
       if (body == "\"item_end\"") {
         leds1[0] = CRGB(0, 0, 0);
