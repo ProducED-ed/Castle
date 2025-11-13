@@ -585,6 +585,12 @@ void setup() {
   pinMode(PIN_LED_ROOM, OUTPUT);
   pinMode(PIN_LED_WINDOW, OUTPUT);
 
+  // Гарантированно выключаем все замки и свет при старте
+  // для защиты от "залипания" при перезагрузке.
+  digitalWrite(PIN_LOKER_DOOR, LOW);
+  digitalWrite(PIN_LED_ROOM, LOW);
+  digitalWrite(PIN_LED_WINDOW, LOW);
+
   setbutton(PIN_HERKON_BOAT);
   setbutton(PIN_IR_FLAG);
 
