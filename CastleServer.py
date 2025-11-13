@@ -1,5 +1,152 @@
 import eventlet
 eventlet.monkey_patch()
+
+# ДОБАВЛЕНО: Словарь для расшифровки событий в логах
+EVENT_DESCRIPTIONS = {
+    # --- Сообщения от MAIN_BOARD ---
+    "startgo": "Квест начался (все двери закрыты)",
+    "open_door": "Открыта стартовая дверь",
+    "close_door": "Закрыта стартовая дверь",
+    "dragon_crystal": "Кристалл дракона вставлен",
+    "dragon_crystal_repeat": "Повторная подсказка про кристалл дракона",
+    "clock1": "Активирован первый тумблер (часы)",
+    "clock2": "Активирован второй галетник (часы)",
+    "steps": "Сработал датчик шагов (прячется студент)",
+    "kay_repeat": "Повторная подсказка про мальчика",
+    "galet_on": "Игра с 5 галетниками пройдена",
+    "galet_off": "Галетник выключен (в режиме ожидания)",
+    "flagsendmr": "Игра с флагами пройдена",
+    "door_owl": "Дверь к совам открыта",
+    "owl_flew": "Сова вылетела",
+    "owl_end": "Игра с совами пройдена",
+    "door_witch": "Дверь к ведьме открыта (кошка)",
+    "first_bottle": "Правильно поставлена 1-я бутылка",
+    "second_bottle": "Правильно поставлена 2-я бутылка",
+    "third_bottle": "Правильно поставлена 3-я бутылка",
+    "four_bottle": "Игра с бутылками пройдена",
+    "mistake_bottle": "Ошибка в игре с бутылками",
+    "door_dog": "Дверь к собаке открыта (замок)",
+    "dog_sleep": "Собака уснула",
+    "dog_growl": "Собака рычит",
+    "dog_lock": "Игра с собакой пройдена",
+    "door_cave": "Дверь в пещеру открыта",
+    "cave_search1": "В пещере найден 1-й предмет",
+    "cave_search2": "В пещере найден 2-й предмет",
+    "cave_search3": "В пещере найден 3-й предмет",
+    "cave_end": "Игра с троллем в пещере пройдена",
+    "miror": "Открыта дверь в банк (зеркало)",
+    "safe_turn": "Поворот ручки сейфа",
+    "safe_end": "Сейф в банке открыт",
+    "material_end": "Все материалы для квеста собраны",
+    "fire1": "Зажжен первый огонь в мастерской",
+    "fire2": "Зажжен второй огонь в мастерской",
+    "fire3": "Зажжен третий огонь в мастерской",
+    "fire0": "Огонь в мастерской потушен",
+    "item_find": "Найден предмет для крафта",
+    "item_add": "Предмет для крафта добавлен",
+    "broom": "Создана метла",
+    "helmet": "Создан шлем",
+    "story_35": "Мастерская пройдена",
+    "h_clock": "Активирован первый тумблер (призрак)",
+    "uf_clock": "Активирован второй галетник (призрак)",
+    "punch": "Игра с призраком пройдена (удар)",
+    "star_hint": "Запрошена подсказка по звездам",
+    "fire": "Камин горит",
+    "lib_door": "Дверь в библиотеку открыта",
+    "door_basket": "Дверь на балкон (баскетбол) открыта",
+    "door_spell": "Дверь в комнату заклинаний открыта",
+    "cristal_up": "Кристаллы подняты",
+    "start_crystal": "Начата игра с кристаллами",
+    "true_crystal": "Правильный кристалл убран",
+    "mistake_crystal": "Ошибка в игре с кристаллами",
+    "first_level": "Пройден 1-й уровень воспоминаний",
+    "second_level": "Пройден 2-й уровень воспоминаний",
+    "third_level": "Пройден 3-й уровень воспоминаний",
+    "memory_room_end": "Комната воспоминаний пройдена",
+    "crime_end": "Комната преступления пройдена",
+    "boy_in": "Мальчик вставлен (начало баскетбола)",
+    "lesson_goal": "Забит гол в тренировке",
+    "flying_ball": "Мяч в полете",
+    "catch1": "Мяч пойман (датчик 1)",
+    "catch2": "Мяч пойман (датчик 2)",
+    "catch3": "Мяч пойман (датчик 3)",
+    "catch4": "Мяч пойман (датчик 4)",
+    "goal_1_player": "Гол игрока в 1-е кольцо",
+    "goal_2_player": "Гол игрока во 2-е кольцо",
+    "goal_3_player": "Гол игрока в 3-е кольцо",
+    "goal_4_player": "Гол игрока в 4-е кольцо",
+    "goal_1_bot": "Гол бота в 1-е кольцо",
+    "goal_2_bot": "Гол бота во 2-е кольцо",
+    "goal_3_bot": "Гол бота в 3-е кольцо",
+    "goal_4_bot": "Гол бота в 4-е кольцо",
+    "start_snitch": "Золотой мяч активирован",
+    "red_ball": "Красный мяч активирован",
+    "enemy_catch1": "Бот поймал красный мяч (датчик 1)",
+    "enemy_catch2": "Бот поймал красный мяч (датчик 2)",
+    "enemy_catch3": "Бот поймал красный мяч (датчик 3)",
+    "enemy_catch4": "Бот поймал красный мяч (датчик 4)",
+    "win": "Игрок победил в баскетболе",
+    "win_robot": "Бот победил в баскетболе",
+    "last_on": "Финальная статуэтка поставлена на место",
+    "main_board_ready": "Arduino Mega (MAIN_BOARD) готова к работе.",
+
+    # --- Сообщения от basket3.ino (Баскетбол/Пещера) ---
+    "basket3_ready": "Башня 'Баскетбол' готова.",
+    "level_1_b": "Баскетбол: Начальный уровень.",
+    "level_2_b": "Баскетбол: Идет тренировка.",
+    "level_3_b": "Баскетбол: Основная игра.",
+    "level_4_b": "Баскетбол: Игра окончена (победа).",
+    "level_5_b": "Баскетбол: Игра окончена (проигрыш).",
+    "level_6_b": "Пещера: Начальный уровень.",
+    "level_7_b": "Пещера: Идет поиск предметов.",
+    "level_8_b": "Пещера: Уровень пройден.",
+
+    # --- Сообщения от workshop.ino (Мастерская) ---
+    "workshop_ready": "Башня 'Мастерская' готова.",
+    "level_1_w": "Мастерская: Начальный уровень.",
+    "level_2_w": "Мастерская: Ожидание активации печи.",
+    "level_3_w": "Мастерская: Идет сбор предметов.",
+    "level_4_w": "Мастерская: Уровень пройден.",
+
+    # --- Сообщения от owls.ino (Совы) ---
+    "owls_ready": "Башня 'Совы' готова.",
+    "level_1_o": "Совы: Начальный уровень.",
+    "level_2_o": "Совы: Идет игра.",
+    "level_3_o": "Совы: Уровень пройден.",
+
+    # --- Сообщения от dog.ino (Собака) ---
+    "dog_ready": "Башня 'Собака' готова.",
+    "level_1_d": "Собака: Начальный уровень.",
+    "level_2_d": "Собака: Идет игра.",
+    "level_3_d": "Собака: Уровень пройден.",
+
+    # --- Сообщения от train.ino (ESP32 Карта) ---
+    "train_ready": "ESP32 'Карта' готова.",
+    "projector: end": "ESP32 Карта: Игра с проектором пройдена.",
+    "train: end": "ESP32 Карта: Игра с поездом пройдена.",
+    "ghost: end": "ESP32 Карта: Игра с призраком пройдена (получен сигнал).",
+
+    # --- Сообщения от wolf.ino (ESP32 Волк) ---
+    "wolf_ready": "ESP32 'Волк' готов.",
+    "wolf: end": "ESP32 Волк: Игра пройдена.",
+
+    # --- Сообщения от chest.ino (ESP32 Чемоданы) ---
+    "suitcase_ready": "ESP32 'Чемоданы' готов.",
+    "suitcase: end": "ESP32 Чемоданы: Игра пройдена.",
+
+    # --- Сообщения от safe.ino (ESP32 Сейф) ---
+    "safe_ready": "ESP32 'Сейф' готов.",
+    "safe: end": "ESP32 Сейф: Игра пройдена.",
+
+    # --- Системные и UI команды ---
+    "restart": "[UI] Нажата кнопка RESTART.",
+    "start": "[UI] Нажата кнопка START.",
+    "ready": "[UI] Нажата кнопка READY (проверка системы).",
+    "pause": "[UI] Нажата кнопка PAUSE.",
+    "soundon": "[SND] Приглушение фоновой музыки.",
+    "soundoff": "[SND] Восстановление громкости фоновой музыки.",
+}
+
 #импорт библиотек  flask фреймворк для работы с сервером так же дополнение socketIO 
 from flask import Flask, send_file, request, jsonify
 from flask import render_template, request
@@ -2322,7 +2469,21 @@ def handle_data():
     global mapClickOut 
     if request.method == 'POST':
         data = request.get_json()
-        logger.info(f"[API_IN] Received data: {data}")
+        # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от ESP32
+        # Мы итерируемся по ключам в data, чтобы найти соответствующее событие
+        description_found = False
+        if isinstance(data, dict):
+            for key, value in data.items():
+                event_key = f"{key}: {value}" # Собираем ключ вида "wolf: end"
+                if event_key in EVENT_DESCRIPTIONS:
+                    description = EVENT_DESCRIPTIONS.get(event_key)
+                    logging.info(f'ПОЛУЧЕНО [ESP32 API]: {description} (RAW: {data})')
+                    description_found = True
+                    break # Логируем только первое найденное событие
+        if not description_found:
+             # Логируем как есть, если описание не найдено
+             logging.info(f'ПОЛУЧЕНО [ESP32 API]: {data}')
+
         if 'suitcase' in data and data['suitcase'] == 'end':
           logger.debug("'suitcase: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "case_finish")
@@ -2758,15 +2919,14 @@ def is_number(str):
         return False  
 
 def play_story(audio_file, loops=0, volume_file='3.txt'):
+    # --- ИЗМЕНЕНО: Улучшено логирование звуков ---
     try:
-        # Пытаемся найти имя файла в карте
-        audio_name = _SOUND_NAME_MAP.get(audio_file, "UNKNOWN_STORY_OBJECT")
-        # DEBUG, чтобы не писать в консоль
-        logger.debug(f"Playing story: {audio_name}")
+        # Пытаемся найти имя файла в карте, чтобы лог был читаемым.
+        audio_name = _SOUND_NAME_MAP.get(audio_file, "Неизвестный аудиофайл истории")
+        logging.info(f"ВОСПРОИЗВЕДЕНИЕ [История]: {audio_name}")
     except Exception as e:
-        # На случай, если что-то пойдет не так с логированием
-        logger.error(f"Error logging story name: {e}")
-        logger.debug(f"Executing play_story for audio file.") # Старый лог как запасной
+        # На случай, если что-то пойдет не так с логированием.
+        logging.error(f"Ошибка логирования имени истории: {e}")
     # Воспроизводит историю/подсказку, АВТОМАТИЧЕСКИ приглушая фоновую музыку.
     global story_fade_active, phoneLevel, go
     
@@ -2802,14 +2962,14 @@ def play_story(audio_file, loops=0, volume_file='3.txt'):
             channel3.set_volume(volume, volume)
 
 def play_effect(audio_file, loops=0, volume_file='2.txt'):
-    # --- Логирование эффекта ---
+    # --- ИЗМЕНЕНО: Улучшено логирование эффектов ---
     try:
-        # Пытаемся найти имя файла в карте
-        audio_name = _SOUND_NAME_MAP.get(audio_file, "UNKNOWN_EFFECT_OBJECT")
-        # --- DEBUG, чтобы не писать в консоль ---
-        logger.debug(f"Playing effect: {audio_name}")
+        # Пытаемся найти имя файла в карте для читаемого лога.
+        audio_name = _SOUND_NAME_MAP.get(audio_file, "Неизвестный аудиофайл эффекта")
+        logging.info(f"ВОСПРОИЗВЕДЕНИЕ [Эффект]: {audio_name}")
     except Exception as e:
-        logger.error(f"Error logging effect name: {e}")
+        # На случай, если что-то пойдет не так с логированием.
+        logging.error(f"Ошибка логирования имени эффекта: {e}")
         
     channel2.play(audio_file, loops=loops)
     
@@ -2886,11 +3046,19 @@ def _send_command_internal(api_url, command, timeout=6, max_retries=4, retry_del
     current_delay = retry_delay
     for attempt in range(max_retries):
         try:
+            # ИЗМЕНЕНО: Улучшенное логирование исходящих команд на ESP32
+            # Логируем ПЕРЕД отправкой
+            description = EVENT_DESCRIPTIONS.get(command, f'Неизвестная команда: {command}')
+            logging.info(f"ОТПРАВЛЕНО [ESP32 - {api_url}]: {description} (RAW: {command})")
+
             response = requests.post(api_url, json=command, timeout=timeout)
             response.raise_for_status()
-            logger.debug(f"ESP32 command '{command}' to {api_url} successful.")
+            # Убираем старый лог, чтобы избежать дублирования
+            # logger.debug(f"ESP32 command '{command}' to {api_url} successful.")
             return response
         except RequestException as e:
+            # Логируем ошибку с тем же уровнем детализации
+            logging.error(f"ОШИБКА ОТПРАВКИ [ESP32 - {api_url}]: Команда {command} не удалась после {attempt + 1} попыток. Ошибка: {e}")
             if attempt < max_retries - 1:
                 time.sleep(current_delay)
                 current_delay *= 2
@@ -2949,7 +3117,9 @@ def send_esp32_command(api_url, command, debounce=False, delay=0.5):
     t_debouncer.start()
                 
 def play_background_music(music_file, volume_file='1.txt', loops=-1):
+    # --- ИЗМЕНЕНО: Улучшено логирование фоновой музыки ---
     try:
+        logging.info(f"ВОСПРОИЗВЕДЕНИЕ [Фон]: {music_file}")
         # Загружаем и воспроизводим музыку
         pygame.mixer.music.load(music_file)
         pygame.mixer.music.play(loops)
@@ -3054,7 +3224,9 @@ def serial():
           # Добавляем блок для отправки сообщений из очереди
           try:
               message_to_send = serial_write_queue.get_nowait()
-              logger.info(f"[SERIAL_OUT] Sent: {message_to_send}")
+              # ИЗМЕНЕНО: Улучшенное логирование исходящих команд на Arduino
+              description = EVENT_DESCRIPTIONS.get(message_to_send, 'Неизвестная команда')
+              logging.info(f'ОТПРАВЛЕНО [Arduino]: {description} (RAW: {message_to_send})')
               ser.write(str.encode(message_to_send + '\n'))
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
@@ -3083,7 +3255,9 @@ def serial():
                flag = line
                logger.debug(f"Raw serial data received: {line}")
                eventlet.sleep(0.1)
-               logger.info(f"[SERIAL_IN] {flag}")
+               # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
+               description = EVENT_DESCRIPTIONS.get(flag, f'Неизвестное событие')
+               logging.info(f'ПОЛУЧЕНО [Arduino]: {description} (RAW: {flag})')
                # Логирование смены уровня ---
                if flag.startswith("level_"):
                    try:
