@@ -691,6 +691,10 @@ void loop() {
     if (millis() - discoBallsTimer >= 5000) { // 5 секунд
       discoBallsActive = false;
       digitalWrite(Fireworks, LOW); // Выключаем
+      snitchFlag = 0;
+      enemyTimer = millis();
+      additionalTimer = millis();
+      enemyFlag = 0;
     } else {
       // Поддерживаем включенным, пока таймер идет.
       // MagicEffect() в level 20 может перебить этот сигнал,
@@ -2789,8 +2793,8 @@ void Basket() {
       level = 20;
     }
     if (buf == "fr61nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
+      // snitchFlag = 0;
+      // enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_1_player");
       // Включаем диско-шары ---
@@ -2798,8 +2802,8 @@ void Basket() {
       discoBallsTimer = millis();
     }
     if (buf == "fr62nmr\r\n") {
-      snitchFlag = 0;
-      enemyTimer = millis();
+      // snitchFlag = 0;
+      // enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_2_player");
       // Включаем диско-шары ---
@@ -2823,7 +2827,7 @@ void Basket() {
       strip2.clear();
       strip1.show();
       strip2.show();
-      //level=21;
+      level=21;
     }
   }
 
