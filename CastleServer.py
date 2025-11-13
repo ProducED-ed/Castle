@@ -182,12 +182,18 @@ if not os.path.exists('logs'):
     os.mkdir('logs')
 
 
-# ДОБАВЛЕНО: Класс фильтра для консоли, чтобы не выводить сообщения о громкости
-class SoundFilter(logging.Filter):
+# ИЗМЕНЕНО: Класс фильтра для консоли, чтобы не выводить определенные сообщения
+class ConsoleFilter(logging.Filter):
     def filter(self, record):
-        # Мы проверяем ИСХОДНОЕ сообщение (record.msg), так как отформатированное
-        # может быть уже изменено. Проверяем, что msg является строкой.
-        return isinstance(record.msg, str) and 'soundon' not in record.msg and 'soundoff' not in record.msg
+        # Проверяем, что сообщение является строкой
+        if not isinstance(record.msg, str):
+            return True # Не фильтруем, если это не строка
+
+        # Список нежелательных сообщений для консоли
+        excluded_keywords = ['soundon', 'soundoff', 'item_find']
+
+        # Возвращаем True (показать), если ни одно из ключевых слов не найдено в сообщении
+        return not any(keyword in record.msg for keyword in excluded_keywords)
 
 
 # Get the root logger
@@ -215,9 +221,9 @@ stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO) # Консоль пишет только INFO и выше
 stream_handler.setFormatter(console_formatter) # ИСПОЛЬЗУЕМ КОРОТКИЙ ФОРМАТТЕР
 
-# ДОБАВЛЕНО: Применяем фильтр ТОЛЬКО к обработчику консоли
-sound_filter = SoundFilter()
-stream_handler.addFilter(sound_filter)
+# ИЗМЕНЕНО: Применяем новый ConsoleFilter к обработчику консоли
+console_filter = ConsoleFilter()
+stream_handler.addFilter(console_filter)
 
 # Add handlers to the logger
 logger.addHandler(file_handler)
