@@ -842,11 +842,20 @@ void handleLibraryFlicker() {
     return;
   }
 
-  // 2. Логика самого мерцания (каждые 75 мс)
-  if (currentMillis - libraryFlickerIntervalTimer >= 75) {
+  // 2. Логика "Свеча на ветру"
+  if (currentMillis - libraryFlickerIntervalTimer >= (150 + random(0, 200))) {
     libraryFlickerIntervalTimer = currentMillis;
-    // Инвертируем текущее состояние света
-    digitalWrite(LibraryLight, !digitalRead(LibraryLight)); 
+
+    // С шансом 30% (3 из 10) "задуваем" свечу
+    if (random(10) < 3) { 
+      digitalWrite(LibraryLight, LOW);
+      // Сразу же устанавливаем таймер, чтобы включить ее обратно
+      // через очень короткое время (50-100 мс)
+      libraryFlickerIntervalTimer = currentMillis + random(50, 100);
+    } else {
+      // В остальных 70% случаев свеча горит ровно
+      digitalWrite(LibraryLight, HIGH);
+    }
   }
 }
 // метод открывания тайников и дверей каждая после своего уровня и до конца игры
@@ -3109,6 +3118,7 @@ void CentralTowerGame() {
       isLibraryFlickering = true;
       libraryFlickerTimer = millis();
       libraryFlickerIntervalTimer = millis();
+      digitalWrite(LibraryLight, HIGH);
       // Свет уже был выключен в level 12,
       // поэтому мерцание начнется с ВКЛючения.
     }
