@@ -167,9 +167,6 @@ $('.ui.dropdown')
      $('#troll_progress').progress({
         percent: 0
      });
-     $('#ghost_progress').progress({
-        percent: 0
-     });
      $('#owls_progress').progress({
         percent: 0
      });
@@ -555,22 +552,31 @@ duration   : '1s',
                 $('#troll_progress').progress({ percent: 100 });
             }
 
-            // 4. Ghost Game (Прогресс-бар)
-            if (inp === 'story_40') { // Шаг 1 (поезд)
-                $('#ghost_progress').progress({ percent: 20 });
-            }
-            if (inp === 'story_41') { // Шаг 2 (волк)
-                $('#ghost_progress').progress({ percent: 40 });
-            }
-            if (inp === 'story_42') { // Шаг 3 (поезд)
-                $('#ghost_progress').progress({ percent: 60 });
-            }
-            if (inp === 'punch') { // Шаг 4 (финальный стук 'punch' -> 'stage_7')
-                $('#ghost_progress').progress({ percent: 80 });
-            }
-            if (inp === 'set_time') { // Шаг 5 (подсказка 'star_hint' -> 'set_time')
-                $('#ghost_progress').progress({ percent: 100 });
-            }
+				// 4. Ghost Game (Прогресс-бар и кнопки)
+			if (inp === 'story_40') { // Шаг 1 (Train)
+				$('#ghost_step_1').addClass('positive');
+				$('#ghost_step_1_indic').addClass('check');
+				$('#ghost_step_2').removeClass('disabled'); // Активируем следующую
+			}
+			if (inp === 'story_41') { // Шаг 2 (Wolf)
+				$('#ghost_step_2').addClass('positive');
+				$('#ghost_step_2_indic').addClass('check');
+				$('#ghost_step_3').removeClass('disabled'); // Активируем следующую
+			}
+			if (inp === 'story_42') { // Шаг 3 (Train 2 / Knock)
+				$('#ghost_step_3').addClass('positive');
+				$('#ghost_step_3_indic').addClass('check');
+				$('#ghost_step_4').removeClass('disabled'); // Активируем 'Library/Punch'
+			}
+			if (inp === 'punch') { // Шаг 4 (Library/Punch)
+				$('#ghost_step_4').addClass('positive');
+				$('#ghost_step_4_indic').addClass('check');
+				$('#ghost_step_5').removeClass('disabled'); // Активируем 'Star hint'
+			}
+			if (inp === 'set_time') { // Шаг 5 (Star hint)
+				$('#ghost_step_5').addClass('positive');
+				$('#ghost_step_5_indic').addClass('check');
+			}
 
             // 5. Owls (Прогресс-бар)
             if (inp === 'owl_flew_1') {
@@ -694,8 +700,9 @@ duration   : '1s',
                 $('#projector').removeClass('disabled');
             }
             if (inp === 'active_ghost') {
-                $('#ghost').removeClass('disabled');
-            }
+            // Активируем первую кнопку призрака
+            $('#ghost_step_1').removeClass('disabled');
+        }
             if (inp === 'active_crime') {
                 $('#crime').removeClass('disabled');
             }
@@ -712,7 +719,7 @@ duration   : '1s',
                 $('#open_memory_stash').removeClass('disabled');
             }
             if (inp === 'active_basket') {
-                $('#basket').removeClass('disabled');
+                $('#open_basket_door_button').removeClass('disabled');
             }
             if (inp === 'open_door') {//открыли стартовую дверь
                 $('#first_door').addClass('open');// добавили класс open замок поменяеться на открытый
@@ -936,13 +943,20 @@ duration   : '1s',
                 $('#workshop').addClass('positive');
                 $('#workshop_indic').addClass('check');
             }
-            if(inp === 'ghost') {
-                $('#ghost').addClass('positive');
-                $('#ghost_indic').addClass('check');
-            }
+            // Эта логика теперь обрабатывает шаги 4 и 5
+			if(inp === 'punch') { // Шаг 4
+				$('#ghost_step_4').addClass('positive');
+				$('#ghost_step_4_indic').addClass('check');
+			}
+			if(inp === 'set_time') { // Шаг 5
+				$('#ghost_step_5').addClass('positive');
+				$('#ghost_step_5_indic').addClass('check');
+			}
             if(inp === 'cup') {
                 $('#cup').addClass('positive');
                 $('#cup_indic').addClass('check');
+				$('#open_basket_door_button').addClass('positive');
+                $('#open_basket_door_button_indic').addClass('check');
             }
             if(inp === 'spell') {
                 $('#spell').addClass('positive');
@@ -1180,13 +1194,24 @@ duration   : '1s',
 
                 $('#safe_progress').progress({ percent: 0 });
                 $('#troll_progress').progress({ percent: 0 });
-                $('#ghost_progress').progress({ percent: 0 });
+				$('#ghost_step_1').removeClass('positive');
+				$('#ghost_step_1_indic').removeClass('check');
+				$('#ghost_step_2').removeClass('positive');
+				$('#ghost_step_2_indic').removeClass('check');
+				$('#ghost_step_3').removeClass('positive');
+				$('#ghost_step_3_indic').removeClass('check');
+				$('#ghost_step_4').removeClass('positive');
+				$('#ghost_step_4_indic').removeClass('check');
+				$('#ghost_step_5').removeClass('positive');
+				$('#ghost_step_5_indic').removeClass('check');
                 $('#owls_progress').progress({ percent: 0 });
 				$('#spell_progress').progress({ percent: 0 });
 				$('#mansard_progress').progress({ percent: 0 });
 
                 $('#first_door').removeClass('open');
                 $('#first_door').removeClass('green');
+				$('#open_basket_door_button').removeClass('positive');
+                $('#open_basket_door_button_indic').removeClass('check');
 
                 $('#door_puzzle').removeClass('open');
                 $('#door_puzzle').removeClass('green');
@@ -1299,6 +1324,11 @@ duration   : '1s',
                 $('#open_bank_door').addClass('disabled');
                 $('#safe').addClass('disabled');
                 $('#workshop').addClass('disabled');
+				$('#ghost_step_1').addClass('disabled');
+				$('#ghost_step_2').addClass('disabled');
+				$('#ghost_step_3').addClass('disabled');
+				$('#ghost_step_4').addClass('disabled');
+				$('#ghost_step_5').addClass('disabled');
                 $('#ghost').addClass('disabled');
                 $('#cup').addClass('disabled');
                 $('#spell').addClass('disabled');
@@ -1307,6 +1337,7 @@ duration   : '1s',
                 $('#open_memory_stash').addClass('disabled');
                 $('#players').removeClass('green');
                 $('#players').addClass('grey');
+                $('#open_basket_door_button').addClass('disabled');
                 $('#basket').addClass('disabled');
                 disBut=1;
                 }
@@ -1419,8 +1450,20 @@ duration   : '1s',
         socket.emit('Remote','workshop')
     });
 
-    $('#ghost').click(function(){
-        socket.emit('Remote','ghost')
+    $('#ghost_step_1').click(function(){
+        socket.emit('Remote','ghost_step_1')
+    });
+    $('#ghost_step_2').click(function(){
+        socket.emit('Remote','ghost_step_2')
+    });
+    $('#ghost_step_3').click(function(){
+        socket.emit('Remote','ghost_step_3')
+    });
+    $('#ghost_step_4').click(function(){
+        socket.emit('Remote','ghost_step_4') // Это бывшая кнопка 'ghost'
+    });
+    $('#ghost_step_5').click(function(){
+        socket.emit('Remote','ghost_step_5') // Это новая кнопка 'star_hint'
     });
     $('#cup').click(function(){
         socket.emit('Remote','cup')
@@ -1436,6 +1479,9 @@ duration   : '1s',
     });
     $('#basket').click(function(){
         socket.emit('Remote','basket')
+    });
+	$('#open_basket_door_button').click(function(){
+        socket.emit('Remote','open_basket_door_skip')
     });
 
     //если нажимаем на выбор языка отправляем на сервер данные о выбранном языке
