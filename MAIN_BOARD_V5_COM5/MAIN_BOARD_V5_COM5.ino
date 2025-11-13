@@ -353,6 +353,11 @@ bool isTrollEnd;
 bool isTrainBasket;
 int ghostState = 0;
 
+// Переменные для мерцания света в библиотеке
+bool isLibraryFlickering = false;
+unsigned long libraryFlickerTimer = 0;
+unsigned long libraryFlickerIntervalTimer = 0;
+
 String dragonHints[] = { "dragon_crystal", "hint_2_b", "hint_2_c", "hint_2_z", "hint_5_b", "hint_5_c" };
 String studentHints[] = { "hint_3_b", "hint_3_c", "hint_3_z", "hint_37_b", "hint_37_c", "hint_38_b", "hint_44_b", "hint_44_c" };
 String professorHints[] = { "hint_6_b", "hint_6_c", "hint_10_b", "hint_10_c", "hint_11_b", "hint_11_c", "hint_11_z" };
@@ -378,7 +383,7 @@ int witchCounter = 0;
 unsigned long KayTimer = 0;
 
 void MagicEffect() {
-  digitalWrite(Fireworks, HIGH);
+  
   static uint32_t lastUpdate = 0;
   static uint16_t timeCounter = 0;
 
@@ -536,6 +541,9 @@ void setup() {
   digitalWrite(UfHallLight, LOW);
   digitalWrite(HightTowerDoor2, LOW);
   digitalWrite(TorchLight, LOW);
+  for (int i = 0; i < DOORS; i++) {
+    digitalWrite(doors[i], LOW);
+  }
   ///--------------------
   ///////порты uart
   Serial.begin(9600);  // raspberry
@@ -677,6 +685,7 @@ void setup() {
 void loop() {
   handleLocks();
   handleUfBlinking();
+  handleLibraryFlicker();
   // Таймер диско-шаров ---
   if (discoBallsActive) {
     if (millis() - discoBallsTimer >= 5000) { // 5 секунд
@@ -815,10 +824,34 @@ void loop() {
 
   //VoltageDisplay();
 }
+
+// Функция призрачного мерцания ---
+void handleLibraryFlicker() {
+  // Если мерцание не активно, выходим
+  if (!isLibraryFlickering) {
+    return;
+  }
+
+  unsigned long currentMillis = millis();
+
+  // 1. Проверяем, не прошло ли 5 секунд
+  if (currentMillis - libraryFlickerTimer >= 5000) {
+    isLibraryFlickering = false;
+    // После мерцания оставляем свет включенным
+    digitalWrite(LibraryLight, HIGH); 
+    return;
+  }
+
+  // 2. Логика самого мерцания (каждые 75 мс)
+  if (currentMillis - libraryFlickerIntervalTimer >= 75) {
+    libraryFlickerIntervalTimer = currentMillis;
+    // Инвертируем текущее состояние света
+    digitalWrite(LibraryLight, !digitalRead(LibraryLight)); 
+  }
+}
 // метод открывания тайников и дверей каждая после своего уровня и до конца игры
 
 // ---------------------------------------------------------------------------------
-// ИЗМЕНЕНО: Функция PowerOn() полностью переработана.
 // ПРИЧИНА: Ранее эта функция постоянно опрашивала все датчики и башни,
 // отправляя множество сообщений на сервер и вызывая "флатер" состояний.
 // Теперь она только ожидает и обрабатывает входящие команды, не занимаясь
@@ -1893,10 +1926,7 @@ void MapGame() {
     }
     // Корректная обработка СКИПА игры с троллем ---
     if (buff == "troll") { 
-      // Serial2.println("troll"); // Не отправляем команду башне, т.к. это СКИП
-      Serial.println("cave_end"); // Немедленно отправляем серверу, что игра окончена (для story_30)
-      isTrollEnd = 1;
-    // Немедленно помечаем, что игра пройдена
+      Serial2.println("troll");
     }
 
     if (buff == "train") {
@@ -2595,7 +2625,9 @@ void BasketLesson() {
 
     if (buf == "boy_in\r\n") {
       Serial.println("boy_in");
-      lessonSaluteActive = true;
+      if (snitchFlag == 1) {
+        lessonSaluteActive = true;
+      }
       // snitchFlag = 0;
     }
     if (buf == "boy_out\r\n") {
@@ -2646,7 +2678,8 @@ void BasketLesson() {
     if (buff == "basket") {
       // Сброс флагов при скипе ---
       lessonSaluteActive = false;
-      discoBallsActive = false;
+      discoBallsActive = true;
+      discoBallsTimer = millis();
       digitalWrite(Fireworks, LOW);
       Serial.println("win");
       Serial2.println("win");
@@ -2669,6 +2702,12 @@ void BasketLesson() {
       delay(500);
       mySerial.println("firework");
       level = 20;
+    }
+    if (buff == "soundon") {
+      flagSound = 0;
+    }
+    if (buff == "soundoff") {
+      flagSound = 1;
     }
     if (buff == "restart") {
       // Сброс флагов при рестарте ---
@@ -2717,8 +2756,9 @@ void Basket() {
       Serial.println("goal_2_bot");
     }
     if (buf == "fr8nmr\r\n") {
-      // Выключить диско-шары при победе ---
       Serial.println("win");
+      discoBallsActive = true;
+      discoBallsTimer = millis();
       strip1.clear();
       strip2.clear();
       strip1.show();
@@ -2783,6 +2823,8 @@ void Basket() {
     buff.trim();
     if (buff == "basket") {
       Serial.println("win");
+      discoBallsActive = true;
+      discoBallsTimer = millis();
       Serial2.println("win");
       strip1.clear();
       strip2.clear();
@@ -2811,7 +2853,11 @@ void Basket() {
       RestOn();
       level = 25;
       return;
-    } else if (buff == "soundoff") {
+    }
+      else if (buff == "soundon") {
+      flagSound = 0;
+    }
+      else if (buff == "soundoff") {
       flagSound = 1;
     } else if (buff == "help")
       Serial.println("help_12");
@@ -2857,32 +2903,23 @@ void Library() {
       break;
     */
     case 6:
-      if (millis() - KnockInterval >= 3000) {
-        if (millis() - KnockIntervalLow >= 100) {
-          KnockIntervalLow = millis();
-          KnockState = !KnockState;
-          digitalWrite(KnockSol, KnockState);
-          NumKnock++;
-        }
-        if (NumKnock == 4) {
-          KnockInterval = millis();
-          NumKnock = 0;
-        }
-      }
+      // --- ИЗМЕНЕНИЕ: Вся логика KnockInterval и KnockSol УДАЛЕНА ---
+      // --- Теперь мы НЕМЕДЛЕННО слушаем датчик стука ---
+
+      // Фильтрация (остается)
       if (++index > 2)
         index = 0;
       val[index] = analogRead(KnockSens);
       val_filter = middle_of_3(val[0], val[1], val[2]);
       // Serial.println(analogRead(KnockSens));
-      if (KnockState != 1) {
-        if (analogRead(KnockSens) <= threshold) {
-          Serial.println("punch");
-          digitalWrite(KnockSol, LOW);
-          //OpenLock(LibraryDoor);
-          digitalWrite(LibraryLight, HIGH);
-          libraryDoorTimer = millis();
-          level++;
-        }
+
+      // Проверка стука (убираем 'if (KnockState != 1)')
+      if (analogRead(KnockSens) <= threshold) {
+        Serial.println("punch");
+        digitalWrite(KnockSol, LOW); // Оставляем выключение, на всякий случай
+        digitalWrite(LibraryLight, HIGH);
+        libraryDoorTimer = millis();
+        level++;
       }
       break;
   }
@@ -2950,6 +2987,7 @@ void Library() {
       //поезд
       if (ghostState == 4) {
         Serial.println("story_42");
+        Serial.println("ghost_knock");
         ghostState = 6;
       }
       if (ghostState < 4)
@@ -2968,6 +3006,8 @@ void Library() {
 void LibraryGame() {
   if (digitalReadExpander(5, board3)) {
     Serial.println("lib_door");
+    // Выключаем свет в библиотеке ---
+    digitalWrite(LibraryLight, LOW);
 
     level++;
   }
@@ -3064,6 +3104,14 @@ void CentralTowerGame() {
   if (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+    // Обработчик команды мерцания ---
+    if (buff == "library_flicker_start") {
+      isLibraryFlickering = true;
+      libraryFlickerTimer = millis();
+      libraryFlickerIntervalTimer = millis();
+      // Свет уже был выключен в level 12,
+      // поэтому мерцание начнется с ВКЛючения.
+    }
     if (buff == "student_hide") {
       boyServo.attach(49);
       boyServo.write(0);
@@ -3828,6 +3876,8 @@ void CrimeHelp() {
     buff.trim();
     if (buff == "basket") {
       Serial.println("win");
+      discoBallsActive = true;
+      discoBallsTimer = millis();
       Serial2.println("win");
       level++;
     }
@@ -5262,6 +5312,9 @@ void HelpButton(String help) {
 }
 
 void RestOn() {
+  for (int i = 0; i < DOORS; i++) {
+    digitalWrite(doors[i], LOW);
+  }
   /*
   static bool _dataQueue = 0;
   static unsigned long _towerTimer = 0;
