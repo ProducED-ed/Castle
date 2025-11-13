@@ -977,9 +977,7 @@ void setup() {
         myMP3.playMp3Folder(TRACK_TRAIN);
       }
       if (body == "\"item_find\"") {
-        leds1[0] = CRGB(0, 128, 0);
-        FastLED.show();
-        isSkinPulsation = 0;
+        
       }
       if (body == "\"item_end\"") {
         leds1[0] = CRGB(0, 0, 0);
