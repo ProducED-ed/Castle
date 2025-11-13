@@ -190,7 +190,7 @@ class ConsoleFilter(logging.Filter):
             return True # Не фильтруем, если это не строка
 
         # Список нежелательных сообщений для консоли
-        excluded_keywords = ['soundon', 'soundoff', 'item_find']
+        excluded_keywords = ['soundon', 'soundoff']
 
         # Возвращаем True (показать), если ни одно из ключевых слов не найдено в сообщении
         return not any(keyword in record.msg for keyword in excluded_keywords)
