@@ -202,9 +202,28 @@ void handleSerial1Commands() {
 
       fireworkActive = true;
 
-      FastLED.clear(); // Очищаем светодиоды перед запуском
+      // --- ИСПРАВЛЕНИЕ: Принудительно устанавливаем "решенное" состояние
+      // при запуске фейерверка, чтобы плитки стали зелеными.
+      // Фейерверк будет рисоваться поверх зеленого.
+      skipCommand = true;      // Используем, чтобы остановить handleTileLeds
+      rainbowActive = false;   // Убедимся, что радуга не активна
+      tile1Solved = true;
+      tile2Solved = true;
+      tile3Solved = true;
+      tile4Solved = true;
+      owl = 6;
+      digitalWrite(PIN_LED_ROOM, HIGH);
+      digitalWrite(PIN_LED_WINDOW, HIGH);
+      state = 2; // Переходим в "решенное" состояние
 
-      FastLED.show();
+      // Устанавливаем плитки в ЗЕЛЕНЫЙ
+      for (int i = 0; i < NUM_TILE_LEDS; i++) {
+        tileLeds[i] = CRGB::Green;
+      }
+      // FastLED.show() будет вызван в handleFirework()
+      
+      // FastLED.clear();
+      // FastLED.show();
 
     }
 
@@ -229,24 +248,8 @@ void handleSerial1Commands() {
     }
 
     if (command == "ready") {
-      // ---------------------------------------------------------------------------------
-      // Добавлена принудительная проверка состояния при команде "ready".
-      // ПРИЧИНА: Чтобы башня сообщала о уже активных датчиках (например,
-      // оставленном флаге) сразу после перезапуска сервера, а не только при
-      // изменении их состояния.
-      // ---------------------------------------------------------------------------------
-      // 1. Сбрасываем флаги-запоминатели состояния
-      _restartFlag = 0;
-      _restartGalet = 0;
-      // 2. Немедленно вызываем проверку состояния
-      CheckState();
-      // Добавлено выключение света и ленты ---
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Black;
-      }
-      digitalWrite(PIN_LED_ROOM, 0);
-      digitalWrite(PIN_LED_WINDOW, 0);
-      FastLED.show();
+      resetOwlTower();  // Выполняем полный сброс
+      CheckState();     // Отправляем главному контроллеру наш новый (сброшенный) статус
     }
 
     if (command == "check_state"){
@@ -256,65 +259,11 @@ void handleSerial1Commands() {
       }
 
     if (command == "restart") {
-      _restartFlag = 0;
-      _restartGalet = 0;
-      // Сброс всех переменных
-      CheckState();
-      skipCommand = false;
-      fireworkActive = false;
-      rainbowActive = false;
-      tile0State = false;
-      tile1State = false;
-      tile2State = false;
-      tile3State = false;
-      tile4State = false;
-      tile1Solved = false;
-      tile2Solved = false;
-      tile3Solved = false;
-      tile4Solved = false;
-      lockerActive = false;
-      owlCommandReceived = false;
-      state = 0;
-      owl = 0;
-      F = false;
-      
-    digitalWrite(PIN_LOKER_DOOR, HIGH);
-      delay(100);
-      digitalWrite(PIN_LOKER_DOOR, LOW);
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Green;
-        digitalWrite(PIN_LED_ROOM, HIGH);
-        digitalWrite(PIN_LED_WINDOW, HIGH);
-      }
-      FastLED.show();
+      resetOwlTower();
     }
 
     if (command == "start") {
-      // Сброс всех переменных
-      skipCommand = false;
-      rainbowActive = false;
-      tile0State = false;
-      tile1State = false;
-      tile2State = false;
-      tile3State = false;
-      tile4State = false;
-      tile1Solved = false;
-      tile2Solved = false;
-      tile3Solved = false;
-      tile4Solved = false;
-      lockerActive = false;
-      owlCommandReceived = false;
-      state = 0;
-      _restartFlag = 0;
-      _restartGalet = 0;
-      owl = 0;
-      F = false;
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Black;
-        digitalWrite(PIN_LED_ROOM, 0);
-        digitalWrite(PIN_LED_WINDOW, 0);
-      }
-      FastLED.show();
+      resetOwlTower();
     }
   }
 }
@@ -740,5 +689,42 @@ void handleFirework() {
     }
   }
 
+  FastLED.show();
+}
+
+// Функция для полного сброса башни ---
+// Она объединяет логику 'start' и 'restart' и исправляет пропуски.
+void resetOwlTower() {
+  // Сброс всех флагов состояния
+  skipCommand = false;
+  fireworkActive = false;
+  rainbowActive = false;
+  tile0State = false;
+  tile1State = false;
+  tile2State = false;
+  tile3State = false;
+  tile4State = false;
+  tile1Solved = false;
+  tile2Solved = false;
+  tile3Solved = false;
+  tile4Solved = false;
+  lockerActive = false;
+  owlCommandReceived = false;
+  state = 0;
+  owl = 0;
+  F = false;
+
+  // Сброс флагов для CheckState()
+  _restartFlag = 0;
+  _restartGalet = 0;
+  
+  // Приводим башню в "темное" состояние по умолчанию
+  digitalWrite(PIN_LOKER_DOOR, LOW); // Гарантированно выключаем замок
+  digitalWrite(PIN_LED_ROOM, 0);
+  digitalWrite(PIN_LED_WINDOW, 0);
+  
+  for (int i = 0; i < NUM_TILE_LEDS; i++) {
+    tileLeds[i] = CRGB::Black;
+  }
   FastLED.show();
 }
