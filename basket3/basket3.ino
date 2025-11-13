@@ -292,10 +292,26 @@ void loop() {
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
         if (buff == "ready"){
-          state = 0; // Возвращаемся в исходное состояние
+          // Копируем полный сброс из 'case 0'
+          digitalWrite(trollLed, LOW);
+          digitalWrite(owlLed, LOW);
+          digitalWrite(basketLed, LOW);
+          SCORE_ROBOT = 0;
+          SCORE_MAN = 0;
+          buttonSequence = 0;
+          trollSequence = 0;
+          score = 0;
+          _startBasket=0;
+          disp.clear();
+          strip.clear();
+          strip.show();
+          disp.point(0);
+          
+          _restartGalet = 0;
+          _restartFlag = 0;
+          CheckState(); // Вызываем проверку
+          state = 0;    // Возвращаемся в исходное состояние
         }
-        // Добавляем вызов HandleMessagges, чтобы команда restart работала
-        // даже если игра уже завершена (находится в state 8)
         else {
           HandleMessagges(buff);
         }
@@ -335,6 +351,7 @@ void HandleMessagges(String message) {
       
       // 3. Принудительно возвращаем в state 0
       state = 0;
+      CheckState();
       return; // Выходим, чтобы не обрабатывать другие 'if'
   }
   // Обработка пропуска игры с троллем ---
