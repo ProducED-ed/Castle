@@ -239,6 +239,7 @@ void setup() {
   }
   for (uint8_t p = 0; p < 8; p++) {
     OUTPUTS.pinMode(p, OUTPUT);
+    OUTPUTS.digitalWrite(p, LOW);
   }
 
   FastLED.addLeds<WS2812B, 18, GRB>(threeLed, 10);
