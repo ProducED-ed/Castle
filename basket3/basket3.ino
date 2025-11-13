@@ -75,6 +75,10 @@ void setup() {
   pinMode(Solenoid, OUTPUT);
   pinMode(owlLed, OUTPUT);
   pinMode(BASKET_IR_PIN, INPUT_PULLUP);
+  // Гарантированно выключаем все замки/соленоиды при старте ---
+  digitalWrite(SHERIF_EM1, LOW);
+  digitalWrite(SHERIF_EM2, LOW);
+  digitalWrite(Solenoid, LOW);
 
   disp.clear();
   disp.brightness(7); 
@@ -332,6 +336,21 @@ void HandleMessagges(String message) {
       // 3. Принудительно возвращаем в state 0
       state = 0;
       return; // Выходим, чтобы не обрабатывать другие 'if'
+  }
+  // Обработка пропуска игры с троллем ---
+  // Эта команда приходит от MAIN_BOARD, если игру пропустили с пульта
+  else if (message == "troll") {
+    strip.clear(); // Очищаем ленту 
+    strip.show();
+    Serial1.println("cave_end"); // Сообщаем главной плате, что игра пройдена 
+    
+    // Активируем светодиод "металл" (пин 2)
+    strip.setPixelColor(2, strip.Color(0, 0, 255)); // 
+    strip.show();
+    
+    // Принудительно переводим башню в состояние 4 (WorkShopGame),
+    // чтобы она была готова к сбору металла.
+    state = 4; // 
   }
   if(message == "day_on"){
     digitalWrite(trollLed, HIGH);
