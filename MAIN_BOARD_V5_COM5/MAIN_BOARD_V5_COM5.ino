@@ -381,6 +381,10 @@ int goblinCounter = 0;
 int witchCounter = 0;
 
 unsigned long KayTimer = 0;
+// Глобальные переменные для отслеживания состояния "мальчика" в режиме ожидания ---
+bool boyStateInitialized = false;
+bool lastBoyState = true; // По умолчанию 'out' (true)
+unsigned long boyCheckTimer = 0;
 
 void MagicEffect() {
   
@@ -850,12 +854,12 @@ void handleLibraryFlicker() {
   if (currentMillis - libraryFlickerIntervalTimer >= (150 + random(0, 200))) {
     libraryFlickerIntervalTimer = currentMillis;
 
-    // С шансом 30% (3 из 10) "задуваем" свечу
-    if (random(10) < 3) { 
+    // С шансом 60% (6 из 10) "задуваем" свечу
+    if (random(10) < 6) { 
       digitalWrite(LibraryLight, LOW);
       // Сразу же устанавливаем таймер, чтобы включить ее обратно
-      // через очень короткое время (50-100 мс)
-      libraryFlickerIntervalTimer = currentMillis + random(50, 100);
+      // через короткое время (100-200 мс)
+      libraryFlickerIntervalTimer = currentMillis + random(100, 200);
     } else {
       // В остальных 70% случаев свеча горит ровно
       digitalWrite(LibraryLight, HIGH);
@@ -871,6 +875,7 @@ void handleLibraryFlicker() {
 // активным поллингом, что делает систему более стабильной в режиме ожидания.
 // ---------------------------------------------------------------------------------
 void PowerOn() {
+  handleIdleBoySensor();
   if (Serial.available()) {  // Есть что на вход?
     String buff = Serial.readStringUntil('\n');
     buff.trim();
@@ -896,6 +901,7 @@ void PowerOn() {
       directorCounter = 0; goblinCounter = 0; witchCounter = 0; firstRun = true;
       isPotionDoorOpened = false; isDogDoorOpened = false; isOwlDoorOpened = false;
       isTrainStarted = false; isBankerFirstHint = true; dragonTimer = millis();
+      boyStateInitialized = false;
       level++; // Переход на уровень 1
     }
     else if (buff == "open_mansard_door")   { OpenDoor(MansardDoor); }
@@ -963,6 +969,7 @@ void PowerOn() {
         strips[s]->show();
       }
       // 5. Переходим в состояние прослушивания
+      boyStateInitialized = false;
       readyListenTimer = millis();
       level = 26;
     }
@@ -2254,7 +2261,6 @@ void Oven() {
       potionPulsation = 0;
       Serial1.println("skin");
       Serial.println("item_find:skin");
-      Serial2.println("item_find");
       Serial3.println("item_find");
       mySerial.println("item_find");
     }
@@ -2827,7 +2833,6 @@ void Basket() {
       strip2.clear();
       strip1.show();
       strip2.show();
-      level=21;
     }
   }
 
@@ -5464,6 +5469,7 @@ void RestOn() {
   flagStory = 1;
   helpsBankTimerWaiting = false;
   isBankerFirstHint = true;
+  handleIdleBoySensor();
 
   previousMillis = 0;
   interval = 10;               // Интервал обновления (мс)
@@ -5556,6 +5562,7 @@ void RestOn() {
       galet1Event = 0; galet2Event = 0; galet3Event = 0; galet4Event = 0;
       galet5Event = 0; sealEvent = 0; sealSpaceEvent = 0; finalEvent = 0;
       bugTimerScroll = 0;
+      boyStateInitialized = false;
       Serial1.println("restart");
       Serial2.println("restart");
       Serial3.println("restart");
@@ -5607,6 +5614,7 @@ void RestOn() {
       }
       
       // 5. Переходим в режим ожидания старта (level 0), НО СНАЧАЛА в режим прослушивания
+      boyStateInitialized = false;
       readyListenTimer = millis();
       level = 26; // Переходим в состояние прослушивания
       // listenForReady() затем сама переключит на level = 0
@@ -5659,7 +5667,34 @@ void ListenForReady() {
     }
   }
 }
-// ---
+
+// Функция для проверки геркона "мальчика" в режиме ожидания (PowerOn/RestOn) ---
+void handleIdleBoySensor() {
+  // Проверяем не чаще, чем раз в 100 мс для стабильности
+  if (millis() - boyCheckTimer >= 100) { 
+    boyCheckTimer = millis();
+    
+    // Пин 7 на board1 - это геркон "мальчика"
+    bool currentBoyState = digitalReadExpander(7, board1);
+
+    // Инициализация при первом запуске
+    if (!boyStateInitialized) {
+      lastBoyState = currentBoyState;
+      boyStateInitialized = true;
+      return; // Выходим, чтобы не отправлять сообщение при первом чтении
+    }
+
+    // Если состояние изменилось
+    if (currentBoyState != lastBoyState) {
+      if (currentBoyState) {
+        Serial.println("boy_out"); // Мальчик ВЫНУТ (геркон разомкнут)
+      } else {
+        Serial.println("boy_in");  // Мальчик ВСТАВЛЕН (геркон замкнут)
+      }
+      lastBoyState = currentBoyState; // Сохраняем новое состояние
+    }
+  }
+}
 
 void Restart() {
 }
