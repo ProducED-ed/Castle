@@ -179,6 +179,9 @@ import requests
 from requests.exceptions import RequestException
 import eventlet.queue
 import random
+# Переменные для отслеживания корректного выключения
+LATCH_FILE = "startup_latch.txt"
+show_improper_shutdown_warning = False
 
 # Create logs directory if it doesn't exist
 if not os.path.exists('logs'):
@@ -1798,6 +1801,13 @@ def WLAN(ssid):
 def handle_connect():
     global current_client_sid
     global socklist
+    # Отправка предупреждения о некорректном выключении ---
+    global show_improper_shutdown_warning
+    if show_improper_shutdown_warning:
+        # Отправляем команду на показ модального окна ТОЛЬКО этому клиенту
+        socketio.emit('show_shutdown_warning', to=request.sid)
+        # Мы НЕ сбрасываем флаг. Он останется активным,
+        # пока сервер не будет перезапущен ПОСЛЕ корректного выключения.
     current_client_sid = request.sid
     socketio.emit('volume', str(phoneLevel))
     socketio.emit('volume1', str(effectLevel))
@@ -2011,7 +2021,33 @@ def Remote(check):
 
     #----нажали выключить
      if check == 'off':
-             call("sudo shutdown -h now", shell=True) 
+             # Добавлено удаление файла-метки и остановка музыки ---
+             
+             # 1. Логируем событие
+             logger.debug("SHUTDOWN: Получена команда 'off' от пульта...")
+             
+             # 2. Удаляем файл-метку, сигнализируя о КОРРЕКТНОМ завершении
+             try:
+                 if os.path.exists(LATCH_FILE):
+                     os.remove(LATCH_FILE)
+                     logger.debug(f"SHUTDOWN: Файл '{LATCH_FILE}' успешно удален.")
+             except Exception as e:
+                 logger.error(f"SHUTDOWN: Не удалось удалить '{LATCH_FILE}': {e}")
+             
+             # 3. НЕМЕДЛЕННО ОСТАНАВЛИВАЕМ ФОНОВУЮ МУЗЫКУ
+             pygame.mixer.music.stop()
+             
+             # 4. Воспроизводим звук выключения
+             try:
+                 play_effect(timeout) 
+             except Exception as e:
+                 logger.error(f"Не удалось воспроизвести звук выключения: {e}")
+
+             # 5. Даем 0.5 секунды, чтобы звук успел начаться
+             eventlet.sleep(0.5) 
+             
+             # 6. Отправляем команду на выключение
+             call("sudo shutdown -h now", shell=True)
      if check == 'open_stash':
              serial_write_queue.put('open_stash')
      if check == 'open_basket_door_skip':
@@ -6093,6 +6129,26 @@ def timer():
 #------наша основная программа крутиться здесь сам сервер порт можно измнить(при желании) методы таймер и сериал работают ассинхронно
 if __name__ == '__main__':
     try:
+        # логирование запуска ---
+        # Проверка на некорректное завершение ---
+        if os.path.exists(LATCH_FILE):
+            # Файл существует с прошлого запуска. Это НЕКОРРЕКТНОЕ выключение.
+            logger.warning(f"STARTUP: Обнаружен '{LATCH_FILE}'. Предыдущее завершение работы было некорректным.")
+            show_improper_shutdown_warning = True # Флаг для отправки в UI
+        else:
+            # Файл не существует. Это был чистый запуск или корректное выключение.
+            logger.debug(f"STARTUP: '{LATCH_FILE}' не найден. Запуск в штатном режиме.")
+            show_improper_shutdown_warning = False
+
+        # (Пере)создаем файл-метку для ТЕКУЩЕЙ сессии
+        try:
+            with open(LATCH_FILE, 'w') as f:
+                f.write(f"Server started at {time.ctime()}")
+            logger.debug(f"STARTUP: Файл '{LATCH_FILE}' создан для текущей сессии.")
+        except Exception as e:
+            logger.error(f"STARTUP: Не удалось создать '{LATCH_FILE}': {e}")
+        # Используем .debug(), чтобы это сообщение попало только в файл логов, а не в консоль.
+        logger.debug("STARTUP: Сервер CastleServer.py успешно запущен.")
         logger.info("Starting background tasks...")
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
