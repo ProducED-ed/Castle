@@ -1315,10 +1315,12 @@ void ClockGame() {
     }
   }
 
-  digitalWrite(pinA, 0);
-  digitalWrite(pinB, 0);
-  digitalWrite(pinC, 0);
-  bool reading = !digitalRead(board2);
+  // digitalWrite(pinA, 0);
+  // digitalWrite(pinB, 0);
+  // digitalWrite(pinC, 0);
+  // bool reading = !digitalRead(board2);
+  // Это добавляет необходимую задержку в 1 мс для стабилизации мультиплексора.
+  bool reading = !digitalReadExpander(0, board2); // [!] Чтение СРАЗУ после установки
   if (reading) {
     Serial.println("clock1");
     digitalWrite(UfHallLight, HIGH);
@@ -1703,10 +1705,11 @@ void MapGame() {
   }
 
   if (game == "fish") {
-    digitalWrite(pinA, 0);
-    digitalWrite(pinB, 0);
-    digitalWrite(pinC, 0);
-    bool reading1 = !digitalRead(21);
+    // digitalWrite(pinA, 0);
+    // digitalWrite(pinB, 0);
+    // digitalWrite(pinC, 0);
+    // bool reading1 = !digitalRead(21);
+    bool reading1 = !digitalReadExpander(0, board1);
     if (reading1) {
       Serial.println("door_witch");
       isPotionDoorOpened = true;
@@ -1731,10 +1734,11 @@ void MapGame() {
     Bottles();
   }
   if (isPotionEnd) {
-    digitalWrite(pinA, 0);
-    digitalWrite(pinB, 0);
-    digitalWrite(pinC, 1);
-    bool reading = !digitalRead(21);
+    //digitalWrite(pinA, 0);
+    //digitalWrite(pinB, 0);
+    //digitalWrite(pinC, 1);
+    //bool reading = !digitalRead(21);
+    bool reading = !digitalReadExpander(1, board1);
     if (reading) {
       if (!potionPulsation) {
         potionPulsation = 1;
@@ -2087,10 +2091,11 @@ void Oven() {
   static bool potionPulsation;
 
   goldButton.tick();
-  digitalWrite(pinA, 0);
-  digitalWrite(pinB, 0);
-  digitalWrite(pinC, 1);
-  bool reading = !digitalRead(21);
+  //digitalWrite(pinA, 0);
+  //digitalWrite(pinB, 0);
+  //digitalWrite(pinC, 1);
+  //bool reading = !digitalRead(21);
+  bool reading = !digitalReadExpander(1, board1);
   if (reading) {
     if (!potionPulsation) {
       potionPulsation = 1;
