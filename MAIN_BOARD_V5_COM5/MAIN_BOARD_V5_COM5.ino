@@ -6009,8 +6009,7 @@ bool digitalReadExpander(int pin, int boardNumber) {
   digitalWrite(pinA, pin & 0b001);
   digitalWrite(pinB, (pin >> 1) & 0b001);
   digitalWrite(pinC, (pin >> 2) & 0b001);
-  // delay(1);
-  delayMicroseconds(10);
+  delay(1);
   return digitalRead(boardNumber);
 }
 
