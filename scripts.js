@@ -102,6 +102,7 @@ var intID = undefined;
 var restflag = 0;
 var connected = false;
 var disBut = 0;
+var isShuttingDown = false;
 //эти скрипты должны быть что бы работало боковое меню и липкое меню и выпадающие списки без них работать не будет
 $('#first').click(function(){
 $('.ui.sidebar')
@@ -180,6 +181,7 @@ $('.ui.dropdown')
 	 //socket = io.connect('http://127.0.0.1:3000');
      socket.on('connect', function() {//если наш сервер подключен он отправит сообщение коннектед
          output.innerHTML = 'Connected';// выводим текст conneted
+		 $('#output').css('color', '').css('font-weight', ''); // Сбрасываем красный цвет
          connected = true;
          $('#output').transition('remove looping')//уберем пульсацию если было в состоянии disconnected
          setTimeout(function() {
@@ -198,18 +200,68 @@ $('.ui.dropdown')
      });
      //если нет ответа от сервака 
      socket.on('disconnect', function() {
-         output.innerHTML = 'Disconnected';//выводим слово disconnected
-         $('#output')//делаем анимацию пульсирования бесконечного раз в секунду
-    .transition('set looping')
-    .transition({
-animation  : 'pulse',
-duration   : '1s',
-});
+         if (isShuttingDown) {
+            // ДА, это было плановое выключение.
+            
+            // 1. Закрываем модальное окно "Shutting down..."
+            swal.close();
+            
+            // 2. Устанавливаем финальное сообщение
+            output.innerHTML = 'Turn off the power';
+            
+            // 3. Делаем его заметным (красным и жирным)
+            $('#output').css('color', 'red').css('font-weight', 'bold');
+            
+            // 4. Сбрасываем флаг (на всякий случай)
+            isShuttingDown = false;
+
+         } else {
+            // НЕТ, это обычный дисконнект (сеть, сбой сервера и т.д.)
+            output.innerHTML = 'Disconnected';
+            $('#output') //
+                .transition('set looping')
+                .transition({
+                    animation  : 'pulse',
+                    duration   : '1s',
+                });
+         }
          connected = false;
          if (intID) {
              intID = clearInterval(intID);//обновляет интервал для того что бы когда подключишься и 2 секунды связь не потеряется то можем считать что сервер работает
          }				
      });
+	 socket.on('show_shutdown_warning', function() {
+        console.log("Получена команда 'show_shutdown_warning'");
+        
+        // Собираем HTML-контент для модального окна
+        var warningHtml = `
+            <p style="font-size: 1.1em; margin-bottom: 20px;">
+                Last time, the adventure was shut down <b>incorrectly</b> (by simply turning off the power).
+                This could damage the system.
+            </p>
+            <p style="font-size: 1.1em;">
+                Please <b>always</b> use the power button in the "Settings" menu:
+            </p>
+            
+            <div style="margin-top: 25px; margin-bottom: 15px;">
+                <button class="ui red icon button" style="cursor: default !important;">
+                    <i class="power off icon"></i>
+                </button>
+            </div>
+            
+            <p style="font-size: 0.9em; color: grey;">
+                <i>(Click 'OK' to continue)</i>
+            </p>
+        `;
+
+        // Показываем модальное окно
+        swal.fire({
+             title: "Attention!",
+             icon: "error", // Используем "error" для привлечения внимания
+             html: warningHtml,
+             confirmButtonText: 'OK'
+        });
+    });
     //тут начинается логика которую можно менять первые 3 метода сокетов принимают данные от сервера по уровню громкости каналов
     //настройка для канала с голосом
     socket.on('volume2', function (v) {
@@ -316,8 +368,8 @@ duration   : '1s',
             // 2. ПРОВЕРЯЕМ: Если строка с ошибками не пустая, показываем модальное окно
             if (devices.trim().length > 0) {
                  swal.fire({
-                     title: "Attention",
-                     icon: "warning",
+                     title: "Check",
+                     icon: "info",
                      html: 'Not connected : ' + '&nbsp&nbsp' + devices
                 })
             }
@@ -1401,7 +1453,25 @@ duration   : '1s',
     });
 
      $('#power_off').click(function(){
-        socket.emit('Remote','off')
+        // 1. Устанавливаем флаг, что мы инициировали выключение
+        isShuttingDown = true; 
+        
+        // 2. Показываем модальное окно "Идет выключение..."
+        swal.fire({
+            title: "Shutting Down",
+            html: "The system is safely shutting down.<br>Please wait, do not turn off the power...",
+            icon: "warning",
+            // Запрещаем закрытие окна
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            // Показываем индикатор загрузки
+            didOpen: () => {
+                swal.showLoading();
+            }
+        });
+        
+        // 3. Отправляем команду на сервер (сервер воспроизведет звук)
+        socket.emit('Remote','off');
     });
 
     $('#wolf').click(function(){
