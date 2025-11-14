@@ -720,6 +720,7 @@ duration   : '1s',
             }
             if (inp === 'active_basket') {
                 $('#open_basket_door_button').removeClass('disabled');
+				$('#basket').removeClass('disabled');
             }
             if (inp === 'open_door') {//открыли стартовую дверь
                 $('#first_door').addClass('open');// добавили класс open замок поменяеться на открытый
