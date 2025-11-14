@@ -233,34 +233,39 @@ $('.ui.dropdown')
 	 socket.on('show_shutdown_warning', function() {
         console.log("Получена команда 'show_shutdown_warning'");
         
-        // Собираем HTML-контент для модального окна
-        var warningHtml = `
-            <p style="font-size: 1.1em; margin-bottom: 20px;">
-                Last time, the adventure was shut down <b>incorrectly</b> (by simply turning off the power).
-                This could damage the system.
-            </p>
-            <p style="font-size: 1.1em;">
-                Please <b>always</b> use the power button in the "Settings" menu:
-            </p>
-            
-            <div style="margin-top: 25px; margin-bottom: 15px;">
-                <button class="ui red icon button" style="cursor: default !important;">
-                    <i class="power off icon"></i>
-                </button>
-            </div>
-            
-            <p style="font-size: 0.9em; color: grey;">
-                <i>(Click 'OK' to continue)</i>
-            </p>
-        `;
+		// Добавлена проверка, что окно еще не показывалось в этой сессии ---
+        if (sessionStorage.getItem('shutdownWarningSeen') !== 'true') {
+			// Этот флаг сбросится, только если оператор закроет вкладку браузера.
+			sessionStorage.setItem('shutdownWarningSeen', 'true');
+			// Собираем HTML-контент для модального окна
+			var warningHtml = `
+				<p style="font-size: 1.1em; margin-bottom: 20px;">
+					Last time, the adventure was shut down <b>incorrectly</b> (by simply turning off the power).
+					This could damage the system.
+				</p>
+				<p style="font-size: 1.1em;">
+					Please <b>always</b> use the power button in the "Settings" menu:
+				</p>
+				
+				<div style="margin-top: 25px; margin-bottom: 15px;">
+					<button class="ui red icon button" style="cursor: default !important;">
+						<i class="power off icon"></i>
+					</button>
+				</div>
+				
+				<p style="font-size: 0.9em; color: grey;">
+					<i>(Click 'OK' to continue)</i>
+				</p>	
+			`;
 
-        // Показываем модальное окно
-        swal.fire({
-             title: "Attention!",
-             icon: "error", // Используем "error" для привлечения внимания
-             html: warningHtml,
-             confirmButtonText: 'OK'
-        });
+			// Показываем модальное окно
+			swal.fire({
+				 title: "Attention!",
+				 icon: "error", // Используем "error" для привлечения внимания
+				 html: warningHtml,
+				 confirmButtonText: 'OK'
+			});
+		}
     });
     //тут начинается логика которую можно менять первые 3 метода сокетов принимают данные от сервера по уровню громкости каналов
     //настройка для канала с голосом
