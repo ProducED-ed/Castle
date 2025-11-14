@@ -2801,6 +2801,7 @@ def tmr(res):
      global star
      global mansard_galets, last_mansard_count
      global is_processing_ready
+     global devices
      logger.info(f"[SOCKET_IN] Command: {res}")
     #----на всякий случай отправим данные о выборе языка 
      if language==1: 
@@ -2895,8 +2896,9 @@ def tmr(res):
          #ser.write('restart')
          go=2
           
-     #----если нажало на демо    
+     #----если нажали на реди
      if res =='ready':
+         devices.clear()
          if is_processing_ready:
              print("INFO: 'Ready' command is already being processed.")
              return # Выходим, если команда уже в обработке
@@ -2907,8 +2909,8 @@ def tmr(res):
          logger.info("Ready command received")
          if go == 2 or go == 0:
                # --- Очищаем список ошибок ПЕРЕД началом проверки ---
-               global devices
-               devices.clear()
+               # global devices
+               # devices.clear()
                
                # --- Отправляем команду на очистку UI перед проверкой ---
                socketio.emit('clear_check_flags', to=None)
