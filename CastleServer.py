@@ -90,6 +90,8 @@ EVENT_DESCRIPTIONS = {
     "win_robot": "Бот победил в баскетболе",
     "last_on": "Финальная статуэтка поставлена на место",
     "main_board_ready": "Arduino Mega (MAIN_BOARD) готова к работе.",
+    "boy_in": "Мальчик установлен в клетку (режим ожидания)",
+    "boy_out": "Мальчик извлечен из клетки (режим ожидания)",
 
     # --- Сообщения от basket3.ino (Баскетбол/Пещера) ---
     "basket3_ready": "Башня 'Баскетбол' готова.",
@@ -364,6 +366,8 @@ swipe_r = pygame.mixer.Sound('swipe_r.wav')
 swipe_l = pygame.mixer.Sound('swipe_l.wav')
 fireplace = pygame.mixer.Sound('fireplace.wav')
 knock_castle = pygame.mixer.Sound('knock_castle.wav')
+kay_in = pygame.mixer.Sound('kay_in.wav')
+kay_out = pygame.mixer.Sound('kay_out.wav')
 # Списки для голов и историй ---
 player_goal_sounds = [goal1,goal2, goal3, goal4, goal5, goal6, goal7]
 
@@ -1145,6 +1149,8 @@ try:
         swipe_l: "swipe_l.wav",
         fireplace: "fireplace.wav",
         knock_castle: "knock_castle.wav",
+        kay_in: "kay_in.wav",
+        kay_out: "kay_out.wav",
 
         # Истории
         story_1_en: "story_1_en.wav",
@@ -2379,34 +2385,46 @@ def Remote(check):
              socketio.emit('level', 'active_ghost',to=None)
              socklist.append('active_ghost')
         if check == 'ghost_step_1': # Кнопка 1 (Train)
+             # Просто запускаем первый шаг
              serial_write_queue.put('ghost')
-             # Эмит 'story_40' больше не нужен,
-             # так как serial() получит его от Arduino и отправит на UI.
              
         if check == 'ghost_step_2': # Кнопка 2 (Wolf)
+             # Выключаем ESP Волка (Шаг 1)
+             send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+             # Запускаем Шаг 2
              serial_write_queue.put('ghost')
 
         if check == 'ghost_step_3': # Кнопка 3 (Train 2)
+             # Выключаем оба ESP (Шаг 1 и 2)
+             send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+             send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
+             # Запускаем Шаг 3
              serial_write_queue.put('ghost') 
-             # Arduino сам отправит 'ghost_knock'
 
         if check == 'ghost_step_4': # Кнопка 4 (Library/Punch)
-             # Эта кнопка пропускает этап физического удара
+             # Выключаем оба ESP
+             send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+             send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
+             
+             # Запускаем пропуск физического удара
              serial_write_queue.put('ghost_skip') 
-             # Добавляем ручную отправку для мгновенного обновления UI
+             
+             # Мгновенно обновляем UI (так как 'ghost_skip' не ждет 'punch')
              socketio.emit('level', 'ghost',to=None)
              socklist.append('ghost')
              socketio.emit('level', 'punch', to=None)
              socklist.append('punch')
-             # Завершаем игры на ESP
-             send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
-             send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
              name = "story_2" 
         
         if check == 'ghost_step_5': # Кнопка 5 (Star hint)
-             # В level 12 эта команда запрашивает подсказку
+             # Выключаем оба ESP
+             send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+             send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
+             
+             # Запускаем Шаг 5 (запрос подсказки по звездам)
              serial_write_queue.put('ghost') 
-             # Добавляем ручную отправку для мгновенного обновления UI
+             
+             # Мгновенно обновляем UI
              socketio.emit('level', 'set_time', to=None)
              socklist.append('set_time')
         if check == 'cup':
@@ -3603,7 +3621,37 @@ def serial():
                           if 'crime_close' in socklist:
                                 socklist.remove('crime_close')
                           socketio.emit('level', 'crime',to=None)
-                          socklist.append('crime')                       
+                          socklist.append('crime')
+                     # --- Логика для "мальчика" (Kay) в режиме ожидания ---
+                     if flag == "boy_out": # Мальчик ВЫНУТ
+                         # 1. Отправляем 'start_players' (показывает галочку)
+                         if 'stop_players_rest' in socklist:
+                             socklist.remove('stop_players_rest')
+                         socketio.emit('level', 'start_players', to=None)
+                         if 'start_players' not in socklist:
+                             socklist.append('start_players')
+                         
+                         # 2. Воспроизводим звук
+                         play_effect(kay_out)
+                         
+                         # 3. Обновляем 'devices' (как в 'ready' проверке)
+                         if 'Check Kay' not in devices:
+                             devices.append('Check Kay')
+                     
+                     if flag == "boy_in": # Мальчик ВСТАВЛЕН
+                         # 1. Отправляем 'stop_players_rest' (скрывает галочку)
+                         if 'start_players' in socklist:
+                             socklist.remove('start_players')
+                         socketio.emit('level', 'stop_players_rest', to=None)
+                         if 'stop_players_rest' not in socklist:
+                             socklist.append('stop_players_rest')
+                             
+                         # 2. Воспроизводим звук
+                         play_effect(kay_in)
+                         
+                         # 3. Обновляем 'devices' (как в 'ready' проверке)
+                         if 'Check Kay' in devices:
+                             devices.remove('Check Kay')
                                                                                 
                #----если нажали на старт и пришло сообщение от меги что можно играть начинаем обрабатывать сообщения
                if go == 1 and starts == 1:
@@ -5244,8 +5292,10 @@ def serial():
                           # Добавляем инкрементальные флаги для UI
                           if flag == "goal_1_player":
                               socklist.append('goal_1_player')
+                              socketio.emit('level', 'goal_1_player',to=None)
                           if flag == "goal_2_player":
                               socklist.append('goal_2_player')
+                              socketio.emit('level', 'goal_2_player',to=None)
                           # 1. Воспроизвести случайный звук гола (goal2-goal7)
                           play_effect(random.choice(player_goal_sounds))
                           
@@ -5272,8 +5322,10 @@ def serial():
                      if flag=="goal_1_bot" or flag=="goal_2_bot" or flag=="goal_3_bot" or flag=="goal_4_bot":
                           # Добавляем инкрементальные флаги для UI
                           if flag == "goal_1_bot":
+                              socketio.emit('level', 'goal_1_bot',to=None)
                               socklist.append('goal_1_bot')
                           if flag == "goal_2_bot":
+                              socketio.emit('level', 'goal_2_bot',to=None)
                               socklist.append('goal_2_bot')
                           # 1. Воспроизвести КОНКРЕТНЫЙ звук гола (в зависимости от флага)
                           if flag == "goal_1_bot":
