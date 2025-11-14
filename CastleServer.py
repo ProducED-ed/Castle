@@ -3624,32 +3624,18 @@ def serial():
                           socklist.append('crime')
                      # --- Логика для "мальчика" (Kay) в режиме ожидания ---
                      if flag == "boy_out": # Мальчик ВЫНУТ
-                         # 1. Отправляем 'start_players' (показывает галочку)
-                         if 'stop_players_rest' in socklist:
-                             socklist.remove('stop_players_rest')
-                         socketio.emit('level', 'start_players', to=None)
-                         if 'start_players' not in socklist:
-                             socklist.append('start_players')
-                         
-                         # 2. Воспроизводим звук
+                         # 1. Воспроизводим звук
                          play_effect(kay_out)
                          
-                         # 3. Обновляем 'devices' (как в 'ready' проверке)
+                         # 2. Обновляем 'devices' (как в 'ready' проверке)
                          if 'Check Kay' not in devices:
                              devices.append('Check Kay')
                      
                      if flag == "boy_in": # Мальчик ВСТАВЛЕН
-                         # 1. Отправляем 'stop_players_rest' (скрывает галочку)
-                         if 'start_players' in socklist:
-                             socklist.remove('start_players')
-                         socketio.emit('level', 'stop_players_rest', to=None)
-                         if 'stop_players_rest' not in socklist:
-                             socklist.append('stop_players_rest')
-                             
-                         # 2. Воспроизводим звук
+                         # 1. Воспроизводим звук
                          play_effect(kay_in)
                          
-                         # 3. Обновляем 'devices' (как в 'ready' проверке)
+                         # 2. Обновляем 'devices' (как в 'ready' проверке)
                          if 'Check Kay' in devices:
                              devices.remove('Check Kay')
                                                                                 
