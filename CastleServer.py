@@ -2387,7 +2387,7 @@ def Remote(check):
         if check == 'ghost_step_1': # Кнопка 1 (Train)
              # Просто запускаем первый шаг
              serial_write_queue.put('ghost')
-             
+             send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game_end")
         if check == 'ghost_step_2': # Кнопка 2 (Wolf)
              # Выключаем ESP Волка (Шаг 1)
              send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
