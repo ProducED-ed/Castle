@@ -1008,27 +1008,39 @@ int calculateSimilarity(String s1, String s2) {
 }
 
 void HelpTowersHandler() {
-  if (Serial1.available()) {
-    String buff = Serial1.readString();
-    if (buff == "help\r\n") {
+  while (Serial1.available()) {
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+    } else if (buff == "help") {
       HelpHandler("workshop");
     }
   }
-  if (Serial2.available()) {
-    String buff = Serial2.readString();
-    if (buff == "help\r\n") {
+  while (Serial2.available()) {
+    String buff = Serial2.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+    } else if (buff == "help") {
       HelpHandler("troll");
     }
   }
-  if (Serial3.available()) {
-    String buff = Serial3.readString();
-    if (buff == "help\r\n") {
+  while (Serial3.available()) {
+    String buff = Serial3.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+    } else if (buff == "help") {
       HelpHandler("knight");
     }
   }
-  if (mySerial.available()) {
-    String buff = mySerial.readString();
-    if (buff == "help\r\n") {
+  while (mySerial.available()) {
+    String buff = mySerial.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+    } else if (buff == "help") {
       HelpHandler("dwaf");
     }
   }
@@ -1435,49 +1447,57 @@ void GaletGame() {
     Serial.println("galet1_off");
   }
 
-  if (Serial1.available()) {
-    String buf1 = Serial1.readString();
-    if (buf1 == "galet_on\r\n") {
+  while (Serial1.available()) {
+    String buf1 = Serial1.readStringUntil('\n');
+    buf1.trim();
+    if (buf1.startsWith("log:")) {
+      Serial.println(buf1);
+    } else if (buf1 == "galet_on") {
       galet1 = 1;
       Serial.println("galet2");
-    }
-    if (buf1 == "galet_off\r\n") {
+    } else if (buf1 == "galet_off") {
       galet1 = 0;
       Serial.println("galet2_off");
     }
   }
 
-  if (Serial2.available()) {
-    String buf2 = Serial2.readString();
-    if (buf2 == "galet_on\r\n") {
+  while (Serial2.available()) {
+    String buf2 = Serial2.readStringUntil('\n');
+    buf2.trim();
+    if (buf2.startsWith("log:")) {
+      Serial.println(buf2);
+    } else if (buf2 == "galet_on") {
       galet2 = 1;
       Serial.println("galet3");
-    }
-    if (buf2 == "galet_off\r\n") {
+    } else if (buf2 == "galet_off") {
       Serial.println("galet3_off");
       galet2 = 0;
     }
   }
 
-  if (Serial3.available()) {
-    String buf4 = Serial3.readString();
-    if (buf4 == "galet_on\r\n") {
+  while (Serial3.available()) {
+    String buf3 = Serial3.readStringUntil('\n');
+    buf3.trim();
+    if (buf3.startsWith("log:")) {
+      Serial.println(buf3);
+    } else if (buf3 == "galet_on") {
       galet3 = 1;
       Serial.println("galet4");
-    }
-    if (buf4 == "galet_off\r\n") {
+    } else if (buf3 == "galet_off") {
       Serial.println("galet4_off");
       galet3 = 0;
     }
   }
 
-  if (mySerial.available()) {
-    String buf4 = mySerial.readString();
-    if (buf4 == "galet_on\r\n") {
+  while (mySerial.available()) {
+    String buf4 = mySerial.readStringUntil('\n');
+    buf4.trim();
+    if (buf4.startsWith("log:")) {
+      Serial.println(buf4);
+    } else if (buf4 == "galet_on") {
       galet4 = 1;
       Serial.println("galet5");
-    }
-    if (buf4 == "galet_off\r\n") {
+    } else if (buf4 == "galet_off") {
       Serial.println("galet5_off");
       galet4 = 0;
     }
@@ -1592,49 +1612,57 @@ void ThreeGame() {
 /// обработка флагов чисто на портах
 void Flags() {
   // digitalWrite(MansardLight, LOW);
-  if (Serial1.available()) {
-    String buf1 = Serial1.readString();
-    if (buf1 == "flag1_on\r\n") {
+  while (Serial1.available()) {
+    String buf1 = Serial1.readStringUntil('\n');
+    buf1.trim();
+    if (buf1.startsWith("log:")) {
+      Serial.println(buf1);
+    } else if (buf1 == "flag1_on") {
       FirstFlag = 1;
       Serial.println("flag1_on");
-    }
-    if (buf1 == "flag1_off\r\n") {
+    } else if (buf1 == "flag1_off") {
       FirstFlag = 0;
       Serial.println("flag1_off");
     }
   }
 
-  if (Serial2.available()) {
-    String buf2 = Serial2.readString();
-    if (buf2 == "flag2_on\r\n") {
+  while (Serial2.available()) {
+    String buf2 = Serial2.readStringUntil('\n');
+    buf2.trim();
+    if (buf2.startsWith("log:")) {
+      Serial.println(buf2);
+    } else if (buf2 == "flag2_on") {
       SecondFlag = 1;
       Serial.println("flag2_on");
-    }
-    if (buf2 == "flag2_off\r\n") {
+    } else if (buf2 == "flag2_off") {
       SecondFlag = 0;
       Serial.println("flag2_off");
     }
   }
 
-  if (Serial3.available()) {
-    String buf4 = Serial3.readString();
-    if (buf4 == "flag3_on\r\n") {
+  while (Serial3.available()) {
+    String buf3 = Serial3.readStringUntil('\n');
+    buf3.trim();
+    if (buf3.startsWith("log:")) {
+      Serial.println(buf3);
+    } else if (buf3 == "flag3_on") {
       ThirdFlag = 1;
       Serial.println("flag3_on");
-    }
-    if (buf4 == "flag3_off\r\n") {
+    } else if (buf3 == "flag3_off") {
       ThirdFlag = 0;
       Serial.println("flag3_off");
     }
   }
 
-  if (mySerial.available()) {
-    String buf4 = mySerial.readString();
-    if (buf4 == "flag4_on\r\n") {
+  while (mySerial.available()) {
+    String buf4 = mySerial.readStringUntil('\n');
+    buf4.trim();
+    if (buf4.startsWith("log:")) {
+      Serial.println(buf4);
+    } else if (buf4 == "flag4_on") {
       FourFlag = 1;
       Serial.println("flag4_on");
-    }
-    if (buf4 == "flag4_off\r\n") {
+    } else if (buf4 == "flag4_off") {
       FourFlag = 0;
       Serial.println("flag4_off");
     }
@@ -1769,70 +1797,65 @@ void MapGame() {
     level++;
   }
 
-  if (mySerial.available()) {
+  while (mySerial.available()) {
     String buff = mySerial.readStringUntil('\n');
     buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+      continue;
+    }
     if (calculateSimilarity(buff, "owl_end") >= 80) {
       Serial.println("owl_end");
       Serial1.println("light_off");
       Serial2.println("light_off");
       Serial3.println("light_off");
       isOwlEnd = 1;
-    }
-    if (calculateSimilarity(buff, "door_owl") >= 80) {
+    } else if (calculateSimilarity(buff, "door_owl") >= 80) {
       Serial.println("door_owl");
       isOwlDoorOpened = true;
-    }
-    if (calculateSimilarity(buff, "owl_flew") >= 80) {
+    } else if (calculateSimilarity(buff, "owl_flew") >= 80) {
       Serial.println("owl_flew");
-    }
-    if (calculateSimilarity(buff, "light") >= 80) {
+    } else if (calculateSimilarity(buff, "light") >= 80) {
       Serial.println("light_on");
       Serial1.println("light_on");
       Serial2.println("light_on");
       Serial3.println("light_on");
-    }
-    if (calculateSimilarity(buff, "dark") >= 80) {
+    } else if (calculateSimilarity(buff, "dark") >= 80) {
       Serial.println("light_off");
       Serial1.println("light_off");
       Serial2.println("light_off");
       Serial3.println("light_off");
-    }
-    if (calculateSimilarity(buff, "help") >= 80) {
+    } else if (calculateSimilarity(buff, "help") >= 80) {
       HelpHandler("dwaf");
     }
   }
 
-  if (Serial3.available()) {
+  while (Serial3.available()) {
     String buff = Serial3.readStringUntil('\n');
     buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+      continue;
+    }
     if (calculateSimilarity(buff, "dog_lock") >= 80) {
       Serial.println("dog_lock");
       isDogEnd = 1;
-    }
-    if (calculateSimilarity(buff, "door_dog") >= 80) {
+    } else if (calculateSimilarity(buff, "door_dog") >= 80) {
       Serial.println("door_dog");
       isDogDoorOpened = true;
-    }
-    if (calculateSimilarity(buff, "dog_sleep") >= 80) {
+    } else if (calculateSimilarity(buff, "dog_sleep") >= 80) {
       Serial.println("dog_sleep");
-    }
-    if (calculateSimilarity(buff, "dog_growl") >= 80) {
+    } else if (calculateSimilarity(buff, "dog_growl") >= 80) {
       Serial.println("dog_growl");
-    }
-    if (calculateSimilarity(buff, "story_20_a") >= 98) {
+    } else if (calculateSimilarity(buff, "story_20_a") >= 98) {
       Serial.println("story_20_a");
-    }
-    if (calculateSimilarity(buff, "story_20_b") >= 98) {
+    } else if (calculateSimilarity(buff, "story_20_b") >= 98) {
       Serial.println("story_20_b");
-    }
-    if (calculateSimilarity(buff, "story_22_c") >= 98) {
+    } else if (calculateSimilarity(buff, "story_22_c") >= 98) {
       Serial.println("story_20_c");
-    }
-    if (calculateSimilarity(buff, "help") >= 78) {
+    } else if (calculateSimilarity(buff, "help") >= 78) {
       HelpHandler("knight");
-    }
-    if (calculateSimilarity(buff, "crystal") >= 78) {
+    } else if (calculateSimilarity(buff, "crystal") >= 78) {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
@@ -2009,31 +2032,29 @@ void MapGame() {
     // ---
   }
 
-  if (Serial2.available()) {
-    String buff = Serial2.readString();
-    if (calculateSimilarity(buff, "aluminium\r\n") >= 78) {
+  while (Serial2.available()) {
+    String buff = Serial2.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+      continue;
+    }
+    if (calculateSimilarity(buff, "aluminium") >= 78) {
       Serial.println("cave_search1");
-    }
-    if (calculateSimilarity(buff, "bronze\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "bronze") >= 78) {
       Serial.println("cave_search2");
-    }
-    if (calculateSimilarity(buff, "copper\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "copper") >= 78) {
       Serial.println("cave_search3");
-    }
-    if (calculateSimilarity(buff, "cave_end\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "cave_end") >= 78) {
       Serial.println("cave_end");
       isTrollEnd = 1;
-    }
-    if (calculateSimilarity(buff, "cave_click\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "cave_click") >= 78) {
       Serial.println("cave_click");
-    }
-    if (calculateSimilarity(buff, "door_cave\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "door_cave") >= 78) {
       Serial.println("door_cave");
-    }
-    if (calculateSimilarity(buff, "help\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "help") >= 78) {
       HelpHandler("troll");
-    }
-    if (calculateSimilarity(buff, "metal\r\n") >= 78) {
+    } else if (calculateSimilarity(buff, "metal") >= 78) {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
@@ -2132,35 +2153,30 @@ void Oven() {
     PotionPulsation();
   }
 
-  if (Serial1.available()) {
-    String buff = Serial1.readString();
-    //Serial.println(buff);
-    // Пересылка событий helmet и broom 
-    if (buff == "help\r\n") {
+  while (Serial1.available()) {
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+      continue;
+    }
+    if (buff == "help") {
       HelpHandler("workshop");
-    }
-    if (buff == "fire1\r\n") {
+    } else if (buff == "fire1") {
       Serial.println("fire1");
-    }
-    if (buff == "fire2\r\n") {
+    } else if (buff == "fire2") {
       Serial.println("fire2");
-    }
-    if (buff == "fire3\r\n") {
+    } else if (buff == "fire3") {
       Serial.println("fire3");
-    }
-    if (buff == "fire0\r\n") {
+    } else if (buff == "fire0") {
       Serial.println("fire0");
-    }
-    if (buff == "item_add\r\n") {
+    } else if (buff == "item_add") {
       Serial.println("item_add");
-    }
-    if (buff == "broom\r\n") {
+    } else if (buff == "broom") {
       Serial.println("broom");
-    }
-    if (buff == "helmet\r\n") {
+    } else if (buff == "helmet") {
       Serial.println("helmet");
-    }
-    if (buff == "story_35\r\n") {
+    } else if (buff == "story_35") {
       Serial.println("story_35");
       Serial1.println("item_end");
       Serial2.println("item_end");
@@ -2285,9 +2301,14 @@ void Oven() {
     }
   }
 
-  if (Serial2.available()) {
-    String buff = Serial2.readString();
-    if (buff == "metal\r\n") {
+  while (Serial2.available()) {
+    String buff = Serial2.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+      continue;
+    }
+    if (buff == "metal") {
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
       GoldStrip.show();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
@@ -2298,15 +2319,19 @@ void Oven() {
       Serial.println("item_find:metal");
       Serial3.println("item_find");
       mySerial.println("item_find");
-    }
-    if (buff == "help\r\n") {
+    } else if (buff == "help") {
       HelpHandler("troll");
     }
   }
 
-  if (Serial3.available()) {
-    String buff = Serial3.readString();
-    if (buff == "crystal\r\n") {
+  while (Serial3.available()) {
+    String buff = Serial3.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+      continue;
+    }
+    if (buff == "crystal") {
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
       GoldStrip.show();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
@@ -2317,15 +2342,17 @@ void Oven() {
       Serial.println("item_find:crystal");
       Serial2.println("item_find");
       mySerial.println("item_find");
-    }
-    if (buff == "help\r\n") {
+    } else if (buff == "help") {
       HelpHandler("knight");
     }
   }
 
-  if (mySerial.available()) {
-    String buff = mySerial.readString();
-    if (buff == "help\r\n") {
+  while (mySerial.available()) {
+    String buff = mySerial.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) {
+      Serial.println(buff);
+    } else if (buff == "help") {
       HelpHandler("dwaf");
     }
   }
@@ -2644,17 +2671,22 @@ void BasketLesson() {
   } else if (!snitchFlag) {
     BasketEffectLesson(); // 2. Показываем комету, если игра (урок) началась
   }
-  if (Serial2.available()) {
-    String buf = Serial2.readString();
+  while (Serial2.available()) {
+    String buf = Serial2.readStringUntil('\n');
+    buf.trim();
 
-    if (buf == "boy_in\r\n") {
+    if (buf.startsWith("log:")) {
+      Serial.println(buf);
+      continue;
+    }
+
+    if (buf == "boy_in") {
       Serial.println("boy_in");
       if (snitchFlag == 1) {
         lessonSaluteActive = true;
       }
       // snitchFlag = 0;
-    }
-    if (buf == "boy_out\r\n") {
+    } else if (buf == "boy_out") {
       Serial.println("boy_out");
       lessonSaluteActive = false;
       snitchFlag = 1; // Возвращаем флаг, чтобы остановить комету
@@ -2665,10 +2697,9 @@ void BasketLesson() {
       strip2.show();
     }
     // Обработка гола в уроке ---
-    if (buf == "lesson_goal\r\n") {
+    else if (buf == "lesson_goal") {
       Serial.println("lesson_goal");
-    }
-    if (buf == "lesson_basket_done\r\n") {
+    } else if (buf == "lesson_basket_done") {
       Serial.println("flying_ball");
       // Выключаем все анимации при выходе ---
       lessonSaluteActive = false;
@@ -2749,37 +2780,38 @@ void BasketLesson() {
 ////играем в баскет и передаем счет на башню сов
 void Basket() {
   BasketEffect();
-  if (Serial2.available()) {
-    String buf = Serial2.readString();
-    if (buf == "fr71nmr\r\n") {
+  while (Serial2.available()) {
+    String buf = Serial2.readStringUntil('\n');
+    buf.trim();
+    if (buf.startsWith("log:")) {
+      Serial.println(buf);
+      continue;
+    }
+    if (buf == "fr71nmr") {
       BotScore = "1";
       snitchFlag = 0;
       enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_1_bot");
-    }
-    if (buf == "boy_in\r\n") {
+    } else if (buf == "boy_in") {
       snitchFlag = 1;
       enemyTimer = millis();
       additionalTimer = millis();
       Serial.println("boy_in_game");
-    }
-    if (buf == "boy_out\r\n") {
+    } else if (buf == "boy_out") {
       snitchFlag = 0;
       strip1.clear();
       strip2.clear();
       strip1.show();
       strip2.show();
       Serial.println("boy_out_game");
-    }
-    if (buf == "fr72nmr\r\n") {
+    } else if (buf == "fr72nmr") {
       BotScore = "2";
       snitchFlag = 0;
       enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("goal_2_bot");
-    }
-    if (buf == "fr8nmr\r\n") {
+    } else if (buf == "fr8nmr") {
       Serial.println("win");
       discoBallsActive = true;
       discoBallsTimer = millis();
@@ -2802,8 +2834,7 @@ void Basket() {
       delay(500);
       mySerial.println("firework");
       level = 20;
-    }
-    if (buf == "fr61nmr\r\n") {
+    } else if (buf == "fr61nmr") {
       // snitchFlag = 0;
       // enemyTimer = millis();
       enemyFlag = 0;
@@ -2811,8 +2842,7 @@ void Basket() {
       // Включаем диско-шары ---
       discoBallsActive = true;
       discoBallsTimer = millis();
-    }
-    if (buf == "fr62nmr\r\n") {
+    } else if (buf == "fr62nmr") {
       // snitchFlag = 0;
       // enemyTimer = millis();
       enemyFlag = 0;
@@ -2820,16 +2850,12 @@ void Basket() {
       // Включаем диско-шары ---
       discoBallsActive = true;
       discoBallsTimer = millis();
-    }
-
-    if (buf == "start_snitch\r\n") {
+    } else if (buf == "start_snitch") {
       snitchFlag = 0;
       enemyTimer = millis();
       enemyFlag = 0;
       Serial.println("start_snitch");
-    }
-
-    if (buf == "fr9nmr\r\n") {
+    } else if (buf == "fr9nmr") {
       // Выключить диско-шары при проигрыше ---
       discoBallsActive = false;
       digitalWrite(Fireworks, LOW);
@@ -5647,28 +5673,44 @@ void ListenForReady() {
     String buff = Serial1.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      Serial.println(buff);
+      if (buff.startsWith("log:")) {
+        Serial.println(buff);
+      } else {
+        Serial.println(buff);
+      }
     }
   }
   if (Serial2.available()) {
     String buff = Serial2.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      Serial.println(buff);
+      if (buff.startsWith("log:")) {
+        Serial.println(buff);
+      } else {
+        Serial.println(buff);
+      }
     }
   }
   if (Serial3.available()) {
     String buff = Serial3.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      Serial.println(buff);
+      if (buff.startsWith("log:")) {
+        Serial.println(buff);
+      } else {
+        Serial.println(buff);
+      }
     }
   }
   if (mySerial.available()) {
     String buff = mySerial.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      Serial.println(buff);
+      if (buff.startsWith("log:")) {
+        Serial.println(buff);
+      } else {
+        Serial.println(buff);
+      }
     }
   }
 }
