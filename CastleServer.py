@@ -2574,6 +2574,25 @@ def Remote(check):
              serial_write_queue.put('open_crime_door')     
 
 
+@app.route('/api/log', methods=['POST'])
+def log_event():
+    """
+    Универсальная конечная точка для логирования сообщений от устройств.
+    Ожидает JSON вида: {"device": "название_устройства", "message": "сообщение"}.
+    """
+    data = request.get_json()
+    if not data or 'device' not in data or 'message' not in data:
+        return jsonify({"status": "error", "message": "Invalid JSON format. Required keys: 'device', 'message'."}), 400
+
+    device_name = data.get('device', 'Unknown Device')
+    message = data.get('message', '')
+
+    # Логируем в формате: ПОЛУЧЕНО [ESP32 Log - <device_name>]: <message>
+    logging.info(f'ПОЛУЧЕНО [ESP32 Log - {device_name}]: {message}')
+
+    return jsonify({"status": "success"}), 200
+
+
 @app.route('/api', methods=['GET', 'POST'])
 def handle_data():
     global mapClickHints

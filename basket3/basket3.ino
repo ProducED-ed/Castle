@@ -61,6 +61,11 @@ int SCORE_ROBOT = 0; // Переменная счета в баскетболл 
 int SCORE_MAN = 0; // Переменная счета в баскетболл человека
 
 int state = 0;
+
+void sendLog(String message) {
+  Serial1.println("log:basket:" + message);
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(10);
@@ -174,7 +179,7 @@ void loop() {
       if (Serial1.available()) { // ИСПОЛЬЗУЕМ Serial1 для связи с главной платой
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
-
+        sendLog("Received command: " + buff);
         /*
         if (buff == "restart") {
           // 1. Открываем обе двери
@@ -323,6 +328,7 @@ void loop() {
 }
 
 void HandleMessagges(String message) {
+  sendLog("Received command (in HandleMessagges): " + message);
   // --- Обработка "restart", есть и в case 0 ---
   if(message == "restart"){
       // 1. Открываем обе двери
@@ -388,15 +394,18 @@ void HandleMessagges(String message) {
 }
 
 void CheckState() {
+  sendLog("Checking initial sensor states.");
   // Проверяем состояние галетника (pin 26)
   if (!digitalRead(26)) { // Если галетник активен (LOW)
     if (!_restartGalet) {    // И если мы еще не отправляли сообщение
       Serial1.println("galet_on");
+      sendLog("Galet sensor is active (galet_on).");
       _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
     }
   } else {                   // Если галетник неактивен (HIGH)
     if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("galet_off");
+      sendLog("Galet sensor is inactive (galet_off).");
       _restartGalet = 0;    // Сбрасываем флаг
     }
   }
@@ -406,11 +415,13 @@ void CheckState() {
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
     if (!_restartFlag) {    // И если мы еще не отправляли сообщение
       Serial1.println("flag2_on");
+      sendLog("Flag sensor is active (flag2_on).");
       _restartFlag = 1;     // Устанавливаем флаг
     }
   } else {                  // Если флага нет (LOW)
     if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("flag2_off");
+      sendLog("Flag sensor is inactive (flag2_off).");
       _restartFlag = 0;   // Сбрасываем флаг
     }
   }
@@ -575,6 +586,7 @@ void _Troll_1() {
     strip.setPixelColor(1, strip.Color(0, 0, 255));
     strip.show();
     Serial1.println("aluminium");
+    sendLog("Troll game: aluminium selected.");
     isTrollFixed=1;
   }
 }
@@ -591,6 +603,7 @@ void _Troll_2() {
     strip.setPixelColor(3, strip.Color(0, 0, 255));
     strip.show();
     Serial1.println("bronze");
+    sendLog("Troll game: bronze selected.");
     isTrollFixed=1;
   }
 }
@@ -608,6 +621,7 @@ void _Troll_3() {
     strip.setPixelColor(0, strip.Color(0, 0, 255));
     strip.show();
     Serial1.println("copper");
+    sendLog("Troll game: copper selected.");
   }
 }
 
@@ -623,6 +637,7 @@ void _Troll_4() {
     strip.clear();
     strip.show();
     Serial1.println("cave_end");
+    sendLog("Troll game finished (cave_end).");
     strip.setPixelColor(2, strip.Color(0, 0, 255));
     strip.show();
     state++;
@@ -658,21 +673,25 @@ void _Button_1() {
   if (butt1.isPress()) {
     buttonSequence = 1;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 1 correct.");
     delay(100);
   }
   if (butt3.isPress()) {
     buttonSequence = 0;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 3 incorrect, sequence reset.");
     delay(100);
   }
   if (butt2.isPress()) {
     buttonSequence = 0;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 2 incorrect, sequence reset.");
     delay(100);
   }
   if (butt4.isPress()) {
     buttonSequence = 0;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 4 incorrect, sequence reset.");
     delay(100);
   }
 }
@@ -690,6 +709,7 @@ void _Button_2() {
   if (butt3.isPress()) {
     buttonSequence = 2;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 3 correct.");
     delay(100);
   }
   if (butt1.isPress()) {
@@ -702,6 +722,7 @@ void _Button_3() {
   if (butt4.isPress()) {
     buttonSequence = 3;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 4 correct.");
     delay(100);
   }
   if (butt2.isPress()) {
@@ -734,6 +755,7 @@ void _Button_4() {
   if (butt2.isPress()) {
     buttonSequence = 4;
     Serial1.println("cave_click");
+    sendLog("Door puzzle: Button 2 correct.");
     delay(100);
   }
   if (butt4.isPress()) {
@@ -747,6 +769,7 @@ void _Button_5() {
     OpenLock(SHERIF_EM1);
     digitalWrite(trollLed, HIGH);
     Serial1.println("door_cave");
+    sendLog("Door puzzle solved (door_cave).");
     state++;
   }
   if (butt2.isPress()) {
@@ -771,6 +794,7 @@ void BasketLesson(){
   if(boyButton.isPress()){
     if(!isStart){
       Serial1.println("boy_in");
+      sendLog("Basketball lesson: boy_in.");
       delay(100);
     }
     
@@ -778,6 +802,7 @@ void BasketLesson(){
   if(boyButton.isRelease()){
     if(!isStart){
       Serial1.println("boy_out");
+      sendLog("Basketball lesson: boy_out.");
       delay(100);
     }
   }
@@ -788,8 +813,10 @@ void BasketLesson(){
       state++;
       digitalWrite(basketLed, LOW);
       Serial1.println("lesson_goal");
+      sendLog("Basketball lesson: goal scored.");
       delay(5000);
       Serial1.println("lesson_basket_done");
+      sendLog("Basketball lesson finished.");
       basket_ir_read_F = 1;
       _startBasket = 0;
     }
@@ -862,6 +889,7 @@ void Basket(){
   if (SCORE_MAN == 3) {
       delay(1000);
       Serial1.println("fr8nmr");
+      sendLog("Basketball game: player won.");
       delay(1000);
       Serial1.println("fr8nmr");
       isLoose=0;
@@ -870,6 +898,7 @@ void Basket(){
     if (SCORE_ROBOT == 3) { // Проиграли роботу
       delay(1000);
       Serial1.println("fr9nmr");
+      sendLog("Basketball game: robot won.");
       delay(1000);
       OpenLock(Solenoid);
       SCORE_ROBOT = 0;
@@ -889,11 +918,13 @@ void Basket(){
     }
     else{
       Serial1.println("boy_in");
+      sendLog("Basketball game: boy_in.");
     }
   }
 
   if(boyButton.isRelease()){
     Serial1.println("boy_out");
+    sendLog("Basketball game: boy_out.");
   }
 
 
@@ -959,9 +990,11 @@ void PRINT_SCORE_MAN() { // Вывод голов в Serial
   switch (SCORE_MAN) {
     case 1:
       Serial1.println("fr61nmr");
+      sendLog("Player score: 1.");
       break;
     case 2:
       Serial1.println("fr62nmr");
+      sendLog("Player score: 2.");
       break;
   }
   delay(50);
@@ -971,9 +1004,11 @@ void PRINT_SCORE_ROBOT() {
   switch (SCORE_ROBOT) {
     case 1:
       Serial1.println("fr71nmr");
+      sendLog("Robot score: 1.");
       break;
     case 2:
       Serial1.println("fr72nmr");
+      sendLog("Robot score: 2.");
       break;
   }
   delay(50);
@@ -1060,6 +1095,7 @@ void HelpButton(){
   helpButton.tick();
   if (helpButton.isPress()) {
     Serial1.println("help");
+    sendLog("Help button pressed.");
   }
 }
 
@@ -1067,6 +1103,7 @@ void MetallButtonClick(){
   metallButton.tick();
   if (metallButton.isPress()) {
     Serial1.println("metal");
+    sendLog("Metal button pressed.");
     metallClick = 1;
   }
 }
