@@ -722,6 +722,7 @@ void handleFirework() {
 // Функция для полного сброса башни ---
 // Она объединяет логику 'start' и 'restart' и исправляет пропуски.
 void resetOwlTower() {
+  sendLog("Resetting tower to initial state.");
   // Сброс всех флагов состояния
   skipCommand = false;
   fireworkActive = false;

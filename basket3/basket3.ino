@@ -401,6 +401,7 @@ void HandleMessagges(String message) {
 }
 
 void CheckState() {
+  sendLog("Checking initial sensor states.");
   // Проверяем состояние галетника (pin 26)
   if (!digitalRead(26)) { // Если галетник активен (LOW)
     if (!_restartGalet) {    // И если мы еще не отправляли сообщение
