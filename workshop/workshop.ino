@@ -134,6 +134,11 @@ int state = 0;
 void setup();
 void loop();
 void handleFireLogic();
+
+void sendLog(String message) {
+  Serial1.println("log:workshop:" + message);
+}
+
 void updateFireEffect(int stage);
 void GenerateFire();
 uint32_t calculateFireColor(float heatValue);
@@ -233,21 +238,26 @@ void loop() {
   galetButton.tick();
   if (galetButton.isPress()) {
     Serial1.println("galet_on");
+    sendLog("Galet sensor activated (galet_on).");
   }
   if (galetButton.isRelease()) {
     Serial1.println("galet_off");
+    sendLog("Galet sensor deactivated (galet_off).");
   }
 
   flagButton.tick();
   if (flagButton.isPress()) {
     Serial1.println("flag1_on");
+    sendLog("Flag sensor activated (flag1_on).");
   }
   if (flagButton.isRelease()) {
     Serial1.println("flag1_off");
+    sendLog("Flag sensor deactivated (flag1_off).");
   }
 
   if (hintButt.isPress()) {
     Serial1.println("help");
+    sendLog("Hint button pressed.");
   }
 
   // Проверяем команды В НАЧАЛЕ, чтобы установить/сбросить флаг
@@ -292,6 +302,7 @@ void handleFireLogic() {
       if (fireStage == 1) {
         if (isFirstFire1) {
           Serial1.println("fire1");
+          sendLog("Fire stage 1 reached.");
           isFirstFire1 = false;
           isFirstFire0 = true;
         }
@@ -303,6 +314,7 @@ void handleFireLogic() {
       } else if (fireStage == 2) {
         if (isFirstFire2) {
           Serial1.println("fire2");
+          sendLog("Fire stage 2 reached.");
           isFirstFire2 = false;
         }
         if (oldFireStage < 2) {
@@ -314,6 +326,7 @@ void handleFireLogic() {
         }
       } else if (fireStage == 3) {
         Serial1.println("fire3");
+        sendLog("Fire stage 3 reached.");
       }
 
       ignitingLedIndex = NUM_LEDS_FIRE - fireStage;
@@ -342,6 +355,7 @@ void handleFireLogic() {
       if (prevFireStage == 3 && fireStage == 2) {
         if (!isFirstFire2) {
           Serial1.println("fire2");
+          sendLog("Fire stage decreased to 2.");
           isFirstFire2 = true;
         }
         if (fireStage < prevFireStage) {
@@ -354,6 +368,7 @@ void handleFireLogic() {
       } else if (prevFireStage == 2 && fireStage == 1) {
         if (!isFirstFire1) {
           Serial1.println("fire1");
+          sendLog("Fire stage decreased to 1.");
           isFirstFire1 = true;
         }
         workbenchLedsInitialized = false;
@@ -368,6 +383,7 @@ void handleFireLogic() {
         heat = 0.0;
         if (isFirstFire0) {
           Serial1.println("fire0");
+          sendLog("Fire extinguished.");
           isFirstFire0 = false;
           isFirstFire1 = true;
           isFirstFire2 = true;
@@ -483,6 +499,7 @@ void setWorkbenchLedColor(int ledIndex, uint32_t color) {
     workbenchStrip.show();
     workbenchLedStates[ledIndex] = 2;
     Serial1.println("item_add");
+    sendLog("Item added to workbench.");
   }
 }
 
@@ -575,6 +592,7 @@ void activateHelmetServo() {
     helmetServo.detach();
     helmetServoActivated = true;
     Serial1.println("helmet");
+    sendLog("Helmet activated.");
   }
 }
 
@@ -592,6 +610,7 @@ void activateBroomServo() {
     broomServo.detach();
     broomServoActivated = true;
     Serial1.println("broom");
+    sendLog("Broom activated.");
   }
 }
 
@@ -626,20 +645,24 @@ void checkGameEnd() {
     digitalWrite(LED_FLOOR1_PIN, LOW);
     delay(500);
     Serial1.println("story_35");
+    sendLog("Game finished (story_35).");
     gameEnded = true;
   }
 }
 
 void CheckState() {
+  sendLog("Checking initial sensor states.");
   // Проверяем состояние галетника (pin 30)
   if (!digitalRead(30)) { // Если галетник активен (LOW)
     if (!_restartGalet) {    // И если мы еще не отправляли сообщение
       Serial1.println("galet_on");
+      sendLog("Galet sensor is active (galet_on).");
       _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
     }
   } else {                   // Если галетник неактивен (HIGH)
     if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("galet_off");
+      sendLog("Galet sensor is inactive (galet_off).");
       _restartGalet = 0;    // Сбрасываем флаг
     }
   }
@@ -649,11 +672,13 @@ void CheckState() {
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
     if (!_restartFlag) {    // И если мы еще не отправляли сообщение
       Serial1.println("flag1_on");
+      sendLog("Flag sensor is active (flag1_on).");
       _restartFlag = 1;     // Устанавливаем флаг
     }
   } else {                  // Если флага нет (LOW)
     if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("flag1_off");
+      sendLog("Flag sensor is inactive (flag1_off).");
       _restartFlag = 0;   // Сбрасываем флаг
     }
   }
@@ -663,6 +688,7 @@ void handleUartCommands() {
   if (Serial1.available()) {
     String command = Serial1.readStringUntil('\n');
     command.trim();
+    sendLog("Received command: " + command);
     if (command.endsWith("\r")) {
       command.remove(command.length() - 1);
     }
