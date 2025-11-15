@@ -189,6 +189,11 @@ GButton galetButton(ROSE_REED_PIN);
 GButton flagButton(FLAG_IR_SENSOR_PIN);
 
 bool isActive;
+bool hasSentReadyLog = false;
+
+void sendLog(String message) {
+  Serial.println("log:dog:" + message);
+}
 
 void sendLog(String message) {
   Serial.println("log:dog:" + message);
@@ -202,6 +207,11 @@ void smoothTurnOnCrystal();
 void smoothTurnOffCrystal();
 void setup();
 void loop();
+
+void sendLog(String message) {
+  Serial.println("log:dog:" + message);
+}
+
 void putWheelToSleep() {
   // Proveryaem, deystvitelno li chto-to aktivno, prezhde chem "usyplyat"
   if (isFastSpinning || wasFastSpinningActive || digitalRead(VIBRO_MOTOR_PIN) == HIGH || digitalRead(LED_STRIP_PIN) == HIGH || periodicStorySoundActive || periodicFastSpinSoundActive) {
@@ -497,6 +507,7 @@ void loop() {
           CheckState();
         }
         else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
+          hasSentReadyLog = false;
           currentQuestState = STATE_RESTARTING;
           resetQuestState();
           digitalWrite(10, HIGH);  // Включаем светодиод на пине 10
@@ -539,6 +550,10 @@ void loop() {
             smoothTurnOffCrystal();
           }
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_READY) == 0) {
+          if (!hasSentReadyLog) {
+            sendLog("Checking initial sensor states.");
+            hasSentReadyLog = true;
+          }
           // ---------------------------------------------------------------------------------
           // ИЗМЕНЕНО: Добавлена принудительная проверка состояния при команде "ready".
           // ПРИЧИНА: Чтобы башня сообщала о уже активных датчиках (например,

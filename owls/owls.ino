@@ -69,6 +69,7 @@ bool _restartFlag;
 bool _restartGalet;
 bool F;
 bool fireworkActive = false; // Флаг для фейерверка
+bool hasSentReadyLog = false;
 
 void handleSkipCommand() {
   if (skipCommand) {
@@ -249,6 +250,10 @@ void handleSerial1Commands() {
     }
 
     if (command == "ready") {
+      if (!hasSentReadyLog) {
+        sendLog("Checking initial sensor states.");
+        hasSentReadyLog = true;
+      }
       resetOwlTower();  // Выполняем полный сброс
       CheckState();     // Отправляем главному контроллеру наш новый (сброшенный) статус
     }
@@ -260,10 +265,12 @@ void handleSerial1Commands() {
       }
 
     if (command == "restart") {
+      hasSentReadyLog = false;
       resetOwlTower();
     }
 
     if (command == "start") {
+      hasSentReadyLog = false;
       resetOwlTower();
     }
   }

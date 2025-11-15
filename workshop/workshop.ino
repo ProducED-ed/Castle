@@ -114,6 +114,7 @@ bool gameEnded = false;
 bool isFirstFire1 = false;
 bool isFirstFire2 = false;
 bool isFirstFire0 = false;
+bool hasSentReadyLog = false;
 
 // НОВЫЕ ПЕРЕМЕННЫЕ для анимации
 bool isCelebrationActive = false;
@@ -710,6 +711,15 @@ void handleUartCommands() {
       isFirstFire0 = true;
       openLock();
     } else if (command == "ready" || command == "start") {
+      if (command == "start") {
+        hasSentReadyLog = false;
+      }
+      if (command == "ready") {
+        if (!hasSentReadyLog) {
+          sendLog("Checking initial sensor states.");
+          hasSentReadyLog = true;
+        }
+      }
       fireworkActive = false; // Сбрасываем фейерверк
       if (floorLedsOn) {
         digitalWrite(LED_FLOOR1_PIN, LOW);
@@ -735,6 +745,7 @@ void handleUartCommands() {
       _restartFlag = 0;
       CheckState(); // <-- ДОБАВЛЕНО: Принудительная проверка состояния при "ready"
     } else if (command == "restart") {
+      hasSentReadyLog = false;
       fireworkActive = false; // Сбрасываем фейерверк
       //openLock();
       _restartGalet = 0;

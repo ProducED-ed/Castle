@@ -55,6 +55,7 @@ bool _restartFlag;
 bool _restartGalet;
 bool isTrollFixed;
 bool isLoose;
+bool hasSentReadyLog = false;
 
 //Переменные
 int SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
@@ -211,6 +212,10 @@ void loop() {
         }
         */
         if (buff == "ready") {
+          if (!hasSentReadyLog) {
+            sendLog("Checking initial sensor states.");
+            hasSentReadyLog = true;
+          }
           // ---------------------------------------------------------------------------------
           // ИЗМЕНЕНО: Добавлена принудительная проверка состояния при команде "ready".
           // ПРИЧИНА: Чтобы башня сообщала о уже активных датчиках (например,
@@ -243,6 +248,7 @@ void loop() {
           state = 0;
         }
         else if (buff == "start") {
+          hasSentReadyLog = false;
           state++; // Переходим в игровой режим (state 1)
         }
         else if (buff == "check_state") {
@@ -331,6 +337,7 @@ void HandleMessagges(String message) {
   sendLog("Received command (in HandleMessagges): " + message);
   // --- Обработка "restart", есть и в case 0 ---
   if(message == "restart"){
+      hasSentReadyLog = false;
       // 1. Открываем обе двери
       OpenLock(SHERIF_EM1); // Дверь тролля/шахты
       OpenLock(SHERIF_EM2); // Дверь баскетбола
