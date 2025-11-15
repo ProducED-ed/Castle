@@ -195,10 +195,6 @@ void sendLog(String message) {
   Serial.println("log:dog:" + message);
 }
 
-void sendLog(String message) {
-  Serial.println("log:dog:" + message);
-}
-
 void putWheelToSleep();
 void resetQuestState();
 void activateEndStage();
