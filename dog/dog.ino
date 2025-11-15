@@ -204,10 +204,6 @@ void smoothTurnOffCrystal();
 void setup();
 void loop();
 
-void sendLog(String message) {
-  Serial.println("log:dog:" + message);
-}
-
 void putWheelToSleep() {
   // Proveryaem, deystvitelno li chto-to aktivno, prezhde chem "usyplyat"
   if (isFastSpinning || wasFastSpinningActive || digitalRead(VIBRO_MOTOR_PIN) == HIGH || digitalRead(LED_STRIP_PIN) == HIGH || periodicStorySoundActive || periodicFastSpinSoundActive) {
