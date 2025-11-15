@@ -2743,8 +2743,12 @@ def handle_data():
 
         if 'train' in data and data['train'] == 'skin':
             logger.debug("'train: skin' logic triggered.")
-            serial_write_queue.put('skin')
-            play_effect(item_find)    
+            # Следующие строки закомментированы, так как они являлись причиной ошибки.
+            # Отправка 'skin' на MAIN_BOARD вызывала цикл, который приводил к немедленной
+            # отправке 'item_find' обратно на train.ino, что останавливало пульсацию.
+            # serial_write_queue.put('skin')
+            # play_effect(item_find)
+            pass
   
         if 'map' in data and data['map'] == 'out':
           logger.debug("'map: out' logic triggered.")
