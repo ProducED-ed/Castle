@@ -69,6 +69,7 @@ bool _restartFlag;
 bool _restartGalet;
 bool F;
 bool fireworkActive = false; // Флаг для фейерверка
+bool hasSentReadyLog = false;
 
 void handleSkipCommand() {
   if (skipCommand) {
@@ -82,6 +83,7 @@ void handleSkipCommand() {
       }
       FastLED.show();
       Serial1.println("owl_end");
+      sendLog("Game finished by skip command.");
     }
 
     // Запускаем радужную анимацию
@@ -144,7 +146,7 @@ void handleSerial1Commands() {
   if (Serial1.available()) {
     String command = Serial1.readStringUntil('\n');  // Читаем до LF
     command.trim();                                  // Удаляем CR и пробелы
-
+    sendLog("Received command: " + command);
     // Удаляем CR если он есть в конце
     if (command.endsWith("\r")) {
       command.remove(command.length() - 1);
@@ -248,6 +250,10 @@ void handleSerial1Commands() {
     }
 
     if (command == "ready") {
+      if (!hasSentReadyLog) {
+        sendLog("Checking initial sensor states.");
+        hasSentReadyLog = true;
+      }
       resetOwlTower();  // Выполняем полный сброс
       CheckState();     // Отправляем главному контроллеру наш новый (сброшенный) статус
     }
@@ -259,10 +265,12 @@ void handleSerial1Commands() {
       }
 
     if (command == "restart") {
+      hasSentReadyLog = false;
       resetOwlTower();
     }
 
     if (command == "start") {
+      hasSentReadyLog = false;
       resetOwlTower();
     }
   }
@@ -273,11 +281,13 @@ void CheckState() {
   if (!digitalRead(30)) { // Если геркон активен (LOW)
     if (!_restartGalet) {    // И если мы еще не отправляли сообщение
       Serial1.println("galet_on");
+      sendLog("Boat sensor activated (galet_on).");
       _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
     }
   } else {                   // Если геркон неактивен (HIGH)
     if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("galet_off");
+      sendLog("Boat sensor deactivated (galet_off).");
       _restartGalet = 0;    // Сбрасываем флаг
     }
   }
@@ -287,11 +297,13 @@ void CheckState() {
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
     if (!_restartFlag) {    // И если мы еще не отправляли сообщение
       Serial1.println("flag4_on");
+      sendLog("Flag sensor activated (flag4_on).");
       _restartFlag = 1;     // Устанавливаем флаг
     }
   } else {                  // Если флага нет (LOW)
     if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
       Serial1.println("flag4_off");
+      sendLog("Flag sensor deactivated (flag4_off).");
       _restartFlag = 0;   // Сбрасываем флаг
     }
   }
@@ -307,6 +319,7 @@ void checkOwlButton() {
     owlCommandReceived = false;  // Предотвращаем повторное срабатывание
     Serial.println("door_owl");
     Serial1.println("door_owl");
+    sendLog("Owl button pressed (door_owl).");
     state = 1;
   }
 }
@@ -314,24 +327,29 @@ void checkOwlButton() {
 void handleFlagSensorSimple() {
   if (PIN_IR_FLAG.isPress()) {
     Serial1.println("flag4_off");
+    sendLog("Flag sensor deactivated (flag4_off).");
   }
   if (PIN_IR_FLAG.isRelease()) {
     Serial1.println("flag4_on");
+    sendLog("Flag sensor activated (flag4_on).");
   }
 }
 
 void handleBOATSensorSimple() {
   if (PIN_HERKON_BOAT.isPress()) {
     Serial1.println("galet_on");
+    sendLog("Boat sensor activated (galet_on).");
   }
   if (PIN_HERKON_BOAT.isRelease()) {
     Serial1.println("galet_off");
+    sendLog("Boat sensor deactivated (galet_off).");
   }
 }
 
 void HELP() {
   if (PIN_HERKON_DWARF.isPress()) {
     Serial1.println("help");
+    sendLog("Help button pressed.");
   }
 }
 
@@ -368,6 +386,7 @@ void handleTileLeds() {
 
     if (owl < 4) {
       Serial1.println("owl_flew");
+      sendLog("Tile 1 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -381,6 +400,7 @@ void handleTileLeds() {
 
     if (owl < 4) {
       Serial1.println("owl_flew");
+      sendLog("Tile 2 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -394,6 +414,7 @@ void handleTileLeds() {
 
     if (owl < 4) {
       Serial1.println("owl_flew");
+      sendLog("Tile 3 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -406,6 +427,7 @@ void handleTileLeds() {
     //digitalWrite(PIN_LED_WINDOW, 0);
     if (owl < 4) {
       Serial1.println("owl_flew");
+      sendLog("Tile 4 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -414,6 +436,7 @@ void handleTileLeds() {
   if (owl == 4 && !rainbowActive) {
     //delay(1000);
     Serial1.println("owl_end");
+    sendLog("All tiles solved (owl_end).");
     owl++;
     owlEndTime = millis();
   }
@@ -519,6 +542,10 @@ void handleTileLeds() {
   }
 
   FastLED.show();
+}
+
+void sendLog(String message) {
+  Serial1.println("log:owls:" + message);
 }
 
 void setup() {
