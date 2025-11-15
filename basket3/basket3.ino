@@ -176,7 +176,6 @@ void loop() {
   // --- Вся логика loop() переработана для корректной обработки команд ---
   switch (state) {
     case 0:
-      CheckState();
       if (Serial1.available()) { // ИСПОЛЬЗУЕМ Serial1 для связи с главной платой
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
@@ -1114,6 +1113,3 @@ void MetallButtonClick(){
     metallClick = 1;
   }
 }
-
-
-
