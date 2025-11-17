@@ -180,6 +180,12 @@ $('.ui.dropdown')
      socket = io.connect('http://' + document.domain + ':' + location.port);//строка подключения сокетов
 	 //socket = io.connect('http://127.0.0.1:3000');
      socket.on('connect', function() {//если наш сервер подключен он отправит сообщение коннектед
+	     console.log('Connected to server');
+		 // Sinkhronizatsiya vremeni ---
+         // Poluchayem tekushcheye vremya brauzera v formate ISO
+		 const isoTime = new Date().toISOString();
+		 // Otpravlyayem yego na server srazu posle podklyucheniya
+		 socket.emit('client_time_sync', isoTime);
          output.innerHTML = 'Connected';// выводим текст conneted
 		 $('#output').css('color', '').css('font-weight', ''); // Сбрасываем красный цвет
          connected = true;
