@@ -3,6 +3,7 @@
 #include "GyverButton.h"
 
 unsigned long previousLockerTime = 0;       // Время последнего открытия
+String serial1Buffer = "";
 const unsigned long lockerInterval = 8000;  // Интервал 8 секунд
 const unsigned long lockerDuration = 500;   // Длительность открытия 0.5 секунды
 bool lockerActive = false;                  // Флаг активности открытия
@@ -142,136 +143,145 @@ void controlLocker() {
 }
 
 
+void processOwlCommand(String command) {
+  // Вся логика из handleSerial1Commands [cite: 37-65]
+  sendLog("Received command: " + command);
+  // Удаляем \r здесь, т.к. trim() уже был вызван
+  // if (command.endsWith("\r")) {
+  //   command.remove(command.length() - 1);
+  // }
+
+  if (command == "day_on") {
+    for (int i = 0; i < NUM_TILE_LEDS; i++) {
+      tileLeds[i] = CRGB::Green;
+      digitalWrite(PIN_LED_ROOM, HIGH);
+      digitalWrite(PIN_LED_WINDOW, HIGH);
+    }
+    FastLED.show();
+  }
+
+  if (command == "day_off") {
+    for (int i = 0; i < NUM_TILE_LEDS; i++) {
+      tileLeds[i] = CRGB::Black;
+      digitalWrite(PIN_LED_ROOM, 0);
+      digitalWrite(PIN_LED_WINDOW, 0);
+    }
+    FastLED.show();
+  }
+
+  if (command == "owl") {
+    state = 0;
+    owlCommandReceived = true;
+    F = false;
+    for (int i = 0; i < NUM_TILE_LEDS; i++) {
+      tileLeds[i] = CRGB::Black;
+      digitalWrite(PIN_LED_ROOM, 0);
+      digitalWrite(PIN_LED_WINDOW, 0);
+    }
+    FastLED.show();
+  }
+
+  if (command == "out") {
+    //  state = 0;
+    owlCommandReceived = false;
+  }
+
+  if (command == "owl_door") {
+    F = true;
+    Serial1.println("door_owl");
+    Serial.println("door_owl");
+    state = 1;
+  }
+
+  if (command == "open_door") {
+    digitalWrite(PIN_LOKER_DOOR, HIGH);
+    delay(100); // Этот delay(100) здесь - зло, но он короткий и для редкой команды
+    digitalWrite(PIN_LOKER_DOOR, LOW);
+  }
+
+  if (command == "firework") {
+
+    fireworkActive = true;
+    skipCommand = true;
+    rainbowActive = false;
+    tile1Solved = true;
+    tile2Solved = true;
+    tile3Solved = true;
+    tile4Solved = true;
+    owl = 6;
+    digitalWrite(PIN_LED_ROOM, HIGH);
+    digitalWrite(PIN_LED_WINDOW, HIGH);
+    state = 2;
+
+    for (int i = 0; i < NUM_TILE_LEDS; i++) {
+      tileLeds[i] = CRGB::Green;
+    }
+  }
+
+  if (command == "skip") {
+    skipCommand = true;
+    rainbowActive = true;
+    rainbowStartTime = millis();
+
+    tile1Solved = true;
+    tile2Solved = true;
+    tile3Solved = true;
+    tile4Solved = true;
+    owl = 6;
+    digitalWrite(PIN_LED_ROOM, HIGH);
+    digitalWrite(PIN_LED_WINDOW, HIGH);
+    state = 2;
+    for (int i = 0; i < NUM_TILE_LEDS; i++) {
+      tileLeds[i] = CRGB::Green;
+    }
+    FastLED.show();
+  }
+
+  if (command == "ready") {
+    if (!hasSentReadyLog) {
+      sendLog("Checking initial sensor states.");
+      hasSentReadyLog = true;
+    }
+    resetOwlTower();
+    CheckState();
+  }
+
+  if (command == "check_state"){
+    _restartFlag = 0;
+    _restartGalet = 0;
+      CheckState();
+    }
+
+  if (command == "restart") {
+    hasSentReadyLog = false;
+    resetOwlTower();
+  }
+
+  if (command == "start") {
+    hasSentReadyLog = false;
+    resetOwlTower();
+  }
+
+}
+
+
+// Функция `handleSerial1Commands` переписана на неблокирующую
 void handleSerial1Commands() {
-  if (Serial1.available()) {
-    String command = Serial1.readStringUntil('\n');  // Читаем до LF
-    command.trim();                                  // Удаляем CR и пробелы
-    sendLog("Received command: " + command);
-    // Удаляем CR если он есть в конце
-    if (command.endsWith("\r")) {
-      command.remove(command.length() - 1);
-    }
-
-    if (command == "day_on") {
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Green;
-        digitalWrite(PIN_LED_ROOM, HIGH);
-        digitalWrite(PIN_LED_WINDOW, HIGH);
+  while (Serial1.available()) {
+    char c = Serial1.read();
+    
+    // Собираем символы в буфер, пока не найдем '\n'
+    if (c == '\n') {
+      serial1Buffer.trim(); // Убираем пробелы и \r
+      if (serial1Buffer.length() > 0) {
+        // Отправляем команду на обработку
+        processOwlCommand(serial1Buffer);
       }
-      FastLED.show();
-    }
-
-    if (command == "day_off") {
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Black;
-        digitalWrite(PIN_LED_ROOM, 0);
-        digitalWrite(PIN_LED_WINDOW, 0);
+      serial1Buffer = ""; // Очищаем буфер для следующей команды
+    } else if (c >= 32) { // Добавляем только "печатные" символы
+      if (serial1Buffer.length() < 128) { // Защита от переполнения
+        serial1Buffer += c;
       }
-      FastLED.show();
-    }
-
-    if (command == "owl") {
-      state = 0;
-      owlCommandReceived = true;
-      F = false;
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Black;
-        digitalWrite(PIN_LED_ROOM, 0);
-        digitalWrite(PIN_LED_WINDOW, 0);
-      }
-      FastLED.show();
-    }
-
-    if (command == "out") {
-      //  state = 0;
-      owlCommandReceived = false;
-    }
-
-    if (command == "owl_door") {
-      F = true;  // Устанавливаем флаг
-      Serial1.println("door_owl");
-      Serial.println("door_owl");
-      state = 1;
-    }
-
-    if (command == "open_door") {
-      digitalWrite(PIN_LOKER_DOOR, HIGH);
-      delay(100);
-      digitalWrite(PIN_LOKER_DOOR, LOW);
-    }
-
-    if (command == "firework") {
-
-      fireworkActive = true;
-
-      // --- ИСПРАВЛЕНИЕ: Принудительно устанавливаем "решенное" состояние
-      // при запуске фейерверка, чтобы плитки стали зелеными.
-      // Фейерверк будет рисоваться поверх зеленого.
-      skipCommand = true;      // Используем, чтобы остановить handleTileLeds
-      rainbowActive = false;   // Убедимся, что радуга не активна
-      tile1Solved = true;
-      tile2Solved = true;
-      tile3Solved = true;
-      tile4Solved = true;
-      owl = 6;
-      digitalWrite(PIN_LED_ROOM, HIGH);
-      digitalWrite(PIN_LED_WINDOW, HIGH);
-      state = 2; // Переходим в "решенное" состояние
-
-      // Устанавливаем плитки в ЗЕЛЕНЫЙ
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Green;
-      }
-      // FastLED.show() будет вызван в handleFirework()
-      
-      // FastLED.clear();
-      // FastLED.show();
-
-    }
-
-    if (command == "skip") {
-      skipCommand = true;
-      rainbowActive = true;
-      rainbowStartTime = millis();
-
-      tile1Solved = true;
-      tile2Solved = true;
-      tile3Solved = true;
-      tile4Solved = true;
-      owl = 6;
-      digitalWrite(PIN_LED_ROOM, HIGH);
-      digitalWrite(PIN_LED_WINDOW, HIGH);
-      state = 2;
-
-      for (int i = 0; i < NUM_TILE_LEDS; i++) {
-        tileLeds[i] = CRGB::Green;
-      }
-      FastLED.show();
-    }
-
-    if (command == "ready") {
-      if (!hasSentReadyLog) {
-        sendLog("Checking initial sensor states.");
-        hasSentReadyLog = true;
-      }
-      resetOwlTower();  // Выполняем полный сброс
-      CheckState();     // Отправляем главному контроллеру наш новый (сброшенный) статус
-    }
-
-    if (command == "check_state"){
-      _restartFlag = 0;
-      _restartGalet = 0;
-        CheckState();
-      }
-
-    if (command == "restart") {
-      hasSentReadyLog = false;
-      resetOwlTower();
-    }
-
-    if (command == "start") {
-      hasSentReadyLog = false;
-      resetOwlTower();
     }
   }
 }
