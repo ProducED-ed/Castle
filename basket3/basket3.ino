@@ -56,6 +56,7 @@ bool _restartGalet;
 bool isTrollFixed;
 bool isLoose;
 bool hasSentReadyLog = false;
+bool lessonIsStarted = false;
 
 //Переменные
 int SCORE_ROBOT = 0; // Переменная счета в баскетболл робота
@@ -176,7 +177,7 @@ void loop() {
   // --- Вся логика loop() переработана для корректной обработки команд ---
   switch (state) {
     case 0:
-      if (Serial1.available()) { // ИСПОЛЬЗУЕМ Serial1 для связи с главной платой
+      while (Serial1.available()) { // ИСПОЛЬЗУЕМ Serial1 для связи с главной платой
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
         sendLog("Received command: " + buff);
@@ -235,6 +236,7 @@ void loop() {
           strip.clear();
           strip.show();
           disp.point(0);
+          lessonIsStarted = false;
           
           // 2. Сбрасываем флаги-запоминатели состояния, чтобы заставить CheckState() сработать
           _restartGalet = 0;
@@ -298,7 +300,7 @@ void loop() {
       Basket();
       break;
     case 8: 
-       if (Serial1.available()){
+       while (Serial1.available()){
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
         if (buff == "ready"){
@@ -360,6 +362,7 @@ void HandleMessagges(String message) {
       disp.point(0);
       _restartGalet = 0;
       _restartFlag = 0;
+      lessonIsStarted = false;
       
       // 3. Принудительно возвращаем в state 0
       state = 0;
@@ -439,7 +442,7 @@ void WorkShopGame(){
   if(metallClick){
     MetallBlink(2);
   }
-  if (Serial1.available())
+  while (Serial1.available())
   {
     String buff = Serial1.readStringUntil('\n');
     buff.trim();
@@ -468,7 +471,7 @@ void WorkShopGame(){
 
 
 void StartTrollGame(){
-  if (Serial1.available())
+  while (Serial1.available())
   {
     String buff = Serial1.readStringUntil('\n');
     buff.trim();
@@ -504,7 +507,7 @@ void TrollGame(){
         _Troll_4();
         break;
     }
-    if (Serial1.available())
+    while (Serial1.available())
     {
       String buff = Serial1.readStringUntil('\n');
       buff.trim();
@@ -563,7 +566,7 @@ void OpenDoor(){
     butt2.tick();
     butt3.tick();
     butt4.tick();
-    if (Serial1.available())
+    while (Serial1.available())
     {
       String buff = Serial1.readStringUntil('\n');
       buff.trim();
@@ -795,10 +798,10 @@ void _Button_5() {
   }
 }
 void BasketLesson(){
-  static bool isStart;
+  // static bool isStart;
   boyButton.tick();
   if(boyButton.isPress()){
-    if(!isStart){
+    if(!lessonIsStarted){
       Serial1.println("boy_in");
       sendLog("Basketball lesson: boy_in.");
       delay(100);
@@ -806,14 +809,14 @@ void BasketLesson(){
     
   }
   if(boyButton.isRelease()){
-    if(!isStart){
+    if(!lessonIsStarted){
       Serial1.println("boy_out");
       sendLog("Basketball lesson: boy_out.");
       delay(100);
     }
   }
 
-  if(isStart){
+  if(lessonIsStarted){
     bool btnState = digitalRead(BASKET_IR_PIN);
     if(btnState && !basket_ir_read_F){
       state++;
@@ -832,13 +835,13 @@ void BasketLesson(){
     }
   }
   
-  if (Serial1.available())
+  while (Serial1.available())
   {
     String buff = Serial1.readStringUntil('\n');
     buff.trim();
     if (buff == "start_basket"){
       digitalWrite(basketLed, HIGH);
-      isStart = 1;
+      lessonIsStarted = 1;
     }
     else if (buff == "win"){
       SCORE_MAN=3;
@@ -849,7 +852,7 @@ void BasketLesson(){
       PRINT_SCORE_MAN();
       Serial1.println("fr8nmr");
       state+=2;
-      isStart = 0;
+      lessonIsStarted = 0;
     }
     else{
         HandleMessagges(buff);
@@ -858,7 +861,7 @@ void BasketLesson(){
 }
 
 void Basket(){
-  if (Serial1.available())
+  while (Serial1.available())
     {
       String buff = Serial1.readStringUntil('\n');
       buff.trim();
@@ -1041,7 +1044,7 @@ void OUTPUT_TO_DISPLAY() { // Вывод на дисплей счета
 }
 
 void OpenBasket(){
-  if (Serial1.available())
+  while (Serial1.available())
   {
     String buff = Serial1.readStringUntil('\n');
     buff.trim();
