@@ -858,10 +858,10 @@ void handleLibraryFlicker() {
     if (random(10) < 6) { 
       digitalWrite(LibraryLight, LOW);
       // Сразу же устанавливаем таймер, чтобы включить ее обратно
-      // через короткое время (100-200 мс)
-      libraryFlickerIntervalTimer = currentMillis + random(100, 200);
+      // через время (1000-2000 мс)
+      libraryFlickerIntervalTimer = currentMillis + random(1000, 2000);
     } else {
-      // В остальных 70% случаев свеча горит ровно
+      // В остальных 40% случаев свеча горит ровно
       digitalWrite(LibraryLight, HIGH);
     }
   }
@@ -1013,7 +1013,46 @@ void HelpTowersHandler() {
     buff.trim();
     if (buff.startsWith("log:")) {
       Serial.println(buff);
-    } else if (buff == "help") {
+      // Ищем команды ВНУТРИ лога
+      if (buff.indexOf("fire1") != -1) {
+        Serial.println("fire1");
+      }
+      if (buff.indexOf("fire2") != -1) {
+        Serial.println("fire2");
+      }
+      if (buff.indexOf("fire3") != -1) {
+        Serial.println("fire3");
+      }
+      if (buff.indexOf("fire0") != -1) {
+        Serial.println("fire0");
+      }
+      if (buff.indexOf("item_add") != -1) {
+        Serial.println("item_add");
+      }
+      if (buff.indexOf("broom") != -1) {
+        Serial.println("broom");
+      }
+      if (buff.indexOf("helmet") != -1) {
+        Serial.println("helmet");
+      }
+      if (buff.indexOf("story_35") != -1) {
+        // Это блок завершения уровня, копируем его сюда
+        Serial.println("story_35");
+        Serial1.println("item_end"); Serial2.println("item_end"); Serial3.println("item_end"); mySerial.println("item_end");
+        delay(1000);
+        Serial1.println("day_off"); Serial2.println("day_off"); Serial3.println("day_off"); mySerial.println("day_off");
+        // ... (остальная логика очистки лент из case "story_35") ...
+        GoldStrip.clear(); CandleStrip.clear(); CauldronStrip.clear(); CauldronRoomStrip.clear(); memory_Led.clear(); strip1.clear(); strip2.clear();
+        GoldStrip.show(); CandleStrip.show(); CauldronStrip.show(); CauldronRoomStrip.show(); memory_Led.show(); strip1.show(); strip2.show();
+        digitalWrite(MansardLight, LOW); digitalWrite(LastTowerTopLight, LOW); digitalWrite(Fireworks, LOW); digitalWrite(LibraryLight, LOW);
+        digitalWrite(BankRoomLight, LOW); digitalWrite(HallLight, LOW); digitalWrite(UfHallLight, LOW); digitalWrite(HightTowerDoor2, LOW);
+        digitalWrite(TorchLight, LOW); digitalWrite(HallLight, HIGH);
+        level++;
+      }
+      
+      continue;
+    }
+    else if (buff == "help") {
       HelpHandler("workshop");
     }
   }
@@ -1320,6 +1359,7 @@ void StartDoor() {
 // тумблер в первой комнате реагирует на изменение состояния
 void ClockGame() {
   static bool repeat;
+  static bool switchMustBeOffFirst = true;
   if (millis() - KayTimer >= 30000) {
     if (repeat) {
       Serial.println("kay_repeat");
@@ -1333,15 +1373,22 @@ void ClockGame() {
   // bool reading = !digitalRead(board2);
   // Это добавляет необходимую задержку в 1 мс для стабилизации мультиплексора.
   bool reading = !digitalReadExpander(0, board2); // [!] Чтение СРАЗУ после установки
+  // 1. Если геркон ВЫКЛЮЧЕН (магнита нет, reading == false), мы "взводим" пазл.
+  if (!reading) {
+    switchMustBeOffFirst = false; // Разрешаем включение
+  }
   if (reading) {
     Serial.println("clock1");
     digitalWrite(UfHallLight, HIGH);
     digitalWrite(HallLight, LOW);
     repeat = 0;
     level++;
+    // Сразу же снова взводим флаг, требуя ВЫКЛЮЧЕНИЯ (убрать магнит) для следующего раза.
+    // Это состояние сохранится, пока не начнется level 2 в следующей игре.
+    switchMustBeOffFirst = true; 
   }
 
-  if (Serial.available()) {
+  while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "first_clock") {
@@ -1349,6 +1396,8 @@ void ClockGame() {
       digitalWrite(UfHallLight, HIGH);
       digitalWrite(HallLight, LOW);
       level++;
+      // --- Сбрасываем флаг при скипе ---
+      switchMustBeOffFirst = true;
     }
     if (buff == "soundon") {
       flagSound = 0;
@@ -1363,6 +1412,8 @@ void ClockGame() {
     }
     if (buff == "restart") {
       repeat = 0;
+      // --- Сбрасываем флаг при рестарте (на всякий случай) ---
+      switchMustBeOffFirst = true;
       OpenAll();
       RestOn();
     }
@@ -1716,6 +1767,14 @@ void MapGame() {
   static int potionBrightness = 0;
   static bool potionFading = false;
 
+  // Переменные для неблокирующей отправки "start_troll"
+  static bool isWaitingForTroll = false;
+  static unsigned long trollWaitTimer = 0;
+
+  // Переменные для неблокирующего перехода на следующий уровень
+  static bool isFinishingMap = false;
+  static unsigned long finishMapTimer = 0;
+
   // Обработчик неблокирующей анимации ---
   // Этот блок должен выполняться в каждой итерации MapGame()
   if (potionFading) {
@@ -1730,6 +1789,25 @@ void MapGame() {
         potionFading = false; // Анимация завершена
       }
     }
+  }
+
+  // 1. Неблокирующий таймер для повторной отправки start_troll
+  if (isWaitingForTroll && (millis() - trollWaitTimer >= 1000)) {
+    isWaitingForTroll = false; // Сбрасываем флаг
+    Serial2.println("start_troll"); // Отправляем вторую команду
+  }
+
+  // 2. Неблокирующий таймер для завершения уровня (вместо delay)
+  if (isFinishingMap) {
+    // Ждем 1 секунду после отправки 'material_end'
+    if (millis() - finishMapTimer >= 1000) {
+      isFinishingMap = false; // Сбрасываем
+      level++; // <-- ПЕРЕХОДИМ НА УРОВЕНЬ 8
+    }
+    // ВАЖНО: Выходим из MapGame, пока ждем таймер.
+    // Это позволяет loop() продолжать работу, но предотвращает
+    // выполнение остальной логики MapGame (чтение RFID и т.д.)
+    return; 
   }
 
   if (game == "fish") {
@@ -1766,7 +1844,7 @@ void MapGame() {
     //digitalWrite(pinB, 0);
     //digitalWrite(pinC, 1);
     //bool reading = !digitalRead(21);
-    bool reading = !digitalReadExpander(1, board1);
+    bool reading = !digitalReadExpander(4, board1);
     if (reading) {
       if (!potionPulsation) {
         potionPulsation = 1;
@@ -1790,11 +1868,13 @@ void MapGame() {
     isTrainEnd = 0;
     isTrollEnd = 0;
     game = "";
-    delay(1000);
     helpsBankTimer = millis();
     Serial.println("material_end");
-    delay(1000);
-    level++;
+
+    // --- Новая логика неблокирующего перехода ---
+    isFinishingMap = true;
+    finishMapTimer = millis();
+    // level++; // <-- Перенесено в таймер
   }
 
   while (mySerial.available()) {
@@ -1802,6 +1882,21 @@ void MapGame() {
     buff.trim();
     if (buff.startsWith("log:")) {
       Serial.println(buff);
+      // Мы проверим, не является ли этот лог тем, что мы ждем от башни сов
+      // (так как башня шлет лог, а не команду)
+      // Ищем команды ВНУТРИ лога
+      if (game == "owl" && buff.indexOf("door_owl") != -1) {
+        Serial.println("door_owl");
+        isOwlDoorOpened = true;
+      }
+      if (buff.indexOf("owl_end") != -1) {
+        Serial.println("owl_end");
+        Serial1.println("light_off"); Serial2.println("light_off"); Serial3.println("light_off");
+        isOwlEnd = 1;
+      }
+      if (buff.indexOf("owl_flew") != -1) {
+        Serial.println("owl_flew");
+      }
       continue;
     }
     if (calculateSimilarity(buff, "owl_end") >= 80) {
@@ -1835,6 +1930,21 @@ void MapGame() {
     buff.trim();
     if (buff.startsWith("log:")) {
       Serial.println(buff);
+      // Ищем команды ВНУТРИ лога
+      if (buff.indexOf("dog_lock") != -1) {
+        Serial.println("dog_lock");
+        isDogEnd = 1;
+      }
+      if (buff.indexOf("door_dog") != -1) {
+        Serial.println("door_dog");
+        isDogDoorOpened = true;
+      }
+      if (buff.indexOf("dog_sleep") != -1) {
+        Serial.println("dog_sleep");
+      }
+      if (buff.indexOf("dog_growl") != -1) {
+        Serial.println("dog_growl");
+      }
       continue;
     }
     if (calculateSimilarity(buff, "dog_lock") >= 80) {
@@ -1865,7 +1975,7 @@ void MapGame() {
     }
   }
 
-  if (Serial.available()) {
+  while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "student_hide") {
@@ -1886,9 +1996,10 @@ void MapGame() {
     }
     if (buff == "train_end") {
       isTrainEnd = 1;
-      Serial2.println("start_troll");
-      delay(1000);
-      Serial2.println("start_troll");
+      Serial2.println("start_troll"); // Отправляем первую команду
+      // --- Новая логика неблокирующей отправки ---
+      isWaitingForTroll = true;     // Взводим флаг таймера
+      trollWaitTimer = millis();    // Запускаем таймер
     }
     if (buff == "fish") {
       game = "fish";
@@ -2017,17 +2128,20 @@ void MapGame() {
     if (isPotionEnd && isDogEnd && isOwlEnd && isTrainEnd && isTrollEnd) {
       activePotionRoom = 0;
       game = "";
-      delay(500);  // Небольшая задержка перед отправкой
+      // delay(500);  // <-- УДАЛЕНО
       helpsBankTimer = millis();
-      Serial.println("material_end");  // <- Отправка сообщения
-      delay(500);                      // Небольшая задержка перед переходом уровня
+      Serial.println("material_end");
+      // delay(500); // <-- УДАЛЕНО
       // Теперь сбрасываем флаги
       isPotionEnd = 0;
       isDogEnd = 0;
       isOwlEnd = 0;
       isTrainEnd = 0;
       isTrollEnd = 0;
-      level++;
+
+      // --- Новая логика неблокирующего перехода ---
+      isFinishingMap = true;
+      finishMapTimer = millis(); // Используем тот же таймер
     }
     // ---
   }
@@ -2037,6 +2151,26 @@ void MapGame() {
     buff.trim();
     if (buff.startsWith("log:")) {
       Serial.println(buff);
+      // Ищем команды ВНУТРИ лога
+      if (buff.indexOf("aluminium") != -1) {
+        Serial.println("cave_search1");
+      }
+      if (buff.indexOf("bronze") != -1) {
+        Serial.println("cave_search2");
+      }
+      if (buff.indexOf("copper") != -1) {
+        Serial.println("cave_search3");
+      }
+      if (buff.indexOf("cave_end") != -1) {
+        Serial.println("cave_end");
+        isTrollEnd = 1;
+      }
+      if (buff.indexOf("cave_click") != -1) {
+        Serial.println("cave_click");
+      }
+      if (buff.indexOf("door_cave") != -1) {
+        Serial.println("door_cave");
+      }
       continue;
     }
     if (calculateSimilarity(buff, "aluminium") >= 78) {
@@ -2116,7 +2250,7 @@ void Oven() {
   //digitalWrite(pinB, 0);
   //digitalWrite(pinC, 1);
   //bool reading = !digitalRead(21);
-  bool reading = !digitalReadExpander(1, board1);
+  bool reading = !digitalReadExpander(4, board1);
   if (reading) {
     if (!potionPulsation) {
       potionPulsation = 1;
@@ -2282,6 +2416,7 @@ void Oven() {
       potionPulsation = 0;
       Serial1.println("skin");
       Serial.println("item_find:skin");
+      Serial2.println("item_find");
       Serial3.println("item_find");
       mySerial.println("item_find");
     }
@@ -5822,10 +5957,23 @@ void BasketEffect() {
       }
     }
     if (millis() - additionalTimer >= 5000 && enemyFlag) {
-      snitchFlag = 1;
-      LooseSnitch();
-      Serial2.println("start_basket_robot");
-      return;
+      // --- ИСПРАВЛЕНИЕ БАГА ---
+      // Проверяем, стоит ли игрок на платформе (snitchFlag == 1).
+      // Если snitchFlag == 0, значит игрок сошел, и засчитывать гол нельзя.
+      if (snitchFlag) {
+        // Игрок был на месте, но не поймал красный мяч. Засчитываем гол.
+        snitchFlag = 1; // Эта строка здесь уже не так важна, но пусть остается
+        LooseSnitch();
+        Serial2.println("start_basket_robot");
+        return;
+      } else {
+        // Игрок сошел с платформы.
+        // Просто сбрасываем таймеры красного мяча, не засчитывая гол.
+        enemyFlag = 0;
+        enemyTimer = millis();
+        additionalTimer = millis();
+        // Не вызываем LooseSnitch() и не отправляем гол.
+      }
     }
 
     if (millis() - cometTimer1 >= 1000) {
@@ -6051,7 +6199,7 @@ bool digitalReadExpander(int pin, int boardNumber) {
   digitalWrite(pinA, pin & 0b001);
   digitalWrite(pinB, (pin >> 1) & 0b001);
   digitalWrite(pinC, (pin >> 2) & 0b001);
-  delay(1);
+  delay(1); // Эта задержка в 1 мс важна для стабилизации
   return digitalRead(boardNumber);
 }
 
