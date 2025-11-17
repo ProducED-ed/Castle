@@ -277,6 +277,7 @@ fire0Flag = 0
 owlFlewCount = 0
 last_story_55_play_time = 0
 is_processing_ready = False
+is_time_synced = False
 mansard_galets = set()
 last_mansard_count = 0
 log = logging.getLogger('werkzeug')
@@ -285,9 +286,9 @@ pygame.mixer.pre_init(44100, -16, 2, 2048)
 pygame.init()
 pygame.mixer.init()
 #------инициализация звуковых каналов
-channel1 = pygame.mixer.Channel(0) 
+channel1 = pygame.mixer.Channel(0) # background music
 channel2 = pygame.mixer.Channel(1)
-channel3 = pygame.mixer.Channel(2)
+channel3 = pygame.mixer.Channel(2) # story
 
 #------эффекты в формате wav
 door_act = pygame.mixer.Sound('door_act.wav')
@@ -1829,6 +1830,35 @@ def handle_disconnect():
     global current_client_sid
     if request.sid == current_client_sid:
         current_client_sid = None
+        
+@socketio.on('client_time_sync')
+def handle_client_time(time_string):
+    """
+    Poluchayet vremya ot brauzera i pytaetsya ustanovit' yego kak sistemnoye.
+    """
+    global is_time_synced
+    # Proveryayem, ne byla li uzhe provedena sinkhronizatsiya ---
+    if is_time_synced:
+        # My uzhe sinkhronizirovalis', ignoriruyem posleduyushchiye zaprosy
+        return
+    
+    try:
+        # Uroven' ponizhen s INFO do DEBUG (uberet iz konsoli) ---
+        logger.debug(f"Poluchena komanda sinkhronizatsii vremeni: {time_string}")
+        
+        # ETO SPERVA POTREBUYET PRAV SUDO (sm. instruktsiyu v otvete)
+        return_code = call(f'sudo date -s "{time_string}"', shell=True)
+        
+        if return_code == 0:
+            # Uroven' ponizhen s INFO do DEBUG ---
+            logger.debug("Sistemnoye vremya uspeshno sinkhronizirovano s brauzerom.")
+            
+            # Vzvodim flag, chtoby bol'she ne obnovlyat' ---
+            is_time_synced = True
+        else:
+            logger.warning(f"Oshibka sinkhronizatsii vremeni. Kod: {return_code}. (Server zapushchen s sudo?)")
+    except Exception as e:
+        logger.error(f"Isklyucheniye pri sinkhronizatsii vremeni: {e}")
 
 #декоратор для громкости фона     
 @socketio.on('Phone')
@@ -2583,13 +2613,13 @@ def log_event():
     data = request.get_json()
     if not data or 'device' not in data or 'message' not in data:
         return jsonify({"status": "error", "message": "Invalid JSON format. Required keys: 'device', 'message'."}), 400
-
+    
     device_name = data.get('device', 'Unknown Device')
     message = data.get('message', '')
-
+    
     # Логируем в формате: ПОЛУЧЕНО [ESP32 Log - <device_name>]: <message>
     logging.info(f'ПОЛУЧЕНО [ESP32 Log - {device_name}]: {message}')
-
+    
     return jsonify({"status": "success"}), 200
 
 
@@ -2763,7 +2793,7 @@ def handle_data():
         if 'train' in data and data['train'] == 'skin':
             logger.debug("'train: skin' logic triggered.")
             serial_write_queue.put('skin')
-            play_effect(item_find)    
+            # play_effect(item_find)
   
         if 'map' in data and data['map'] == 'out':
           logger.debug("'map: out' logic triggered.")
@@ -4001,6 +4031,8 @@ def serial():
                           if(language==3):
                               play_story(story_10_ar)
                           nextTrack = 1
+                          while channel3.get_busy()==True and go == 1: 
+                                    eventlet.sleep(0.1)
                           #----активируем игру
                           socketio.emit('level', 'active_pedlock',to=None)
                           socklist.append('active_pedlock')
@@ -4032,7 +4064,7 @@ def serial():
                                     play_story(story_13_ar)
  
                                while channel3.get_busy()==True and go == 1: 
-                                    eventlet.sleep(0.1)     
+                                    eventlet.sleep(0.1)
                                
  
                           if(language==1):
@@ -4955,10 +4987,29 @@ def serial():
                           socklist.append('start_players')
 
                      if flag=="boy_out_game":
-                          if 'start_players' in socklist:
-                                socklist.remove('start_players')
+                          # 1. Останавливаем анимацию (существующая логика)
+                          snitchFlag = 0
                           socketio.emit('level', 'stop_players_rest',to=None)
-                          socklist.append('stop_players_rest')       
+                          socklist.append('stop_players_rest')
+                          
+                          # --- 
+                          logger.debug("boy_out_game: (эффект).")
+
+                          # 2. Воспроизводим случайный звук гола бота (на канале Историй)
+                          try:
+                              # --- ИЗМЕНЕНИЕ: Воспроизводим только enemy_goal1 ---
+                              logger.debug("boy_out_game: Воспроизведение enemy_goal1.")
+                              play_effect(enemy_goal1) 
+
+                          except Exception as e:
+                              logger.error(f"Не удалось воспроизвести звук enemy_goal1 при boy_out: {e}")
+                              # Fallback на всякий случай, хотя он и так вызывается
+                              play_effect(enemy_goal1)
+                          
+                          # 3. Воспроизводим звук timeout.wav (на канале Эффектов)
+                          # (Добавим небольшую паузу, чтобы звуки не смешивались)
+                          eventlet.sleep(0.5) 
+                          play_effect(timeout)
 
                      if flag=="boy_in":
                           play_background_music("fon18.mp3", loops=-1)
@@ -6167,7 +6218,7 @@ if __name__ == '__main__':
                 f.write(f"Server started at {time.ctime()}")
             logger.debug(f"STARTUP: Файл '{LATCH_FILE}' создан для текущей сессии.")
         except Exception as e:
-            logger.error(f"STARTUP: Не удалось создать '{LATCH_FILE}': {e}")
+            logger.debug(f"STARTUP: Не удалось создать '{LATCH_FILE}': {e}")
         # Используем .debug(), чтобы это сообщение попало только в файл логов, а не в консоль.
         logger.debug("STARTUP: Сервер CastleServer.py успешно запущен.")
         logger.info("Starting background tasks...")
