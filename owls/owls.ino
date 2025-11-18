@@ -329,7 +329,7 @@ void checkOwlButton() {
     owlCommandReceived = false;  // Предотвращаем повторное срабатывание
     Serial.println("door_owl");
     Serial1.println("door_owl");
-    sendLog("Owl button pressed (door_owl).");
+    sendLog("Owl button pressed.");
     state = 1;
   }
 }
