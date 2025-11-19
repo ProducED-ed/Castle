@@ -2275,7 +2275,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('pedlock')
              name = "story_2"     
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_dog',to=None)
              socklist.append('active_dog')
@@ -2286,7 +2286,7 @@ def Remote(check):
              socklist.append('dog')
              #----отправить на мегу
              serial_write_queue.put('dog')
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              name = "story_2"
         if check == 'cat':
              #-----отправка клиенту 
@@ -2298,7 +2298,7 @@ def Remote(check):
              # --- Имитируем реакцию сервера на door_witch ---
              play_effect(door_witch) # 1. Воспроизводим звук открытия
              send_esp32_command(ESP32_API_TRAIN_URL, "fish_open") # 2. Гасим LED рыбы (24) на карте
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              # 3. Воспроизводим историю
              if(language==1):
                  play_story(story_17_ru) #
@@ -2321,7 +2321,7 @@ def Remote(check):
              socklist.append('open_potions_stash')
              #----отправить на мегу
              serial_write_queue.put('open_potions_stash')
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              name = "story_2"   
         if check == 'owl':
              #-----отправка клиенту 
@@ -2332,7 +2332,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('owl_door')
              name = "story_2"     
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              #-----активируем блок с флагами
              socketio.emit('level', 'active_owls',to=None)
              socklist.append('active_owls')
@@ -2356,7 +2356,7 @@ def Remote(check):
                  play_story(story_14_b_en) #
              if(language==3):
                  play_story(story_14_b_ar) #
-             eventlet.sleep(10)      
+             eventlet.sleep(1)
         if check == 'projector':
              #-----отправка клиенту 
              socketio.emit('level', 'projector',to=None)
@@ -2389,7 +2389,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('mine')
              name = "story_2" 
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              socketio.emit('level', 'active_troll',to=None)
              socklist.append('active_troll')
         if check == 'troll':
@@ -2415,7 +2415,7 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('safe')
              name = "story_2"     
-             eventlet.sleep(10) 
+             eventlet.sleep(1) 
              #-----активируем блок с флагами
              #socketio.emit('level', 'active_workshop',to=None)
              #socklist.append('active_workshop')
@@ -3393,15 +3393,30 @@ def serial():
      while True:
           check_story_and_fade_up() # Проверяем, не закончила ли история играть
           # Добавляем блок для отправки сообщений из очереди
+          # --- МОНИТОРИНГ СЕРВЕРА ---
+          # 1. Проверяем очередь Python (Лаг логики)
+          q_size = serial_write_queue.qsize()
+          if q_size > 5: # Если скопилось больше 5 команд
+              logger.warning(f"⚠️ SERVER LAG: В очереди {q_size} команд. Сервер не успевает отправлять!")
+
+          # 2. Проверяем буфер USB (Физический затор)
+          try:
+              # out_waiting показывает байты, которые застряли в Linux и не ушли в кабель
+              usb_buffer = ser.out_waiting 
+              if usb_buffer > 100: # Если больше 100 байт ждут отправки
+                   logger.warning(f"⚠️ USB CABLE JAM: {usb_buffer} байт застряло на выходе. Скорость 9600 не справляется!")
+          except:
+              pass 
+          # ---------------------------
           try:
               message_to_send = serial_write_queue.get_nowait()
-              # ИЗМЕНЕНО: Улучшенное логирование исходящих команд на Arduino
+              # Улучшенное логирование исходящих команд на Arduino
               description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
               logging.info(f'ОТПРАВЛЕНО [Arduino]: {description} (RAW: {message_to_send})')
               ser.write(str.encode(message_to_send + '\n'))
               # Мы даем Arduino 50-100 мс, чтобы обработать команду,
               # прежде чем слать следующую из очереди.
-              eventlet.sleep(0.1)
+              eventlet.sleep(0.05)
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
           #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
@@ -3437,6 +3452,12 @@ def serial():
           if ser.in_waiting > 0:
                line = ser.readline().decode('utf-8', errors='ignore').rstrip()
                flag = line
+               # --- ПРОВЕРКА ПЕРЕПОЛНЕНИЯ ---
+               if "BUFFER CRITICAL" in flag:
+                   logger.critical(f"🔥🔥🔥 {flag} 🔥🔥🔥") # Красные эмодзи для заметности
+                   # Можно даже отправить звук ошибки на колонки, если хотите:
+                   # play_effect(timeout) 
+               # -----------------------------------
                logger.debug(f"Raw serial data received: {line}")
                eventlet.sleep(0.1)
                # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
@@ -5050,12 +5071,12 @@ def serial():
                           # 1. Взводим защиту (дублируем)
                           serial_write_queue.put('start_lesson')
                           logger.debug("ОТПРАВЛЕНО [Arduino]: start_lesson (1/2)")
-                          eventlet.sleep(0.2) # Короткая пауза
+                          eventlet.sleep(0.1) # Короткая пауза
                           serial_write_queue.put('start_lesson')
                           logger.debug("ОТПРАВЛЕНО [Arduino]: start_lesson (2/2)")
                           
                           # Ждем, чтобы башня точно успела обработать
-                          eventlet.sleep(1.5) 
+                          eventlet.sleep(0.5) 
                           
                           # 2. Запускаем мяч (ТРОЙНОЙ УДАР)
                           serial_write_queue.put('start_game_basket')
@@ -5764,19 +5785,23 @@ def serial():
                           # 5. Воспроизвести звук победы 'win' на channel2
                           play_effect(win)
                      if flag=="win_robot":
-                          socketio.emit('level', 'win_bot',to=None)
-                          #-----добавили в историю
-                          socklist.append('win_bot')
-                          play_effect(enemy_goal1)
-                          while channel2.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          play_background_music("fon17.mp3", loops=-1)    
-                          if(language==1):
-                              play_story(story_67_ru)  
-                          if(language==2):
-                              play_story(story_67_en)
-                          if(language==3):
-                              play_story(story_67_ar)         
+                          # Если уже победил (есть в списке), ИГНОРИРУЕМ ПОВТОРЫ
+                          if 'win_bot' not in socklist:
+                              socketio.emit('level', 'win_bot',to=None)
+                              socklist.append('win_bot')
+                              
+                              # --- ПЕРЕНЕСЕНО ВНУТРЬ (чтобы играло 1 раз) ---
+                              play_effect(enemy_goal1)
+                              while channel2.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              play_background_music("fon17.mp3", loops=-1)    
+                              if(language==1):
+                                  play_story(story_67_ru)  
+                              if(language==2):
+                                  play_story(story_67_en)
+                              if(language==3):
+                                  play_story(story_67_ar)
+                              # ---------------------------------------------
                     #-------прошли игру с кристалами
                      if flag=="memory_room_end":
                          #----отправили на клиента
