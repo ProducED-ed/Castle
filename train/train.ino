@@ -964,6 +964,10 @@ void setup() {
       }
 
       if (body == "\"stage_12\"") {
+        DisableLeds[12] = 21;
+        ActiveLeds[12] = -1;
+        FutureLeds[12] = -1;
+        
         FutureLeds[3] = -1;
         DisableLeds[3] = 12;
         ActiveLeds[3] = -1;
