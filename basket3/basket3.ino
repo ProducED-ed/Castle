@@ -43,6 +43,8 @@ bool isTrollFixed;
 bool isLoose;
 bool hasSentReadyLog = false;
 bool lessonIsStarted = false;
+unsigned long robotScoreTimer = 0; // Таймер для паузы после гола робота
+bool waitingForRobotScore = false; // Флаг: ждем ли мы эти 2 секунды?
 
 int SCORE_ROBOT = 0;
 int SCORE_MAN = 0; 
@@ -406,6 +408,7 @@ void Basket(){
   while (Serial1.available()) {
       String buff = Serial1.readStringUntil('\n');
       buff.trim();
+      
       if (buff == "start_basket"){
         basketTimer = millis();
         digitalWrite(basketLed, HIGH);
@@ -413,13 +416,14 @@ void Basket(){
         sendLog("Basket: Round started.");
       }
       else if (buff == "start_basket_robot"){
-        // [ИСПРАВЛЕНИЕ] Засчитываем гол, ТОЛЬКО если мы еще не проиграли
+        // Не используем delay. Просто взводим таймер.
         if (!isLoose && SCORE_ROBOT < 3) {
-          SCORE_ROBOT++;
-          OUTPUT_TO_DISPLAY();
-          delay(2000);
-          PRINT_SCORE_ROBOT();
-          delay(50);
+            SCORE_ROBOT++;
+            OUTPUT_TO_DISPLAY(); // Обновляем дисплей сразу
+            
+            // Запускаем таймер на 2 секунды (вместо delay(2000))
+            robotScoreTimer = millis();
+            waitingForRobotScore = true; 
         }
       }
       else if (buff == "win"){
@@ -430,52 +434,43 @@ void Basket(){
       else { HandleMessagges(buff); }
   }
 
+  // [ИСПРАВЛЕНИЕ] Обработка таймера робота (без блокировки процессора)
+  if (waitingForRobotScore) {
+      // Если прошло 2 секунды
+      if (millis() - robotScoreTimer >= 2000) {
+          PRINT_SCORE_ROBOT(); // Отправляем счет на сервер
+          waitingForRobotScore = false; // Таймер сработал
+      }
+  }
+
   // 2. Проверяем состояние мальчика (ПРЯМОЕ ЧТЕНИЕ)
   bool boyIsHere = (digitalRead(28) == LOW);
   
-  // Логика "снял/поставил" (изменение состояния)
+  // Логика "снял/поставил"
   static bool lastBoyStateGame = true; 
   if (boyIsHere != lastBoyStateGame) {
      if (boyIsHere) {
-        // --- МАЛЬЧИК ВЕРНУЛСЯ ---
         Serial1.println("boy_in_game");
         sendLog("Basket: Boy returned.");
-        
-        // [ВОТ СЮДА ДОБАВЛЯЕМ ВАШ КОД СБРОСА]
-        if(isLoose) { 
-            SCORE_ROBOT = 0; 
-            SCORE_MAN = 0; 
-            isLoose = 0; 
-            // Важно: перезапуск переменных игры, чтобы не забивались "призрачные" голы
-            _startBasket = 0;
-            basket_ir_read_F = 0;
-        }
-
-        // Если игра активна (мяч летит), включаем свет обратно
+        if(isLoose){ SCORE_ROBOT = 0; SCORE_MAN = 0; isLoose=0; _startBasket=0; basket_ir_read_F=0; }
         if (_startBasket) digitalWrite(basketLed, HIGH);
-
      } else {
-        // --- МАЛЬЧИК УБРАН ---
         Serial1.println("boy_out_game");
         sendLog("Basket: Boy removed (Pause).");
-        
-        // [ИСПРАВЛЕНИЕ] Выключаем свет при паузе
         digitalWrite(basketLed, LOW);
+        _startBasket = 0; 
      }
      lastBoyStateGame = boyIsHere;
-     delay(50); // Антидребезг
+     delay(50); 
   }
 
-  // 3. ОСНОВНАЯ ЛОГИКА ИГРЫ (Только если мальчик на месте)
+  // 3. ОСНОВНАЯ ЛОГИКА ИГРЫ
   if (boyIsHere && !isLoose) {
       OUTPUT_TO_DISPLAY();
 
       if(_startBasket){
-          // Если прошло меньше 15 секунд
           if(millis() - basketTimer <= 15000){
               bool btnState = digitalRead(BASKET_IR_PIN);
-              
-              // Гол игрока
               if(btnState && !basket_ir_read_F){
                   SCORE_MAN++;
                   OUTPUT_TO_DISPLAY();
@@ -486,41 +481,37 @@ void Basket(){
                   _startBasket = 0;
                   sendLog("Basket: Goal scored by player!");
               }
-              if (!btnState && basket_ir_read_F) { 
-                  delay(IR_TIMEOUT);
-                  basket_ir_read_F = 0;
-              }
+              if (!btnState && basket_ir_read_F) { delay(IR_TIMEOUT); basket_ir_read_F = 0; }
           }
           else{ 
-              // Время вышло
               _startBasket = 0;
               digitalWrite(basketLed, LOW);
               delay(1000);
-              Serial1.println("start_snitch"); // Запускаем снитч (золотой шар)
+              Serial1.println("start_snitch"); 
               sendLog("Basket: Time out. Snitch started.");
           }
       }
 
-      // Проверка победы/поражения
+      // Проверка проигрыша
+      if (SCORE_ROBOT == 3) {
+          // Тройной удар для надежности
+          Serial1.println("fr9nmr"); delay(50);
+          Serial1.println("fr9nmr"); delay(50);
+          Serial1.println("fr9nmr");
+          sendLog("Basketball game: robot won (3:0).");
+          
+          isLoose = 1; 
+          _startBasket = 0; 
+          
+          delay(3000); 
+          OpenLock(Solenoid); 
+          // Счет сбросится, когда вы вернете мальчика (в блоке выше)
+      }
+      
+      // Проверка победы
       if (SCORE_MAN == 3) {
           delay(1000); Serial1.println("fr8nmr"); delay(1000); Serial1.println("fr8nmr");
           isLoose=0; state++;
-      }
-      if (SCORE_ROBOT == 3) {
-          // БЛОКИРУЕМ ИГРУ НЕМЕДЛЕННО
-          isLoose = 1; 
-          _startBasket = 0; // Останавливаем мяч
-          
-          delay(1000); 
-          Serial1.println("fr9nmr"); // Отправляем "win_robot" (Сервер играет story_67)
-          sendLog("Basketball game: robot won (3:0). Game paused.");
-
-          // Ждем 3 секунды (чтобы сервер успел начать историю и заблокировать паузу)
-          delay(3000); 
-          
-          OpenLock(Solenoid); // Сбрасываем мальчика
-          
-          // Счет сбрасываем ТОЛЬКО при возвращении (в блоке if(boyIsHere != lastBoyStateGame))
       }
   }
 }
