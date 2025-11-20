@@ -449,11 +449,13 @@ void setup() {
       if (body == "\"confirm_train_end\"") {
         trainEndConfirmed = true; // Получили подтверждение, прекращаем отправку
       }
+      static int currentTrainStage = 0;
       if (body == "\"start\"") {
         OUTPUTS.digitalWrite(0, HIGH);
         myMP3.stop();
         delay(500);
         myMP3.playMp3Folder(TRACK_TRAIN);
+        currentTrainStage = 0; // Сброс этапа при старте
         for (int i = 0; i <= 8; i++) {
           ledMap[i] = CRGB(0, 0, 0);
         }
@@ -575,7 +577,8 @@ void setup() {
       }
 
       if (body == "\"restart\"") {
-		myMP3.stop();
+		    myMP3.stop();
+        currentTrainStage = 0; // Сброс этапа при рестарте
         OUTPUTS.digitalWrite(0, HIGH);
         OUTPUTS.digitalWrite(1, HIGH);
         for (int i = 0; i <= 3; i++) {
@@ -699,6 +702,9 @@ void setup() {
       }
 
       if (body == "\"stage_1\"") {
+        // Принимаем команду только если мы еще не ушли дальше (на stage_2)
+        if (currentTrainStage < 1) {
+            currentTrainStage = 1;
 
         FutureLeds[7] = -1;
         FutureLeds[5] = -1;
@@ -711,10 +717,16 @@ void setup() {
         ActiveLeds[10] = 19;
         ActiveLeds[14] = 23;
         ActiveLeds[9] = 18;
+      } else {
+            Serial.println("Ignored stage_1 command (already at stage " + String(currentTrainStage) + ")");
       }
+    }
 
 
       if (body == "\"stage_2\"") {
+        // Всегда принимаем stage_2, так как это повышение уровня
+        currentTrainStage = 2;
+
         ActiveLeds[7] = -1;
         ActiveLeds[5] = -1;
         ActiveLeds[10] = -1;
@@ -764,6 +776,7 @@ void setup() {
       }
 
       if (body == "\"stage_3\"") {
+        currentTrainStage = 3;
         // --- НОВЫЙ КОД: Принудительно убираем светодиоды из активных ---
         // Это гарантирует, что не будет конфликта с желтой пульсацией.
         // Мы очищаем те же ячейки, которые используются для этих светодиодов в других частях кода.
