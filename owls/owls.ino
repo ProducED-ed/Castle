@@ -254,6 +254,12 @@ void processOwlCommand(String command) {
 
   if (command == "restart") {
     hasSentReadyLog = false;
+    
+    // Открываем дверь при рестарте (импульс 0.5 сек)
+    digitalWrite(PIN_LOKER_DOOR, HIGH);
+    delay(500);
+    digitalWrite(PIN_LOKER_DOOR, LOW);
+    
     resetOwlTower();
   }
 
