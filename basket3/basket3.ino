@@ -138,15 +138,16 @@ void HandleMessagges(String message) {
       
       // Возвращаем логику из старого кода, но с увеличенным delay
       OpenLock(SHERIF_EM1); 
-      delay(100);
+      delay(150);
       OpenLock(SHERIF_EM2);
 
-      digitalWrite(trollLed, LOW);
-      digitalWrite(owlLed, LOW);
-      digitalWrite(basketLed, LOW);
+      // Принудительное отключение всех силовых выходов
       digitalWrite(SHERIF_EM1, LOW);
       digitalWrite(SHERIF_EM2, LOW);
       digitalWrite(Solenoid, LOW);
+      digitalWrite(trollLed, LOW);
+      digitalWrite(owlLed, LOW);
+      digitalWrite(basketLed, LOW);
       SCORE_ROBOT = 0;
       SCORE_MAN = 0;
       buttonSequence = 0;
