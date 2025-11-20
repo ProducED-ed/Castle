@@ -329,12 +329,13 @@ void CheckState() {
 // Функция проверки кнопки совы
 void checkOwlButton() {
 
-  // ИЗМЕНЕНИЕ: Заменено isHold() на isPress() и убрана логика с флагом F.
+  // Заменено isHold() на isPress() и убрана логика с флагом F.
   // Теперь команда может быть отправлена только один раз за сессию.
   if (owlCommandReceived && PIN_HERKON_OWA.isPress()) {
     owlCommandReceived = false;  // Предотвращаем повторное срабатывание
     Serial.println("door_owl");
     Serial1.println("door_owl");
+    delay(50); // паузу, чтобы MAIN_BOARD успел обработать команду перед логом
     sendLog("Owl button pressed.");
     state = 1;
   }
