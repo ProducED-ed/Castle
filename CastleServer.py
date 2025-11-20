@@ -283,6 +283,7 @@ fire2Flag = 0
 fire0Flag = 0
 owlFlewCount = 0
 last_story_55_play_time = 0
+last_boy_in_time = 0
 is_processing_ready = False
 is_time_synced = False
 mansard_galets = set()
@@ -869,6 +870,14 @@ story_67_ru = pygame.mixer.Sound("story_67_ru.wav")
 story_68_en = pygame.mixer.Sound("story_68_en.wav")
 story_68_ar = pygame.mixer.Sound("story_68_ar.wav")
 story_68_ru = pygame.mixer.Sound("story_68_ru.wav")
+
+story_69_en = pygame.mixer.Sound("story_69_en.wav")
+story_69_ar = pygame.mixer.Sound("story_69_ar.wav")
+story_69_ru = pygame.mixer.Sound("story_69_ru.wav")
+
+story_70_en = pygame.mixer.Sound("story_70_en.wav")
+story_70_ar = pygame.mixer.Sound("story_70_ar.wav")
+story_70_ru = pygame.mixer.Sound("story_70_ru.wav")
 
 #дракон
 hint_2_b_en = pygame.mixer.Sound("hint_2_b_en.wav")
@@ -1524,6 +1533,12 @@ try:
         story_68_en: "story_68_en.wav",
         story_68_ar: "story_68_ar.wav",
         story_68_ru: "story_68_ru.wav",
+        story_69_en: "story_69_en.wav",
+        story_69_ar: "story_69_ar.wav",
+        story_69_ru: "story_69_ru.wav",
+        story_70_en: "story_70_en.wav",
+        story_70_ar: "story_70_ar.wav",
+        story_70_ru: "story_70_ru.wav",
 
         # Подсказки
         hint_2_b_en: "hint_2_b_en.wav",
@@ -2196,14 +2211,6 @@ def Remote(check):
              send_esp32_command(ESP32_API_SUITCASE_URL, "game")
              send_esp32_command(ESP32_API_SAFE_URL, "game")
              send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
-             
-             # 5. Активируем кнопки на пульте
-             socketio.emit('level', 'active_suitcase',to=None)
-             socklist.append('active_suitcase')
-             socketio.emit('level', 'active_animals',to=None)
-             socklist.append('active_animals')
-             socketio.emit('level', 'active_wolf',to=None)
-             socklist.append('active_wolf')
 
              name = "story_2"
         if check=='suitcase':
@@ -2595,7 +2602,7 @@ def Remote(check):
              serial_write_queue.put('open_safe_door')
         if check=='workshop': 
              serial_write_queue.put('open_workshop_door')
-        if check=='ghost': 
+        if check=='ghost_step_4':
              serial_write_queue.put('open_library_door')
         if check=='cup':
              serial_write_queue.put('open_high_tower_door')
@@ -3370,6 +3377,7 @@ def serial():
      global sintchEnemyCatchCount
      global redSintchEnemyCatchCount
      global redClickSintchEnemyCatchCount
+     global last_boy_in_time
      global story13Flag 
      global fire0Flag
      global fire1Flag
@@ -3420,7 +3428,7 @@ def serial():
           except eventlet.queue.Empty:
               pass # Если очередь пуста, ничего не делаем
           #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
-          eventlet.sleep(0)
+          eventlet.sleep(0.01)
           if pygame.mixer.music.get_busy() == False:
                if nextTrack == 1:
                     play_background_music("fon8.mp3", loops=-1)
@@ -3477,6 +3485,15 @@ def serial():
                            # Эта проверка остановит звук в любом случае.
                            logger.info("Level 12 reached. Stopping ghost knock sound (channel 2).")
                            channel2.stop()
+                       # Активация кнопок 3-х игр ТОЛЬКО по факту наступления уровня 5
+                       if level_number == "5":
+                           socketio.emit('level', 'active_suitcase', to=None)
+                           socklist.append('active_suitcase')
+                           socketio.emit('level', 'active_animals', to=None)
+                           socklist.append('active_animals')
+                           socketio.emit('level', 'active_wolf', to=None)
+                           socklist.append('active_wolf')
+                           logger.info("УРОВЕНЬ 5 НАСТУПИЛ: Кнопки Suitcase, Safe, Wolf активированы.")
                        # 0. Safe (Уровень 9)
                        if level_number == "9":
                            socketio.emit('level', 'active_safe', to=None)
@@ -4020,15 +4037,7 @@ def serial():
                           send_esp32_command(ESP32_API_SUITCASE_URL, "game")
                           send_esp32_command(ESP32_API_SAFE_URL, "game")
                           send_esp32_command(ESP32_API_TRAIN_URL, "stage_2") # <-- КОМАНДА ВЫКЛЮЧЕНИЯ
-                          #----меняем переменную хранящую последнюю историю
-                          name = "story_2"  
-                          #----активируем блок с флагами
-                          socketio.emit('level', 'active_suitcase',to=None)
-                          socklist.append('active_suitcase')
-                          socketio.emit('level', 'active_animals',to=None)
-                          socklist.append('active_animals')
-                          socketio.emit('level', 'active_wolf',to=None)
-                          socklist.append('active_wolf')
+
                      if flag=="three_game_end":
                           send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
                           socketio.emit('level', 'active_open_mansard_stash',to=None)
@@ -5034,37 +5043,43 @@ def serial():
                      # "boy_in_lesson" (с урока, level 18) -> Запустить интро
                      # 1. УРОК (Level 18): Вход
                      if flag == "boy_in_lesson":
-                          play_background_music("fon18.mp3", loops=-1)
-                          socketio.emit('level', 'start_players', to=None)
-                          socklist.append('start_players')
-                          
-                          if(language==1):
-                              play_story(story_57_ru)
-                          if(language==2):
-                              play_story(story_57_en)
-                          if(language==3):
-                              play_story(story_57_ar)
-                          
-                          # Ждем завершения истории
-                          while channel3.get_busy() == True and go == 1:
-                              eventlet.sleep(0.1)
-                          
-                          play_effect(applause)
-                          
-                          while channel2.get_busy() == True and go == 1:
-                              eventlet.sleep(0.1)
+                          # Если с предыдущего запуска прошло меньше 2 секунд, ничего не делаем.
+                          if time.time() - last_boy_in_time < 2.0:
+                              logger.debug("Игнорируем повторный boy_in_lesson (дребезг при установке)")
+                          else:
+                              # Запоминаем время нового стабильного входа
+                              last_boy_in_time = time.time()
+                              play_background_music("fon18.mp3", loops=-1)
+                              socketio.emit('level', 'start_players', to=None)
+                              socklist.append('start_players')
                               
-                          if(language==1):
-                              play_story(story_58_ru)
-                          if(language==2):
-                              play_story(story_58_en)
-                          if(language==3):
-                              play_story(story_58_ar)
-                          
-                          while channel3.get_busy() == True and go == 1:
-                              eventlet.sleep(0.1)
-                          
-                          eventlet.sleep(1.0)
+                              if(language==1):
+                                  play_story(story_57_ru)
+                              if(language==2):
+                                  play_story(story_57_en)
+                              if(language==3):
+                                  play_story(story_57_ar)
+                              
+                              # Ждем завершения истории
+                              while channel3.get_busy() == True and go == 1:
+                                  eventlet.sleep(0.1)
+                              
+                              play_effect(applause)
+                              
+                              while channel2.get_busy() == True and go == 1:
+                                  eventlet.sleep(0.1)
+                                  
+                              if(language==1):
+                                  play_story(story_58_ru)
+                              if(language==2):
+                                  play_story(story_58_en)
+                              if(language==3):
+                                  play_story(story_58_ar)
+                              
+                              while channel3.get_busy() == True and go == 1:
+                                  eventlet.sleep(0.1)
+                              
+                              eventlet.sleep(1.0)
 
                           # --- ЗАЩИТНЫЙ МЕХАНИЗМ: ДВОЙНАЯ ОТПРАВКА ---
                           
@@ -5095,20 +5110,32 @@ def serial():
 
                      # 2. УРОК (Level 18): Выход (Пауза)
                      if flag == "boy_out_lesson":
-                         pygame.mixer.music.pause()
-                         try:
-                             play_effect(random.choice(enemy_goal_sounds))
-                         except Exception as e:
-                             logger.error(f"Ошибка звука boy_out_lesson: {e}")
-                             play_effect(enemy_goal1)
-                         
-                         socketio.emit('level', 'stop_players_rest', to=None)
-                         socklist.append('stop_players_rest')
+                         # Если с момента входа прошло меньше 3 секунд, игнорируем выход.
+                         if time.time() - last_boy_in_time < 3.0:
+                             logger.debug("Игнорируем boy_out_lesson (дребезг контактов)")
+                         else:
+                             pygame.mixer.music.pause()
+                             try:
+                                 play_effect(random.choice(enemy_goal_sounds))
+                                 # Играем историю 69 (Мальчик ушел)
+                                 if(language==1): play_story(story_69_ru)
+                                 if(language==2): play_story(story_69_en)
+                                 if(language==3): play_story(story_69_ar)
+                             except Exception as e:
+                                 logger.error(f"Ошибка звука boy_out_lesson: {e}")
+
+                             
+                             socketio.emit('level', 'stop_players_rest', to=None)
+                             socklist.append('stop_players_rest')
                          
                      # 3. ИГРА (Level 19): Вход (Возобновление)
                      if flag == "boy_in_game":
                           play_effect(applause)
                           pygame.mixer.music.unpause()
+                          # Играем историю 70 (Мальчик вернулся)
+                          if(language==1): play_story(story_70_ru)
+                          if(language==2): play_story(story_70_en)
+                          if(language==3): play_story(story_70_ar)
                           
                           # Удаляем флаг проигрыша, чтобы пауза снова работала
                           if 'win_bot' in socklist:
@@ -5133,9 +5160,13 @@ def serial():
                                pygame.mixer.music.pause()
                                try:
                                    play_effect(random.choice(enemy_goal_sounds))
+                                   # Играем историю 69 (Мальчик ушел)
+                                   if(language==1): play_story(story_69_ru)
+                                   if(language==2): play_story(story_69_en)
+                                   if(language==3): play_story(story_69_ar)
                                except Exception as e:
                                    logger.error(f"Ошибка звука: {e}")
-                                   play_effect(enemy_goal1)
+
                                
                                socketio.emit('level', 'stop_players_rest', to=None)
                                socklist.append('stop_players_rest')
