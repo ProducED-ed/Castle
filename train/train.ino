@@ -1327,7 +1327,7 @@ void loop() {
       }
       hintFlag = 0;
     }
-    else if (state > 3 && hintFlag && !isTrollEnd) {
+    else if (state >= 3 && hintFlag && !isTrollEnd) {
       if (hint_counter == 0) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_5_RU);
@@ -1432,7 +1432,7 @@ void loop() {
 
 
 void MapGerkon() {
-  // --- ИЗМЕНЕНИЕ: Не обрабатываем герконы, если клики отключены ---
+  // --- Не обрабатываем герконы, если клики отключены ---
     if (mapClicksDisabled) {
         // Если клики отключены, сбрасываем состояние таймера и мигания, если они были активны
         if (isStartTimer) {
@@ -1445,7 +1445,9 @@ void MapGerkon() {
         }
         return; // Выходим из функции
     }
-    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+    if (!INPUTS.digitalRead(1)) {
+      Serial.println("DEBUG: TRAIN SENSOR (Pin 1) PRESSED");
+    }
 
   bool keyLedActive = false;
   bool fishLedActive = false;
