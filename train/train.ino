@@ -501,21 +501,35 @@ void setup() {
             Serial.print("Установлена громкость: ");
             Serial.println(value);
 
-            // Если пришла команда set_level_15 (сброс при старте),
                 // принудительно очищаем все активные светодиоды.
+                // ПОЛНЫЙ СБРОС КАРТЫ (LEVEL 15)
                 if (newLevel == 15) {
-                   Serial.println("FORCE RESET: Clearing ActiveLeds for level 15");
+                   Serial.println("FORCE RESET: Full Map Reset");
+                   
                    for (int i = 0; i < 22; i++) {
                       ActiveLeds[i] = -1;
-                      // Восстанавливаем белые (Future), как при старте
-                      FutureLeds[i] = i + 9;
+                      ClickLeds[i] = -1;
+                      DisableLeds[i] = -1; // [ВАЖНО] Очищаем "черные" светодиоды с прошлой игры
+                      wasClickLed[i] = false;
+                      
+                      // Восстанавливаем карту: все светодиоды (9-30) становятся БЕЛЫМИ
+                      FutureLeds[i] = i + 9; 
                    }
-                   // Если нужно вернуть начальное состояние (как при start):
+
+                   // Настройка стартовой точки (как в команде start)
+                   // В вашем коде start стоит ActiveLeds[4] = 12.
+                   // Если стартовая точка это 12 (желтая), а остальные белые:
                    ActiveLeds[4] = 12; 
-                   FutureLeds[4] = -1;
                    
-                   state = 0; // Сброс состояния автомата
-                   FastLED.show(); // Обновляем ленту
+                   // УБРАНА СТРОКА: FutureLeds[4] = -1; 
+                   // Именно она выключала 13-й светодиод (индекс 4) полностью.
+                   // Теперь 13-й останется белым (так как он есть в FutureLeds).
+                   
+                   state = 0; 
+                   hintFlag = 1;
+                   trainEndConfirmed = false;
+                   
+                   FastLED.show(); 
                 }
         } else {
             Serial.println("Некорректный уровень громкости");
