@@ -123,6 +123,8 @@ bool isDogDoorOpened = false;  // Дверь рыцаря (собака/ключ
 
 bool isOwlDoorOpened = false;  // Дверь гнома (сова) открыта
 
+bool isStartDoorOpenedGlobal = false; // Флаг физического открытия стартовой двери для подсказок
+
 bool isTrainStarted = false;  // Игра с поездом (после проектора) активна
 
 bool lessonSaluteActive = false; // Флаг для анимации салюта в уроке
@@ -954,7 +956,7 @@ void PowerOn() {
 
     if (buff == "start") {
       boyServo.attach(49); boyServo.write(0);
-      Serial.println("modalend"); delay(100);
+      delay(500);boyServo.detach(); Serial.println("modalend"); delay(100);
       mySerial.println("start"); Serial1.println("start");
       Serial2.println("start"); Serial3.println("start");
       delay(1000); Serial.println("startgo");
@@ -1123,18 +1125,21 @@ void HelpTowersHandler() {
         // чтобы 'light' и 'dark' всегда доставлялись башням,
         // независимо от того, какая функция "выиграла гонку".
         
-        // Используем быструю проверку '=='
-        if (mySerialBuffer == "light") {
+        // Свет вкл
+        if (mySerialBuffer.indexOf("light") != -1 && mySerialBuffer.indexOf("light_off") == -1) {
           Serial1.println("light_on");
           Serial2.println("light_on");
           Serial3.println("light_on");
-        } else if (mySerialBuffer == "dark") {
+        } 
+        // Свет выкл
+        else if (mySerialBuffer.indexOf("dark") != -1) {
           Serial1.println("light_off");
           Serial2.println("light_off");
           Serial3.println("light_off");
         }
 
-        if (mySerialBuffer == "help") {
+        // Если чистая команда "help" потерялась, сработаем по логу
+        if (mySerialBuffer.indexOf("help") != -1 || mySerialBuffer.indexOf("Help button pressed") != -1) {
           HelpHandler("dwaf");
         }
       }
@@ -1153,267 +1158,271 @@ void HelpHandler(String from) {
     studentButton.tick();
     professorButton.tick();
     witchButton.tick();
-    //дракон
-    //if (!digitalReadExpander(4, board3)) {
+
+    // [FIX] ВЕЗДЕ: flagSound = 0 перенесен внутрь успешной отправки
+
+    // Дракон
     if (dragonButton.isPress()) {
-      if (level == 1 && !dragonFlag) {
-        Serial.println(dragonHints[0]);
-        dragonFlag = 1;
+      if ( (level < 4 && level > 1) || (level == 1 && isStartDoorOpenedGlobal) ) {
+        Serial.println(dragonHints[3]); flagSound = 0;
       }
-      if (level == 1 && dragonCounter > 0) {
-        Serial.println(dragonHints[dragonCounter]);
+      else if (level == 1 && !dragonFlag) {
+        Serial.println(dragonHints[0]); dragonFlag = 1; flagSound = 0;
       }
-      if (level < 4 && level > 1) {
-        Serial.println(dragonHints[3]);
+      else if (level == 1 && dragonCounter > 0) {
+        Serial.println(dragonHints[dragonCounter]); flagSound = 0;
       }
-      if (level == 4) {
+      else if (level == 4) {
         Serial.println(dragonHints[dragonCounter]);
         dragonCounter = (dragonCounter == 4) ? 5 : 4;
-        
+        flagSound = 0;
       }
-      if (level > 4) {
-        Serial.println(dragonHints[3]);
-      }
-      if (level != 4) {
-        dragonCounter++;
-        if (dragonCounter > 2)
-          dragonCounter = 1;
-      }
-
-
-      flagSound = 0;
-    }
-
-    //студент
-    //студент
-    if (studentButton.isPress()) {
-      if (level > 1 && level < 4) {
-        // Логика для hint_3_b (0) и hint_3_c (1)
-        Serial.println(studentHints[studentCounter]);
-        studentCounter = (studentCounter == 0) ? 1 : 0; 
-      }
-      if (level > 3 && level < 11) {
-        // Логика для hint_3_z (2)
-        Serial.println(studentHints[2]);
-      }
-
-      // Новая логика для level 11 ---
-      if (level == 11) {
-        // ghostState становится >= 2 после завершения second_clock_2 (uf_clock) 
-        if (ghostState >= 2) {
-          // 1. Воспроизводим hint_38_b (индекс 5)
-          Serial.println(studentHints[5]);
-          // (Эта подсказка не циклится, как вы и просили)
-        } else {
-          // 2. Воспроизводим hint_37_b (3) и hint_37_c (4)
-          if (studentCounter < 3 || studentCounter > 4) {
-            studentCounter = 3; // Сброс на "37_b"
-          }
-          Serial.println(studentHints[studentCounter]);
-          studentCounter = (studentCounter == 3) ? 4 : 3; // Переключает 3 <-> 4
-        }
-      }
-
-      // Новая логика для level 12 ---
-      if (level == 12) {
-        // Воспроизводим hint_44_b (6) и hint_44_c (7)
-        if (studentCounter < 6 || studentCounter > 7) {
-          studentCounter = 6;
-        }
-        Serial.println(studentHints[studentCounter]);
-        studentCounter = (studentCounter == 6) ? 7 : 6; // Переключает 6 <-> 7
+      else if (level > 4) {
+        Serial.println(dragonHints[3]); flagSound = 0;
       }
       
-      // Воспроизводим "hint_3_z" (индекс 2) на всех последующих уровнях (до level 17)
-      if (level > 12 && level < 17) { 
-         Serial.println(studentHints[2]);
+      if (level != 4) {
+        dragonCounter++;
+        if (dragonCounter > 2) dragonCounter = 1;
       }
-
-      flagSound = 0;
     }
 
-    //профессор
-    //if (!digitalReadExpander(7, board3)) {
+    // Студент
+    if (studentButton.isPress()) {
+      bool sent = false;
+      if (level > 1 && level < 4) {
+        Serial.println(studentHints[studentCounter]);
+        studentCounter = (studentCounter == 0) ? 1 : 0; 
+        sent = true;
+      }
+      if (level > 3 && level < 11) {
+        Serial.println(studentHints[2]); sent = true;
+      }
+      if (level == 11) {
+        if (ghostState >= 2) {
+          Serial.println(studentHints[5]); sent = true;
+        } else {
+          if (studentCounter < 3 || studentCounter > 4) studentCounter = 3;
+          Serial.println(studentHints[studentCounter]);
+          studentCounter = (studentCounter == 3) ? 4 : 3;
+          sent = true;
+        }
+      }
+      if (level == 12) {
+        if (studentCounter < 6 || studentCounter > 7) studentCounter = 6;
+        Serial.println(studentHints[studentCounter]);
+        studentCounter = (studentCounter == 6) ? 7 : 6;
+        sent = true;
+      }
+      if (level > 12 && level < 17) { 
+         Serial.println(studentHints[2]); sent = true;
+      }
+      
+      if (sent) flagSound = 0;
+    }
+
+    // Профессор
     if (professorButton.isPress()) {
+      bool sent = false;
       if (level > 4 && level < 6) {
         Serial.println(professorHints[professorCounter]);
         professorCounter = (professorCounter == 1) ? 0 : 1;
+        sent = true;
       }
       if (level == 6) {
         Serial.println(professorHints[professorCounter]);
-        professorCounter = (professorCounter == 2) ? 3 : 2;  // Правильно: сначала _b (индекс 2), потом _c (индекс 3)
-        
+        professorCounter = (professorCounter == 2) ? 3 : 2;
+        sent = true;
       }
       if (level == 7) {
         if (!isPotionDoorOpened || !isDogDoorOpened || !isOwlDoorOpened || !isTrainStarted) {
           Serial.println(professorHints[professorCounter]);
           professorCounter = (professorCounter == 5) ? 4 : 5;
-          
         } else {
           Serial.println(professorHints[6]);
         }
-      } else if (level >= 7) {
-        Serial.println(professorHints[6]);  // Индекс 6 соответствует hint_11_z
+        sent = true;
+      } else if (level > 7) { // [FIX] level > 7 тоже говорит финальную фразу
+        Serial.println(professorHints[6]);
+        sent = true;
       }
-      flagSound = 0;
+      
+      if (sent) flagSound = 0;
     }
 
-    //гоблин
+    // Гоблин
     if (goblinButton.isPress()) {
+      bool sent = false;
       if (level == 9) {
         Serial.println(goblinHints[goblinCounter]);
         goblinCounter = (goblinCounter == 1) ? 0 : 1;
-        
+        sent = true;
       }
       if (level > 9 && level < 18) {
         Serial.println(goblinHints[2]);
+        sent = true;
       }
-      flagSound = 0;
+      if (sent) flagSound = 0;
     }
 
-    //директор
+    // Директор
     if (directorButton.isPress()) {
+      bool sent = false;
       if (level == 13) {
-        if (directorCounter > 1) {
-          directorCounter = 0;
-        }
+        if (directorCounter > 1) directorCounter = 0;
         Serial.println(directorHints[directorCounter]);
         directorCounter = (directorCounter == 0) ? 1 : 0;
-        
+        sent = true;
       }
       if (level == 14) {
-        if (directorCounter < 2 || directorCounter > 3) {
-          directorCounter = 2; // Устанавливаем на первую подсказку этого уровня ("hint_50_b")
-        }
+        if (directorCounter < 2 || directorCounter > 3) directorCounter = 2;
         Serial.println(directorHints[directorCounter]);
         directorCounter = (directorCounter == 2) ? 3 : 2;
-        
+        sent = true;
       }
-      // Изменен диапазон ---
-      if (level > 14 && level < 17) { // БЫЛО: < 18 
-        // Логика для 51_b (4), 51_c (5)
-        if (directorCounter < 4 || directorCounter > 5) { 
-           directorCounter = 4;
-        }
+      if (level > 14 && level < 17) {
+        if (directorCounter < 4 || directorCounter > 5) directorCounter = 4;
         Serial.println(directorHints[directorCounter]);
         directorCounter = (directorCounter == 4) ? 5 : 4;
+        sent = true;
       }
-
-      // Добавлен level 17/18 ---
       if (level == 17 || level == 18) {
-        // Играем "hint_56_b", который теперь в конце массива (индекс 6)
         Serial.println(directorHints[6]);
+        sent = true;
       }
-      flagSound = 0;
+      if (sent) flagSound = 0;
     }
 
-    //ведьма
+    // Ведьма (Кнопка)
     if (witchButton.isPress()) {
+      bool sent = false;
       if (level == 7 && !isPotionEnd) {
         Serial.println(witchHints[witchCounter]);
         witchCounter = (witchCounter == 1) ? 0 : 1;
-        
+        sent = true;
       }
-      if (isPotionEnd) {
+      // [FIX] Добавлено условие level > 7 для подсказки "Z"
+      if (isPotionEnd || level > 7) {
         Serial.println(witchHints[2]);
+        sent = true;
       }
-      flagSound = 0;
+      if (sent) flagSound = 0;
     }
 
-    //гном
+    // Гном (Башня)
     if (from == "dwaf") {
+      bool sent = false;
       if (level == 7 && !isOwlEnd) {
         Serial.println(dwarfHints[dwarfCounter]);
         dwarfCounter = (dwarfCounter == 1) ? 0 : 1;
-        
+        sent = true;
       }
-      if (isOwlEnd) {
+      // [FIX] Добавлено условие level > 7
+      if (isOwlEnd || level > 7) {
         Serial.println(dwarfHints[2]);
+        sent = true;
       }
-      flagSound = 0;
+      if (sent) flagSound = 0;
     }
 
-    //рыцарь
+    // Рыцарь (Башня)
     if (from == "knight") {
+      bool sent = false;
       if (level == 7 && !isDogEnd) {
         Serial.println(knightHints[knightCounter]);
         knightCounter = (knightCounter == 1) ? 0 : 1;
-        
+        sent = true;
       }
-      if (isDogEnd) {
+      // [FIX] Добавлено условие level > 7
+      if (isDogEnd || level > 7) {
         Serial.println(knightHints[2]);
+        sent = true;
       }
-      flagSound = 0;
+      if (sent) flagSound = 0;
     }
 
-    //троль
+    // Тролль (Башня)
     if (from == "troll") {
+      bool sent = false;
       if (level == 7 && !isTrollEnd) {
         Serial.println(trollHints[trollCounter]);
         trollCounter = (trollCounter == 1) ? 0 : 1;
-        
+        sent = true;
       }
-      if (isTrollEnd) {
+      // [FIX] Добавлено условие level > 7
+      if (isTrollEnd || level > 7) {
         Serial.println(trollHints[2]);
+        sent = true;
       }
-      flagSound = 0;
+      if (sent) flagSound = 0;
     }
 
-    //плотник
+    // Плотник (Башня)
     if (from == "workshop") {
+      bool sent = false;
       if (level == 10) {
         Serial.println(workshopHints[workshopCounter]);
+        sent = true;
       }
       if (level > 10 && level < 18) {
         Serial.println(workshopHints[4]);
+        sent = true;
       }
 
       workshopCounter++;
-      if (workshopCounter > 3)
-        workshopCounter = 0;
-
-      flagSound = 0;
+      if (workshopCounter > 3) workshopCounter = 0;
+      
+      if (sent) flagSound = 0;
     }
   }
 }
 
 // стартовая дверь на замке с ключом
+// стартовая дверь на замке с ключом
 void StartDoor() {
   static bool doorOpened = false;
-  static unsigned long doorOpenTimer = 0;
-
+  
   startDoor.tick();
   
-  // 1. Только инициируем открытие
+  // [FIX] Объединили логику в один блок проверки
   if (startDoor.isRelease() && !doorOpened) {
     Serial.println("open_door");
     digitalWrite(HallLight, HIGH);
-    doorOpened = true;
-    doorOpenTimer = millis(); // Засекаем время
-    level++;
-  }
-  
-  // ПРОСТОЙ ВАРИАНТ (Чтение во время ожидания):
-  if (startDoor.isRelease()) {
-     Serial.println("open_door");
-     digitalWrite(HallLight, HIGH);
+    
+    isStartDoorOpenedGlobal = true; // Флаг для Дракона
+    doorOpened = true;              // Блокируем повторное срабатывание
+
+    // --- ЛОГИКА СЕРВОПРИВОДА ---
+    if (!boyServo.attached()) {
+         boyServo.attach(49);
+    }
+    delay(50);          
+    boyServo.write(130); // Поворот
      
-     // Вместо delay(5000) делаем цикл ожидания с прослушкой
-     unsigned long startWait = millis();
-     while(millis() - startWait < 5000) {
+    // Цикл ожидания 3 секунды, чтобы серво доехал
+    unsigned long startWait = millis();
+    while(millis() - startWait < 3000) {
+        // Если пришел рестарт во время движения сервы
         if (Serial.available()) {
-           // Читаем и реагируем (например на рестарт)
            String b = Serial.readStringUntil('\n');
-           if(b.indexOf("restart") != -1) { OpenAll(); RestOn(); level=25; return; }
+           if(b.indexOf("restart") != -1) { 
+               boyServo.detach(); 
+               OpenAll(); RestOn(); level=25; return; 
+           }
         }
-     }
-     
-     boyServo.write(130);
-     dragonFlag = 0;
-     KayTimer = millis();
-     level++;
+    }
+    // Отключаем сервопривод после движения
+    if (boyServo.attached()) {
+        boyServo.detach();
+    }
+    // ---------------------------
+    
+    dragonFlag = 0;
+    KayTimer = millis();
+    level++; // Переход на следующий уровень
   }
 
+  // Таймер для повтора подсказки дракона
   if (millis() - dragonTimer >= 120000) {
     if (!dragonFlag) {
       Serial.println("dragon_crystal_repeat");
@@ -1421,10 +1430,10 @@ void StartDoor() {
     dragonTimer = millis();
   }
 
+  // Чтение команд (рестарт, звук)
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
-    //int similarity = stringSimilarity(buff, "owl_end");
     if (buff == "soundon") {
       flagSound = 0;
     }
@@ -1994,50 +2003,56 @@ void MapGame() {
   }
 
   while (mySerial.available()) {
-    String buff = mySerial.readStringUntil('\n'); // Используем readStringUntil, т.к. он уже в case
+    String buff = mySerial.readStringUntil('\n');
     buff.trim();
-    if (buff.startsWith("log:")) {
-      Serial.println(buff); 
-      // Проверяем логи, как и раньше (на случай, если башня сов шлет их)
-      if (game == "owl" && buff.indexOf("door_owl") != -1) {
+    
+    // Печатаем всё, что приходит (для отладки)
+    if (buff.length() > 0) Serial.println(buff);
+
+    // -----------------------------------------------------------
+    // [FIX] НАДЕЖНАЯ ОБРАБОТКА КОМАНД (через indexOf)
+    // Работает и для чистых команд, и если они склеились с логом
+    // -----------------------------------------------------------
+
+    // 1. Дверь (Команда + Лог нажатия)
+    if (buff.indexOf("door_owl") != -1 || buff.indexOf("Owl button pressed") != -1) {
         Serial.println("door_owl");
         isOwlDoorOpened = true;
-      }
-      if (buff.indexOf("owl_end") != -1) {
-        Serial.println("owl_end");
-        Serial1.println("light_off"); Serial2.println("light_off"); Serial3.println("light_off");
-        isOwlEnd = 1;
-      }
-      if (buff.indexOf("owl_flew") != -1) {
-        Serial.println("owl_flew");
-      }
-      continue;
     }
-    
-    // Быстрые проверки
-    if (buff == "owl_end") {
-      Serial.println("owl_end");
-      Serial1.println("light_off");
-      Serial2.println("light_off");
-      Serial3.println("light_off");
-      isOwlEnd = 1;
-    } else if (buff == "door_owl") {
-      Serial.println("door_owl");
-      isOwlDoorOpened = true;
-    } else if (buff == "owl_flew") {
-      Serial.println("owl_flew");
-    } else if (buff == "light") { 
-      Serial.println("light_on");
-      Serial1.println("light_on");
-      Serial2.println("light_on");
-      Serial3.println("light_on");
-    } else if (buff == "dark") { 
-      Serial.println("light_off");
-      Serial1.println("light_off");
-      Serial2.println("light_off");
-      Serial3.println("light_off");
-    } else if (buff == "help") {
-      HelpHandler("dwaf");
+
+    // 2. Финал игры Сов
+    if (buff.indexOf("owl_end") != -1) {
+        Serial.println("owl_end");
+        Serial1.println("light_off"); 
+        Serial2.println("light_off"); 
+        Serial3.println("light_off");
+        isOwlEnd = 1;
+    }
+
+    // 3. Промежуточный этап (сова улетела)
+    if (buff.indexOf("owl_flew") != -1) {
+        Serial.println("owl_flew");
+    }
+
+    // 4. Управление светом (ВКЛ)
+    // Ищем "light", но исключаем "light_off" (чтобы не сработало ложно)
+    if (buff.indexOf("light") != -1 && buff.indexOf("light_off") == -1) { 
+        Serial.println("light_on");
+        Serial1.println("light_on");
+        Serial2.println("light_on");
+        Serial3.println("light_on");
+    } 
+    // 5. Управление светом (ВЫКЛ) - ловим "dark" или "light_off"
+    else if (buff.indexOf("dark") != -1 || buff.indexOf("light_off") != -1) { 
+        Serial.println("light_off");
+        Serial1.println("light_off");
+        Serial2.println("light_off");
+        Serial3.println("light_off");
+    }
+
+    // 6. Помощь
+    if (buff.indexOf("help") != -1 || buff.indexOf("Help button pressed") != -1) {
+        HelpHandler("dwaf");
     }
   }
 
@@ -5767,6 +5782,7 @@ void RestOn() {
     Scroll4On = 0; Scroll11On = 0; Scroll21On = 0; Scroll31On = 0;
     Scroll41On = 0; isPotionEnd = 0; isDogEnd = 0; isOwlEnd = 0;
     isTrainEnd = 0; isTrollEnd = 0; isTrainBasket = 0; ghostState = 0;
+    isStartDoorOpenedGlobal = false;
     
     // Ставим флаг, что инициализация завершена.
     // Больше в этот блок мы не зайдем, пока не выйдем из уровня 25.
