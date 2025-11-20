@@ -500,6 +500,23 @@ void setup() {
             myMP3.volume(value);
             Serial.print("Установлена громкость: ");
             Serial.println(value);
+
+            // Если пришла команда set_level_15 (сброс при старте),
+                // принудительно очищаем все активные светодиоды.
+                if (newLevel == 15) {
+                   Serial.println("FORCE RESET: Clearing ActiveLeds for level 15");
+                   for (int i = 0; i < 22; i++) {
+                      ActiveLeds[i] = -1;
+                      // Восстанавливаем белые (Future), как при старте
+                      FutureLeds[i] = i + 9;
+                   }
+                   // Если нужно вернуть начальное состояние (как при start):
+                   ActiveLeds[4] = 12; 
+                   FutureLeds[4] = -1;
+                   
+                   state = 0; // Сброс состояния автомата
+                   FastLED.show(); // Обновляем ленту
+                }
         } else {
             Serial.println("Некорректный уровень громкости");
         }
