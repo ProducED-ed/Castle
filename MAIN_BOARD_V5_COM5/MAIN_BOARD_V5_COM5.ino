@@ -814,7 +814,7 @@ void loop() {
         String buff = Serial.readStringUntil('\n');
         buff.trim();
         if (buff.indexOf("restart") != -1) {
-          // [FIX] Добавляем задержки при рассылке, как в RestOn
+          // Добавляем задержки при рассылке, как в RestOn
           Serial1.println("restart"); delay(20);
           Serial2.println("restart"); delay(20);
           Serial3.println("restart"); delay(20);
@@ -1115,17 +1115,28 @@ void HelpTowersHandler() {
       if (serial2Buffer.length() > 0) {
         Serial.println(serial2Buffer); // Пересылаем ВСЕ
 
-        // ДОБАВЛЕНО: Страховка на случай потери команды boy_out
+        // Страховка на случай потери команды boy_out (уже была)
         if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Boy removed") != -1) {
           Serial.println("log:main:Insurance triggered for boy_out from basket3");
           delay(10);
-          // Определяем, какую именно команду дублировать в зависимости от уровня
           if (level == 18) Serial.println("boy_out_lesson");
           else if (level == 19) Serial.println("boy_out_game");
-          else if (level == 17) Serial.println("crime_end"); // Страховка для тюрьмы
-          else Serial.println("boy_out"); // Общая страховка
+          else if (level == 17) Serial.println("crime_end");
+          else Serial.println("boy_out");
         }
-        // КОНЕЦ
+
+        // СТРАХОВКА: Если пришел лог о вставке мальчика, но команда потерялась
+        if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Sent boy_in_lesson") != -1) {
+           Serial.println("log:main:Insurance triggered for boy_in_lesson");
+           delay(10);
+           Serial.println("boy_in_lesson");
+        }
+        // Страховка для возврата мальчика в игре (Level 19)
+        if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Boy returned") != -1) {
+           Serial.println("log:main:Insurance triggered for boy_in_game");
+           delay(10);
+           Serial.println("boy_in_game");
+        }
 
         if (serial2Buffer == "help") {
           HelpHandler("troll");
@@ -1209,7 +1220,7 @@ void HelpHandler(String from) {
     professorButton.tick();
     witchButton.tick();
 
-    // [FIX] ВЕЗДЕ: flagSound = 0 перенесен внутрь успешной отправки
+    // ВЕЗДЕ: flagSound = 0 перенесен внутрь успешной отправки
 
     // Дракон
     if (dragonButton.isPress()) {
@@ -1292,7 +1303,7 @@ void HelpHandler(String from) {
           Serial.println(professorHints[6]);
         }
         sent = true;
-      } else if (level > 7) { // [FIX] level > 7 тоже говорит финальную фразу
+      } else if (level > 7) { // level > 7 тоже говорит финальную фразу
         Serial.println(professorHints[6]);
         sent = true;
       }
@@ -1351,7 +1362,7 @@ void HelpHandler(String from) {
         witchCounter = (witchCounter == 1) ? 0 : 1;
         sent = true;
       }
-      // [FIX] Добавлено условие level > 7 для подсказки "Z"
+      // Добавлено условие level > 7 для подсказки "Z"
       if (isPotionEnd || level > 7) {
         Serial.println(witchHints[2]);
         sent = true;
@@ -1367,7 +1378,7 @@ void HelpHandler(String from) {
         dwarfCounter = (dwarfCounter == 1) ? 0 : 1;
         sent = true;
       }
-      // [FIX] Добавлено условие level > 7
+      // Добавлено условие level > 7
       if (isOwlEnd || level > 7) {
         Serial.println(dwarfHints[2]);
         sent = true;
@@ -1383,7 +1394,7 @@ void HelpHandler(String from) {
         knightCounter = (knightCounter == 1) ? 0 : 1;
         sent = true;
       }
-      // [FIX] Добавлено условие level > 7
+      // Добавлено условие level > 7
       if (isDogEnd || level > 7) {
         Serial.println(knightHints[2]);
         sent = true;
@@ -1399,7 +1410,7 @@ void HelpHandler(String from) {
         trollCounter = (trollCounter == 1) ? 0 : 1;
         sent = true;
       }
-      // [FIX] Добавлено условие level > 7
+      // Добавлено условие level > 7
       if (isTrollEnd || level > 7) {
         Serial.println(trollHints[2]);
         sent = true;
@@ -1434,7 +1445,7 @@ void StartDoor() {
   
   startDoor.tick();
   
-  // [FIX] Объединили логику в один блок проверки
+  // Объединили логику в один блок проверки
   if (startDoor.isRelease() && !doorOpened) {
     Serial.println("open_door");
     digitalWrite(HallLight, HIGH);
@@ -2060,7 +2071,7 @@ void MapGame() {
     if (buff.length() > 0) Serial.println(buff);
 
     // -----------------------------------------------------------
-    // [FIX] НАДЕЖНАЯ ОБРАБОТКА КОМАНД (через indexOf)
+    //  НАДЕЖНАЯ ОБРАБОТКА КОМАНД (через indexOf)
     // Работает и для чистых команд, и если они склеились с логом
     // -----------------------------------------------------------
 
