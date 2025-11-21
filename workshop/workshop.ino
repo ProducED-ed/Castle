@@ -245,22 +245,22 @@ void loop() {
 
   galetButton.tick();
   if (galetButton.isPress()) {
-    Serial1.println("workshop_galet_on");
-    sendLog("Galet sensor activated (workshop_galet_on).");
+    Serial1.println("galet_on");
+    sendLog("Galet sensor activated (galet_on).");
   }
   if (galetButton.isRelease()) {
-    Serial1.println("workshop_galet_off");
-    sendLog("Galet sensor deactivated (workshop_galet_off).");
+    Serial1.println("galet_off");
+    sendLog("Galet sensor deactivated (galet_off).");
   }
 
   flagButton.tick();
   if (flagButton.isPress()) {
-    Serial1.println("workshop_flag1_on");
-    sendLog("Flag sensor activated (workshop_flag1_on).");
+    Serial1.println("flag1_on");
+    sendLog("Flag sensor activated (flag1_on).");
   }
   if (flagButton.isRelease()) {
-    Serial1.println("workshop_flag1_off");
-    sendLog("Flag sensor deactivated (workshop_flag1_off).");
+    Serial1.println("flag1_off");
+    sendLog("Flag sensor deactivated (flag1_off).");
   }
 
   if (hintButt.isPress()) {
