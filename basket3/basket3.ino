@@ -385,13 +385,16 @@ void BasketLesson(){
        currentBoyState = reading;
        if (currentBoyState == LOW) { // PRESSED
           sendLog("BoyButton PRESSED");
-          if (!lessonIsStarted) {
+          
+          
+             delay(50); // Пауза перед отправкой команды
              Serial1.println("boy_in_lesson");
+             
+             delay(50); // Пауза перед отправкой лога
              sendLog("Sent boy_in_lesson");
+             
              delay(100);
-          } else {
-             sendLog("Blocked (lessonIsStarted=1)");
-          }
+          
        }
        if (currentBoyState == HIGH) { // RELEASED
           if (!lessonIsStarted) {
