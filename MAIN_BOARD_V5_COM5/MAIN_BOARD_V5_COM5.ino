@@ -518,6 +518,11 @@ void handleUfBlinking() {
 
 ///////////////////////////////48 свободный
 void setup() {
+  // ДОБАВЛЕНО: Лог о начале загрузки
+  Serial.begin(115200); // Начинаем серийный порт как можно раньше
+  Serial.println("log:main:Booting up...");
+  delay(20); // Небольшая задержка, чтобы лог успел уйти
+  // КОНЕЦ
   pinMode(firstCrystal, INPUT_PULLUP);
   pinMode(secondCrystal, INPUT_PULLUP);
   pinMode(thirdCrystal, INPUT_PULLUP);
@@ -729,6 +734,11 @@ void loop() {
     }
   }
   if (level != previousLevel) {
+        // ДОБАВЛЕНО: Логирование смены состояния
+        Serial.print("log:main:State changed to ");
+        Serial.println(level);
+        delay(10); // ДОБАВЛЕНО: Задержка между логом и командой
+        // КОНЕЦ
     Serial.print("level_"); // Отправляем префикс
     Serial.println(level);  // Отправляем номер нового уровня
     previousLevel = level;  // Обновляем "предыдущий" уровень
@@ -912,6 +922,14 @@ void PowerOn() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
+    // ДОБАВЛЕНО: Логирование входящей команды от сервера
+    if (buff.length() > 0) {
+      Serial.print("log:main:PowerOn: Received command: ");
+      Serial.println(buff);
+      delay(10); // Задержка для разделения лога и возможной пересылки
+    }
+    // КОНЕЦ
+
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
       Serial1.println("restart");
@@ -1032,6 +1050,14 @@ void HelpTowersHandler() {
         
         Serial.println(serial1Buffer); // Пересылаем ВСЕ сообщения на сервер
 
+        // ДОБАВЛЕНО: Страховка на случай потери команды story_35
+        if (serial1Buffer.startsWith("log:") && serial1Buffer.indexOf("workshop_complete") != -1) {
+          Serial.println("log:main:Insurance triggered for workshop_complete from workshop");
+          delay(10);
+          Serial.println("story_35");
+        }
+        // КОНЕЦ
+
         // Обрабатываем специфичные команды, как и раньше
         if (serial1Buffer.indexOf("fire1") != -1) {
           Serial.println("fire1");
@@ -1085,6 +1111,19 @@ void HelpTowersHandler() {
       serial2Buffer.trim();
       if (serial2Buffer.length() > 0) {
         Serial.println(serial2Buffer); // Пересылаем ВСЕ
+
+        // ДОБАВЛЕНО: Страховка на случай потери команды boy_out
+        if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Boy removed") != -1) {
+          Serial.println("log:main:Insurance triggered for boy_out from basket3");
+          delay(10);
+          // Определяем, какую именно команду дублировать в зависимости от уровня
+          if (level == 18) Serial.println("boy_out_lesson");
+          else if (level == 19) Serial.println("boy_out_game");
+          else if (level == 17) Serial.println("crime_end"); // Страховка для тюрьмы
+          else Serial.println("boy_out"); // Общая страховка
+        }
+        // КОНЕЦ
+
         if (serial2Buffer == "help") {
           HelpHandler("troll");
         }
@@ -1120,6 +1159,14 @@ void HelpTowersHandler() {
       if (mySerialBuffer.length() > 0) {
         
         Serial.println(mySerialBuffer); // Пересылаем ВСЕ сообщения на сервер
+
+        // ДОБАВЛЕНО: Страховка на случай потери команды owl_end
+        if (mySerialBuffer.startsWith("log:") && mySerialBuffer.indexOf("owls_complete") != -1) {
+          Serial.println("log:main:Insurance triggered for owls_complete from owls");
+          delay(10);
+          Serial.println("owl_end");
+        }
+        // КОНЕЦ
         
         // Дублируем логику пересылки из MapGame(),
         // чтобы 'light' и 'dark' всегда доставлялись башням,
@@ -5802,6 +5849,14 @@ void RestOn() {
     
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+
+    // ДОБАВЛЕНО: Логирование входящей команды от сервера
+    if (buff.length() > 0) {
+      Serial.print("log:main:RestOn: Received command: ");
+      Serial.println(buff);
+      delay(10); // Задержка для разделения лога и возможной пересылки
+    }
+    // КОНЕЦ
 
     if (buff.indexOf("restart") != -1) {
       Serial1.println("restart"); delay(20);

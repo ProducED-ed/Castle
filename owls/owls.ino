@@ -296,14 +296,14 @@ void CheckState() {
   // Проверяем состояние геркона "лодка" (pin 30)
   if (!digitalRead(30)) { // Если геркон активен (LOW)
     if (!_restartGalet) {    // И если мы еще не отправляли сообщение
-      Serial1.println("galet_on");
-      sendLog("Boat sensor activated (galet_on).");
+      Serial1.println("owls_galet_on");
+      sendLog("Boat sensor activated (owls_galet_on).");
       _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
     }
   } else {                   // Если геркон неактивен (HIGH)
     if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
-      Serial1.println("galet_off");
-      sendLog("Boat sensor deactivated (galet_off).");
+      Serial1.println("owls_galet_off");
+      sendLog("Boat sensor deactivated (owls_galet_off).");
       _restartGalet = 0;    // Сбрасываем флаг
     }
   }
@@ -312,14 +312,14 @@ void CheckState() {
   // Судя по handleFlagSensorSimple, HIGH - это "on", LOW - "off"
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
     if (!_restartFlag) {    // И если мы еще не отправляли сообщение
-      Serial1.println("flag4_on");
-      sendLog("Flag sensor activated (flag4_on).");
+      Serial1.println("owls_flag4_on");
+      sendLog("Flag sensor activated (owls_flag4_on).");
       _restartFlag = 1;     // Устанавливаем флаг
     }
   } else {                  // Если флага нет (LOW)
     if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
-      Serial1.println("flag4_off");
-      sendLog("Flag sensor deactivated (flag4_off).");
+      Serial1.println("owls_flag4_off");
+      sendLog("Flag sensor deactivated (owls_flag4_off).");
       _restartFlag = 0;   // Сбрасываем флаг
     }
   }
@@ -452,6 +452,10 @@ void handleTileLeds() {
   // ПРОВЕРКА ВСЕХ ПЛИТОК И ЗАПУСК РАДУГИ
   if (owl == 4 && !rainbowActive) {
     //delay(1000);
+    // ИЗМЕНЕНО: Добавлено логирование перед командой
+    sendLog("All tiles solved. Sending owl_end command. owls_complete");
+    delay(10);
+    // КОНЕЦ
     Serial1.println("owl_end");
     sendLog("All tiles solved (owl_end).");
     owl++;
@@ -607,6 +611,13 @@ void setup() {
 
 
 void loop() {
+  static int previousState = -1;
+  if (state != previousState) {
+    String logMsg = "State changed to " + String(state);
+    sendLog(logMsg);
+    previousState = state;
+  }
+
   // Главный state machine
   if (fireworkActive) {
     handleFirework();

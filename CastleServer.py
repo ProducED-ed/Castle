@@ -3416,6 +3416,25 @@ def check_story_and_fade_up():
 
 #здесь уже обрабатываем все сообщения приходящие из меги и отображаем на пульте        
 def serial():
+     # --- ИЗМЕНЕНО: Обработка уникальных flag-команд ---
+     flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
+     flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
+
+     if flag in flag_on_commands:
+         # flag.replace('_on', '') -> "workshop_flag1"
+         base_command = flag.replace('_on', '')
+         socketio.emit('level', f'{base_command}_on', to=None)
+         if f'{base_command}_on' not in socklist: socklist.append(f'{base_command}_on')
+         if f'{base_command}_off' in socklist: socklist.remove(f'{base_command}_off')
+         logging.debug(f"Processed {flag}")
+
+     if flag in flag_off_commands:
+         base_command = flag.replace('_off', '')
+         socketio.emit('level', f'{base_command}_off', to=None)
+         if f'{base_command}_off' not in socklist: socklist.append(f'{base_command}_off')
+         if f'{base_command}_on' in socklist: socklist.remove(f'{base_command}_on')
+         logging.debug(f"Processed {flag}")
+     # --- КОНЕЦ ИЗМЕНЕНИЯ ---
      global flag 
      global mus
      global mansard_galets, last_mansard_count
@@ -3689,63 +3708,7 @@ def serial():
                #---режим для событий в ресте показывает что нужно вернуть на свои места
                if starts == 2 or starts == 0 or starts == 3:
                      
-                     if flag=="flag1_on":
-                          while 'flag1_off' in socklist:
-                                   socklist.remove('flag1_off')
-                          socketio.emit('level', 'flag1_on',to=None)
-                          socklist.append('flag1_on')
-                          #if 'Check Flags' not in devices:
-                          #  devices.append('Check Flags')
-                     if flag=="flag1_off":
-                          #if 'Check Flags' in devices:
-                          #         devices.remove('Check Flags')
-                          while 'flag1_on' in socklist:
-                                   socklist.remove('flag1_on')
-                          socketio.emit('level', 'flag1_off',to=None)
-                          socklist.append('flag1_off')
-                     if flag=="flag2_on":
-                          while 'flag2_off' in socklist:
-                                   socklist.remove('flag2_off')
-                          socketio.emit('level', 'flag2_on',to=None)
-                          socklist.append('flag2_on')
-                          #if 'Check Flags' not in devices:
-                          #  devices.append('Check Flags')
-                     if flag=="flag2_off":
-                          #if 'Check Flags' in devices:
-                          #         devices.remove('Check Flags')
-                          while 'flag2_on' in socklist:
-                                   socklist.remove('flag2_on')
-                          socketio.emit('level', 'flag2_off',to=None)
-                          socklist.append('flag2_off') 
 
-                     if flag=="flag3_on":
-                          while 'flag3_off' in socklist:
-                                   socklist.remove('flag3_off')
-                          socketio.emit('level', 'flag3_on',to=None)
-                          socklist.append('flag3_on')
-                          #if 'Check Flags' not in devices:
-                          #  devices.append('Check Flags')
-                     if flag=="flag3_off":
-                          #if 'Check Flags' in devices:
-                          #         devices.remove('Check Flags')
-                          while 'flag3_on' in socklist:
-                                   socklist.remove('flag3_on')
-                          socketio.emit('level', 'flag3_off',to=None)
-                          socklist.append('flag3_off') 
-                     if flag=="flag4_on":
-                          while 'flag4_off' in socklist:
-                                   socklist.remove('flag4_off')
-                          socketio.emit('level', 'flag4_on',to=None)
-                          socklist.append('flag4_on')
-                          #if 'Check Flags' not in devices:
-                          #  devices.append('Check Flags')
-                     if flag=="flag4_off":
-                          #if 'Check Flags' in devices:
-                          #         devices.remove('Check Flags')
-                          while 'flag4_on' in socklist:
-                                   socklist.remove('flag4_on')
-                          socketio.emit('level', 'flag4_off',to=None)
-                          socklist.append('flag4_off') 
                      if "flag1_on" in socklist or "flag2_on" in socklist or "flag3_on" in socklist or "flag4_on" in socklist:
                         print('Check Flags Add') 
                         if 'Check Flags' not in devices:
@@ -3769,20 +3732,35 @@ def serial():
                                    socklist.remove('open_door')
                           socketio.emit('level', 'close_door',to=None)
                           socklist.append('close_door')   
-                     if flag=="galet_on":
-                          if 'Check Galet' not in devices:
-                            devices.append('Check Galet')
-                          if 'galet_off' in socklist:
-                                   socklist.remove('galet_off')
-                          socketio.emit('level', 'galet_on',to=None)
-                          socklist.append('galet_on')
-                     if flag=="galet_off":
-                          if 'Check Galet' in devices:
-                                   devices.remove('Check Galet')
-                          if 'galet_on' in socklist:
-                                   socklist.remove('galet_on')
-                          socketio.emit('level', 'galet_off',to=None)
-                          socklist.append('galet_off')  
+                     # --- ВОССТАНОВЛЕНО: Обработка flag2 ---
+                     if flag=="flag2_on":
+                          while 'flag2_off' in socklist:
+                                   socklist.remove('flag2_off')
+                          socketio.emit('level', 'flag2_on',to=None)
+                          socklist.append('flag2_on')
+                     if flag=="flag2_off":
+                          while 'flag2_on' in socklist:
+                                   socklist.remove('flag2_on')
+                          socketio.emit('level', 'flag2_off',to=None)
+                          socklist.append('flag2_off')
+                     # --- КОНЕЦ ---
+                     # --- ИЗМЕНЕНО: Обработка уникальных galet-команд ---
+                     if flag in ["workshop_galet_on", "owls_galet_on", "dog_galet_on"]:
+                         tower_name = flag.split('_')[0] # "workshop", "owls", или "dog"
+                         # Общая логика для UI (если нужна)
+                         socketio.emit('level', f'{tower_name}_galet_on', to=None)
+                         if f'{tower_name}_galet_on' not in socklist: socklist.append(f'{tower_name}_galet_on')
+                         if f'{tower_name}_galet_off' in socklist: socklist.remove(f'{tower_name}_galet_off')
+                         # Добавляем в логгер для диагностики
+                         logging.debug(f"Processed {flag}")
+
+                     if flag in ["workshop_galet_off", "owls_galet_off", "dog_galet_off"]:
+                         tower_name = flag.split('_')[0]
+                         socketio.emit('level', f'{tower_name}_galet_off', to=None)
+                         if f'{tower_name}_galet_off' not in socklist: socklist.append(f'{tower_name}_galet_off')
+                         if f'{tower_name}_galet_on' in socklist: socklist.remove(f'{tower_name}_galet_on')
+                         logging.debug(f"Processed {flag}")
+                     # --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
                      if flag=="cristal_up":
                           if 'Check Crystals' not in devices:

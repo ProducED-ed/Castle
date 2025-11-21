@@ -89,6 +89,13 @@ void setup() {
 }
 
 void loop() {
+  static int previousState = -1;
+  if (state != previousState) {
+    String logMsg = "State changed to " + String(state);
+    sendLog(logMsg);
+    previousState = state;
+  }
+
   switch (state) {
     case 0:
       while (Serial1.available()) { 
@@ -169,6 +176,10 @@ void HandleMessagges(String message) {
   // --- ВАШИ ФИКСЫ (Оставляем) ---
   else if (message == "troll") {
     strip.clear(); strip.show();
+    // ИЗМЕНЕНО: Добавлено логирование перед командой
+    sendLog("Troll game SKIPPED. Sending cave_end command. troll_complete");
+    delay(10);
+    // КОНЕЦ
     Serial1.println("cave_end"); 
     sendLog("Skipping Troll -> State 4");
     strip.setPixelColor(2, strip.Color(0, 0, 255)); strip.show();
@@ -186,8 +197,14 @@ void HandleMessagges(String message) {
      if (state < 1) state = 1;
   }
 
-  if(message == "day_on") digitalWrite(trollLed, HIGH);
-  if(message == "day_off") digitalWrite(trollLed, LOW);
+  if(message == "troll_light_on") {
+    digitalWrite(trollLed, HIGH);
+    sendLog("trollLed ON");
+  }
+  if(message == "troll_light_off") {
+    digitalWrite(trollLed, LOW);
+    sendLog("trollLed OFF");
+  }
   if(message == "open_door") OpenLock(SHERIF_EM2);
   if(message == "opent_basket") OpenLock(SHERIF_EM2);
   // if(message == "open_mine_door") OpenLock(SHERIF_EM1); // Дубликат удален
@@ -305,6 +322,10 @@ void _Troll_4() {
   if (butt8.isRelease()){ strip.clear(); strip.show(); }
   if (butt6.isPress()) {
     trollSequence++; strip.clear(); strip.show();
+    // ИЗМЕНЕНО: Добавлено логирование перед командой
+    sendLog("Troll game finished. Sending cave_end command. troll_complete");
+    delay(10);
+    // КОНЕЦ
     Serial1.println("cave_end");
     strip.setPixelColor(2, strip.Color(0, 0, 255)); strip.show();
     state++;
@@ -371,7 +392,8 @@ void BasketLesson(){
        if (currentBoyState == HIGH) { // RELEASED
           if (!lessonIsStarted) {
              Serial1.println("boy_out_lesson");
-             sendLog("Sent boy_out_lesson");
+             // ИЗМЕНЕНО: Добавлен текст "Boy removed" для срабатывания страховки
+             sendLog("Lesson: Boy removed.");
              delay(100);
           }
        }
@@ -457,6 +479,7 @@ void Basket(){
         if (_startBasket) digitalWrite(basketLed, HIGH);
      } else {
         Serial1.println("boy_out_game");
+        // ИЗМЕНЕНО: Добавлен текст "Boy removed" для срабатывания страховки
         sendLog("Basket: Boy removed (Pause).");
         digitalWrite(basketLed, LOW);
         _startBasket = 0; 

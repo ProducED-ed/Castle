@@ -229,6 +229,13 @@ void setup() {
 }
 
 void loop() {
+  static int previousState = -1;
+  if (state != previousState) {
+    String logMsg = "State changed to " + String(state);
+    sendLog(logMsg);
+    previousState = state;
+  }
+
   butt1.tick();
   hintButt.tick();
   workbenchButt1.tick();
@@ -238,22 +245,22 @@ void loop() {
 
   galetButton.tick();
   if (galetButton.isPress()) {
-    Serial1.println("galet_on");
-    sendLog("Galet sensor activated (galet_on).");
+    Serial1.println("workshop_galet_on");
+    sendLog("Galet sensor activated (workshop_galet_on).");
   }
   if (galetButton.isRelease()) {
-    Serial1.println("galet_off");
-    sendLog("Galet sensor deactivated (galet_off).");
+    Serial1.println("workshop_galet_off");
+    sendLog("Galet sensor deactivated (workshop_galet_off).");
   }
 
   flagButton.tick();
   if (flagButton.isPress()) {
-    Serial1.println("flag1_on");
-    sendLog("Flag sensor activated (flag1_on).");
+    Serial1.println("workshop_flag1_on");
+    sendLog("Flag sensor activated (workshop_flag1_on).");
   }
   if (flagButton.isRelease()) {
-    Serial1.println("flag1_off");
-    sendLog("Flag sensor deactivated (flag1_off).");
+    Serial1.println("workshop_flag1_off");
+    sendLog("Flag sensor deactivated (workshop_flag1_off).");
   }
 
   if (hintButt.isPress()) {
@@ -645,6 +652,10 @@ void checkGameEnd() {
   if (helmetServoActivated && broomServoActivated && !gameEnded) {
     digitalWrite(LED_FLOOR1_PIN, LOW);
     delay(500);
+    // ИЗМЕНЕНО: Добавлено логирование перед командой
+    sendLog("Workshop game finished. Sending story_35. workshop_complete");
+    delay(10);
+    // КОНЕЦ
     Serial1.println("story_35");
     sendLog("Game finished (story_35).");
     gameEnded = true;
