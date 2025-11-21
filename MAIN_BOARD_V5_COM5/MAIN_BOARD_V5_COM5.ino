@@ -3150,19 +3150,16 @@ void Basket() {
     } else if (buf == "boy_out_game") {
       snitchFlag = 1; // 1 = Анимация ВЫКЛ
       // Принудительно останавливаем празднование гола (Зеленую волну)
-      if (discoBallsActive) {
-         discoBallsActive = false;
-         digitalWrite(Fireworks, LOW); // Выключаем реле
-         // Очищаем ленту от зеленого цвета
-         strip1.clear(); 
-         strip2.clear();
-      }
-      // ---------------------------------------------------------------
-      enemyFlag = 0; // Сбрасываем атаку бота, если она шла
+      discoBallsActive = false;
+      digitalWrite(Fireworks, LOW);
+      
+      // Важно: сбросить фазу волны, если она есть в глобальных переменных, но здесь достаточно очистки:
       strip1.clear(); 
       strip2.clear();
       strip1.show();
       strip2.show();
+      // ---------------------------------------------------------------
+      enemyFlag = 0; // Сбрасываем атаку бота, если она шла
       Serial.println("boy_out_game");
 
     } else if (buf == "fr71nmr") {
@@ -3558,9 +3555,17 @@ void CentralTowerGame() {
 
     if (buff == "door_top") {
       Serial1.println("day_on");
-      // ... (остальной код door_top) ...
       OpenLock(HightTowerDoor2);
       digitalWrite(LastTowerTopLight, HIGH);
+      digitalWrite(MansardLight, HIGH);
+      digitalWrite(BankRoomLight, HIGH);
+      digitalWrite(HallLight, HIGH);
+      digitalWrite(UfHallLight, HIGH); // Если нужно
+      digitalWrite(LibraryLight, HIGH);
+      for (int i = 0; i <= 12; i++) {
+          CauldronRoomStrip.setPixelColor(i, CauldronRoomStrip.Color(255, 197, 143));
+      }
+      CauldronRoomStrip.show();
       flag = 0;
     }
     if (buff == "cup") {
