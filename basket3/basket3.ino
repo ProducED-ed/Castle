@@ -420,7 +420,13 @@ void BasketLesson(){
   while (Serial1.available()) {
     String buff = Serial1.readStringUntil('\n'); buff.trim();
     if (buff == "start_basket"){ digitalWrite(basketLed, HIGH); lessonIsStarted = 1; sendLog("Start Basket"); }
-    else if (buff == "start_lesson") { lessonIsStarted = 1; sendLog("Start Lesson (Arm)"); }
+    else if (buff == "start_lesson") { lessonIsStarted = 1; sendLog("Start Lesson (Arm)");
+    if (digitalRead(28) == LOW) { // Если мальчик уже стоит
+           Serial1.println("boy_in_lesson");
+           sendLog("Force sent: boy_in_lesson");
+           delay(50);
+       }
+       }
     else if (buff == "restart") { HandleMessagges("restart"); }
     else if (buff == "win"){
       SCORE_MAN=3; OUTPUT_TO_DISPLAY(); delay(2000); PRINT_SCORE_ROBOT(); delay(1000); PRINT_SCORE_MAN();
