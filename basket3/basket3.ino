@@ -154,6 +154,10 @@ void HandleMessagges(String message) {
       trollSequence = 0;
       score = 0;
       _startBasket=0;
+      isTrollFixed = 0; 
+      isLoose = 0;
+      light = 0;
+      upHelp = 0;
       disp.clear(); strip.clear(); strip.show(); disp.point(0);
       _restartGalet = 0;
       _restartFlag = 0;
