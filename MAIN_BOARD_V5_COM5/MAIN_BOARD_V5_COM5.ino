@@ -931,8 +931,11 @@ void PowerOn() {
        galet3Event = 0; galet4Event = 0; galet5Event = 0; sealEvent = 0;
        sealSpaceEvent = 0; finalEvent = 0; bugTimerScroll = 0;
        
-       Serial1.println("ready"); Serial2.println("ready");
-       Serial3.println("ready"); mySerial.println("ready");
+       Serial1.println("ready"); delay(20);
+       Serial2.println("ready"); delay(20);
+       Serial3.println("ready"); delay(20);
+       mySerial.println("ready"); delay(50);
+       mySerial.println("ready"); // Дубль для Сов
 
        if (digitalRead(startDoorPin)) Serial.println("open_door");
        if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
@@ -5826,8 +5829,11 @@ void RestOn() {
        bugTimerScroll = 0;
        for (int i = 0; i < DOORS; i++) active[i] = false;
 
-       Serial1.println("ready"); Serial2.println("ready");
-       Serial3.println("ready"); mySerial.println("ready");
+       Serial1.println("ready"); delay(20);
+       Serial2.println("ready"); delay(20);
+       Serial3.println("ready"); delay(20);
+       mySerial.println("ready"); delay(50);
+       mySerial.println("ready");
 
        if (digitalRead(startDoorPin)) Serial.println("open_door");
        if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
