@@ -53,10 +53,10 @@ const char MSG_READY[] PROGMEM = "ready";      // Novoe soobshchenie ready
 const char MSG_DOG_NRD[] PROGMEM = "dog_nrd";  // Novoe soobshchenie dog_nrd
 
 // Dobavlennye UART soobshcheniya
-const char MSG_ROSE[] PROGMEM = "dog_galet_on";
-const char MSG_NROSE[] PROGMEM = "dog_galet_off";
-const char MSG_FLAG2[] PROGMEM = "dog_flag3_off";
-const char MSG_NFLAG2[] PROGMEM = "dog_flag3_on";
+const char MSG_ROSE[] PROGMEM = "galet_on";
+const char MSG_NROSE[] PROGMEM = "galet_off";
+const char MSG_FLAG2[] PROGMEM = "flag3_off";
+const char MSG_NFLAG2[] PROGMEM = "flag3_on";
 const char MSG_OWL_DWARF[] PROGMEM = "light_on";
 const char MSG_NOWL_DWARF[] PROGMEM = "light_off";
 
