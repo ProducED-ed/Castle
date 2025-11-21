@@ -232,21 +232,15 @@ void GhostSendData() {
   }
 }
 
-void sendLogToServer(String message) {
+void sendLogToServer(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin("http://192.168.0.100:3000/api/log");
     http.addHeader("Content-Type", "application/json");
 
-    String payload = "{\"device\":\"wolf\", \"message\":\"" + message + "\"}";
-
     int httpCode = http.POST(payload);
 
-    if (httpCode > 0) {
-      // String response = http.getString();
-      // Serial.println("Log sent, code: " + String(httpCode));
-      // Serial.println(response);
-    } else {
+    if (httpCode < 0) {
       Serial.println("Error sending log, code: " + String(httpCode));
     }
 
@@ -364,6 +358,7 @@ void setup() {
         state = 1;
         doorRepeatActive = false;
         myMP3.playMp3Folder(TRACK_FON_WOLF);
+        sendLogToServer("{\"log\":\"Wolf: Playing Fon Wolf sound\"}");
         lightCircut1 = 0;
         storyFlag1 = 0;
         lightCircut2 = 0;
@@ -491,18 +486,30 @@ void setup() {
         fill_solid(threeLed, 10, CRGB(255, 255, 255));
         FastLED.show();
         delay(50);
-        if (language == 1)
+        if (language == 1) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
-        if (language == 2)
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (RU)\"}");
+        }
+        if (language == 2) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
-        if (language == 3)
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (EN)\"}");
+        }
+        if (language == 3) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
-        if (language == 4)
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (AR)\"}");
+        }
+        if (language == 4) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-        if (language == 5)
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (GE)\"}");
+        }
+        if (language == 5) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
-        if (language == 6)
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (SP)\"}");
+        }
+        if (language == 6) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (CH)\"}");
+        }
         OpenLock(SH1);
         doorRepeatActive = true;
         repeatDoorTimer = millis();
@@ -534,6 +541,7 @@ void setup() {
         delay(50);
         myMP3.disableLoop();               // Сначала выключаем повтор
         myMP3.playMp3Folder(TRACK_ghost);  // Запускаем трек
+        sendLogToServer("{\"log\":\"Wolf: Playing Ghost sound\"}");
         myMP3.enableLoop();                // Включаем повтор для текущего трек
         Serial.println(TRACK_ghost);
         ghostFlag = 1;
@@ -583,21 +591,27 @@ void loop() {
       delay(50);
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_HINT_0_RU);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (RU)\"}");
       }
       if (language == 2) {
         myMP3.playMp3Folder(TRACK_HINT_0_EN);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (EN)\"}");
       }
       if (language == 3) {
         myMP3.playMp3Folder(TRACK_HINT_0_AR);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (AR)\"}");
       }
       if (language == 4) {
         myMP3.playMp3Folder(TRACK_HINT_0_GE);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (GE)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_HINT_0_SP);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (SP)\"}");
       }
       if (language == 6) {
         myMP3.playMp3Folder(TRACK_HINT_0_CH);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (CH)\"}");
       }
       hintFlag = 0;
     }
@@ -609,105 +623,135 @@ void loop() {
         Serial.println("2");
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_1_RU);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_1_EN);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_1_AR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_1_GE);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_1_SP);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_1_CH);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (CH)\"}");
         }
       } 
       if(hint_counter == 1)
        {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_2_RU);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_2_EN);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_2_AR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_2_GE);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_2_SP);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_2_CH);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (CH)\"}");
         }
       }
       if(hint_counter == 2)
        {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_3_RU);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_3_EN);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_3_AR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_3_GE);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_3_SP);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_3_CH);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (CH)\"}");
         }
       }
       if(hint_counter == 3)
        {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_4_RU);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_4_EN);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_4_AR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_4_GE);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_4_SP);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_4_CH);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (CH)\"}");
         }
       }
       if(hint_counter == 4)
        {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_5_RU);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_5_EN);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_5_AR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_5_GE);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_5_SP);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_5_CH);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (CH)\"}");
         }
       }
       hint_counter++;
@@ -719,21 +763,27 @@ void loop() {
     if (state > 4 && hintFlag) {
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_HINT_6_RU);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (RU)\"}");
       }
       if (language == 2) {
         myMP3.playMp3Folder(TRACK_HINT_6_EN);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (EN)\"}");
       }
       if (language == 3) {
         myMP3.playMp3Folder(TRACK_HINT_6_AR);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (AR)\"}");
       }
       if (language == 4) {
         myMP3.playMp3Folder(TRACK_HINT_6_GE);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (GE)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_HINT_6_SP);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (SP)\"}");
       }
       if (language == 6) {
         myMP3.playMp3Folder(TRACK_HINT_6_CH);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (CH)\"}");
       }
       hintFlag = 0;
     }
@@ -826,18 +876,30 @@ void MoonGame() {
     if (!storyFlag1) {
       //myMP3.pause(); // Ставим фоновую музыку на паузу
       delay(150);
-      if (language == 1)
+      if (language == 1) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_RU);
-      if (language == 2)
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (RU)\"}");
+      }
+      if (language == 2) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_EN);
-      if (language == 3)
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (EN)\"}");
+      }
+      if (language == 3) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_AR);
-      if (language == 4)
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (AR)\"}");
+      }
+      if (language == 4) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_GE);
-      if (language == 5)
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (GE)\"}");
+      }
+      if (language == 5) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_SP);
-      if (language == 6)
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (SP)\"}");
+      }
+      if (language == 6) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_CH);
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (CH)\"}");
+      }
       storyFlag1 = 1;
     }
     state++;
@@ -940,7 +1002,10 @@ void LeftCloudGame() {
       CloudFlag = 1;
       Serial.println("оаоаоа");
       OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
-      if (!TRACK_Flag) myMP3.playMp3Folder(TRACK_CLOUD);
+      if (!TRACK_Flag) {
+        myMP3.playMp3Folder(TRACK_CLOUD);
+        sendLogToServer("{\"log\":\"Wolf: Playing Cloud sound\"}");
+      }
     }
   } else {
     CloudFlag = 0;
@@ -954,12 +1019,30 @@ void WolfGame() {
     Serial.println("Story B started");
     myMP3.stop();
     delay(50);
-    if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_B_RU);
-    if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_B_EN);
-    if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_B_AR);
-    if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_B_GE);
-    if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_B_SP);
-    if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_B_CH);
+    if (language == 1) {
+      myMP3.playMp3Folder(TRACK_STORY_9_B_RU);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (RU)\"}");
+    }
+    if (language == 2) {
+      myMP3.playMp3Folder(TRACK_STORY_9_B_EN);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (EN)\"}");
+    }
+    if (language == 3) {
+      myMP3.playMp3Folder(TRACK_STORY_9_B_AR);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (AR)\"}");
+    }
+    if (language == 4) {
+      myMP3.playMp3Folder(TRACK_STORY_9_B_GE);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (GE)\"}");
+    }
+    if (language == 5) {
+      myMP3.playMp3Folder(TRACK_STORY_9_B_SP);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (SP)\"}");
+    }
+    if (language == 6) {
+      myMP3.playMp3Folder(TRACK_STORY_9_B_CH);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (CH)\"}");
+    }
     
     TRACK_Flag = 0;
     cloudFiPlaying = true;
@@ -976,12 +1059,30 @@ void WolfGame() {
     delay(50);
     
     // Воспроизвести историю победы story_C
-    if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
-    if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
-    if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
-    if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-    if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
-    if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+    if (language == 1) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (RU)\"}");
+    }
+    if (language == 2) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (EN)\"}");
+    }
+    if (language == 3) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (AR)\"}");
+    }
+    if (language == 4) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (GE)\"}");
+    }
+    if (language == 5) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (SP)\"}");
+    }
+    if (language == 6) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (CH)\"}");
+    }
     
     state = 5; // Переходим в состояние отправки данных о победе 
     wolfEndSendTimer = millis(); // Готовимся к отправке
@@ -1019,12 +1120,30 @@ void WolfGame() {
     FastLED.show();
     myMP3.stop();
     delay(50);
-    if (language == 1) myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
-    if (language == 2) myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
-    if (language == 3) myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
-    if (language == 4) myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-    if (language == 5) myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
-    if (language == 6) myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+    if (language == 1) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_RU);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (RU)\"}");
+    }
+    if (language == 2) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_EN);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (EN)\"}");
+    }
+    if (language == 3) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_AR);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (AR)\"}");
+    }
+    if (language == 4) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (GE)\"}");
+    }
+    if (language == 5) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (SP)\"}");
+    }
+    if (language == 6) {
+      myMP3.playMp3Folder(TRACK_STORY_9_C_CH);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (CH)\"}");
+    }
 	state = 5; // Переходим в новое состояние отправки
     wolfEndSendTimer = millis(); // Готовимся к отправке
   }
@@ -1137,6 +1256,7 @@ void handlePlayerQueries() {
       if ((state >= 1 && state <= 4) && finishedTrack != TRACK_FON_WOLF) {
         if (!flagTrack) {
           myMP3.playMp3Folder(TRACK_FON_WOLF);
+          sendLogToServer("{\"log\":\"Wolf: Playing Fon Wolf sound\"}");
           trackTimer = millis();
           flagTrack = 1;
         }

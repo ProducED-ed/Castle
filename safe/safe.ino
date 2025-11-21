@@ -103,16 +103,12 @@ IPAddress local_IP(192, 168, 0, 204);
 const char* externalApi = "http://192.168.0.100:3000/api";
 
 WebServer server(80);
-void sendLogToServer(String message) {
+void sendLogToServer(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin("http://192.168.0.100:3000/api/log");
     http.addHeader("Content-Type", "application/json");
-
-    String payload = "{\"device\":\"safe\", \"message\":\"" + message + "\"}";
-
     int httpCode = http.POST(payload);
-
     http.end();
   }
 }
@@ -203,6 +199,7 @@ void setup() {
         currentState = GAME_ACTIVE;
      
         myDFPlayer.playMp3Folder(TRACK_FON_SAFE);
+        sendLogToServer("{\"log\":\"Safe: Playing Fon Safe sound\"}");
         Serial.println("Состояние: GAME_ACTIVE");
       }
       if(body == "\"skip\""){
@@ -309,21 +306,27 @@ void loop() {
         {
           if(language == 1){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_RU);
+            sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (RU)\"}");
           }
           if(language == 2){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_EN);
+            sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (EN)\"}");
           }
           if(language == 3){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_AR);
+            sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (AR)\"}");
           }
           if(language == 4){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_GE);
+            sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (GE)\"}");
           }
           if(language == 5){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_SP);
+            sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (SP)\"}");
           }
           if(language == 6){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_CH);
+            sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (CH)\"}");
           }
           hintFlag = 0;
         }
@@ -339,21 +342,27 @@ void loop() {
         hintFlag = 0;
         if(language == 1){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_RU);
+          sendLogToServer("{\"log\":\"Safe: Playing Story 28 (RU)\"}");
         }
         if(language == 2){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_EN);
+          sendLogToServer("{\"log\":\"Safe: Playing Story 28 (EN)\"}");
         }
         if(language == 3){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_AR);
+          sendLogToServer("{\"log\":\"Safe: Playing Story 28 (AR)\"}");
         }
         if(language == 4){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_GE);
+          sendLogToServer("{\"log\":\"Safe: Playing Story 28 (GE)\"}");
         }
         if(language == 5){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_SP);
+          sendLogToServer("{\"log\":\"Safe: Playing Story 28 (SP)\"}");
         }
         if(language == 6){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_CH);
+          sendLogToServer("{\"log\":\"Safe: Playing Story 28 (CH)\"}");
         }
         
         lastDebounceTime_1 = millis();
@@ -366,41 +375,53 @@ void loop() {
           if(hint_counter == 0) {
             if(language == 1){
               myDFPlayer.playMp3Folder(TRACK_HINT_1_RU);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 1 (RU)\"}");
             }
             if(language == 2){
               myDFPlayer.playMp3Folder(TRACK_HINT_1_EN);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 1 (EN)\"}");
             }
             if(language == 3){
               myDFPlayer.playMp3Folder(TRACK_HINT_1_AR);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 1 (AR)\"}");
             }
             if(language == 4){
               myDFPlayer.playMp3Folder(TRACK_HINT_1_GE);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 1 (GE)\"}");
             }
             if(language == 5){
               myDFPlayer.playMp3Folder(TRACK_HINT_1_SP);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 1 (SP)\"}");
             }
             if(language == 6){
               myDFPlayer.playMp3Folder(TRACK_HINT_1_CH);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 1 (CH)\"}");
             }
           }
           if(hint_counter == 1){
             if(language == 1){
               myDFPlayer.playMp3Folder(TRACK_HINT_2_RU);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 2 (RU)\"}");
             }
             if(language == 2){
               myDFPlayer.playMp3Folder(TRACK_HINT_2_EN);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 2 (EN)\"}");
             }
             if(language == 3){
               myDFPlayer.playMp3Folder(TRACK_HINT_2_AR);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 2 (AR)\"}");
             }
             if(language == 4){
               myDFPlayer.playMp3Folder(TRACK_HINT_2_GE);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 2 (GE)\"}");
             }
             if(language == 5){
               myDFPlayer.playMp3Folder(TRACK_HINT_2_SP);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 2 (SP)\"}");
             }
             if(language == 6){
               myDFPlayer.playMp3Folder(TRACK_HINT_2_CH);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 2 (CH)\"}");
             }
           }
           hintFlag = 0;
@@ -430,21 +451,27 @@ void loop() {
         if (hintFlag){
           if(language == 1){
               myDFPlayer.playMp3Folder(TRACK_HINT_3_RU);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (RU)\"}");
             }
             if(language == 2){
               myDFPlayer.playMp3Folder(TRACK_HINT_3_EN);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (EN)\"}");
             }
             if(language == 3){
               myDFPlayer.playMp3Folder(TRACK_HINT_3_AR);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (AR)\"}");
             }
             if(language == 4){
               myDFPlayer.playMp3Folder(TRACK_HINT_3_GE);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (GE)\"}");
             }
             if(language == 5){
               myDFPlayer.playMp3Folder(TRACK_HINT_3_SP);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (SP)\"}");
             }
             if(language == 6){
               myDFPlayer.playMp3Folder(TRACK_HINT_3_CH);
+              sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (CH)\"}");
             }
             hintFlag=0;
         } 
@@ -519,6 +546,7 @@ void handlePlayerQueries() {
       if (currentState == GAME_ACTIVE && finishedTrack != TRACK_FON_SAFE) {
         if(!flagTrack){
           myDFPlayer.playMp3Folder(TRACK_FON_SAFE);
+          sendLogToServer("{\"log\":\"Safe: Playing Fon Safe sound\"}");
           trackTimer = millis();
           flagTrack = 1;
         }
@@ -532,17 +560,18 @@ void handlePlayerQueries() {
         if (isTrack29A && gameWonSequenceStep == 1) {
           gameWonSequenceStep = 2;
           myDFPlayer.playMp3Folder(TRACK_SAFE_END);
+          sendLogToServer("{\"log\":\"Safe: Playing Safe End sound\"}");
         } 
         // Шаг 2 -> 3: Завершился TRACK_SAFE_END, открываем замок и запускаем TRACK_STORY_29B
         else if (finishedTrack == TRACK_SAFE_END && gameWonSequenceStep == 2) {
           gameWonSequenceStep = 3;
           openLocker();
-          if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU); }
-          if(language == 2){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN); }
-          if(language == 3){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_AR); }
-          if(language == 4){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_GE); }
-          if(language == 5){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_SP); }
-          if(language == 6){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_CH); }
+          if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (RU)\"}"); }
+          if(language == 2){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (EN)\"}"); }
+          if(language == 3){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_AR); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (AR)\"}"); }
+          if(language == 4){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_GE); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (GE)\"}"); }
+          if(language == 5){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_SP); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (SP)\"}"); }
+          if(language == 6){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_CH); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (CH)\"}"); }
           hintFlag = 0; // Запрещаем подсказки после этого момента
         } 
         // Шаг 3 -> 4: Завершился TRACK_STORY_29B, сцена окончена
@@ -570,12 +599,12 @@ void startGameWonSequence() {
   safeEndSendTimer = millis(); // Устанавливаем таймер для немедленной первой отправки
   
   // В зависимости от языка, запускаем нужный трек 29A
-  if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_RU); }
-  if(language == 2){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_EN); }
-  if(language == 3){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_AR); }
-  if(language == 4){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_GE); }
-  if(language == 5){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_SP); }
-  if(language == 6){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_CH); }
+  if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_RU); sendLogToServer("{\"log\":\"Safe: Playing Story 29A (RU)\"}"); }
+  if(language == 2){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_EN); sendLogToServer("{\"log\":\"Safe: Playing Story 29A (EN)\"}"); }
+  if(language == 3){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_AR); sendLogToServer("{\"log\":\"Safe: Playing Story 29A (AR)\"}"); }
+  if(language == 4){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_GE); sendLogToServer("{\"log\":\"Safe: Playing Story 29A (GE)\"}"); }
+  if(language == 5){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_SP); sendLogToServer("{\"log\":\"Safe: Playing Story 29A (SP)\"}"); }
+  if(language == 6){ myDFPlayer.playMp3Folder(TRACK_STORY_29A_CH); sendLogToServer("{\"log\":\"Safe: Playing Story 29A (CH)\"}"); }
 }
 
 void ledOn() {

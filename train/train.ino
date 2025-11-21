@@ -455,6 +455,7 @@ void setup() {
         myMP3.stop();
         delay(500);
         myMP3.playMp3Folder(TRACK_TRAIN);
+        SendData("{\"log\":\"Train: Playing Train sound\"}");
         currentTrainStage = 0; // Сброс этапа при старте
         for (int i = 0; i <= 8; i++) {
           ledMap[i] = CRGB(0, 0, 0);
@@ -579,6 +580,7 @@ void setup() {
 
       if (body == "\"projector\"") {
         myMP3.playMp3Folder(TRACK_TRAIN_ON);
+        SendData("{\"log\":\"Train: Playing Train On sound\"}");
         ActiveLeds[0] = 9;
         ClickLeds[0] = -1;
         isStartTrain = 1;
@@ -588,22 +590,35 @@ void setup() {
         myMP3.stop();
         delay(150);
         myMP3.playMp3Folder(TRACK_KNOCK);
+        SendData("{\"log\":\"Train: Playing Knock sound\"}");
         ghostIgnoreStartTime = millis();
       }
       if (body == "\"skip\"") {
         state = 3;
-        if (language == 1)
+        if (language == 1) {
           myMP3.playMp3Folder(TRACK_STORY_16_RU);
-        if (language == 2)
+          SendData("{\"log\":\"Train: Playing Story 16 (RU)\"}");
+        }
+        if (language == 2) {
           myMP3.playMp3Folder(TRACK_STORY_16_EN);
-        if (language == 3)
+          SendData("{\"log\":\"Train: Playing Story 16 (EN)\"}");
+        }
+        if (language == 3) {
           myMP3.playMp3Folder(TRACK_STORY_16_AR);
-        if (language == 4)
+          SendData("{\"log\":\"Train: Playing Story 16 (AR)\"}");
+        }
+        if (language == 4) {
           myMP3.playMp3Folder(TRACK_STORY_16_GE);
-        if (language == 5)
+          SendData("{\"log\":\"Train: Playing Story 16 (GE)\"}");
+        }
+        if (language == 5) {
           myMP3.playMp3Folder(TRACK_STORY_16_SP);
-        if (language == 6)
+          SendData("{\"log\":\"Train: Playing Story 16 (SP)\"}");
+        }
+        if (language == 6) {
           myMP3.playMp3Folder(TRACK_STORY_16_CH);
+          SendData("{\"log\":\"Train: Playing Story 16 (CH)\"}");
+        }
         ActiveLeds[13] = 22; // активируем тролля
       }
 
@@ -1039,6 +1054,7 @@ void setup() {
       }
       if (body == "\"train_on\"") {
         myMP3.playMp3Folder(TRACK_TRAIN);
+        SendData("{\"log\":\"Train: Playing Train sound\"}");
       }
       if (body == "\"item_find\"") {        
         // 1. Останавливаем пульсацию
@@ -1061,18 +1077,30 @@ void setup() {
         myMP3.stop(); // Останавливаем любой текущий звук
         delay(50);    // Даем плееру небольшую паузу
         
-        if (language == 1)
+        if (language == 1) {
           myMP3.playMp3Folder(TRACK_STORY_45_RU);
-        if (language == 2)
+          SendData("{\"log\":\"Train: Playing Story 45 (RU)\"}");
+        }
+        if (language == 2) {
           myMP3.playMp3Folder(TRACK_STORY_45_EN);
-        if (language == 3)
+          SendData("{\"log\":\"Train: Playing Story 45 (EN)\"}");
+        }
+        if (language == 3) {
           myMP3.playMp3Folder(TRACK_STORY_45_AR);
-        if (language == 4)
+          SendData("{\"log\":\"Train: Playing Story 45 (AR)\"}");
+        }
+        if (language == 4) {
           myMP3.playMp3Folder(TRACK_STORY_45_GE);
-        if (language == 5)
+          SendData("{\"log\":\"Train: Playing Story 45 (GE)\"}");
+        }
+        if (language == 5) {
           myMP3.playMp3Folder(TRACK_STORY_45_SP);
-        if (language == 6)
+          SendData("{\"log\":\"Train: Playing Story 45 (SP)\"}");
+        }
+        if (language == 6) {
           myMP3.playMp3Folder(TRACK_STORY_45_CH);
+          SendData("{\"log\":\"Train: Playing Story 45 (CH)\"}");
+        }
         // --- КОНЕЦ ДОБАВЛЕНИЯ ---
       }
 
@@ -1099,6 +1127,7 @@ void setup() {
         delay(50);
         myMP3.disableLoop();               // Сначала выключаем повтор
         myMP3.playMp3Folder(TRACK_GHOST);  // Запускаем трек
+        SendData("{\"log\":\"Train: Playing Ghost sound\"}");
         myMP3.enableLoop();                // Включаем повтор для текущего трека
         ghostFlag = 1;
         // Запускаем 3-секундный таймер игнорирования ЗДЕСЬ,
@@ -1197,21 +1226,27 @@ void loop() {
       delay(50);
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_HINT_0_RU);
+        SendData("{\"log\":\"Train: Playing Hint 0 (RU)\"}");
       }
       if (language == 2) {
         myMP3.playMp3Folder(TRACK_HINT_0_EN);
+        SendData("{\"log\":\"Train: Playing Hint 0 (EN)\"}");
       }
       if (language == 3) {
         myMP3.playMp3Folder(TRACK_HINT_0_AR);
+        SendData("{\"log\":\"Train: Playing Hint 0 (AR)\"}");
       }
       if (language == 4) {
         myMP3.playMp3Folder(TRACK_HINT_0_GE);
+        SendData("{\"log\":\"Train: Playing Hint 0 (GE)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_HINT_0_SP);
+        SendData("{\"log\":\"Train: Playing Hint 0 (SP)\"}");
       }
       if (language == 6) {
         myMP3.playMp3Folder(TRACK_HINT_0_CH);
+        SendData("{\"log\":\"Train: Playing Hint 0 (CH)\"}");
       }
       hintFlag = 0;
     }
@@ -1223,81 +1258,105 @@ void loop() {
       if (hint_counter == 0) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_1_RU);
+          SendData("{\"log\":\"Train: Playing Hint 1 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_1_EN);
+          SendData("{\"log\":\"Train: Playing Hint 1 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_1_AR);
+          SendData("{\"log\":\"Train: Playing Hint 1 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_1_GE);
+          SendData("{\"log\":\"Train: Playing Hint 1 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_1_SP);
+          SendData("{\"log\":\"Train: Playing Hint 1 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_1_CH);
+          SendData("{\"log\":\"Train: Playing Hint 1 (CH)\"}");
         }
       }
       if (hint_counter == 1) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_2_RU);
+          SendData("{\"log\":\"Train: Playing Hint 2 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_2_EN);
+          SendData("{\"log\":\"Train: Playing Hint 2 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_2_AR);
+          SendData("{\"log\":\"Train: Playing Hint 2 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_2_GE);
+          SendData("{\"log\":\"Train: Playing Hint 2 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_2_SP);
+          SendData("{\"log\":\"Train: Playing Hint 2 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_2_CH);
+          SendData("{\"log\":\"Train: Playing Hint 2 (CH)\"}");
         }
       }
       if (hint_counter == 2) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_3_RU);
+          SendData("{\"log\":\"Train: Playing Hint 3 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_3_EN);
+          SendData("{\"log\":\"Train: Playing Hint 3 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_3_AR);
+          SendData("{\"log\":\"Train: Playing Hint 3 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_3_GE);
+          SendData("{\"log\":\"Train: Playing Hint 3 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_3_SP);
+          SendData("{\"log\":\"Train: Playing Hint 3 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_3_CH);
+          SendData("{\"log\":\"Train: Playing Hint 3 (CH)\"}");
         }
       }
       if (hint_counter == 3) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_4_RU);
+          SendData("{\"log\":\"Train: Playing Hint 4 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_4_EN);
+          SendData("{\"log\":\"Train: Playing Hint 4 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_4_AR);
+          SendData("{\"log\":\"Train: Playing Hint 4 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_4_GE);
+          SendData("{\"log\":\"Train: Playing Hint 4 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_4_SP);
+          SendData("{\"log\":\"Train: Playing Hint 4 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_4_CH);
+          SendData("{\"log\":\"Train: Playing Hint 4 (CH)\"}");
         }
       }
       hintFlag = 0;
@@ -1309,21 +1368,27 @@ void loop() {
     else if (isTrollEnd && hintFlag) {
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_HINT_7_RU);
+        SendData("{\"log\":\"Train: Playing Hint 7 (RU)\"}");
       }
       if (language == 2) {
         myMP3.playMp3Folder(TRACK_HINT_7_EN);
+        SendData("{\"log\":\"Train: Playing Hint 7 (EN)\"}");
       }
       if (language == 3) {
         myMP3.playMp3Folder(TRACK_HINT_7_AR);
+        SendData("{\"log\":\"Train: Playing Hint 7 (AR)\"}");
       }
       if (language == 4) {
         myMP3.playMp3Folder(TRACK_HINT_7_GE);
+        SendData("{\"log\":\"Train: Playing Hint 7 (GE)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_HINT_7_SP);
+        SendData("{\"log\":\"Train: Playing Hint 7 (SP)\"}");
       }
       if (language == 6) {
         myMP3.playMp3Folder(TRACK_HINT_7_CH);
+        SendData("{\"log\":\"Train: Playing Hint 7 (CH)\"}");
       }
       hintFlag = 0;
     }
@@ -1331,41 +1396,53 @@ void loop() {
       if (hint_counter == 0) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_5_RU);
+          SendData("{\"log\":\"Train: Playing Hint 5 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_5_EN);
+          SendData("{\"log\":\"Train: Playing Hint 5 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_5_AR);
+          SendData("{\"log\":\"Train: Playing Hint 5 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_5_GE);
+          SendData("{\"log\":\"Train: Playing Hint 5 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_5_SP);
+          SendData("{\"log\":\"Train: Playing Hint 5 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_5_CH);
+          SendData("{\"log\":\"Train: Playing Hint 5 (CH)\"}");
         }
       }
       if (hint_counter == 1) {
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_HINT_6_RU);
+          SendData("{\"log\":\"Train: Playing Hint 6 (RU)\"}");
         }
         if (language == 2) {
           myMP3.playMp3Folder(TRACK_HINT_6_EN);
+          SendData("{\"log\":\"Train: Playing Hint 6 (EN)\"}");
         }
         if (language == 3) {
           myMP3.playMp3Folder(TRACK_HINT_6_AR);
+          SendData("{\"log\":\"Train: Playing Hint 6 (AR)\"}");
         }
         if (language == 4) {
           myMP3.playMp3Folder(TRACK_HINT_6_GE);
+          SendData("{\"log\":\"Train: Playing Hint 6 (GE)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_6_SP);
+          SendData("{\"log\":\"Train: Playing Hint 6 (SP)\"}");
         }
         if (language == 6) {
           myMP3.playMp3Folder(TRACK_HINT_6_CH);
+          SendData("{\"log\":\"Train: Playing Hint 6 (CH)\"}");
         }
       }
       hintFlag = 0;
@@ -1386,6 +1463,7 @@ void loop() {
         if (!INPUTS.digitalRead(1) && mapState == "train" && !isStartTrain) {
           Serial.println("trainclick");
           myMP3.playMp3Folder(TRACK_TRAIN_ON);
+          SendData("{\"log\":\"Train: Playing Train On sound\"}");
           SendData("{\"projector\":\"end\"}");
           ActiveLeds[0] = 9;
           ClickLeds[0] = -1;
@@ -1770,18 +1848,30 @@ void TrainGame() {
     if (millis() - checkTrainTimer >= 500) {
       state++;
       SendData("{\"train\":\"end\"}");
-      if (language == 1)
+      if (language == 1) {
         myMP3.playMp3Folder(TRACK_STORY_16_RU);
-      if (language == 2)
+        SendData("{\"log\":\"Train: Playing Story 16 (RU)\"}");
+      }
+      if (language == 2) {
         myMP3.playMp3Folder(TRACK_STORY_16_EN);
-      if (language == 3)
+        SendData("{\"log\":\"Train: Playing Story 16 (EN)\"}");
+      }
+      if (language == 3) {
         myMP3.playMp3Folder(TRACK_STORY_16_AR);
-      if (language == 4)
+        SendData("{\"log\":\"Train: Playing Story 16 (AR)\"}");
+      }
+      if (language == 4) {
         myMP3.playMp3Folder(TRACK_STORY_16_GE);
-      if (language == 5)
+        SendData("{\"log\":\"Train: Playing Story 16 (GE)\"}");
+      }
+      if (language == 5) {
         myMP3.playMp3Folder(TRACK_STORY_16_SP);
-      if (language == 6)
+        SendData("{\"log\":\"Train: Playing Story 16 (SP)\"}");
+      }
+      if (language == 6) {
         myMP3.playMp3Folder(TRACK_STORY_16_CH);
+        SendData("{\"log\":\"Train: Playing Story 16 (CH)\"}");
+      }
     }
   } else {
     checkTrainTimer = millis();
@@ -1815,18 +1905,30 @@ void handlePlayerQueries() {
       Serial.println(finishedTrack);
       delay(100);
       if (finishedTrack == TRACK_TRAIN_ON && !flagTrack) {
-        if (language == 1)
+        if (language == 1) {
           myMP3.playMp3Folder(TRACK_STORY_15_RU);
-        if (language == 2)
+          SendData("{\"log\":\"Train: Playing Story 15 (RU)\"}");
+        }
+        if (language == 2) {
           myMP3.playMp3Folder(TRACK_STORY_15_EN);
-        if (language == 3)
+          SendData("{\"log\":\"Train: Playing Story 15 (EN)\"}");
+        }
+        if (language == 3) {
           myMP3.playMp3Folder(TRACK_STORY_15_AR);
-        if (language == 4)
+          SendData("{\"log\":\"Train: Playing Story 15 (AR)\"}");
+        }
+        if (language == 4) {
           myMP3.playMp3Folder(TRACK_STORY_15_GE);
-        if (language == 5)
+          SendData("{\"log\":\"Train: Playing Story 15 (GE)\"}");
+        }
+        if (language == 5) {
           myMP3.playMp3Folder(TRACK_STORY_15_SP);
-        if (language == 6)
+          SendData("{\"log\":\"Train: Playing Story 15 (SP)\"}");
+        }
+        if (language == 6) {
           myMP3.playMp3Folder(TRACK_STORY_15_CH);
+          SendData("{\"log\":\"Train: Playing Story 15 (CH)\"}");
+        }
         trackTimer = millis();
         flagTrack = 1;
         hintFlag = 0;
