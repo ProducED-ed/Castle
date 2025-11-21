@@ -179,6 +179,34 @@ import requests
 from requests.exceptions import RequestException
 import eventlet.queue
 import random
+
+# ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ ИМЕНИ УСТРОЙСТВА В ЛОГАХ
+def get_device_tag(text):
+    """Определяет имя устройства по тексту команды или лога."""
+    t = text.lower()
+    
+    # 1. Если это лог от устройства (log:device:...)
+    if "log:" in t:
+        if ":owls:" in t: return "[Owls]"
+        if ":dog:" in t: return "[Dog]"
+        if ":basket:" in t: return "[Basket]"
+        if ":workshop:" in t: return "[Workshop]"
+        if ":chest:" in t: return "[Chest]"
+        if ":safe:" in t: return "[Safe]"
+        if ":wolf:" in t: return "[Wolf]"
+        if ":train:" in t: return "[Train]"
+        if ":main:" in t: return "[Main Board]"
+        return "[Main Board]"
+
+    # 2. Если это команда (эвристика по ключевым словам)
+    if "owl" in t or "flew" in t: return "[Owls]"
+    if "dog" in t or "knight" in t or "padlock" in t: return "[Dog]"
+    if "workshop" in t or "fire" in t or "item" in t or "broom" in t or "helmet" in t: return "[Workshop]"
+    if "basket" in t or "ball" in t or "goal" in t or "snitch" in t or "win" in t or "troll" in t or "cave" in t or "mine" in t: return "[Basket]"
+    
+    # По умолчанию считаем, что это Main Board или системное
+    return "[Main Board]"
+
 # Переменные для отслеживания корректного выключения
 LATCH_FILE = "startup_latch.txt"
 show_improper_shutdown_warning = False
@@ -201,8 +229,17 @@ class ConsoleFilter(logging.Filter):
             'soundoff',
             # --- Добавлены новые фильтры ---
             '(RAW: log:basket:Received command (in HandleMessagges): light_off)',
+            '(RAW: library_flicker_start)',
             '(RAW: log:dog:Received command: light_off)',
-            '(RAW: log:'
+            '(RAW: log:',
+            'PLAY [Фон]:',
+            'SENT [ESP32 -', # Скрывает отправку на все ESP
+            'RECEIVED [ESP32 Log]:',
+            'RECEIVED [ESP32 Log]:',
+            'RAW: train_uf_light_on',
+            'RAW: train_light_off',
+            'RAW: case_finish',
+            'RAW: fish_finish'
             # --- Конец добавления ---
         ]
         
@@ -1791,7 +1828,7 @@ effectLevel = a2
 phoneLevel = float(a1)
 story_fade_active = False
 
-# ИЗМЕНЕНИЕ: Убираем автопоиск и жёстко прописываем порт Arduino
+# Убираем автопоиск и жёстко прописываем порт Arduino
 try:
     # Указываем порт, найденный через утилиту serial.tools.list_ports
     ARDUINO_PORT = '/dev/ttyUSB0' 
@@ -1801,7 +1838,6 @@ except serial.SerialException as e:
     logger.critical(f"Could not open serial port {ARDUINO_PORT}. Error: {e}")
     logger.critical("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
     exit() # Завершаем работу, если не удалось подключиться
-# КОНЕЦ ИЗМЕНЕНИЯ
 
 #---конфиг сервера
 Payload.max_decode_packets = 200
@@ -2654,8 +2690,8 @@ def log_event():
     device_name = data.get('device', 'Unknown Device')
     message = data.get('message', '')
     
-    # Логируем в формате: ПОЛУЧЕНО [ESP32 Log - <device_name>]: <message>
-    logging.info(f'ПОЛУЧЕНО [ESP32 Log - {device_name}]: {message}')
+    # Логируем в формате: RECEIVED [ESP32 Log - <device_name>]: <message>
+    logging.info(f'RECEIVED [ESP32 Log - {device_name}]: {message}')
     
     return jsonify({"status": "success"}), 200
 
@@ -2669,7 +2705,7 @@ def handle_data():
         # Добавляем обработку простых логов от ESP32
         if 'log' in data:
              # Это сообщение попадет и в файл, и в консоль (если уровень INFO)
-             logging.debug(f"ПОЛУЧЕНО [ESP32 Log]: {data['log']}")
+             logging.debug(f"RECEIVED [ESP32 Log]: {data['log']}")
              # Возвращаем успех, чтобы ESP32 не висела
              return jsonify({"status": "success"})
         # Улучшенное логирование входящих сообщений от ESP32
@@ -2680,12 +2716,12 @@ def handle_data():
                 event_key = f"{key}: {value}" # Собираем ключ вида "wolf: end"
                 if event_key in EVENT_DESCRIPTIONS:
                     description = EVENT_DESCRIPTIONS.get(event_key)
-                    logging.info(f'ПОЛУЧЕНО [ESP32 API]: {description} (RAW: {data})')
+                    logging.info(f'RECEIVED [ESP32 API]: {description} (RAW: {data})')
                     description_found = True
                     break # Логируем только первое найденное событие
         if not description_found:
              # Логируем как есть, если описание не найдено
-             logging.info(f'ПОЛУЧЕНО [ESP32 API]: {data}')
+             logging.info(f'RECEIVED [ESP32 API]: {data}')
 
         if 'suitcase' in data and data['suitcase'] == 'end':
           logger.debug("'suitcase: end' logic triggered.")
@@ -3135,7 +3171,7 @@ def play_story(audio_file, loops=0, volume_file='3.txt'):
     try:
         # Пытаемся найти имя файла в карте, чтобы лог был читаемым.
         audio_name = _SOUND_NAME_MAP.get(audio_file, "Неизвестный аудиофайл истории")
-        logging.info(f"ВОСПРОИЗВЕДЕНИЕ [История]: {audio_name}")
+        logging.info(f"PLAY [История]: {audio_name}")
     except Exception as e:
         # На случай, если что-то пойдет не так с логированием.
         logging.error(f"Ошибка логирования имени истории: {e}")
@@ -3195,7 +3231,7 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
     # --- Улучшено логирование эффектов ---
     try:
         audio_name = _SOUND_NAME_MAP.get(audio_file, "Неизвестный аудиофайл эффекта")
-        logging.info(f"ВОСПРОИЗВЕДЕНИЕ [Эффект]: {audio_name}")
+        logging.info(f"PLAY [Эффект]: {audio_name}")
     except Exception as e:
         logging.error(f"Ошибка логирования имени эффекта: {e}")
         
@@ -3303,7 +3339,7 @@ def _send_command_internal(api_url, command, timeout=6, max_retries=4, retry_del
             # ИЗМЕНЕНО: Улучшенное логирование исходящих команд на ESP32
             # Логируем ПЕРЕД отправкой
             description = EVENT_DESCRIPTIONS.get(command, '-')
-            logging.info(f"ОТПРАВЛЕНО [ESP32 - {api_url}]: {description} (RAW: {command})")
+            logging.info(f"SENT [ESP32 - {api_url}]: {description} (RAW: {command})")
             
             response = requests.post(api_url, json=command, timeout=timeout)
             response.raise_for_status()
@@ -3373,7 +3409,7 @@ def send_esp32_command(api_url, command, debounce=False, delay=0.5):
 def play_background_music(music_file, volume_file='1.txt', loops=-1):
     # --- ИЗМЕНЕНО: Улучшено логирование фоновой музыки ---
     try:
-        logging.info(f"ВОСПРОИЗВЕДЕНИЕ [Фон]: {music_file}")
+        logging.info(f"PLAY [Фон]: {music_file}")
         # Загружаем и воспроизводим музыку
         pygame.mixer.music.load(music_file)
         pygame.mixer.music.play(loops)
@@ -3465,6 +3501,7 @@ def serial():
      global devices
      global last_owl_flew_time
      global last_boy_in_time
+     lesson_start_process_active = False
      effectLeveltmp = 0
      voiceLeveltmp = 0
      phoneLeveltmp = 0
@@ -3476,11 +3513,12 @@ def serial():
      a10 = 0.0
      f5=0.0 
      nextTrack = 0
-     
+     level_18_intro_played = False
      #алгоритм на понижение громкости работает хитро сорян за имена переменных лучше его не трогай намучаешься капец сам делал долго связано в округлением данных float и урпавлением во время эффекта
      #если нужно быстрее или медленне измени значения sleep
      while True:
           check_story_and_fade_up() # Проверяем, не закончила ли история играть
+          process_serial_queue()
           # Добавляем блок для отправки сообщений из очереди
           # --- МОНИТОРИНГ СЕРВЕРА ---
           # 1. Проверяем очередь Python (Лаг логики)
@@ -3501,7 +3539,8 @@ def serial():
               message_to_send = serial_write_queue.get_nowait()
               # Улучшенное логирование исходящих команд на Arduino
               description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
-              logging.info(f'ОТПРАВЛЕНО [Arduino]: {description} (RAW: {message_to_send})')
+              tag = get_device_tag(message_to_send)
+              logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
               ser.write(str.encode(message_to_send + '\n'))
               # Мы даем Arduino 50-100 мс, чтобы обработать команду,
               # прежде чем слать следующую из очереди.
@@ -3569,7 +3608,8 @@ def serial():
                eventlet.sleep(0.1)
                # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
                description = EVENT_DESCRIPTIONS.get(flag, '-')
-               logging.info(f'ПОЛУЧЕНО [Main Board]: {description} (RAW: {flag})')
+               tag = get_device_tag(flag)
+               logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
                # Логирование смены уровня ---
                if flag.startswith("level_"):
                    try:
@@ -3649,6 +3689,7 @@ def serial():
                if flag == "startgo":
                      #-----очистим историю
                      socklist.clear()
+                     lesson_start_process_active = False
                      train_stage_2_active = False
                      mansard_galets.clear()
                      last_mansard_count = 0
@@ -4474,7 +4515,7 @@ def serial():
                           if(language==3):
                               play_story(story_22_a_ar)
                               
-                          # 3. Ждем, пока ВОСПРОИЗВЕДЕНИЕ ЗАКОНЧИТСЯ
+                          # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
                           while channel3.get_busy()==True and go == 1:
                               eventlet.sleep(0.1)
                           # 4. Отправляем подтверждение на Arduino
@@ -4492,7 +4533,7 @@ def serial():
                           if(language==3):
                               play_story(story_22_b_ar)
                              
-                          # 3. Ждем, пока ВОСПРОИЗВЕДЕНИЕ ЗАКОНЧИТСЯ
+                          # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
                           while channel3.get_busy()==True and go == 1:
                               eventlet.sleep(0.1)
                           # 4. Отправляем подтверждение на Arduino
@@ -4508,7 +4549,7 @@ def serial():
                           if(language==3):
                               play_story(story_22_c_ar)
                               
-                          # 3. Ждем, пока ВОСПРОИЗВЕДЕНИЕ ЗАКОНЧИТСЯ
+                          # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
                           while channel3.get_busy()==True and go == 1:
                               eventlet.sleep(0.1)
                           # 4. Отправляем подтверждение на Arduino
@@ -5121,10 +5162,19 @@ def serial():
                      # "boy_in_lesson" (с урока, level 18) -> Запустить интро
                      # 1. УРОК (Level 18): Вход
                      if flag == "boy_in_lesson":
-                          # Если с предыдущего запуска прошло меньше 2 секунд, ничего не делаем.
-                          if time.time() - last_boy_in_time < 2.0:
+                          # Если интро уже сыграно (урок идет), и мы вернулись с паузы
+                          if level_18_intro_played:
+                              # [FIX] Снимаем с паузы
+                              logger.info("Возобновление урока (снятие с паузы)")
+                              pygame.mixer.music.unpause()
+                              if 'stop_players_rest' in socklist:
+                                    socklist.remove('stop_players_rest')
+                              socketio.emit('level', 'start_players', to=None)
+                          # Если это первый запуск
+                          elif time.time() - last_boy_in_time < 2.0:
                               logger.debug("Игнорируем повторный boy_in_lesson (дребезг при установке)")
                           else:
+                              level_18_intro_played = True
                               # Запоминаем время нового стабильного входа
                               last_boy_in_time = time.time()
                               play_background_music("fon18.mp3", loops=-1)
@@ -5163,23 +5213,23 @@ def serial():
                           
                           # 1. Взводим защиту (дублируем)
                           serial_write_queue.put('start_lesson')
-                          logger.debug("ОТПРАВЛЕНО [Arduino]: start_lesson (1/2)")
-                          eventlet.sleep(0.1) # Короткая пауза
+                          logger.debug("SENT [Arduino]: start_lesson (1/2)")
+                          eventlet.sleep(0.2) # Короткая пауза
                           serial_write_queue.put('start_lesson')
-                          logger.debug("ОТПРАВЛЕНО [Arduino]: start_lesson (2/2)")
+                          logger.debug("SENT [Arduino]: start_lesson (2/2)")
                           
                           # Ждем, чтобы башня точно успела обработать
-                          eventlet.sleep(0.5) 
+                          eventlet.sleep(1.0) 
                           
                           # 2. Запускаем мяч (ТРОЙНОЙ УДАР)
                           serial_write_queue.put('start_game_basket')
-                          logger.debug("ОТПРАВЛЕНО [Arduino]: start_game_basket (1/3)")
-                          eventlet.sleep(0.3) 
+                          logger.debug("SENT [Arduino]: start_game_basket (1/3)")
+                          eventlet.sleep(0.5) 
                           serial_write_queue.put('start_game_basket')
-                          logger.debug("ОТПРАВЛЕНО [Arduino]: start_game_basket (2/3)")
-                          eventlet.sleep(0.3) 
+                          logger.debug("SENT [Arduino]: start_game_basket (2/3)")
+                          eventlet.sleep(0.5) 
                           serial_write_queue.put('start_game_basket')
-                          logger.debug("ОТПРАВЛЕНО [Arduino]: start_game_basket (3/3)")
+                          logger.debug("SENT [Arduino]: start_game_basket (3/3)")
                           # -------------------------------------------
                           
                           eventlet.sleep(1.0)
@@ -5192,6 +5242,7 @@ def serial():
                          if time.time() - last_boy_in_time < 3.0:
                              logger.debug("Игнорируем boy_out_lesson (дребезг контактов)")
                          else:
+                             level_18_intro_played = False
                              pygame.mixer.music.pause()
                              try:
                                  play_effect(lose1)
@@ -5867,35 +5918,43 @@ def serial():
                                if(language==3):
                                     play_story(story_64_b_ar)
                      if flag=="win":
-                          # 1. Запускаем фон и ГЛАВНУЮ историю (story_66)
-                          # Они будут играть в фоне на channel3.
                           play_background_music("fon19.mp3", loops=-1)    
-                          if(language==1):
-                              play_story(story_66_ru)  
-                          if(language==2):
-                              play_story(story_66_en)
-                          if(language==3):
-                              play_story(story_66_ar)
+                          if(language==1): play_story(story_66_ru)  
+                          if(language==2): play_story(story_66_en)
+                          if(language==3): play_story(story_66_ar)
 
-                          # 2. Отправляем все неблокирующие команды (фейерверки, UI)
+                          # Отправляем команды
                           socketio.emit('level', 'win_player',to=None)
                           socklist.append('win_player')
+                          
+                          # [FIX] Сначала ставим в очередь, потом сразу пытаемся отправить
+                          serial_write_queue.put('basket') 
+                          process_serial_queue() # <-- ПРИНУДИТЕЛЬНАЯ ОТПРАВКА
+
                           send_esp32_command(ESP32_API_WOLF_URL, "firework")
                           send_esp32_command(ESP32_API_TRAIN_URL, "firework")
                           send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
                           send_esp32_command(ESP32_API_SAFE_URL, "firework")
                           
-                          # 3. Воспроизвести ПЕРВЫЙ случайный звук гола (goal2-goal7) на channel2
+                          # Звуки голов
                           play_effect(random.choice(player_goal_sounds))
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
                           
-                          # 4. Воспроизвести ВТОРОЙ случайный звук гола (goal2-goal7) на channel2
+                          # [FIX] Цикл ожидания с обработкой очереди
+                          start_wait = time.time()
+                          while effects_are_busy() and go == 1:
+                              process_serial_queue() # <-- ПРОДОЛЖАЕМ ОТПРАВЛЯТЬ
+                              eventlet.sleep(0.1)
+                              # Защита от вечного цикла (макс 3 сек на звук)
+                              if time.time() - start_wait > 3: break 
+                          
                           play_effect(random.choice(player_goal_sounds))
+                          
+                          start_wait = time.time()
                           while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1) # Ждем, пока ТОЛЬКО channel2 (эффект) освободится
+                              process_serial_queue() # <-- ПРОДОЛЖАЕМ ОТПРАВЛЯТЬ
+                              eventlet.sleep(0.1)
+                              if time.time() - start_wait > 3: break
 
-                          # 5. Воспроизвести звук победы 'win' на channel2
                           play_effect(win)
                      if flag=="win_robot":
                           # Если уже победил (есть в списке), ИГНОРИРУЕМ ПОВТОРЫ
@@ -6412,7 +6471,17 @@ def timer():
                socketio.emit('timer', sync,to=None)
                flagtime=0
                
-#-----методы для повторения голосвых треков в случае смены языка(мноого)  чем больше треков тем больше логики              
+def process_serial_queue():
+    """Обрабатывает очередь отправки команд на Arduino."""
+    try:
+        message_to_send = serial_write_queue.get_nowait()
+        description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
+        tag = get_device_tag(message_to_send)
+        logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
+        ser.write(str.encode(message_to_send + '\n'))
+        eventlet.sleep(0.05)
+    except eventlet.queue.Empty:
+        pass
 
 #------наша основная программа крутиться здесь сам сервер порт можно измнить(при желании) методы таймер и сериал работают ассинхронно
 if __name__ == '__main__':
