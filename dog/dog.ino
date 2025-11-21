@@ -53,10 +53,10 @@ const char MSG_READY[] PROGMEM = "ready";      // Novoe soobshchenie ready
 const char MSG_DOG_NRD[] PROGMEM = "dog_nrd";  // Novoe soobshchenie dog_nrd
 
 // Dobavlennye UART soobshcheniya
-const char MSG_ROSE[] PROGMEM = "galet_on";
-const char MSG_NROSE[] PROGMEM = "galet_off";
-const char MSG_FLAG2[] PROGMEM = "flag3_off";
-const char MSG_NFLAG2[] PROGMEM = "flag3_on";
+const char MSG_ROSE[] PROGMEM = "dog_galet_on";
+const char MSG_NROSE[] PROGMEM = "dog_galet_off";
+const char MSG_FLAG2[] PROGMEM = "dog_flag3_off";
+const char MSG_NFLAG2[] PROGMEM = "dog_flag3_on";
 const char MSG_OWL_DWARF[] PROGMEM = "light_on";
 const char MSG_NOWL_DWARF[] PROGMEM = "light_off";
 
@@ -304,6 +304,10 @@ void activateEndStage() {
       // Esli bystrogo vrashcheniya ne bylo ili usloviya dlya spyashchego rezhima vypolneny (dver zakryta)
 
       // PEREMESHCHENO SYUDA: Otpravlyaem soobshchenie o pobede
+      // ИЗМЕНЕНО: Добавлено логирование перед командой
+      sendLog("Dog game finished. Sending dog_lock. dog_complete");
+      delay(10);
+      // КОНЕЦ
       Serial.println((__FlashStringHelper *)MSG_LOCK_CLICK);
       sendLog("Game finished successfully (lock_click).");
 
@@ -445,6 +449,17 @@ void CheckState() { // ИСПРАВЛЕНО: опечатка в имени фу
   }
 }
 void loop() {
+  static QuestState previousState = STATE_RESTARTING;
+  if (currentQuestState != previousState) {
+    String stateName = "UNKNOWN";
+    if (currentQuestState == STATE_WAITING_FOR_START) stateName = "WAITING_FOR_START";
+    else if (currentQuestState == STATE_IN_PROGRESS) stateName = "IN_PROGRESS";
+    else if (currentQuestState == STATE_GAME_FINISHED) stateName = "GAME_FINISHED";
+    else if (currentQuestState == STATE_RESTARTING) stateName = "RESTARTING";
+    sendLog("State changed to " + stateName);
+    previousState = currentQuestState;
+  }
+
   static unsigned long last_start_ping = 0;
   unsigned long currentMillis = millis();
 
