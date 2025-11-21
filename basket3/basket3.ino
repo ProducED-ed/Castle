@@ -103,7 +103,7 @@ void loop() {
         buff.trim();
         if (buff == "ready") {
           if (!hasSentReadyLog) { sendLog("Ready received."); hasSentReadyLog = true; }
-          HandleMessagges("restart");
+          HandleMessagges("ready");
         }
         else if (buff == "start") { state = 1; hasSentReadyLog = false; }
         else if (buff == "restart") { HandleMessagges("restart"); }
@@ -128,7 +128,12 @@ void loop() {
     case 8: 
        while (Serial1.available()){
         String buff = Serial1.readStringUntil('\n'); buff.trim();
-        if (buff == "ready" || buff == "restart"){ HandleMessagges("restart"); }
+        if (buff == "ready") {
+             HandleMessagges("ready");
+        }
+        else if (buff == "restart"){ 
+             HandleMessagges("restart");
+        }
         else { HandleMessagges(buff); }
       }
       break;
@@ -138,34 +143,42 @@ void loop() {
 }
 
 void HandleMessagges(String message) {
-  if (message.length() > 0 && message != "restart") sendLog("CMD: " + message);
+  if (message.length() > 0 && message != "restart" && message != "ready") sendLog("CMD: " + message);
 
+  // 1. ЛОГИКА ЗАМКОВ (ТОЛЬКО ПРИ RESTART)
   if(message == "restart"){
       hasSentReadyLog = false;
-      
-      // Возвращаем логику из старого кода, но с увеличенным delay
+      // Открываем замки только если это РЕСТАРТ
       OpenLock(SHERIF_EM1); 
       delay(150);
       OpenLock(SHERIF_EM2);
+  }
 
+  // 2. ОБЩАЯ ЛОГИКА СБРОСА (И ДЛЯ RESTART, И ДЛЯ READY)
+  if (message == "restart" || message == "ready") {
       // Принудительное отключение всех силовых выходов
       digitalWrite(SHERIF_EM1, LOW);
       digitalWrite(SHERIF_EM2, LOW);
       digitalWrite(Solenoid, LOW);
+      
       digitalWrite(trollLed, LOW);
       digitalWrite(owlLed, LOW);
       digitalWrite(basketLed, LOW);
+      
       SCORE_ROBOT = 0;
       SCORE_MAN = 0;
       buttonSequence = 0;
       trollSequence = 0;
       score = 0;
-      _startBasket=0;
+      _startBasket = 0;
+      
       isTrollFixed = 0; 
       isLoose = 0;
       light = 0;
       upHelp = 0;
+      
       disp.clear(); strip.clear(); strip.show(); disp.point(0);
+      
       _restartGalet = 0;
       _restartFlag = 0;
       lessonIsStarted = false;
@@ -173,9 +186,13 @@ void HandleMessagges(String message) {
       doorDef = millis(); 
       doorTimer = millis();
       doorFlags = 1; 
+      
       state = 0;
       CheckState();
-      return; 
+      
+      // Если это ready, ставим флаг, чтобы не спамить логами
+      if (message == "ready") hasSentReadyLog = true;
+      return;
   }
   // --- ВАШИ ФИКСЫ (Оставляем) ---
   else if (message == "troll") {
