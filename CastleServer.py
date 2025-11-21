@@ -2045,6 +2045,8 @@ def Remote(check):
      global hintCount
      global rating
      global star
+     global socklist
+     global mansard_galets, last_mansard_count
      b = 0
      с = 0
      #------переключаем языки
@@ -2664,7 +2666,13 @@ def handle_data():
     global mapClickOut 
     if request.method == 'POST':
         data = request.get_json()
-        # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от ESP32
+        # Добавляем обработку простых логов от ESP32
+        if 'log' in data:
+             # Это сообщение попадет и в файл, и в консоль (если уровень INFO)
+             logging.debug(f"ПОЛУЧЕНО [ESP32 Log]: {data['log']}")
+             # Возвращаем успех, чтобы ESP32 не висела
+             return jsonify({"status": "success"})
+        # Улучшенное логирование входящих сообщений от ESP32
         # Мы итерируемся по ключам в data, чтобы найти соответствующее событие
         description_found = False
         if isinstance(data, dict):
@@ -2886,6 +2894,8 @@ def tmr(res):
      global mansard_galets, last_mansard_count
      global is_processing_ready
      global devices
+     global socklist
+     global wolfLevel, trainLevel, suitcaseLevel, safeLevel
      # --- Локальный флаг для отслеживания прогресса поезда ---
      # Помогает избежать отката на stage_1, если уже прошел stage_2
      train_stage_2_active = False
@@ -3419,25 +3429,9 @@ def serial():
      global flag
      global mus
      global mansard_galets, last_mansard_count
-     # --- ИЗМЕНЕНО: Обработка уникальных flag-команд ---
-     flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
-     flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
+     global socklist 
+     global devices
 
-     if flag in flag_on_commands:
-         # flag.replace('_on', '') -> "workshop_flag1"
-         base_command = flag.replace('_on', '')
-         socketio.emit('level', f'{base_command}_on', to=None)
-         if f'{base_command}_on' not in socklist: socklist.append(f'{base_command}_on')
-         if f'{base_command}_off' in socklist: socklist.remove(f'{base_command}_off')
-         logging.debug(f"Processed {flag}")
-
-     if flag in flag_off_commands:
-         base_command = flag.replace('_off', '')
-         socketio.emit('level', f'{base_command}_off', to=None)
-         if f'{base_command}_off' not in socklist: socklist.append(f'{base_command}_off')
-         if f'{base_command}_on' in socklist: socklist.remove(f'{base_command}_on')
-         logging.debug(f"Processed {flag}")
-     # --- КОНЕЦ ИЗМЕНЕНИЯ ---
      train_stage_2_active = False
      flag = "0"
      mus = 1
@@ -3468,7 +3462,6 @@ def serial():
      global fire0Flag
      global fire1Flag
      global fire2Flag
-     global socklist
      global devices
      global last_owl_flew_time
      global last_boy_in_time
@@ -3548,6 +3541,24 @@ def serial():
           if ser.in_waiting > 0:
                line = ser.readline().decode('utf-8', errors='ignore').rstrip()
                flag = line
+               # --------------------------------------------------------
+               flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
+               flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
+
+               if flag in flag_on_commands:
+                   base_command = flag.replace('_on', '')
+                   socketio.emit('level', f'{base_command}_on', to=None)
+                   if f'{base_command}_on' not in socklist: socklist.append(f'{base_command}_on')
+                   if f'{base_command}_off' in socklist: socklist.remove(f'{base_command}_off')
+                   logging.debug(f"Processed {flag}")
+
+               if flag in flag_off_commands:
+                   base_command = flag.replace('_off', '')
+                   socketio.emit('level', f'{base_command}_off', to=None)
+                   if f'{base_command}_off' not in socklist: socklist.append(f'{base_command}_off')
+                   if f'{base_command}_on' in socklist: socklist.remove(f'{base_command}_on')
+                   logging.debug(f"Processed {flag}")
+               # --------------------------------------------------------
                # --- ПРОВЕРКА ПЕРЕПОЛНЕНИЯ ---
                if "BUFFER CRITICAL" in flag:
                    logger.critical(f"🔥🔥🔥 {flag} 🔥🔥🔥") # Красные эмодзи для заметности
@@ -3558,7 +3569,7 @@ def serial():
                eventlet.sleep(0.1)
                # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
                description = EVENT_DESCRIPTIONS.get(flag, '-')
-               logging.info(f'ПОЛУЧЕНО [Arduino]: {description} (RAW: {flag})')
+               logging.info(f'ПОЛУЧЕНО [Main Board]: {description} (RAW: {flag})')
                # Логирование смены уровня ---
                if flag.startswith("level_"):
                    try:
@@ -3714,10 +3725,10 @@ def serial():
                         if 'Check Flags' not in devices:
                             devices.append('Check Flags')
                      else:
-                        print('Check Flags remove')
+                        logger.debug('Check Flags remove')
                         if 'Check Flags' in devices:
                                    devices.remove('Check Flags')  
-                                   print('Check Flags remove')       
+                                   logger.debug('Check Flags remove')       
                      if flag == "open_door":
                           if 'close_door' in socklist:
                                    socklist.remove('close_door')
@@ -4406,22 +4417,27 @@ def serial():
                           #----играем эффект 
                           play_effect(dog_growl) 
                      if flag=="dog_lock":
-                          #----играем эффект 
-                          socketio.emit('level', 'dog',to=None)
-                          #-----добавили в историю
-                          socklist.append('dog')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
-                          play_effect(dog_lock)
+                          # Защита от двойного срабатывания
+                          if 'dog_end_processed' in socklist:
+                              logger.debug("Игнорируем повторный dog_lock")
+                          else:
+                              socklist.append('dog_end_processed') # Ставим метку
+                              #----играем эффект 
+                              socketio.emit('level', 'dog',to=None)
+                              #-----добавили в историю
+                              socklist.append('dog')
+                              send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
+                              play_effect(dog_lock)
 
-                          #while effects_are_busy() and go == 1: 
-                          #    eventlet.sleep(0.1)
+                              #while effects_are_busy() and go == 1: 
+                              #    eventlet.sleep(0.1)
 
-                          if(language==1):
-                              play_story(story_21_ru)  
-                          if(language==2):
-                              play_story(story_21_en)
-                          if(language==3):
-                              play_story(story_21_ar)
+                              if(language==1):
+                                  play_story(story_21_ru)  
+                              if(language==2):
+                                  play_story(story_21_en)
+                              if(language==3):
+                                  play_story(story_21_ar)
 
                      if flag=="story_20_a":
                           if(language==1):
@@ -5178,7 +5194,7 @@ def serial():
                          else:
                              pygame.mixer.music.pause()
                              try:
-                                 play_effect(random.choice(enemy_goal_sounds))
+                                 play_effect(lose1)
                                  # Играем историю 69 (Мальчик ушел)
                                  if(language==1): play_story(story_69_ru)
                                  if(language==2): play_story(story_69_en)
@@ -5192,21 +5208,25 @@ def serial():
                          
                      # 3. ИГРА (Level 19): Вход (Возобновление)
                      if flag == "boy_in_game":
-                          play_effect(applause)
-                          pygame.mixer.music.unpause()
-                          # Играем историю 70 (Мальчик вернулся)
-                          if(language==1): play_story(story_70_ru)
-                          if(language==2): play_story(story_70_en)
-                          if(language==3): play_story(story_70_ar)
-                          
-                          # Удаляем флаг проигрыша, чтобы пауза снова работала
-                          if 'win_bot' in socklist:
-                               socklist.remove('win_bot')
-                               
-                          if 'stop_players_rest' in socklist:
-                                socklist.remove('stop_players_rest')
-                          socketio.emit('level', 'start_players', to=None)
-                          socklist.append('start_players')
+                          if time.time() - last_boy_in_time < 2.0:
+                              logger.debug("Игнорируем повторный boy_in_game")
+                          else:
+                              last_boy_in_time = time.time()
+                              play_effect(applause)
+                              pygame.mixer.music.unpause()
+                              # Играем историю 70 (Мальчик вернулся)
+                              if(language==1): play_story(story_70_ru)
+                              if(language==2): play_story(story_70_en)
+                              if(language==3): play_story(story_70_ar)
+                              
+                              # Удаляем флаг проигрыша, чтобы пауза снова работала
+                              if 'win_bot' in socklist:
+                                   socklist.remove('win_bot')
+                                   
+                              if 'stop_players_rest' in socklist:
+                                    socklist.remove('stop_players_rest')
+                              socketio.emit('level', 'start_players', to=None)
+                              socklist.append('start_players')
 
                      # 4. ИГРА (Level 19): Выход (Пауза)
                      if flag == "boy_out_game":
@@ -5221,7 +5241,7 @@ def serial():
                                # Стандартная логика паузы
                                pygame.mixer.music.pause()
                                try:
-                                   play_effect(random.choice(enemy_goal_sounds))
+                                   play_effect(lose1)
                                    # Играем историю 69 (Мальчик ушел)
                                    if(language==1): play_story(story_69_ru)
                                    if(language==2): play_story(story_69_en)
