@@ -375,6 +375,14 @@ void setup() {
   FastLED.addLeds<WS2812B, DATA_PIN1, GRB>(leds1, NUM_LEDS1);
   FastLED.addLeds<WS2812B, 18, GRB>(ledMap, 30);
 
+  Serial.print("Checking PCF8574 (INPUTS) at 0x20... ");
+  Wire.beginTransmission(0x20);
+  if (Wire.endTransmission() == 0) {
+    Serial.println("OK");
+  } else {
+    Serial.println("FAILED! Check wiring.");
+  }
+
   for (int i = 0; i < 22; i++) {
     ActiveLeds[i] = -1;
     DisableLeds[i] = -1;
@@ -583,7 +591,7 @@ void setup() {
         SendData("{\"log\":\"Train: Playing Train On sound\"}");
         ActiveLeds[0] = 9;
         ClickLeds[0] = -1;
-        isStartTrain = 1;
+        isStartTrain = 0;
         isSendOut = 1;
       }
       if (body == "\"ghost_knock\"") {
@@ -1219,6 +1227,20 @@ void loop() {
   MapLeds();
   StartTimer();
 
+  static unsigned long debugTimer = 0;
+  if (millis() - debugTimer > 1000) {
+      debugTimer = millis();
+      // Читаем весь байт портов
+      // К сожалению, библиотека Adafruit_PCF8574 не дает прочитать весь байт сразу легко,
+      // поэтому читаем пины.
+      Serial.print("DEBUG INPUTS: ");
+      for(int i=0; i<8; i++) {
+          Serial.print(INPUTS.digitalRead(i));
+          Serial.print(" ");
+      }
+      Serial.println();
+  }
+
   if (!INPUTS.digitalRead(2) && !ghostFlag) {
     if ((state == 0 || state == 1) && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
@@ -1588,6 +1610,8 @@ void MapGerkon() {
       mapState = "train";
       isStartTimer = true;
       SendData("{\"map\":\"train\"}");
+      state = 1;
+      isStartTrain = 0;
       isFishClick = false;
       isOwlClick = false;
       isKeyClick = false;
@@ -2007,6 +2031,7 @@ void StartTimer() {
       timerLedsCount = 0;
       timerIsStarting = true;
       isStartTimer = false;
+      state = 0;
 
       isKeyClick = false;
       isFishClick = false;
