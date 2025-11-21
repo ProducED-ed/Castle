@@ -3416,6 +3416,9 @@ def check_story_and_fade_up():
 
 #здесь уже обрабатываем все сообщения приходящие из меги и отображаем на пульте        
 def serial():
+     global flag
+     global mus
+     global mansard_galets, last_mansard_count
      # --- ИЗМЕНЕНО: Обработка уникальных flag-команд ---
      flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
      flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
@@ -3435,9 +3438,6 @@ def serial():
          if f'{base_command}_on' in socklist: socklist.remove(f'{base_command}_on')
          logging.debug(f"Processed {flag}")
      # --- КОНЕЦ ИЗМЕНЕНИЯ ---
-     global flag 
-     global mus
-     global mansard_galets, last_mansard_count
      train_stage_2_active = False
      flag = "0"
      mus = 1
