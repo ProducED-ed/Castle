@@ -144,16 +144,12 @@ GButton helpButton(36);
 
 DFRobotDFPlayerMini myMP3;
 
-void sendLogToServer(String message) {
+void sendLogToServer(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin("http://192.168.0.100:3000/api/log");
     http.addHeader("Content-Type", "application/json");
-
-    String payload = "{\"device\":\"chest\", \"message\":\"" + message + "\"}";
-
     int httpCode = http.POST(payload);
-
     http.end();
   }
 }
@@ -245,6 +241,7 @@ void setup() {
       if(body == "\"game\""){
         state = 1;
         myMP3.playMp3Folder(TRACK_FON_SUITCASE);
+        sendLogToServer("{\"log\":\"Chest: Playing Fon Suitcase sound\"}");
         //myMP3.enableLoop();
         hint_counter = 0;
         isMistake = false;
@@ -381,6 +378,7 @@ void setup() {
         myMP3.stop();
         delay(50);
         myMP3.playMp3Folder(TRACK_SUITCASE_END);
+        sendLogToServer("{\"log\":\"Chest: Playing Suitcase End sound\"}");
       }
       if(body == "\"firework\""){
         state = 5; // Устанавливаем состояние 5, которое вы создали для эффекта
@@ -428,21 +426,27 @@ void loop() {
       delay(50);
       if(language == 1){
         myMP3.playMp3Folder(TRACK_HINT_0_RU);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (RU)\"}");
       }
       if(language == 2){
         myMP3.playMp3Folder(TRACK_HINT_0_EN);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (EN)\"}");
       }
       if(language == 3){
         myMP3.playMp3Folder(TRACK_HINT_0_AR);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (AR)\"}");
       }
       if(language == 4){
         myMP3.playMp3Folder(TRACK_HINT_0_GE);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (GE)\"}");
       }
       if(language == 5){
         myMP3.playMp3Folder(TRACK_HINT_0_SP);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (SP)\"}");
       }
       if(language == 6){
         myMP3.playMp3Folder(TRACK_HINT_0_CH);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (CH)\"}");
       }
       hintFlag = 0;
     }
@@ -453,61 +457,79 @@ void loop() {
       if(hint_counter == 0) {
           if(language == 1){
             myMP3.playMp3Folder(TRACK_HINT_1_RU);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (RU)\"}");
           }
           if(language == 2){
             myMP3.playMp3Folder(TRACK_HINT_1_EN);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (EN)\"}");
           }
           if(language == 3){
             myMP3.playMp3Folder(TRACK_HINT_1_AR);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (AR)\"}");
           }
           if(language == 4){
             myMP3.playMp3Folder(TRACK_HINT_1_GE);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (GE)\"}");
           }
           if(language == 5){
             myMP3.playMp3Folder(TRACK_HINT_1_SP);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (SP)\"}");
           }
           if(language == 6){
             myMP3.playMp3Folder(TRACK_HINT_1_CH);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (CH)\"}");
           }
       }
       if(hint_counter == 1) {
         if(language == 1){
           myMP3.playMp3Folder(TRACK_HINT_2_RU);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (RU)\"}");
         }
         if(language == 2){
           myMP3.playMp3Folder(TRACK_HINT_2_EN);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (EN)\"}");
         }
         if(language == 3){
           myMP3.playMp3Folder(TRACK_HINT_2_AR);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (AR)\"}");
         }
         if(language == 4){
           myMP3.playMp3Folder(TRACK_HINT_2_GE);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (GE)\"}");
         }
         if(language == 5){
           myMP3.playMp3Folder(TRACK_HINT_2_SP);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (SP)\"}");
         }
         if(language == 6){
           myMP3.playMp3Folder(TRACK_HINT_2_CH);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (CH)\"}");
         }
       }
       if(hint_counter == 2) {
         if(language == 1){
           myMP3.playMp3Folder(TRACK_HINT_3_RU);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (RU)\"}");
         }
         if(language == 2){
           myMP3.playMp3Folder(TRACK_HINT_3_EN);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (EN)\"}");
         }
         if(language == 3){
           myMP3.playMp3Folder(TRACK_HINT_3_AR);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (AR)\"}");
         }
         if(language == 4){
           myMP3.playMp3Folder(TRACK_HINT_3_GE);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (GE)\"}");
         }
         if(language == 5){
           myMP3.playMp3Folder(TRACK_HINT_3_SP);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (SP)\"}");
         }
         if(language == 6){
           myMP3.playMp3Folder(TRACK_HINT_3_CH);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (CH)\"}");
         }
       }
       hintFlag = 0;
@@ -519,21 +541,27 @@ void loop() {
     if(state > 3 && hintFlag){
       if(language == 1){
         myMP3.playMp3Folder(TRACK_HINT_4_RU);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (RU)\"}");
       }
       if(language == 2){
         myMP3.playMp3Folder(TRACK_HINT_4_EN);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (EN)\"}");
       }
       if(language == 3){
         myMP3.playMp3Folder(TRACK_HINT_4_AR);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (AR)\"}");
       }
       if(language == 4){
         myMP3.playMp3Folder(TRACK_HINT_4_GE);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (GE)\"}");
       }
       if(language == 5){
         myMP3.playMp3Folder(TRACK_HINT_4_SP);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (SP)\"}");
       }
       if(language == 6){
         myMP3.playMp3Folder(TRACK_HINT_4_CH);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (CH)\"}");
       }
       hintFlag = 0;
     }
@@ -622,6 +650,7 @@ void SymbolEye() {
           myMP3.pause();
           delay(50);
           myMP3.playMp3Folder(TRACK_SUITCASE_END);
+          sendLogToServer("{\"log\":\"Chest: Playing Suitcase End sound\"}");
           timerEndLed = millis();
           timerEndLock = millis();
           state = 3; // Переходим в состояние отправки и анимации
@@ -845,18 +874,30 @@ void _Button_4() {
     if(!storyFlag){
       myMP3.pause(); // Ставим фоновую музыку на паузу
       delay(50);
-      if(language == 1)
+      if(language == 1) {
         myMP3.playMp3Folder(TRACK_STORY_7_RU);
-      if(language == 2)
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (RU)\"}");
+      }
+      if(language == 2) {
         myMP3.playMp3Folder(TRACK_STORY_7_EN);
-      if(language == 3)
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (EN)\"}");
+      }
+      if(language == 3) {
         myMP3.playMp3Folder(TRACK_STORY_7_AR);
-      if(language == 4)
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (AR)\"}");
+      }
+      if(language == 4) {
         myMP3.playMp3Folder(TRACK_STORY_7_GE);
-      if(language == 5)
-        myMP3.playMp3Folder(TRACK_STORY_7_SP); 
-      if(language == 6)
-        myMP3.playMp3Folder(TRACK_STORY_7_CH);       
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (GE)\"}");
+      }
+      if(language == 5) {
+        myMP3.playMp3Folder(TRACK_STORY_7_SP);
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (SP)\"}");
+      }
+      if(language == 6) {
+        myMP3.playMp3Folder(TRACK_STORY_7_CH);
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (CH)\"}");
+      }
       storyFlag = 1;
     }
     
@@ -926,6 +967,7 @@ void handlePlayerQueries() {
       if (state >= 1 && state < 3 && finishedTrack != TRACK_FON_SUITCASE) {
         if(!flagTrack){
           myMP3.playMp3Folder(TRACK_FON_SUITCASE);
+          sendLogToServer("{\"log\":\"Chest: Playing Fon Suitcase sound\"}");
           trackTimer = millis();
           flagTrack = 1;
         }
@@ -936,7 +978,8 @@ void handlePlayerQueries() {
       if (finishedTrack == TRACK_FON_SUITCASE) {
         // Добавляем проверку: перезапускать фон только в состоянии 1
         if (state == 1 && !flagTrack) {
-          myMP3.playMp3Folder(TRACK_FON_SUITCASE); // Теперь перезапуск условный
+          myMP3.playMp3Folder(TRACK_FON_SUITCASE);
+          sendLogToServer("{\"log\":\"Chest: Playing Fon Suitcase sound\"}");
           trackTimer = millis();
           flagTrack = 1;
         }
@@ -953,18 +996,30 @@ void handlePlayerQueries() {
         if (finishedTrack == TRACK_SUITCASE_END && !flagTrack) {
           state++;
           OpenLock(SHERIF_EM2);
-          if(language == 1)
+          if(language == 1) {
             myMP3.playMp3Folder(TRACK_STORY_8_RU);
-          if(language == 2)
+            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (RU)\"}");
+          }
+          if(language == 2) {
             myMP3.playMp3Folder(TRACK_STORY_8_EN);
-          if(language == 3)
+            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (EN)\"}");
+          }
+          if(language == 3) {
             myMP3.playMp3Folder(TRACK_STORY_8_AR);
-          if(language == 4)
+            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (AR)\"}");
+          }
+          if(language == 4) {
             myMP3.playMp3Folder(TRACK_STORY_8_GE);
-          if(language == 5)
-            myMP3.playMp3Folder(TRACK_STORY_8_SP); 
-          if(language == 6)
-            myMP3.playMp3Folder(TRACK_STORY_8_CH);   
+            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (GE)\"}");
+          }
+          if(language == 5) {
+            myMP3.playMp3Folder(TRACK_STORY_8_SP);
+            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (SP)\"}");
+          }
+          if(language == 6) {
+            myMP3.playMp3Folder(TRACK_STORY_8_CH);
+            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (CH)\"}");
+          }
           trackTimer = millis();
           flagTrack = 1;  
         }
