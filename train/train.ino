@@ -479,7 +479,9 @@ void setup() {
         state = 0;
         FutureLeds[4] = -1;
         hintFlag = 1;
-		trainEndConfirmed = false; // Сбрасываем флаг
+        mapClicksDisabled = false;
+        isStartTrain = 0; // На всякий случай сбрасываем и это
+		    trainEndConfirmed = false; // Сбрасываем флаг
       }
       if (body == "\"volume_up\"") {
         value = value + 1;
@@ -524,6 +526,7 @@ void setup() {
                       // Восстанавливаем карту: все светодиоды (9-30) становятся БЕЛЫМИ
                       FutureLeds[i] = i + 9; 
                    }
+                   mapClicksDisabled = false;
 
                    // Настройка стартовой точки (как в команде start)
                    // В вашем коде start стоит ActiveLeds[4] = 12.
@@ -582,8 +585,9 @@ void setup() {
         state = 0;
         FastLED.show();
         hintFlag = 0;
-		        trainEndConfirmed = false; // Сбрасываем флаг
-            ghostIgnoreStartTime = 0;
+        mapClicksDisabled = false;
+		    trainEndConfirmed = false; // Сбрасываем флаг
+        ghostIgnoreStartTime = 0;
       }
 
       if (body == "\"projector\"") {
@@ -714,6 +718,7 @@ void setup() {
         lastSkinDebounceTime = 0;
         lastSkinSteadyState = false;
         skinState = false;
+        mapClicksDisabled = false;
       }
 
       //
@@ -1482,6 +1487,32 @@ void loop() {
       case 0:
         break;
       case 1:
+        // --- ДИАГНОСТИКА ПОБЕДЫ ---
+        if (!INPUTS.digitalRead(1)) {
+            Serial.print("DEBUG WIN CHECK: ");
+            
+            // 1. Проверяем физический контакт
+            Serial.print("Pin1=LOW(OK) | ");
+            
+            // 2. Проверяем состояние карты
+            Serial.print("mapState=");
+            Serial.print(mapState);
+            // [FIX] Исправлена опечатка: добавлены скобки ("...")
+            if (mapState == "train") Serial.print("(OK) | "); 
+            else Serial.print("(FAIL: Must be 'train') | ");
+            
+            // 3. Проверяем флаг блокировки
+            Serial.print("isStartTrain=");
+            Serial.print(isStartTrain);
+            if (isStartTrain == 0) Serial.print("(OK)"); 
+            else Serial.print("(FAIL: Must be 0)");
+            
+            Serial.println();
+            
+            delay(200); 
+        }
+        // -------------------------------------
+
         if (!INPUTS.digitalRead(1) && mapState == "train" && !isStartTrain) {
           Serial.println("trainclick");
           myMP3.playMp3Folder(TRACK_TRAIN_ON);
