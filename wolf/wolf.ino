@@ -206,7 +206,7 @@ DFRobotDFPlayerMini myMP3;
 
 void WolfSendData() {
   if (WiFi.status() == WL_CONNECTED) {
-    sendLogToServer("Wolf game finished, sending 'end' to server.");
+    sendLogToServer("{\"log\":\"Wolf game finished, sending 'end' to server.\"}");
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
@@ -220,7 +220,7 @@ void WolfSendData() {
 
 void GhostSendData() {
   if (WiFi.status() == WL_CONNECTED) {
-    sendLogToServer("Ghost game finished, sending 'end' to server.");
+    sendLogToServer("{\"log\":\"Ghost game finished, sending 'end' to server.\"}");
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
@@ -235,7 +235,7 @@ void GhostSendData() {
 void sendLogToServer(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://192.168.0.100:3000/api/log");
+    http.begin("http://192.168.0.100:3000/api");
     http.addHeader("Content-Type", "application/json");
 
     int httpCode = http.POST(payload);
@@ -344,7 +344,7 @@ void setup() {
 
   Serial.println("\nWiFi connected");
   Serial.println("IP address: " + WiFi.localIP().toString());
-  sendLogToServer("ESP32 Wolf is ready. IP: " + WiFi.localIP().toString());
+  sendLogToServer("{\"log\":\"ESP32 Wolf is ready. IP: " + WiFi.localIP().toString() + "\"}");
 
   server.on("/", HTTP_POST, []() {
     server.send(200, "text/plain", "ESP32 Server is running");
@@ -353,7 +353,7 @@ void setup() {
   server.on("/data", HTTP_POST, []() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
-      sendLogToServer("Received command: " + body);
+      sendLogToServer("{\"log\":\"Wolf received command: " + body + "\"}");
       if (body == "\"game\"") {
         state = 1;
         doorRepeatActive = false;
