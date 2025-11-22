@@ -981,6 +981,7 @@ void PowerOn() {
       mySerial.println("start"); Serial1.println("start");
       Serial2.println("start"); Serial3.println("start");
       delay(1000); Serial.println("startgo");
+      isStartDoorOpenedGlobal = false;
       // ... (сброс переменных) ...
       _dataQueue = 0; crimeEvent = 0; safeEvent = 0; _towerTimer = 0;
       _towerCounter = 0; doorEvent = 0; mansardEvent = 0; libraryEvent = 0;
@@ -1441,17 +1442,15 @@ void HelpHandler(String from) {
 // стартовая дверь на замке с ключом
 // стартовая дверь на замке с ключом
 void StartDoor() {
-  static bool doorOpened = false;
-  
   startDoor.tick();
   
-  // Объединили логику в один блок проверки
-  if (startDoor.isRelease() && !doorOpened) {
+  // ИСПРАВЛЕНИЕ: Используем isStartDoorOpenedGlobal вместо doorOpened
+  if (startDoor.isRelease() && !isStartDoorOpenedGlobal) {
     Serial.println("open_door");
     digitalWrite(HallLight, HIGH);
     
-    isStartDoorOpenedGlobal = true; // Флаг для Дракона
-    doorOpened = true;              // Блокируем повторное срабатывание
+    // ВАЖНО: Ставим глобальный флаг в true, чтобы не срабатывало повторно
+    isStartDoorOpenedGlobal = true; 
 
     // --- ЛОГИКА СЕРВОПРИВОДА ---
     if (!boyServo.attached()) {
@@ -1460,14 +1459,14 @@ void StartDoor() {
     delay(50);          
     boyServo.write(130); // Поворот
      
-    // Цикл ожидания 3 секунды, чтобы серво доехал
+    // Цикл ожидания 3 секунды
     unsigned long startWait = millis();
     while(millis() - startWait < 3000) {
         // Если пришел рестарт во время движения сервы
         if (Serial.available()) {
            String b = Serial.readStringUntil('\n');
            if(b.indexOf("restart") != -1) { 
-               boyServo.detach(); 
+               boyServo.detach();
                OpenAll(); RestOn(); level=25; return; 
            }
         }
@@ -1480,7 +1479,7 @@ void StartDoor() {
     
     dragonFlag = 0;
     KayTimer = millis();
-    level++; // Переход на следующий уровень
+    level++;
   }
 
   // Таймер для повтора подсказки дракона
@@ -1491,7 +1490,7 @@ void StartDoor() {
     dragonTimer = millis();
   }
 
-  // Чтение команд (рестарт, звук)
+  // Чтение команд
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
@@ -3873,6 +3872,9 @@ void Scrolls() {
         buff.trim(); 
         if (buff == "open_safe") {
             OpenLock(BankStashDoor);
+        }
+        else if (buff == "open_workshop") {
+            Serial1.println("open_workshop");
         }
         else if (buff == "restart") {
             OpenAll();
