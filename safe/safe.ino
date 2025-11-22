@@ -14,7 +14,6 @@ const int REED_SWITCH_2_PIN = 32;
 const int BALL_SENSOR_PIN = 39;
 const int DFPLAYER_TX_PIN = 16;
 const int DFPLAYER_RX_PIN = 17;
-    http.begin("http://192.168.0.100:3000/api");
 
 // --- НАСТРОЙКИ DFPLAYER ---
 HardwareSerial dfplayerSerial(1);
