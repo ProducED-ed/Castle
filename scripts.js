@@ -209,17 +209,23 @@ $('.ui.dropdown')
          if (isShuttingDown) {
             // ДА, это было плановое выключение.
             
-            // 1. Закрываем модальное окно "Shutting down..."
-            swal.close();
+            // --- ИЗМЕНЕНИЕ: Вместо закрытия окна, показываем сообщение "Готово" ---
+            swal.fire({
+                title: "System Halted",
+                html: "<div style='font-size: 1.2em; color: green;'>Connection lost.<br>It is safe to turn off the power switch now.</div>",
+                icon: "success",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false // Убираем кнопку, чтобы сообщение висело постоянно
+            });
+            // ----------------------------------------------------------------------
             
-            // 2. Устанавливаем финальное сообщение
+            // Обновляем фон на всякий случай
             output.innerHTML = 'Turn off the power';
-            
-            // 3. Делаем его заметным (красным и жирным)
             $('#output').css('color', 'red').css('font-weight', 'bold');
             
-            // 4. Сбрасываем флаг (на всякий случай)
-            isShuttingDown = false;
+            // Важно: НЕ сбрасываем флаг isShuttingDown = false здесь, 
+            // чтобы блок else ниже не сработал при попытках реконнекта.
 
          } else {
             // НЕТ, это обычный дисконнект (сеть, сбой сервера и т.д.)
@@ -233,45 +239,39 @@ $('.ui.dropdown')
          }
          connected = false;
          if (intID) {
-             intID = clearInterval(intID);//обновляет интервал для того что бы когда подключишься и 2 секунды связь не потеряется то можем считать что сервер работает
+             intID = clearInterval(intID);
          }				
      });
 	 socket.on('show_shutdown_warning', function() {
         console.log("Получена команда 'show_shutdown_warning'");
         
-		// Добавлена проверка, что окно еще не показывалось в этой сессии ---
-        if (sessionStorage.getItem('shutdownWarningSeen') !== 'true') {
-			// Этот флаг сбросится, только если оператор закроет вкладку браузера.
-			sessionStorage.setItem('shutdownWarningSeen', 'true');
-			// Собираем HTML-контент для модального окна
-			var warningHtml = `
-				<p style="font-size: 1.1em; margin-bottom: 20px;">
-					Last time, the adventure was shut down <b>incorrectly</b> (by simply turning off the power).
-					This could damage the system.
-				</p>
-				<p style="font-size: 1.1em;">
-					Please <b>always</b> use the power button in the "Settings" menu:
-				</p>
-				
-				<div style="margin-top: 25px; margin-bottom: 15px;">
-					<button class="ui red icon button" style="cursor: default !important;">
-						<i class="power off icon"></i>
-					</button>
-				</div>
-				
-				<p style="font-size: 0.9em; color: grey;">
-					<i>(Click 'OK' to continue)</i>
-				</p>	
-			`;
+        var warningHtml = `
+            <p style="font-size: 1.1em; margin-bottom: 20px;">
+                Last time, the adventure was shut down <b>incorrectly</b> (by simply turning off the power).
+                This could damage the system.
+            </p>
+            <p style="font-size: 1.1em;">
+                Please <b>always</b> use the power button in the "Settings" menu:
+            </p>
+            
+            <div style="margin-top: 25px; margin-bottom: 15px;">
+                <button class="ui red icon button" style="cursor: default !important;">
+                    <i class="power off icon"></i>
+                </button>
+            </div>
+            
+            <p style="font-size: 0.9em; color: grey;">
+                <i>(Click 'OK' to continue)</i>
+            </p>	
+        `;
 
-			// Показываем модальное окно
-			swal.fire({
-				 title: "Attention!",
-				 icon: "error", // Используем "error" для привлечения внимания
-				 html: warningHtml,
-				 confirmButtonText: 'OK'
-			});
-		}
+        // Показываем модальное окно
+        swal.fire({
+             title: "Attention!",
+             icon: "error",
+             html: warningHtml,
+             confirmButtonText: 'OK'
+        });
     });
     //тут начинается логика которую можно менять первые 3 метода сокетов принимают данные от сервера по уровню громкости каналов
     //настройка для канала с голосом
