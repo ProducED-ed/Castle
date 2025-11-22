@@ -416,35 +416,36 @@ void setup() {
 }
 
 
-void CheckState() { // ИСПРАВЛЕНО: опечатка в имени функции
+void CheckState() { 
   // Проверяем состояние геркона "роза" (pin A3)
   if (!digitalRead(A3)) { // Если геркон активен (LOW)
-    if (!_restartGalet) {    // И если мы еще не отправляли сообщение
+    if (!_restartGalet) {    
+      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
       Serial.println("galet_on");
       sendLog("Rose sensor activated (galet_on).");
-      _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
+      _restartGalet = 1;     
     }
   } else {                   // Если геркон неактивен (HIGH)
-    if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
+    if (_restartGalet) {     
       Serial.println("galet_off");
       sendLog("Rose sensor deactivated (galet_off).");
-      _restartGalet = 0;    // Сбрасываем флаг
+      _restartGalet = 0;    
     }
   }
 
   // Проверяем состояние ИК-датчика "флаг" (pin 7)
-  // Для flagButton используется LOW_PULL, поэтому активное состояние - HIGH
   if (digitalRead(7)) { // Если флаг на месте (HIGH)
-    if (!_restartFlag) {    // И если мы еще не отправляли сообщение
+    if (!_restartFlag) {    
+      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
       Serial.println("flag3_on");
       sendLog("Flag sensor activated (flag3_on).");
-      _restartFlag = 1;     // Устанавливаем флаг
+      _restartFlag = 1;     
     }
   } else {                  // Если флага нет (LOW)
-    if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
+    if (_restartFlag) {     
       Serial.println("flag3_off");
       sendLog("Flag sensor deactivated (flag3_off).");
-      _restartFlag = 0;   // Сбрасываем флаг
+      _restartFlag = 0;   
     }
   }
 }
