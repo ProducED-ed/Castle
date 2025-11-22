@@ -232,15 +232,30 @@ void HandleMessagges(String message) {
 }
 
 void CheckState() {
-  if (!digitalRead(26)) { 
-    if (!_restartGalet) { Serial1.println("galet_on"); _restartGalet = 1; }
+  if (!digitalRead(26)) { // Проверка галетника
+    if (!_restartGalet) { 
+      delay(30); // <--- ДОБАВЛЕНО: Задержка перед отправкой
+      Serial1.println("galet_on"); 
+      _restartGalet = 1; 
+    }
   } else { 
-    if (_restartGalet) { Serial1.println("galet_off"); _restartGalet = 0; }
+    if (_restartGalet) { 
+      Serial1.println("galet_off"); 
+      _restartGalet = 0; 
+    }
   }
-  if (digitalRead(27)) { 
-    if (!_restartFlag) { Serial1.println("flag2_on"); _restartFlag = 1; }
+  
+  if (digitalRead(27)) { // Проверка флага
+    if (!_restartFlag) { 
+      delay(30); // <--- ДОБАВЛЕНО: Задержка перед отправкой
+      Serial1.println("flag2_on"); 
+      _restartFlag = 1; 
+    }
   } else { 
-    if (_restartFlag) { Serial1.println("flag2_off"); _restartFlag = 0; }
+    if (_restartFlag) { 
+      Serial1.println("flag2_off"); 
+      _restartFlag = 0; 
+    }
   }
 }
 
@@ -564,7 +579,7 @@ void Basket(){
       
       // Проверка победы
       if (SCORE_MAN == 3) {
-          delay(1000); Serial1.println("fr8nmr"); delay(1000); Serial1.println("fr8nmr");
+          Serial1.println("fr8nmr"); delay(1000); Serial1.println("fr8nmr");
           isLoose=0; state++;
       }
   }
