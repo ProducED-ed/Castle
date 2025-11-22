@@ -666,32 +666,33 @@ void CheckState() {
   sendLog("Checking initial sensor states.");
   // Проверяем состояние галетника (pin 30)
   if (!digitalRead(30)) { // Если галетник активен (LOW)
-    if (!_restartGalet) {    // И если мы еще не отправляли сообщение
+    if (!_restartGalet) {    
+      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
       Serial1.println("galet_on");
       sendLog("Galet sensor is active (galet_on).");
-      _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
+      _restartGalet = 1;     
     }
   } else {                   // Если галетник неактивен (HIGH)
-    if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
+    if (_restartGalet) {     
       Serial1.println("galet_off");
       sendLog("Galet sensor is inactive (galet_off).");
-      _restartGalet = 0;    // Сбрасываем флаг
+      _restartGalet = 0;    
     }
   }
 
   // Проверяем состояние флага (pin 27)
-  // Для flagButton используется LOW_PULL, поэтому активное состояние - HIGH
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
-    if (!_restartFlag) {    // И если мы еще не отправляли сообщение
+    if (!_restartFlag) {    
+      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
       Serial1.println("flag1_on");
       sendLog("Flag sensor is active (flag1_on).");
-      _restartFlag = 1;     // Устанавливаем флаг
+      _restartFlag = 1;     
     }
   } else {                  // Если флага нет (LOW)
-    if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
+    if (_restartFlag) {     
       Serial1.println("flag1_off");
       sendLog("Flag sensor is inactive (flag1_off).");
-      _restartFlag = 0;   // Сбрасываем флаг
+      _restartFlag = 0;   
     }
   }
 }
