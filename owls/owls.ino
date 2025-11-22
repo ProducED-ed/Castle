@@ -296,6 +296,7 @@ void CheckState() {
   // Проверяем состояние геркона "лодка" (pin 30)
   if (!digitalRead(30)) { // Если геркон активен (LOW)
     if (!_restartGalet) {    // И если мы еще не отправляли сообщение
+      delay(30);
       Serial1.println("owls_galet_on");
       sendLog("Boat sensor activated (owls_galet_on).");
       _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
@@ -312,6 +313,7 @@ void CheckState() {
   // Судя по handleFlagSensorSimple, HIGH - это "on", LOW - "off"
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
     if (!_restartFlag) {    // И если мы еще не отправляли сообщение
+      delay(30);
       Serial1.println("owls_flag4_on");
       sendLog("Flag sensor activated (owls_flag4_on).");
       _restartFlag = 1;     // Устанавливаем флаг
