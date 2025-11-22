@@ -2390,7 +2390,16 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('open_potions_stash')
              eventlet.sleep(1) 
-             name = "story_2"   
+             name = "story_2"
+        if "door_owl" in flag:
+             if 'close_owl' in socklist:
+                 socklist.remove('close_owl')
+        # Активируем иконку на пульте
+        socketio.emit('level', 'active_owls', to=None) 
+        if 'active_owls' not in socklist:
+          socklist.append('active_owls')
+        # Отправляем команду открытия двери
+        serial_write_queue.put('open_owl_door')
         if check == 'owl':
              #-----отправка клиенту 
              socketio.emit('level', 'owl',to=None)
@@ -2830,9 +2839,13 @@ def handle_data():
 
         if 'map' in data and data['map'] == 'train':
           logger.debug("'map: train' logic triggered.")
-          serial_write_queue.put('train')
-          eventlet.sleep(1.0) 
-          play_effect(map_click)
+          
+          
+          # --- ИСПРАВЛЕНИЕ: Убираем отправку команды 'train' на Main Board ---
+          # Эта команда заставляла Main Board думать, что игра пройдена (Skip),
+          # и блокировала работу проектора.
+          # serial_write_queue.put('train') 
+          # -------------------------------------------------------------------
           #while effects_are_busy() and go == 1: 
           #     eventlet.sleep(0.1) 
           if mapClickHints == 0:
@@ -3036,43 +3049,64 @@ def tmr(res):
          devices.clear()
          if is_processing_ready:
              print("INFO: 'Ready' command is already being processed.")
-             return # Выходим, если команда уже в обработке
+             return 
 
          is_processing_ready = True
-         socketio.emit('level', 'ready_processing') # Команда для UI, чтобы заблокировать кнопку
-          #-----перейдет только если был в рестарте или просто запущен
+         socketio.emit('level', 'ready_processing') 
          logger.info("Ready command received")
+         
          if go == 2 or go == 0:
-               # --- Очищаем список ошибок ПЕРЕД началом проверки ---
-               # global devices
-               # devices.clear()
-               
-               # --- Отправляем команду на очистку UI перед проверкой ---
                socketio.emit('clear_check_flags', to=None)
                
-               # 1. Проверяем ESP (эта функция очищает 'devices' в начале)
+               # --- ИСПРАВЛЕНИЕ: ПОЛНАЯ ОЧИСТКА ИСТОРИИ ---
+               # Удаляем все старые данные, чтобы проверка началась с чистого листа.
+               # Это решает проблему "зависших" ошибок.
+               socklist.clear() 
+               socklist.append('ready') # Добавляем метку, что мы в режиме ready
+               # -------------------------------------------
+
+               # 1. Проверяем ESP 
                test_esp32()
                
                # 2. ОТПРАВЛЯЕМ 'ready' на Arduino.
-               # Arduino НЕМЕДЛЕННО сбросит свои флаги и начнет 
-               # проверку состояния (start_door, safe_open и т.д.)
                serial_write_queue.put('ready')
 
-               # 3. Даем 4 секунд, используя НЕБЛОКИРУЮЩИЙ eventlet.sleep().
-               #    Это позволяет потоку serial() работать и ПОЛУЧАТЬ ошибки от Arduino.
-               eventlet.sleep(4.0) # <-- БЫЛО eventlet.sleep(1.0)
+               # 3. Ждем 4.5 секунды (чуть увеличили время ожидания ответов)
+               eventlet.sleep(4.5) 
                
-               # 4. Теперь проверяем 'devices'. К этому моменту он
-               #    содержит И ошибки ESP, И ошибки Arduino.
+               # --- ФИНАЛЬНАЯ ПРОВЕРКА (без изменений) ---
+               
+               # 1. Проверка флагов (ищем в новом, чистом socklist)
+               all_flag_triggers = [
+                   "flag1_on", "flag2_on", "flag3_on", "flag4_on",
+                   "workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"
+               ]
+               for trig in all_flag_triggers:
+                   if trig in socklist:
+                       if 'Check Flags' not in devices: devices.append('Check Flags')
+                       break 
+               
+               # 2. Проверка галетников
+               if "workshop_galet_on" in socklist:
+                   if "Check Workshop Switch" not in devices: devices.append("Check Workshop Switch")
+               if "owls_galet_on" in socklist:
+                   if "Check Owls Switch" not in devices: devices.append("Check Owls Switch")
+               if "dog_galet_on" in socklist:
+                   if "Check Dog Switch" not in devices: devices.append("Check Dog Switch")
+                   
+               # 3. Проверка стартовой двери
+               if "open_door" in socklist:
+                   if "Check Start Door" not in devices: devices.append("Check Start Door")
+               # -----------------------------------------------------------
+
+               # 4. Теперь проверяем 'devices'
                if len(devices) == 0:
                     # --- ВСЕ В ПОРЯДКЕ ---
                     logger.info("Ready: OK")
                     socklist.clear()
-                    # Принудительно закрываем модальное окно с ошибкой (если оно было)
                     socketio.emit('level', 'modal_end', to=None)
                     socketio.emit('level', 'ready',to=None)
                     
-                    # Отправляем команды ESP (теперь, когда уверены, что все хорошо)
                     send_esp32_command(ESP32_API_WOLF_URL, "ready")
                     send_esp32_command(ESP32_API_TRAIN_URL, "ready")
                     send_esp32_command(ESP32_API_SUITCASE_URL, "ready")
@@ -3087,16 +3121,13 @@ def tmr(res):
                     play_background_music("fon1.mp3", loops=-1)
                     logger.debug("State changed: System is ready for game start.")
                else:
-                    # --- НАЙДЕНЫ ОШИБКИ (Либо ESP, либо Arduino) ---
+                    # --- НАЙДЕНЫ ОШИБКИ ---
                     logger.warning(f"Ready: FAILED. Devices: {devices}")
-                    socklist.clear() # Очищаем socklist от старых данных
                     
-                    # --- Просто отправляем клиенту строку с ошибками ---
                     final_string = ', '.join(str(device) for device in set(devices))
                     socketio.emit('devices', final_string, to=None)
                     
-         # --- Снимаем блокировку в конце ---
-         socketio.emit('level', 'ready_finished') # Команда для UI, чтобы разблокировать кнопку
+         socketio.emit('level', 'ready_finished')
          is_processing_ready = False
 
 #данный декоратор срабатывает каждые 100 мс сюда заносятся файлы которые очень легко могут потеряться например кнопки если быстро нажимать и отправляем данные по игре
@@ -3758,18 +3789,57 @@ def serial():
                      if(language==3):
                          play_story(story_2_a_ar)         
                #---режим для событий в ресте показывает что нужно вернуть на свои места
+               
+               # Добавляем проверку для "грязных" сообщений выключения
+               if "galet_off" in flag:
+                   # Принудительно обрабатываем как выключение
+                   socketio.emit('level', 'owls_galet_off', to=None) # Предполагаем Owls, т.к. они чаще всего шлют это
+                   if 'owls_galet_off' not in socklist: socklist.append('owls_galet_off')
+                   if 'owls_galet_on' in socklist: socklist.remove('owls_galet_on')
+
+                   # И для Main Board (просто galet_on/off)
+                   if 'galet_on' in socklist: socklist.remove('galet_on')
+
+                   logging.debug(f"Detected 'galet_off' inside garbage: {flag}")
+               
                if starts == 2 or starts == 0 or starts == 3:
                      
 
-                     if "flag1_on" in socklist or "flag2_on" in socklist or "flag3_on" in socklist or "flag4_on" in socklist:
-                        print('Check Flags Add') 
+                     flags_active = False
+                     all_flag_triggers = [
+                         "flag1_on", "flag2_on", "flag3_on", "flag4_on",
+                         "workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"
+                     ]
+                     
+                     # Проверяем, является ли текущее сообщение флагом ошибки
+                     if flag in all_flag_triggers:
+                         flags_active = True
+                     
+                     # Проверяем историю
+                     if not flags_active:
+                         for trig in all_flag_triggers:
+                             if trig in socklist:
+                                 flags_active = True
+                                 break
+                     
+                     if flags_active:
                         if 'Check Flags' not in devices:
                             devices.append('Check Flags')
-                     else:
-                        logger.debug('Check Flags remove')
-                        if 'Check Flags' in devices:
-                                   devices.remove('Check Flags')  
-                                   logger.debug('Check Flags remove')       
+
+                     # Проверка Галетников (Switches) с учетом текущего флага
+                     if "workshop_galet_on" in socklist or flag == "workshop_galet_on":
+                         if "Check Workshop Switch" not in devices: devices.append("Check Workshop Switch")
+                     
+                     if "owls_galet_on" in socklist or flag == "owls_galet_on":
+                         if "Check Owls Switch" not in devices: devices.append("Check Owls Switch")
+                         
+                     if "dog_galet_on" in socklist or flag == "dog_galet_on":
+                         if "Check Dog Switch" not in devices: devices.append("Check Dog Switch")
+                     
+                     # СТАРЫЙ ГАЛЕТНИК (с Main Board) - судя по логам, приходит просто 'galet_on'
+                     if "galet_on" in socklist or flag == "galet_on":
+                          if "Check Galet Switch" not in devices: devices.append("Check Galet Switch")
+
                      if flag == "open_door":
                           if 'close_door' in socklist:
                                    socklist.remove('close_door')
@@ -4128,6 +4198,10 @@ def serial():
                           socketio.emit('level', 'open_mansard_door',to=None)
                           #-----добавили в историю
                           socklist.append('open_mansard_door')
+                          ser.write(b'open_mansard_door\n')
+                          ser.flush() # <--- Принудительная отправка прямо сейчас!
+                          logging.info("SENT [Main Board]: Открыта дверь мансарды (Direct write)")
+                          eventlet.sleep(0.05) # Даем время на отправку
                           #-----играем эффект
                           play_effect(door_attic)
                           if(language==1):
@@ -4153,49 +4227,72 @@ def serial():
                           #pygame.mixer.music.stop()
                              
                     #---если пришло сообщение что поставили красный флаг проверяем не было ли в истории сообщения что флаг сняли если было удаляем из истории
-                     if flag=="flag1_on":
+                     if "flag1_on" in flag:
                           if 'flag1_off' in socklist:
                                    socklist.remove('flag1_off')
                          #----отправляем на клиента
                           socketio.emit('level', 'flag1_on',to=None)
                           #----добавили в историю
-                          socklist.append('flag1_on')
-                     if flag=="flag2_on":
+                          if 'flag1_on' not in socklist: socklist.append('flag1_on')
+                          
+                          # --- СТРАХОВКА ПОБЕДЫ: Если все 4 флага на месте, завершаем уровень ---
+                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              serial_write_queue.put('m2lck')
+
+                     if "flag2_on" in flag:
                           if 'flag2_off' in socklist:
                                    socklist.remove('flag2_off')
                           socketio.emit('level', 'flag2_on',to=None)
-                          socklist.append('flag2_on')
-                     if flag=="flag3_on":
+                          if 'flag2_on' not in socklist: socklist.append('flag2_on')
+                          
+                          # --- СТРАХОВКА ПОБЕДЫ ---
+                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              serial_write_queue.put('m2lck')
+
+                     if "flag3_on" in flag:
                           if 'flag3_off' in socklist:
                                    socklist.remove('flag3_off')
                           socketio.emit('level', 'flag3_on',to=None)
-                          socklist.append('flag3_on')
-                     if flag=="flag4_on":
+                          if 'flag3_on' not in socklist: socklist.append('flag3_on')
+                          
+                          # --- СТРАХОВКА ПОБЕДЫ ---
+                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              serial_write_queue.put('m2lck')
+
+                     if "flag4_on" in flag:
                           if 'flag4_off' in socklist:
                                    socklist.remove('flag4_off')
                           socketio.emit('level', 'flag4_on',to=None)
-                          socklist.append('flag4_on') 
+                          if 'flag4_on' not in socklist: socklist.append('flag4_on') 
+                          
+                          # --- СТРАХОВКА ПОБЕДЫ ---
+                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              serial_write_queue.put('m2lck')
 
-                     if flag=="flag1_off":
+                     # --- Обработка снятия флагов (также ищем подстроку) ---
+                     if "flag1_off" in flag:
                           if 'flag1_on' in socklist:
                                    socklist.remove('flag1_on')
                           socketio.emit('level', 'flag1_off',to=None)
-                          socklist.append('flag1_off')
-                     if flag=="flag2_off":
+                          if 'flag1_off' not in socklist: socklist.append('flag1_off')
+
+                     if "flag2_off" in flag:
                           if 'flag2_on' in socklist:
                                    socklist.remove('flag2_on')
                           socketio.emit('level', 'flag2_off',to=None)
-                          socklist.append('flag2_off')
-                     if flag=="flag3_off":
+                          if 'flag2_off' not in socklist: socklist.append('flag2_off')
+
+                     if "flag3_off" in flag:
                           if 'flag3_on' in socklist:
                                    socklist.remove('flag3_on')
                           socketio.emit('level', 'flag3_off',to=None)
-                          socklist.append('flag3_off')
-                     if flag=="flag4_off":
+                          if 'flag3_off' not in socklist: socklist.append('flag3_off')
+
+                     if "flag4_off" in flag:
                           if 'flag4_on' in socklist:
                                    socklist.remove('flag4_on')
                           socketio.emit('level', 'flag4_off',to=None)
-                          socklist.append('flag4_off')   
+                          if 'flag4_off' not in socklist: socklist.append('flag4_off')
                     #-------закончили игру с флагами
                      if flag=="flagsendmr":
                           #----играем эффект 
@@ -4215,7 +4312,7 @@ def serial():
                           nextTrack = 1
                           
 
-                     if flag=="door_owl":
+                     if "door_owl" in flag:
                           # [FIX] Проверка на повтор: если 'owl' уже есть в истории, игнорируем
                           if 'owl' in socklist:
                               logger.debug("Игнорируем повторный door_owl")
@@ -4729,7 +4826,9 @@ def serial():
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
                           serial_write_queue.put('open_workshop')
-                          eventlet.sleep(1.1)          
+                          eventlet.sleep(0.5) 
+                          serial_write_queue.put('open_workshop')
+                          eventlet.sleep(1.1)
                           play_effect(door_workshop)
                           play_background_music("fon9.mp3", loops=-1)
                           while effects_are_busy() and go == 1: 
@@ -4939,6 +5038,7 @@ def serial():
                      if flag=="broom":
                           #----играем эффект 
                           play_effect(craft_success)
+                          socketio.emit('level', 'broom', to=None)
                           socklist.append('broom')
                           while effects_are_busy() and go == 1: 
                               eventlet.sleep(0.1)    
@@ -4951,6 +5051,7 @@ def serial():
                      if flag=="helmet":
                           #----играем эффект 
                           play_effect(craft_success)
+                          socketio.emit('level', 'helmet', to=None)
                           socklist.append('helmet')
                           while effects_are_busy() and go == 1: 
                               eventlet.sleep(0.1)    
@@ -5918,6 +6019,10 @@ def serial():
                                if(language==3):
                                     play_story(story_64_b_ar)
                      if flag=="win":
+                          # Сначала ставим в очередь, потом сразу пытаемся отправить
+                          serial_write_queue.put('basket') 
+                          process_serial_queue() # <-- ПРИНУДИТЕЛЬНАЯ ОТПРАВКА
+                          
                           play_background_music("fon19.mp3", loops=-1)    
                           if(language==1): play_story(story_66_ru)  
                           if(language==2): play_story(story_66_en)
@@ -5926,10 +6031,6 @@ def serial():
                           # Отправляем команды
                           socketio.emit('level', 'win_player',to=None)
                           socklist.append('win_player')
-                          
-                          # [FIX] Сначала ставим в очередь, потом сразу пытаемся отправить
-                          serial_write_queue.put('basket') 
-                          process_serial_queue() # <-- ПРИНУДИТЕЛЬНАЯ ОТПРАВКА
 
                           send_esp32_command(ESP32_API_WOLF_URL, "firework")
                           send_esp32_command(ESP32_API_TRAIN_URL, "firework")
