@@ -397,6 +397,12 @@ bool boyStateInitialized = false;
 bool lastBoyState = true; // По умолчанию 'out' (true)
 unsigned long boyCheckTimer = 0;
 
+// --- Watchdog для Баскетбола ---
+unsigned long basketWatchdogTimer = 0;
+bool waitingForBasketConfirm = false; 
+int basketRetryCount = 0;
+const int MAX_BASKET_RETRIES = 10;
+
 void MagicEffect() {
   
   static uint32_t lastUpdate = 0;
@@ -746,6 +752,30 @@ void loop() {
   // Если мы НЕ в режиме ожидания (уровень 25), сбрасываем флаг инициализации
   if (level != 25) {
     isRestInitialized = false;
+  }
+  // Логика Самопочинки Баскетбола
+  if (waitingForBasketConfirm) {
+      if (millis() - basketWatchdogTimer > 3000) { // Если нет ответа 3 сек
+          if (basketRetryCount < MAX_BASKET_RETRIES) {
+              Serial.println("log:warn:Basket silent. Retrying start_basket...");
+              Serial2.println("start_basket");
+              basketWatchdogTimer = millis();
+              basketRetryCount++;
+          } else {
+              // ВМЕСТО ТОГО ЧТОБЫ СДАВАТЬСЯ:
+              // 1. Сообщаем об ошибке
+              Serial.println("log:err:Basket silent. Resetting watchdog to try again...");
+              
+              // 2. Сбрасываем счетчик попыток
+              basketRetryCount = 0; 
+              
+              // 3. Обновляем таймер, чтобы следующая попытка была через 3 секунды
+              basketWatchdogTimer = millis();
+              
+              // 4. НЕ выключаем waitingForBasketConfirm!
+              // Плата продолжит долбить башню каждые 3 секунды до победного.
+          }
+      }
   }
   switch (level) {
     case 0:
@@ -1114,6 +1144,11 @@ void HelpTowersHandler() {
     if (c == '\n') {
       serial2Buffer.trim();
       if (serial2Buffer.length() > 0) {
+		  // [FIX] Ловим подтверждение от башни
+        if (serial2Buffer == "confirm_start") {
+            waitingForBasketConfirm = false; // Ура, башня ответила!
+            Serial.println("log:main:Basket confirmed start. Watchdog OK.");
+        }
         Serial.println(serial2Buffer); // Пересылаем ВСЕ
 
         // Страховка на случай потери команды boy_out (уже была)
@@ -1636,14 +1671,49 @@ void Clock2Game() {
 }
 
 void GaletGame() {
-  static bool galet1;
-  static bool galet2;
-  static bool galet3;
-  static bool galet4;
-  static bool galet5;
-  static bool startSteps;
-  static unsigned long stepsTimer;
+  // Статические переменные хранят состояние между вызовами loop()
+  static bool galet1 = false; // Workshop
+  static bool galet2 = false; // Basket (или другая башня)
+  static bool galet3 = false; // Dog
+  static bool galet4 = false; // Owls
+  static bool galet5 = false; // Local (Main Board)
+  
+  static bool startSteps = false;
+  static unsigned long stepsTimer = 0;
 
+  // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЛОГИКИ "ПРЕДОХРАНИТЕЛЯ" ---
+  static bool isGameInitialized = false; // Флаг: была ли инициализация при входе в уровень
+  static bool gameReadyToWin = false;    // Флаг: можно ли засчитывать победу?
+
+  // --- 1. ИНИЦИАЛИЗАЦИЯ ПРИ СТАРТЕ УРОВНЯ ---
+  if (!isGameInitialized) {
+    // Отправляем запрос состояния всем башням, чтобы узнать, 
+    // повернуты ли галетники УЖЕ сейчас.
+    Serial1.println("check_state"); // Workshop
+    Serial2.println("check_state"); // Basket
+    Serial3.println("check_state"); // Dog
+    mySerial.println("check_state"); // Owls
+    
+    // Сразу проверяем состояние локального галетника (№5)
+    // Используем state(), чтобы узнать текущее положение, а не ждать клика
+    galetSwitches.tick(); 
+    galet5 = galetSwitches.state(); 
+    
+    // Если хотя бы один галетник выключен, мы готовы выигрывать сразу.
+    // Если все 5 включены СРАЗУ, то gameReadyToWin останется false,
+    // пока игрок не выключит хотя бы один.
+    int initialSum = galet1 + galet2 + galet3 + galet4 + galet5;
+    if (initialSum < 5) {
+        gameReadyToWin = true;
+    } else {
+        gameReadyToWin = false; 
+        Serial.println("log:main:All galets ON at start. Waiting for OFF action.");
+    }
+    
+    isGameInitialized = true;
+  }
+
+  // --- 2. ЛОГИКА ТАЙМЕРА ШАГОВ (СТАРАЯ) ---
   if (!startSteps) {
     stepsTimer = millis();
   }
@@ -1654,83 +1724,104 @@ void GaletGame() {
     }
   }
 
+  // --- 3. ЧТЕНИЕ ЛОКАЛЬНОГО ГАЛЕТНИКА (№5) ---
   galetSwitches.tick();
-  if (galetSwitches.isPress()) {
-    galet5 = 1;
-    Serial.println("galet1");
-  }
-  if (galetSwitches.isRelease()) {
-    galet5 = 0;
-    Serial.println("galet1_off");
+  // Используем прямую привязку к состоянию, чтобы не рассинхронизироваться
+  bool currentGalet5State = galetSwitches.state();
+  
+  // Отправляем логи только при изменении состояния
+  if (currentGalet5State != galet5) {
+      galet5 = currentGalet5State;
+      if (galet5) Serial.println("galet1"); // Логика маппинга осталась старой (galet1 в лог = 5-й по факту)
+      else Serial.println("galet1_off");
   }
 
+  // --- 4. ЧТЕНИЕ УДАЛЕННЫХ ГАЛЕТНИКОВ (1-4) ---
+  
+  // Workshop (Serial1)
   while (Serial1.available()) {
     String buf1 = Serial1.readStringUntil('\n');
     buf1.trim();
     if (buf1.startsWith("log:")) {
       Serial.println(buf1);
     } else if (buf1 == "galet_on") {
-      galet1 = 1;
+      galet1 = true;
       Serial.println("galet2");
     } else if (buf1 == "galet_off") {
-      galet1 = 0;
+      galet1 = false;
       Serial.println("galet2_off");
     }
   }
 
+  // Basket (Serial2)
   while (Serial2.available()) {
     String buf2 = Serial2.readStringUntil('\n');
     buf2.trim();
     if (buf2.startsWith("log:")) {
       Serial.println(buf2);
     } else if (buf2 == "galet_on") {
-      galet2 = 1;
+      galet2 = true;
       Serial.println("galet3");
     } else if (buf2 == "galet_off") {
       Serial.println("galet3_off");
-      galet2 = 0;
+      galet2 = false;
     }
   }
 
+  // Dog (Serial3)
   while (Serial3.available()) {
     String buf3 = Serial3.readStringUntil('\n');
     buf3.trim();
     if (buf3.startsWith("log:")) {
       Serial.println(buf3);
     } else if (buf3 == "galet_on") {
-      galet3 = 1;
+      galet3 = true;
       Serial.println("galet4");
     } else if (buf3 == "galet_off") {
       Serial.println("galet4_off");
-      galet3 = 0;
+      galet3 = false;
     }
   }
 
+  // Owls (mySerial)
   while (mySerial.available()) {
     String buf4 = mySerial.readStringUntil('\n');
     buf4.trim();
     if (buf4.startsWith("log:")) {
       Serial.println(buf4);
-    } else if (buf4 == "galet_on") {
-      galet4 = 1;
+    } else if (buf4 == "galet_on" || buf4 == "owls_galet_on") {
+      galet4 = true;
       Serial.println("galet5");
-    } else if (buf4 == "galet_off") {
+    } else if (buf4 == "galet_off" || buf4 == "owls_galet_off") {
       Serial.println("galet5_off");
-      galet4 = 0;
+      galet4 = false;
     }
   }
 
-  if (galet1 && galet2 && galet3 && galet4 && galet5) {
-    delay(200);
-    Serial.println("galet_on");
-    galet1 = 0;
-    galet2 = 0;
-    galet3 = 0;
-    galet4 = 0;
-    galet5 = 0;
-    startSteps = 0;
+  // --- 5. ПРОВЕРКА УСЛОВИЯ ПОБЕДЫ ---
+  int activeGalets = galet1 + galet2 + galet3 + galet4 + galet5;
+
+  // Логика ПРЕДОХРАНИТЕЛЯ:
+  // Если мы еще не готовы выигрывать (потому что все были включены сразу),
+  // мы ждем, пока сумма станет меньше 5 (игрок выключил что-то).
+  if (!gameReadyToWin && activeGalets < 5) {
+      gameReadyToWin = true; // Предохранитель снят, теперь можно выигрывать
+      // Serial.println("log:main:Fuse released. Ready to win.");
   }
 
+  // Победа: Все 5 включены И предохранитель снят
+  if (activeGalets == 5 && gameReadyToWin) {
+    delay(200);
+    Serial.println("galet_on"); // Финальная команда победы
+    
+    // Сброс состояния для следующего раза (или рестарта)
+    galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
+    startSteps = 0;
+    isGameInitialized = false; 
+    gameReadyToWin = false;
+  }
+
+  // --- 6. ОБРАБОТКА КОМАНД СЕРВЕРА ---
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
@@ -1744,29 +1835,27 @@ void GaletGame() {
       boyServo.write(0);
       unsigned long sTime = millis();
       while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
+         MonitorSerialBuffer();
       }
       boyServo.detach();
     }
     if (buff == "open_mansard_door") {
       delay(200);
       OpenLock(MansardDoor);
-      galet1 = 0;
-      galet2 = 0;
-      galet3 = 0;
-      galet4 = 0;
-      galet5 = 0;
+      // Сброс при пропуске
+      galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
       startSteps = 0;
+      isGameInitialized = false;
+      gameReadyToWin = false;
       level++;
     }
     if (buff == "restart") {
       OpenAll();
-      galet1 = 0;
-      galet2 = 0;
-      galet3 = 0;
-      galet4 = 0;
-      galet5 = 0;
+      // Сброс при рестарте
+      galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
       startSteps = 0;
+      isGameInitialized = false;
+      gameReadyToWin = false;
       RestOn();
       level = 25;
       return;
@@ -2116,13 +2205,16 @@ void MapGame() {
     }
   }
 
+  // --- ЧТЕНИЕ СОБАКИ (SERIAL 3) ---
   while (Serial3.available()) {
     String buff = Serial3.readStringUntil('\n');
     buff.trim();
+    
+    // 1. Логи и отладка
     if (buff.startsWith("log:")) {
       Serial.println(buff);
-      // Проверяем логи
-      if (buff.indexOf("dog_lock") != -1) {
+      // Страховка окончания игры по логу
+      if (buff.indexOf("dog_lock") != -1 || buff.indexOf("GAME_FINISHED") != -1) {
         Serial.println("dog_lock");
         isDogEnd = 1;
       }
@@ -2130,40 +2222,46 @@ void MapGame() {
         Serial.println("door_dog");
         isDogDoorOpened = true;
       }
-      if (buff.indexOf("dog_sleep") != -1) {
-        Serial.println("dog_sleep");
-      }
-      if (buff.indexOf("dog_growl") != -1) {
-        Serial.println("dog_growl");
-      }
       continue;
     }
-    
-    // Быстрые проверки
-    if (buff == "dog_lock") {
+
+    // 2. ИСТОРИИ (СТРОГОЕ СРАВНЕНИЕ!)
+    // Нельзя использовать fuzzy search, так как отличия в 1 букву
+    if (buff == "story_20_a") { Serial.println("story_20_a"); }
+    else if (buff == "story_20_b") { Serial.println("story_20_b"); }
+    else if (buff == "story_20_c") { Serial.println("story_20_c"); }
+
+    // 3. КОМАНДЫ (НЕЧЕТКОЕ СРАВНЕНИЕ > 70%)
+    // Защита от помех (dog_lck, og_lock)
+    else if (calculateSimilarity(buff, "dog_lock") > 70) {
       Serial.println("dog_lock");
       isDogEnd = 1;
-    } else if (buff == "door_dog") {
+    } 
+    else if (calculateSimilarity(buff, "door_dog") > 70) {
       Serial.println("door_dog");
       isDogDoorOpened = true;
-    } else if (buff == "dog_sleep") {
+    } 
+    else if (calculateSimilarity(buff, "dog_sleep") > 70) {
       Serial.println("dog_sleep");
-    } else if (buff == "dog_growl") {
+    } 
+    else if (calculateSimilarity(buff, "dog_growl") > 70) {
       Serial.println("dog_growl");
-    } else if (buff == "story_20_a") {
-      Serial.println("story_20_a");
-    } else if (buff == "story_20_b") {
-      Serial.println("story_20_b");
-    } else if (buff == "story_22_c") { // Вероятно, опечатка, должно быть story_20_c
-      Serial.println("story_20_c");
-    } else if (buff == "help") {
+    } 
+    else if (calculateSimilarity(buff, "help") > 70) {
       HelpHandler("knight");
-    } else if (buff == "crystal") {
+    } 
+    else if (calculateSimilarity(buff, "crystal") > 70) {
+      // Логика кристалла
+      GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
+      GoldStrip.show();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
-      Serial.println("item_find");
+      
+      Serial1.println("crystal");
+      Serial.println("item_find:crystal");
       Serial2.println("item_find");
+      mySerial.println("item_find");
     }
   }
 
@@ -2343,55 +2441,67 @@ void MapGame() {
     // ---
   }
 
+  // --- ЧТЕНИЕ ТРОЛЛЯ/БАСКЕТА (SERIAL 2) ---
   while (Serial2.available()) {
     String buff = Serial2.readStringUntil('\n');
     buff.trim();
+    
+    // 1. Логи
     if (buff.startsWith("log:")) {
       Serial.println(buff);
-      // Проверяем логи
-      if (buff.indexOf("aluminium") != -1) {
-        Serial.println("cave_search1");
-      }
-      if (buff.indexOf("bronze") != -1) {
-        Serial.println("cave_search2");
-      }
-      if (buff.indexOf("copper") != -1) {
-        Serial.println("cave_search3");
-      }
-      if (buff.indexOf("cave_end") != -1) {
-        Serial.println("cave_end");
-        isTrollEnd = 1;
-      }
-      if (buff.indexOf("cave_click") != -1) {
-        Serial.println("cave_click");
-      }
-      if (buff.indexOf("door_cave") != -1) {
-        Serial.println("door_cave");
-      }
+      // Страховки по логам
+      if (buff.indexOf("aluminium") != -1) { Serial.println("cave_search1"); Serial2.println("cave_search1"); }
+      if (buff.indexOf("bronze") != -1)    { Serial.println("cave_search2"); Serial2.println("cave_search2"); }
+      if (buff.indexOf("copper") != -1)    { Serial.println("cave_search3"); Serial2.println("cave_search3"); }
+      if (buff.indexOf("cave_end") != -1)  { Serial.println("cave_end"); isTrollEnd = 1; }
+      if (buff.indexOf("door_cave") != -1) { Serial.println("door_cave"); }
       continue;
     }
     
-    // [ИЗМЕНЕНИЕ] Быстрые проверки
-    if (buff == "aluminium") {
-      Serial.println("cave_search1");
-    } else if (buff == "bronze") {
+    // 2. МЕТАЛЛЫ (СТРОГО + ОТВЕТ ОБРАТНО)
+    // Лучше использовать точное совпадение или очень высокий порог
+    if (calculateSimilarity(buff, "aluminium") > 80) {
+      Serial.println("cave_search1"); 
+      Serial2.println("cave_search1"); // Открываем следующий этап
+    } 
+    else if (calculateSimilarity(buff, "bronze") > 80) {
       Serial.println("cave_search2");
-    } else if (buff == "copper") {
+      Serial2.println("cave_search2");
+    } 
+    else if (calculateSimilarity(buff, "copper") > 80) {
       Serial.println("cave_search3");
-    } else if (buff == "cave_end") {
+      Serial2.println("cave_search3");
+    } 
+    
+    // 3. ОСТАЛЬНЫЕ КОМАНДЫ (НЕЧЕТКОЕ СРАВНЕНИЕ > 70%)
+    else if (calculateSimilarity(buff, "cave_end") > 70) {
       Serial.println("cave_end");
       isTrollEnd = 1;
-    } else if (buff == "cave_click") {
+    } 
+    else if (calculateSimilarity(buff, "cave_click") > 70) {
       Serial.println("cave_click");
-    } else if (buff == "door_cave") {
+    } 
+    else if (calculateSimilarity(buff, "door_cave") > 70) {
       Serial.println("door_cave");
-    } else if (buff == "help") {
+    } 
+    else if (calculateSimilarity(buff, "help") > 70) {
       HelpHandler("troll");
-    } else if (buff == "metal") {
+    } 
+    // Кнопка Металл (Мастерская)
+    else if (calculateSimilarity(buff, "metal") > 70) {
+      GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
+      GoldStrip.show();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
-      Serial.println("item_find");
+      
+      Serial1.println("metal");
+      Serial.println("item_find:metal");
+      Serial3.println("item_find");
+      mySerial.println("item_find");
+      
+      // [FIX] ОБЯЗАТЕЛЬНО ОТВЕЧАЕМ БАШНЕ
+      Serial2.println("item_find"); 
     }
   }
 }
@@ -6244,7 +6354,12 @@ void updateComet() {
           Serial.println("catch1");
         }
 
-        Serial2.println("start_basket");
+        // ЗАПУСК С КОНТРОЛЕМ (Вместо простого Serial2.println)
+        Serial2.println("start_basket");   // Первая попытка отправить
+        basketWatchdogTimer = millis();    // Засекаем время для Watchdog
+        waitingForBasketConfirm = true;    // Включаем режим ожидания ответа
+        basketRetryCount = 0;              // Сбрасываем счетчик повторов
+        // --------------------------------
         CatchSnitch();
         Serial2.println("start_basket");
       }
@@ -6265,7 +6380,12 @@ void updateComet() {
         } else {
           Serial.println("catch2");
         }
-        Serial2.println("start_basket");
+        // ЗАПУСК С КОНТРОЛЕМ (Вместо простого Serial2.println)
+        Serial2.println("start_basket");   // Первая попытка отправить
+        basketWatchdogTimer = millis();    // Засекаем время для Watchdog
+        waitingForBasketConfirm = true;    // Включаем режим ожидания ответа
+        basketRetryCount = 0;              // Сбрасываем счетчик повторов
+        // --------------------------------
         CatchSnitch();
         Serial2.println("start_basket");
       }
@@ -6287,7 +6407,12 @@ void updateComet() {
         } else {
           Serial.println("catch3");
         }
-        Serial2.println("start_basket");
+        // ЗАПУСК С КОНТРОЛЕМ (Вместо простого Serial2.println)
+        Serial2.println("start_basket");   // Первая попытка отправить
+        basketWatchdogTimer = millis();    // Засекаем время для Watchdog
+        waitingForBasketConfirm = true;    // Включаем режим ожидания ответа
+        basketRetryCount = 0;              // Сбрасываем счетчик повторов
+        // --------------------------------
         CatchSnitch();
         Serial2.println("start_basket");
       }
@@ -6308,7 +6433,12 @@ void updateComet() {
         } else {
           Serial.println("catch4");
         }
-        Serial2.println("start_basket");
+        // ЗАПУСК С КОНТРОЛЕМ (Вместо простого Serial2.println)
+        Serial2.println("start_basket");   // Первая попытка отправить
+        basketWatchdogTimer = millis();    // Засекаем время для Watchdog
+        waitingForBasketConfirm = true;    // Включаем режим ожидания ответа
+        basketRetryCount = 0;              // Сбрасываем счетчик повторов
+        // --------------------------------
         CatchSnitch();
         Serial2.println("start_basket");
       }
