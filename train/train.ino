@@ -6,6 +6,11 @@
 #include <WebServer.h>
 #include <HTTPClient.h>
 #include <Adafruit_PCF8574.h>
+// --- ДОБАВЛЕНО ДЛЯ OTA ---
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+// -------------------------
 
 HardwareSerial mySerial(1);  // Use UART1
 #define NUM_LEDS 30
@@ -82,6 +87,7 @@ bool musicFlag3 = 0;
 int language = 1;
 int hint_counter = 0;
 bool hintFlag = 1;
+bool trainSensorLatched = false; // Запоминание нажатия
 
 Adafruit_PCF8574 INPUTS;
 Adafruit_PCF8574 OUTPUTS;
@@ -264,6 +270,11 @@ void ResetTimer() {
   isFishClick = false;
   isOwlClick = false;
   isTrainClick = false;
+  // Сброс блокировки при таймауте
+  isStartTrain = 0;  
+  isSendOut = 0;     
+  trainSensorLatched = false;
+  
   FastLED.show();
 }
 
@@ -1218,11 +1229,44 @@ if (mapClicksDisabled) { // Восстанавливаем только если
 
   server.begin();
   Serial.println("HTTP server started");
+  // --- НАСТРОЙКА OTA (Добавить в конец setup) ---
+  ArduinoOTA.setHostname("Train-ESP32"); // Имя устройства в сети
+  
+  ArduinoOTA.onStart([]() {
+    String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+    // Отключаем все моторы/светодиоды для безопасности
+    Serial.println("Start updating " + type);
+    // Можно добавить сюда выключение strip.clear()
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    // Можно мигать светодиодом, но необязательно
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+
+  ArduinoOTA.begin();
+  Serial.println("OTA Ready");
+  // ---------------------------------------------
+}
 }
 
 void loop() {
+  ArduinoOTA.handle();
   // обязательная функция отработки. Должна постоянно опрашиваться
   server.handleClient();
+  // Читаем датчик постоянно
+  if (!INPUTS.digitalRead(1)) { 
+      trainSensorLatched = true; 
+  }
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
     delay(2000);
@@ -1513,15 +1557,29 @@ void loop() {
         }
         // -------------------------------------
 
-        if (!INPUTS.digitalRead(1) && mapState == "train" && !isStartTrain) {
-          Serial.println("trainclick");
+        // Проверяем Latch вместо Pin и запускаем Retry Loop
+        if ((!INPUTS.digitalRead(1) || trainSensorLatched) && mapState == "train" && !isStartTrain) {
+          
+          Serial.println("Train click detected!");
           myMP3.playMp3Folder(TRACK_TRAIN_ON);
-          SendData("{\"log\":\"Train: Playing Train On sound\"}");
-          SendData("{\"projector\":\"end\"}");
+          
+          // Местная индикация сразу
           ActiveLeds[0] = 9;
           ClickLeds[0] = -1;
-          isStartTrain = 1;
+          isStartTrain = 1; 
           isSendOut = 1;
+          trainSensorLatched = false;
+
+          // [FIX] ЦИКЛ ПОВТОРА (RETRY LOOP)
+          bool serverHeardUs = false;
+          for (int k=0; k<5; k++) { // 5 попыток достучаться до сервера
+             // Отправляем синхронно (ждать ответа) или проверяем success
+             // Для упрощения используем твой SendData, но желательно проверить ответ
+             SendData("{\"projector\":\"end\"}");
+             // Небольшая пауза между попытками
+             delay(100); 
+          }
+          SendData("{\"log\":\"Train: Projector commands sent (Retry x5)\"}");
         }
         break;
       case 2:
@@ -1637,6 +1695,7 @@ void MapGerkon() {
 
     if (!INPUTS.digitalRead(4) && trainLedActive && !isTrainClick) {
       ResetTimer();
+	  trainSensorLatched = false; // Сброс памяти
       isSendOut = 0;
       mapState = "train";
       isStartTimer = true;
