@@ -2391,15 +2391,6 @@ def Remote(check):
              serial_write_queue.put('open_potions_stash')
              eventlet.sleep(1) 
              name = "story_2"
-        if "door_owl" in flag:
-             if 'close_owl' in socklist:
-                 socklist.remove('close_owl')
-        # Активируем иконку на пульте
-        socketio.emit('level', 'active_owls', to=None) 
-        if 'active_owls' not in socklist:
-          socklist.append('active_owls')
-        # Отправляем команду открытия двери
-        serial_write_queue.put('open_owl_door')
         if check == 'owl':
              #-----отправка клиенту 
              socketio.emit('level', 'owl',to=None)
@@ -3760,7 +3751,20 @@ def serial():
                      starts = 1
                      send_esp32_command(ESP32_API_WOLF_URL, "start")
                      send_esp32_command(ESP32_API_TRAIN_URL, "start")
+                     # 1. Отправляем 15 для сброса логики загадок (Hard Reset в train.ino)
                      send_esp32_command(ESP32_API_TRAIN_URL, "set_level_15")
+                     
+                     # 2. Читаем реальную громкость из файла 6.txt
+                     try:
+                         f6 = open('6.txt','r')
+                         real_train_vol = f6.read(4)
+                         f6.close()
+                         # 3. Восстанавливаем громкость через небольшую паузу
+                         eventlet.sleep(0.5) 
+                         send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{real_train_vol}")
+                         logging.info(f"Train volume restored to {real_train_vol} after reset.")
+                     except Exception as e:
+                         logging.error(f"Error restoring train volume: {e}")
                      send_esp32_command(ESP32_API_SUITCASE_URL, "start")
                      send_esp32_command(ESP32_API_SAFE_URL, "start")
                      #----отправим на клиента старт
@@ -4313,7 +4317,7 @@ def serial():
                           
 
                      if "door_owl" in flag:
-                          # [FIX] Проверка на повтор: если 'owl' уже есть в истории, игнорируем
+                          # Проверка на повтор: если 'owl' уже есть в истории, игнорируем
                           if 'owl' in socklist:
                               logger.debug("Игнорируем повторный door_owl")
                           else:
@@ -4322,6 +4326,10 @@ def serial():
                               socketio.emit('level', 'owl',to=None)
                               #-----добавили в историю
                               socklist.append('owl')
+                              serial_write_queue.put('open_owl_door') 
+                              socketio.emit('level', 'active_owls', to=None)
+                              if 'active_owls' not in socklist:
+                                  socklist.append('active_owls')
                               send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
                               send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
                               #while effects_are_busy() and go == 1: 
@@ -4691,7 +4699,7 @@ def serial():
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
                           eventlet.sleep(1.1)        
-                          serial_write_queue.put('cave_search1')    
+                          # serial_write_queue.put('cave_search1')    
                      if flag=="cave_search2":
                           #----играем эффект 
                           play_effect(cave_search)
@@ -4710,7 +4718,7 @@ def serial():
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
                           eventlet.sleep(1.1)         
-                          serial_write_queue.put('cave_search2')        
+                          # serial_write_queue.put('cave_search2')        
                      if flag=="cave_search3":
                           #----играем эффект 
                           play_effect(cave_search)
@@ -4727,7 +4735,7 @@ def serial():
                           while channel3.get_busy()==True and go == 1: 
                               eventlet.sleep(0.1)
                           eventlet.sleep(1.1)        
-                          serial_write_queue.put('cave_search3')                          
+                          # serial_write_queue.put('cave_search3')                          
                      if flag=="cave_end":
                           #----играем эффект 
                           socketio.emit('level', 'troll',to=None)
@@ -4988,7 +4996,7 @@ def serial():
                      if flag=="fire1":
                           #----играем эффект 
                           play_effect(fire1)
-                          if fire1Flag == 0:
+                          if fire1Flag == 0 and 'workshop' not in socklist:
                               fire1Flag = 1
                               if(language==1):
                                   play_story(story_32_a_ru)  
@@ -4999,7 +5007,7 @@ def serial():
                      if flag=="fire2":
                           #----играем эффект 
                           play_effect(fire2)
-                          if fire2Flag == 0:
+                          if fire2Flag == 0 and 'workshop' not in socklist:
                               fire2Flag = 1
                               if(language==1):
                                   play_story(story_32_b_ru)  
@@ -5013,7 +5021,7 @@ def serial():
                      if flag=="fire0":
                           #----играем эффект 
                           play_effect(fire0)
-                          if fire0Flag == 0:
+                          if fire0Flag == 0 and 'workshop' not in socklist:
                               fire0Flag = 1
                               if(language==1):
                                   play_story(story_32_c_ru)  
@@ -5310,28 +5318,16 @@ def serial():
                               
                               eventlet.sleep(1.0)
 
-                          # --- ЗАЩИТНЫЙ МЕХАНИЗМ: ДВОЙНАЯ ОТПРАВКА ---
-                          
-                          # 1. Взводим защиту (дублируем)
+                          # 1. Запускаем урок
                           serial_write_queue.put('start_lesson')
-                          logger.debug("SENT [Arduino]: start_lesson (1/2)")
-                          eventlet.sleep(0.2) # Короткая пауза
-                          serial_write_queue.put('start_lesson')
-                          logger.debug("SENT [Arduino]: start_lesson (2/2)")
+                          logger.debug("SENT [Arduino]: start_lesson")
                           
-                          # Ждем, чтобы башня точно успела обработать
-                          eventlet.sleep(1.0) 
+                          # Ждем 1.5 секунды, чтобы Main Board успел прожевать команду
+                          eventlet.sleep(1.5) 
                           
-                          # 2. Запускаем мяч (ТРОЙНОЙ УДАР)
+                          # 2. Запускаем игру (Мяч)
                           serial_write_queue.put('start_game_basket')
-                          logger.debug("SENT [Arduino]: start_game_basket (1/3)")
-                          eventlet.sleep(0.5) 
-                          serial_write_queue.put('start_game_basket')
-                          logger.debug("SENT [Arduino]: start_game_basket (2/3)")
-                          eventlet.sleep(0.5) 
-                          serial_write_queue.put('start_game_basket')
-                          logger.debug("SENT [Arduino]: start_game_basket (3/3)")
-                          # -------------------------------------------
+                          logger.debug("SENT [Arduino]: start_game_basket")
                           
                           eventlet.sleep(1.0)
                           socketio.emit('level', 'active_basket', to=None)
