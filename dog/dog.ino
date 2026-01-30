@@ -159,6 +159,7 @@ bool isCrystalLockedOff = false;  // NOVYY FLAG: Blokiruet kristall do perezapus
 
 // Dlya gerkona "end"
 bool lastEndReedState = HIGH;
+bool hasSeenCageSensor = false;
 
 // Dlya plavnogo vklyucheniya svetodioda osveshcheniya
 const int LIGHTING_FADE_INTERVAL = 10;  // Interval mezhdu shagami dimmirovaniya v ms
@@ -238,6 +239,7 @@ void resetQuestState() {
   lastCageReedState = HIGH;
   lastCageReedActivationTime = 0;
   isCageReedInitialized = false;
+  hasSeenCageSensor = false;
 
   // Pri sbrose kvesta, koleso dolzhno byt "spyashchim"
   isFastSpinning = false;
@@ -289,52 +291,57 @@ void resetQuestState() {
 }
 
 void activateEndStage() {
+  sendLog("DEBUG: activateEndStage called");
+  
   if (currentQuestState == STATE_IN_PROGRESS) {
-    // Uslovie dlya otkrytiya lokera 'kletka': Bystroe vrashchenie aktivno I usloviya dlya spyashchego sostoyaniya NE vypolneny (dver otkryta).
-    // Eto uslovie teper ispolzuet isFastSpinning, tak kak ono otrazhaet tekushchuyu aktivnost
-    if (isFastSpinning && digitalRead(CAPSULE_REED_PIN) == HIGH) {
-      // Deystviya pri BYSTROM vrashchenii (prolete mimo zamka)
-      // Pobedy net, soobshcheniy ne otpravlyaem. Prosto otkryvaem zamok kletki.
-      digitalWrite(CAGE_LOCK_PIN, HIGH);
-      cageLockEndOpenTime = millis();
-      cageLockEndOpenActive = true;
-      endReedTriggeredWithFastSpin = true;
+    
+    bool failFastSpin = isFastSpinning; 
+    bool failSkippedSensor = !hasSeenCageSensor;
+    bool failDoorOpen = (digitalRead(CAPSULE_REED_PIN) == HIGH);
+
+    // Логирование для отладки
+    sendLog("DEBUG activateEndStage:");
+    sendLog("DEBUG - isFastSpinning: " + String(isFastSpinning));
+    sendLog("DEBUG - hasSeenCageSensor: " + String(hasSeenCageSensor));
+    sendLog("DEBUG - Door state: " + String(digitalRead(CAPSULE_REED_PIN) == HIGH ? "OPEN" : "CLOSED"));
+    sendLog("DEBUG - failFastSpin: " + String(failFastSpin));
+    sendLog("DEBUG - failSkippedSensor: " + String(failSkippedSensor));
+    sendLog("DEBUG - failDoorOpen: " + String(failDoorOpen));
+
+    // ВРЕМЕННО: Убираем проверку на hasSeenCageSensor и failDoorOpen для теста
+    // if (failFastSpin || failSkippedSensor || failDoorOpen) {
+    if (failFastSpin) {  // Проверяем только быстрое вращение
+        // FAIL логика
+        if (failSkippedSensor) sendLog("FAIL: Sensor skipped completely!");
+        else if (failDoorOpen) sendLog("FAIL: Door is open!");
+        else if (failFastSpin) sendLog("FAIL: Too fast!");
+        
+        digitalWrite(CAGE_LOCK_PIN, HIGH);
+        cageLockEndOpenTime = millis();
+        cageLockEndOpenActive = true;
+        endReedTriggeredWithFastSpin = true;
     } else {
-      // Deystviya pri MEDLENNOM vrashchenii (USPESHNOE zavershenie)
-      // Esli bystrogo vrashcheniya ne bylo ili usloviya dlya spyashchego rezhima vypolneny (dver zakryta)
+        // SUCCESS логика - даже если датчик не сработал или дверь открыта
+        sendLog("SUCCESS: Slow completion, activating win");
+        
+        Serial.println((__FlashStringHelper *)MSG_LOCK_CLICK);
+        delay(50);
+        Serial.println((__FlashStringHelper *)MSG_LOCK_CLICK);
 
-      // PEREMESHCHENO SYUDA: Otpravlyaem soobshchenie o pobede
-      // ИЗМЕНЕНО: Добавлено логирование перед командой
-      sendLog("Dog game finished. Sending dog_lock. dog_complete");
-      delay(10);
-      // КОНЕЦ
-      Serial.println((__FlashStringHelper *)MSG_LOCK_CLICK);
-      sendLog("Game finished successfully (lock_click).");
-
-      // PEREMESHCHENO SYUDA: Vklyuchaem kristall
-      smoothTurnOnCrystal();
-
-      // Zavershaem igru nemedlenno
-      currentQuestState = STATE_GAME_FINISHED;
-      putWheelToSleep();  // Prinuditelno perevodim koleso v spyashchee sostoyanie, vyklyuchaya vse effekty
-      endReedTriggeredWithFastSpin = false;
+        currentQuestState = STATE_GAME_FINISHED;
+        putWheelToSleep();
+        
+        // Мгновенное включение кристалла
+        analogWrite(CRYSTAL_LIGHT_PIN, 255);
+        currentCrystalBrightness = 255;
+        crystalFadingIn = false;
+        crystalFadingOut = false;
+        isCrystalPulsating = false;
+        endReedTriggeredWithFastSpin = false;
+        
+        sendLog("WIN: Dog locked successfully. Crystal ON.");
     }
-  } else {
-    switch (currentQuestState) {
-      case STATE_WAITING_FOR_START:
-        Serial.println(F("STATE_WAITING_FOR_START"));
-        break;
-      case STATE_GAME_FINISHED:
-        Serial.println(F("STATE_GAME_FINISHED"));
-        break;
-      case STATE_RESTARTING:
-        Serial.println(F("STATE_RESTARTING"));
-        break;
-      default:
-        Serial.println(F("UNKNOWN"));
-        break;
-    }
-  }
+  } 
 }
 
 // Funkciya plavnogo vklyucheniya svetodioda osveshcheniya
@@ -345,6 +352,7 @@ void smoothTurnOnLighting() {
 
 // Funkciya dlya zapuska plavnogo vklyucheniya sveta kristalla
 void smoothTurnOnCrystal() {
+  isCrystalPulsating = false;
   crystalFadingOut = false;
   crystalFadingIn = true;
   lastCrystalFadeTime = millis();
@@ -538,7 +546,9 @@ void loop() {
           currentLightingBlinkState = false;
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_SKIP_DOG) == 0) {
           if (currentQuestState == STATE_IN_PROGRESS) {
+			isFastSpinning = false;
             wasFastSpinningActive = false;
+			hasSeenCageSensor = true;
             activateEndStage();
           }
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_SKIP_PADLOCK) == 0) {
@@ -804,6 +814,7 @@ void loop() {
     }
     if (isCageReedInitialized) {
       if (lastCageReedState == HIGH && currentCageReedState == LOW) {
+		    hasSeenCageSensor = true;
         unsigned long pulseDuration = currentMillis - lastCageReedActivationTime;
         lastCageReedActivationTime = currentMillis;
         if (pulseDuration < 2000 && pulseDuration > 0) {
@@ -834,6 +845,12 @@ void loop() {
           cageReedLowStartTime = 0;
           cageReedWasLow = false;
         }
+      }
+      else if (lastCageReedState == LOW && currentCageReedState == HIGH) {
+      // Устанавливаем флаг при деактивации датчика
+      // Это гарантирует, что даже если мы пропустили активацию, 
+      // но датчик был активен, мы это отметим
+      hasSeenCageSensor = true;
       }
       lastCageReedState = currentCageReedState;
       if (isFastSpinning || (endReedTriggeredWithFastSpin && (digitalRead(VIBRO_MOTOR_PIN) == HIGH || digitalRead(LED_STRIP_PIN) == HIGH))) {
