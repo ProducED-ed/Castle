@@ -1257,7 +1257,6 @@ if (mapClicksDisabled) { // Восстанавливаем только если
   Serial.println("OTA Ready");
   // ---------------------------------------------
 }
-}
 
 void loop() {
   ArduinoOTA.handle();
