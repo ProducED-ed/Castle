@@ -472,7 +472,7 @@ void BasketLesson(){
 }
 
 void Basket(){
-  // 1. Читаем команды от сервера
+  // --- 1. Читаем команды от сервера ---
   while (Serial1.available()) {
       String buff = Serial1.readStringUntil('\n');
       buff.trim();
@@ -481,78 +481,123 @@ void Basket(){
         basketTimer = millis();
         digitalWrite(basketLed, HIGH);
         _startBasket = 1;
+        
+        // Рукопожатие: Подтверждаем получение старта
+        Serial1.println("confirm_start"); 
+        
         sendLog("Basket: Round started.");
       }
       else if (buff == "start_basket_robot"){
-        // Не используем delay. Просто взводим таймер.
         if (!isLoose && SCORE_ROBOT < 3) {
             SCORE_ROBOT++;
-            OUTPUT_TO_DISPLAY(); // Обновляем дисплей сразу
-            
-            // Запускаем таймер на 2 секунды (вместо delay(2000))
+            OUTPUT_TO_DISPLAY(); 
             robotScoreTimer = millis();
             waitingForRobotScore = true; 
         }
       }
       else if (buff == "win"){
-        SCORE_MAN=3; OUTPUT_TO_DISPLAY(); delay(2000); PRINT_SCORE_ROBOT(); delay(1000);
+        // Принудительная победа от сервера
+        SCORE_MAN=3;
+        OUTPUT_TO_DISPLAY(); delay(2000); PRINT_SCORE_ROBOT(); delay(1000);
         PRINT_SCORE_MAN(); delay(1000); Serial1.println("fr8nmr"); isLoose = 0; state++;
       }
       else if (buff == "restart") { HandleMessagges("restart"); }
       else { HandleMessagges(buff); }
   }
 
-  // [ИСПРАВЛЕНИЕ] Обработка таймера робота (без блокировки процессора)
   if (waitingForRobotScore) {
-      // Если прошло 2 секунды
       if (millis() - robotScoreTimer >= 2000) {
-          PRINT_SCORE_ROBOT(); // Отправляем счет на сервер
-          waitingForRobotScore = false; // Таймер сработал
+          PRINT_SCORE_ROBOT();
+          waitingForRobotScore = false;
       }
   }
 
-  // 2. Проверяем состояние мальчика (ПРЯМОЕ ЧТЕНИЕ)
-  bool boyIsHere = (digitalRead(28) == LOW);
-  
-  // Логика "снял/поставил"
-  static bool lastBoyStateGame = true; 
-  if (boyIsHere != lastBoyStateGame) {
-     if (boyIsHere) {
-        Serial1.println("boy_in_game");
-        sendLog("Basket: Boy returned.");
-        if(isLoose){ SCORE_ROBOT = 0; SCORE_MAN = 0; isLoose=0; _startBasket=0; basket_ir_read_F=0; }
-        if (_startBasket) digitalWrite(basketLed, HIGH);
-     } else {
-        Serial1.println("boy_out_game");
-        // ИЗМЕНЕНО: Добавлен текст "Boy removed" для срабатывания страховки
-        sendLog("Basket: Boy removed (Pause).");
-        digitalWrite(basketLed, LOW);
-        _startBasket = 0; 
-     }
-     lastBoyStateGame = boyIsHere;
-     delay(50); 
+  // --- 2. ЛОГИКА ПОБЕДЫ (ПРИОРИТЕТ №1) ---
+  // Проверяем ДО проверки датчика. Если выиграли - вибрации нам не страшны.
+  if (SCORE_MAN >= 3) {
+      OUTPUT_TO_DISPLAY(); 
+      // Шлем команду победы несколько раз для надежности
+      Serial1.println("fr8nmr"); delay(50);
+      Serial1.println("fr8nmr"); delay(50);
+      Serial1.println("fr8nmr");
+      
+      sendLog("Basket: Player WON (3 goals). Ignoring sensor vibration.");
+      isLoose=0; 
+      state++; // Переходим на следующий уровень
+      return;  // Выходим, не проверяя датчик
   }
 
-  // 3. ОСНОВНАЯ ЛОГИКА ИГРЫ
-  if (boyIsHere && !isLoose) {
-      OUTPUT_TO_DISPLAY();
+  // --- 3. УМНЫЙ ДАТЧИК МАЛЬЧИКА (Anti-Vibration) ---
+  bool physicalReading = (digitalRead(28) == LOW); // LOW = Мальчик стоит
+  static bool gameIsActive = true;                 // Текущий статус игры
+  static unsigned long debounceTimer = 0;          // Таймер вибрации
+  static bool debounceActive = false;              // Флаг, что мы "подозреваем" снятие
 
+  // А) Мальчик физически СТОИТ
+  if (physicalReading) {
+      debounceActive = false; // Сбрасываем подозрения, контакт есть
+      
+      if (!gameIsActive) {
+          // Если игра была на паузе - ВОЗОБНОВЛЯЕМ
+          gameIsActive = true;
+          Serial1.println("boy_in_game");
+          sendLog("Basket: Boy returned (Game Resumed).");
+          
+          // Восстанавливаем состояние (но не сбрасываем счет!)
+          if(isLoose){ 
+             SCORE_ROBOT = 0; SCORE_MAN = 0; isLoose=0; _startBasket=0; basket_ir_read_F=0;
+          }
+          if (_startBasket) digitalWrite(basketLed, HIGH);
+      }
+  }
+  // Б) Мальчик физически ОТСУТСТВУЕТ (или геркон дребезжит)
+  else {
+      // Если мы еще не запустили таймер проверки - запускаем
+      if (!debounceActive && gameIsActive) {
+          debounceTimer = millis();
+          debounceActive = true;
+      }
+      
+      // Если таймер тикает уже больше 500 мс - значит это НЕ вибрация
+      if (debounceActive && (millis() - debounceTimer > 500)) {
+          gameIsActive = false; // Ставим игру на паузу
+          debounceActive = false; // Таймер сработал
+          
+          Serial1.println("boy_out_game");
+          sendLog("Basket: Boy removed confirmed > 500ms (Game Paused).");
+          digitalWrite(basketLed, LOW);
+      }
+  }
+
+  // --- 4. ИГРОВОЙ ПРОЦЕСС ---
+  // Игра идет, только если gameIsActive == true (Мальчик стоит стабильно)
+  if (gameIsActive && !isLoose) {
+      OUTPUT_TO_DISPLAY();
+      
       if(_startBasket){
-          if(millis() - basketTimer <= 15000){
+          if(millis() - basketTimer <= 15000){ // 15 секунд на бросок
               bool btnState = digitalRead(BASKET_IR_PIN);
+              
+              // Гол игрока
               if(btnState && !basket_ir_read_F){
                   SCORE_MAN++;
                   OUTPUT_TO_DISPLAY();
-                  digitalWrite(basketLed, LOW);
-                  delay(1000);
-                  PRINT_SCORE_MAN();
+                  
+                  // Эффект гола
+                  digitalWrite(basketLed, LOW); 
+                  Serial1.println(SCORE_MAN == 1 ? "fr61nmr" : "fr62nmr"); // Сразу шлем код
+                  
                   basket_ir_read_F = 1;
-                  _startBasket = 0;
-                  sendLog("Basket: Goal scored by player!");
+                  _startBasket = 0; // Гол забит, ждем следующего запуска
+                  sendLog("Basket: Goal scored!");
+                  
+                  delay(300); 
+                  if (gameIsActive) digitalWrite(basketLed, HIGH);
               }
               if (!btnState && basket_ir_read_F) { delay(IR_TIMEOUT); basket_ir_read_F = 0; }
           }
           else{ 
+              // Время вышло (Тайм-аут)
               _startBasket = 0;
               digitalWrite(basketLed, LOW);
               delay(1000);
@@ -561,26 +606,15 @@ void Basket(){
           }
       }
 
-      // Проверка проигрыша
+      // Проигрыш (Робот забил 3)
       if (SCORE_ROBOT == 3) {
-          // Тройной удар для надежности
-          Serial1.println("fr9nmr"); delay(50);
           Serial1.println("fr9nmr"); delay(50);
           Serial1.println("fr9nmr");
-          sendLog("Basketball game: robot won (3:0).");
-          
+          sendLog("Basket: Robot won.");
           isLoose = 1; 
           _startBasket = 0; 
-          
           delay(3000); 
-          OpenLock(Solenoid); 
-          // Счет сбросится, когда вы вернете мальчика (в блоке выше)
-      }
-      
-      // Проверка победы
-      if (SCORE_MAN == 3) {
-          Serial1.println("fr8nmr"); delay(1000); Serial1.println("fr8nmr");
-          isLoose=0; state++;
+          OpenLock(Solenoid);
       }
   }
 }
