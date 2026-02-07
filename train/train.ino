@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "GyverEncoder.h"
 #include <FastLED.h>
 #include "HardwareSerial.h"
@@ -230,9 +231,9 @@ const char* password = "questquest";
 //const char* password = "32744965";
 
 // Настройки статического IP
-IPAddress local_IP(192, 168, 0, 202);
+IPAddress local_IP(192, 168, 4, 202);
 
-const char* externalApi = "http://192.168.0.100:3000/api";
+const char* externalApi = "http://192.168.4.1:3000/api";
 
 WebServer server(80);
 
@@ -242,7 +243,7 @@ int state = 0;
 void sendLogToServer(String message) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://192.168.0.100:3000/api/log"); // Замените на IP вашего сервера
+    http.begin("http://192.168.4.1:3000/api/log"); // Замените на IP вашего сервера
     http.addHeader("Content-Type", "application/json");
     String payload = "{\"device\":\"train\", \"message\":\"" + message + "\"}";
     int httpCode = http.POST(payload);
@@ -1229,7 +1230,7 @@ if (mapClicksDisabled) { // Восстанавливаем только если
 
   server.begin();
   Serial.println("HTTP server started");
-  // --- НАСТРОЙКА OTA (Добавить в конец setup) ---
+  // --- НАСТРОЙКА OTA  ---
   ArduinoOTA.setHostname("Train-ESP32"); // Имя устройства в сети
   
   ArduinoOTA.onStart([]() {
