@@ -1,4 +1,5 @@
 import eventlet
+import subprocess
 eventlet.monkey_patch()
 
 # ДОБАВЛЕНО: Словарь для расшифровки событий в логах
@@ -151,7 +152,8 @@ EVENT_DESCRIPTIONS = {
 }
 
 #импорт библиотек  flask фреймворк для работы с сервером так же дополнение socketIO 
-from flask import Flask, send_file, request, jsonify
+from datetime import timedelta
+from flask import Flask, send_file, request, jsonify, session, redirect, url_for, render_template_string
 from flask import render_template, request
 from flask_socketio import SocketIO 
 # билиотека для работы с потоками прочти документацию по ней возможно пригодится
@@ -289,10 +291,10 @@ serial_write_queue = eventlet.queue.Queue()
 pending_commands = {} # Словарь для хранения последних команд
 device_timers = {}    # Словарь для отслеживания активных таймеров
 #----переменные 
-ESP32_IP_WOLF = "192.168.0.201" 
-ESP32_IP_TRAIN = "192.168.0.202" 
-ESP32_IP_SUITCASE = "192.168.0.203" 
-ESP32_IP_SAFE = "192.168.0.204" 
+ESP32_IP_WOLF = "192.168.4.201" 
+ESP32_IP_TRAIN = "192.168.4.202" 
+ESP32_IP_SUITCASE = "192.168.4.203" 
+ESP32_IP_SAFE = "192.168.4.204" 
 ESP32_API_WOLF_URL = f"http://{ESP32_IP_WOLF}/data"
 ESP32_API_TRAIN_URL = f"http://{ESP32_IP_TRAIN}/data"
 ESP32_API_SUITCASE_URL = f"http://{ESP32_IP_SUITCASE}/data"
@@ -1843,6 +1845,8 @@ except serial.SerialException as e:
 Payload.max_decode_packets = 200
 #async_mode = None  
 app = Flask('feedback')
+app.secret_key = 'super_secret_quest_key' # Нужно для работы "Запомнить меня"
+ADMIN_PASSWORD = 'questquest' # ПАРОЛЬ ОТ СЕТИ CASTLE
 app.config['SECRET_KEY'] = 'secret!'
 app.static_folder = 'static'
 socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True)
@@ -1903,6 +1907,133 @@ def handle_connect():
     logger.debug(f"New client connected ({request.sid}). Sending full state history ({len(socklist)} items).")
     for i in socklist:
         socketio.emit('level', i, to=request.sid)
+
+# --- WI-FI LOGIC ---
+# --- WI-FI LOGIC (PERSISTENT) ---
+
+@socketio.on('connect_wifi')
+def handle_wifi_connect(data):
+    ssid = data.get('ssid')
+    password = data.get('password')
+    print(f"Wi-Fi Request: Connecting to {ssid} on wlan1...")
+
+    # 1. Сразу меняем статус на "Connecting..."
+    socketio.emit('wifi_status', {'status': 'connecting', 'message': 'Connecting...', 'ssid': ssid})
+    
+    config_text = f"""ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=RU
+
+network={{
+    ssid="{ssid}"
+    psk="{password}"
+    key_mgmt=WPA-PSK
+    priority=1
+}}
+"""
+    try:
+        # 2. Записываем настройки
+        with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as f:
+            f.write(config_text)
+        
+        # 3. Принудительно включаем интерфейс (на случай, если он "уснул" после Disconnect)
+        subprocess.run(['sudo', 'ifconfig', 'wlan1', 'up'], check=False)
+        
+        # 4. Применяем настройки
+        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reconfigure'], check=True)
+        # Иногда нужен пинок для переподключения
+        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reassociate'], check=False)
+        
+        # 5. ЦИКЛ ОЖИДАНИЯ (ждем до 15 секунд, проверяя соединение)
+        connected = False
+        for i in range(15):
+            eventlet.sleep(1)
+            try:
+                # Проверяем SSID
+                ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
+                current_ssid = ssid_bytes.decode('utf-8').strip()
+                
+                if current_ssid:
+                    # Если подключились, пытаемся узнать IP
+                    ip_addr = "Wait IP..."
+                    try:
+                        ip_cmd = "ip -4 addr show wlan1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
+                        ip_bytes = subprocess.check_output(ip_cmd, shell=True)
+                        ip_addr = ip_bytes.decode('utf-8').strip()
+                    except:
+                        pass
+
+                    socketio.emit('wifi_status', {
+                        'status': 'success', 
+                        'message': f'Connected: {current_ssid} ({ip_addr})', 
+                        'ssid': current_ssid,
+                        'ip': ip_addr
+                    })
+                    print(f"Wi-Fi Success: {current_ssid} at {ip_addr}")
+                    connected = True
+                    break
+            except:
+                pass
+
+        # 6. Если за 15 секунд так и не подключились
+        if not connected:
+            socketio.emit('wifi_status', {'status': 'failed', 'message': 'Not connected (Time out)', 'ssid': ''})
+            print("Wi-Fi Fail: Timeout")
+        
+    except Exception as e:
+        print(f"Wi-Fi Connect Error: {e}")
+        socketio.emit('wifi_status', {'status': 'error', 'message': 'Error', 'ssid': ''})
+
+@socketio.on('disconnect_wifi')
+def handle_wifi_disconnect():
+    print("Disabling Wi-Fi connection on wlan1...")
+    try:
+        # Очищаем файл настроек
+        empty_conf = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=RU
+"""
+        with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as f:
+            f.write(empty_conf)
+            
+        # Применяем пустоту (это отключит текущую сеть)
+        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reconfigure'], check=True)
+        
+        # Отправляем статус "Disconnected" и очищаем SSID
+        socketio.emit('wifi_status', {'status': 'disconnected', 'message': 'Disconnected', 'ssid': ''})
+    except Exception as e:
+        print(f"Disconnect Error: {e}")
+
+@socketio.on('check_wifi_status')
+def handle_check_status():
+    try:
+        # 1. Узнаем имя сети
+        ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
+        ssid = ssid_bytes.decode('utf-8').strip()
+        
+        # 2. Узнаем IP-адрес именно на wlan1
+        # Команда hostname -I выдает все адреса, нам нужно найти тот, что не 192.168.4.1
+        # Но надежнее спросить ip у интерфейса:
+        ip_cmd = "ip -4 addr show wlan1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
+        try:
+            ip_bytes = subprocess.check_output(ip_cmd, shell=True)
+            ip_addr = ip_bytes.decode('utf-8').strip()
+        except:
+            ip_addr = "Unknown IP"
+
+        if ssid:
+            # Отправляем и статус, и имя, и IP
+            socketio.emit('wifi_status', {
+                'status': 'success', 
+                'message': f'Connected: {ssid} ({ip_addr})', 
+                'ssid': ssid,
+                'ip': ip_addr
+            })
+        else:
+            socketio.emit('wifi_status', {'status': 'disconnected', 'message': 'Not connected', 'ssid': ''})
+            
+    except Exception:
+        socketio.emit('wifi_status', {'status': 'disconnected', 'message': 'Not connected', 'ssid': ''})
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -6579,6 +6710,85 @@ def process_serial_queue():
         eventlet.sleep(0.05)
     except eventlet.queue.Empty:
         pass
+
+# === СИСТЕМА АВТОРИЗАЦИИ (LOGIN) ===
+
+# Красивая HTML страница входа (с галочкой)
+LOGIN_PAGE_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Вход в систему</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; color: #fff; }
+        form { background: #333; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        input[type="password"] { padding: 10px; margin: 10px 0; width: 80%; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px;}
+        button:hover { background: #218838; }
+        .checkbox-container { margin: 10px 0; font-size: 0.9em; color: #ccc; }
+        input[type="checkbox"] { transform: scale(1.2); margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <form method="post">
+        <h2>QUEST CONTROL</h2>
+        <input type="password" name="password" placeholder="Password" required>
+        <br>
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" name="remember" value="yes"> Remember me
+            </label>
+        </div>
+        <button type="submit">Sign in</button>
+    </form>
+</body>
+</html>
+"""
+
+# Проверка перед каждым запросом: вошел ли админ?
+@app.before_request
+def require_login():
+    # Список страниц, куда можно пускать без пароля (сам вход и статические файлы css/js/картинки)
+    allowed_routes = ['login', 'static']
+    
+    # Если мы не на странице входа и в сессии нет метки "logged_in" -> перекидываем на вход
+    if request.endpoint not in allowed_routes and 'logged_in' not in session:
+        # Важно: request.endpoint может быть None для некоторых системных запросов
+        if request.endpoint is not None: 
+            return redirect(url_for('login'))
+
+# Страница входа
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        remember = request.form.get('remember') # Проверяем, нажата ли галочка
+        
+        if password == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            
+            if remember:
+                # Если галочка стоит - запоминаем на 1 год (365 дней)
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=365)
+            else:
+                # Если не стоит - забываем при закрытии браузера
+                session.permanent = False
+                
+            return redirect('/') 
+        else:
+            return "<h1>Неверный пароль!</h1><a href='/login'>Попробовать снова</a>"
+            
+    return render_template_string(LOGIN_PAGE_HTML)
+
+# Возможность выйти (если понадобится)
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
+# === КОНЕЦ СИСТЕМЫ АВТОРИЗАЦИИ ===
 
 #------наша основная программа крутиться здесь сам сервер порт можно измнить(при желании) методы таймер и сериал работают ассинхронно
 if __name__ == '__main__':
