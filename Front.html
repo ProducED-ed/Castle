@@ -162,7 +162,42 @@
                                         <button class="ui red icon button" id="power_off">
                                             <i class="power off icon"></i>
                                           </button>
-                                     </div> 
+                                     </div>
+									 
+									 <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid; border-radius: 10px;">
+    <button class="ui inverted labeled icon button" style="width: 100%;" id="toggle_wifi">
+        <i class="wifi icon"></i>
+        Wi-Fi Setup
+    </button>
+    
+    <div id="wifi_panel" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+        <div class="ui inverted form">
+            <div class="field">
+                <label style="color: #ccc;">SSID (Name)</label>
+                <div class="ui input mini">
+                    <input type="text" id="wifi_ssid">
+                </div>
+            </div>
+            <div class="field">
+                <label style="color: #ccc;">Password</label>
+                <div class="ui input mini">
+                    <input type="password" id="wifi_pass">
+                </div>
+            </div>
+            <div class="ui two buttons">
+                <button class="ui green basic inverted button mini" id="btn_connect">Connect</button>
+                <button class="ui red basic inverted button mini" id="btn_disconnect">Off</button>
+            </div>
+            <div id="wifi_msg" style="color: yellow; margin-top: 5px; text-align: center;"></div>
+        </div>
+    </div>
+</div>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
                           </div>
                            <!--основной класс pusher здесь находятся наши блоки с содержимым из уровней и игр-->
                           <div class="pusher">
