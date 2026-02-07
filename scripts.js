@@ -1869,4 +1869,73 @@ if (typeof(e) === 'string') {
 $('#output').text(e);   
 }
  });
+ // --- WI-FI LOGIC (FIXED) ---
+    
+    // 1. Открыть/Закрыть меню + ПРОВЕРКА СТАТУСА
+    $('#toggle_wifi').click(function(e){
+        e.preventDefault();
+        $('#wifi_panel').toggle();
+        
+        // Если мы только что открыли меню (оно видимо)
+        if ($('#wifi_panel').is(':visible')) {
+            $('#wifi_msg').text("Checking status...").css('color', 'yellow');
+            socket.emit('check_wifi_status');
+        }
+    });
+
+    // 2. КНОПКА CONNECT (Этого не хватало!)
+    $('#btn_connect').click(function(e){
+        e.preventDefault();
+        
+        // Считываем то, что вы написали в поля
+        // ВНИМАНИЕ: Проверьте в Front.html, совпадают ли id ("wifi_ssid", "wifi_pass")
+        var ssid_val = $('#wifi_ssid').val(); 
+        var pass_val = $('#wifi_pass').val();
+
+        if(!ssid_val) {
+            alert("Please enter SSID (Name)!");
+            return;
+        }
+
+        // Шлем на сервер команду
+        socket.emit('connect_wifi', {ssid: ssid_val, password: pass_val});
+    });
+
+    // 3. КНОПКА DISCONNECT (OFF)
+    $('#btn_disconnect').click(function(e){
+        e.preventDefault();
+        if(confirm("Disconnect from Wi-Fi?")) {
+            socket.emit('disconnect_wifi');
+        }
+    });
+
+    // 4. ОБРАБОТКА ОТВЕТОВ ОТ СЕРВЕРА
+    socket.on('wifi_status', function(data){
+        var msg = $('#wifi_msg');
+        var nameField = $('#wifi_ssid');
+
+        if(data.ssid && data.ssid !== '') {
+            nameField.val(data.ssid);
+        }
+
+        if(data.status == 'connecting') {
+            msg.text(data.message).css('color', 'orange');
+        }
+        else if(data.status == 'success') {
+            // Если сервер прислал IP, делаем его кликабельным (для удобства)
+            if (data.ip && data.ip !== 'Unknown IP' && data.ip !== 'Wait IP...') {
+                var link = 'http://' + data.ip + ':3000';
+                msg.html('Connected! <br> <a href="' + link + '" target="_blank" style="color:#2ecc71; text-decoration: underline;">' + data.ip + '</a>')
+                   .css('color', '#2ecc71');
+            } else {
+                msg.text(data.message).css('color', '#2ecc71');
+            }
+        }
+        else if(data.status == 'failed' || data.status == 'error') {
+            msg.text(data.message).css('color', '#e74c3c');
+        }
+        else if(data.status == 'disconnected') {
+            msg.text(data.message).css('color', 'grey');
+        }
+    });
 });
