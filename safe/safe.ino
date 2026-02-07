@@ -4,6 +4,11 @@
 #include <WebServer.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+// --- ДОБАВЛЕНО ДЛЯ OTA ---
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+// -------------------------
 
 // --- ПИНИ ---
 const int LOCKER_PIN = 18;
@@ -98,15 +103,15 @@ bool safeEndConfirmed = false;      // Флаг подтверждения от 
 unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
 
 // Настройки статического IP
-IPAddress local_IP(192, 168, 0, 204);   
+IPAddress local_IP(192, 168, 4, 204);   
 
-const char* externalApi = "http://192.168.0.100:3000/api";
+const char* externalApi = "http://192.168.4.1:3000/api";
 
 WebServer server(80);
 void sendLogToServer(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://192.168.0.100:3000/api");
+    http.begin("http://192.168.4.1:3000/api");
     http.addHeader("Content-Type", "application/json");
     int httpCode = http.POST(payload);
     http.end();
@@ -164,6 +169,34 @@ void setup() {
   Serial.println("\nWiFi connected");
   Serial.println("IP address: " + WiFi.localIP().toString());
   sendLogToServer("{\"log\":\"ESP32 Safe is ready. IP: " + WiFi.localIP().toString() + "\"}");
+
+  // --- НАСТРОЙКА OTA  ---
+  ArduinoOTA.setHostname("Safe-ESP32"); // Имя устройства в сети
+  
+  ArduinoOTA.onStart([]() {
+    String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+    // Отключаем все моторы/светодиоды для безопасности
+    Serial.println("Start updating " + type);
+    // Можно добавить сюда выключение strip.clear()
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    // Можно мигать светодиодом, но необязательно
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+
+  ArduinoOTA.begin();
+  Serial.println("OTA Ready");
+  // ---------------------------------------------
 
   server.on("/", HTTP_GET, []() {
     server.send(200, "text/plain", "ESP32 Server is running");
@@ -292,6 +325,7 @@ void setup() {
 }
 
 void loop() {
+  ArduinoOTA.handle();
   server.handleClient();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
