@@ -7,6 +7,11 @@
 #include <Adafruit_PCF8574.h>
 #include <WiFi.h>
 #include <Arduino.h>
+// --- ДОБАВЛЕНО ДЛЯ OTA ---
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+// -------------------------
 HardwareSerial mySerial(1);
 
 Adafruit_PCF8574 OUTPUTS;
@@ -195,9 +200,9 @@ const char* password = "questquest";
 //const char* password = "32744965";
 
 // Настройки статического IP
-IPAddress local_IP(192, 168, 0, 201);
+IPAddress local_IP(192, 168, 4, 201);
 
-const char* externalApi = "http://192.168.0.100:3000/api";
+const char* externalApi = "http://192.168.4.1:3000/api";
 
 WebServer server(80);
 
@@ -235,7 +240,7 @@ void GhostSendData() {
 void sendLogToServer(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://192.168.0.100:3000/api");
+    http.begin("http://192.168.4.1:3000/api");
     http.addHeader("Content-Type", "application/json");
 
     int httpCode = http.POST(payload);
@@ -344,6 +349,29 @@ void setup() {
 
   Serial.println("\nWiFi connected");
   Serial.println("IP address: " + WiFi.localIP().toString());
+
+  // --- НАСТРОЙКА OTA ---
+  ArduinoOTA.setHostname("Wolf-ESP32"); // 
+  
+  ArduinoOTA.onStart([]() {
+    String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+
   sendLogToServer("{\"log\":\"ESP32 Wolf is ready. IP: " + WiFi.localIP().toString() + "\"}");
 
   server.on("/", HTTP_POST, []() {
@@ -569,6 +597,7 @@ void setup() {
 
 
 void loop() {
+  ArduinoOTA.handle();
   server.handleClient();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
