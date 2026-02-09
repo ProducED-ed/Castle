@@ -89,6 +89,7 @@ int language = 1;
 int hint_counter = 0;
 bool hintFlag = 1;
 bool trainSensorLatched = false; // Запоминание нажатия
+bool isRestartMode = false;
 
 Adafruit_PCF8574 INPUTS;
 Adafruit_PCF8574 OUTPUTS;
@@ -381,6 +382,30 @@ void handleFirework() {
   FastLED.show();
 }
 
+// Анимация загрузки
+void HandleLoadingAnimation() {
+  // Троттлинг обновления (не чаще раз в 40мс)
+  static unsigned long lastAnimTime = 0;
+  if (millis() - lastAnimTime < 90) return; 
+  lastAnimTime = millis();
+
+  // 1. Затухание только для основной карты
+  fadeToBlackBy(ledMap, 9, 60);
+
+  // 2. Гасим leds1 (кожа и поезд), чтобы они точно не светились
+  for(int i=0; i<4; i++) leds1[i] = CRGB::Black;
+
+  static int pos = 0;
+  pos++;
+  if (pos > 8) pos = 0; // Диапазон 0-8
+
+  // Рисуем синюю комету только на карте
+  ledMap[pos] = CRGB::Blue; 
+
+  FastLED.show();
+}
+// ------------------------------------------------------------------
+
 void setup() {
   Serial.begin(115200);
   mySerial.begin(9600, SERIAL_8N1, 16, 17);
@@ -476,15 +501,22 @@ void setup() {
         delay(500);
         myMP3.playMp3Folder(TRACK_TRAIN);
         SendData("{\"log\":\"Train: Playing Train sound\"}");
+        isRestartMode = false;
         currentTrainStage = 0; // Сброс этапа при старте
+        // --- ИЗМЕНЕНИЕ: Явно гасим все светодиоды ---
         for (int i = 0; i <= 8; i++) {
-          ledMap[i] = CRGB(0, 0, 0);
+          ledMap[i] = CRGB::Black;
         }
+        // Гасим leds1 (кожа и поезд)
+        for (int i = 0; i < 4; i++) {
+           leds1[i] = CRGB::Black;
+        }
+        // -------------------------------------------
+        FastLED.show();
 
         for (int i = 0; i < 22; i++) {
           ActiveLeds[i] = -1;
           ClickLeds[i] = -1;
-          //FutureLeds[i] = -1;
           FutureLeds[i] = i + 9;
         }
         ActiveLeds[4] = 12;
@@ -651,27 +683,30 @@ void setup() {
         currentTrainStage = 0; // Сброс этапа при рестарте
         OUTPUTS.digitalWrite(0, HIGH);
         OUTPUTS.digitalWrite(1, HIGH);
-        for (int i = 0; i <= 3; i++) {
-          leds1[i] = CRGB(255, 255, 255);
+        isRestartMode = true;
+
+        // --- Очищаем обе ленты ---
+        FastLED.clear(); 
+        for (int i = 0; i < 4; i++) {
+           leds1[i] = CRGB::Black;
         }
+        // ------------------------------------
+
         isTrollEnd = 0;
         digitalWrite(TUNNEL_LED, HIGH);
         digitalWrite(UF_LED, HIGH);
 
-        for (int i = 0; i <= 8; i++) {
-          ledMap[i] = CRGB(255, 255, 255);
-        }
-
+        // --- Очищаем массив, так как анимация сама будет рисовать ---
         for (int i = 0; i < 22; i++) {
           ActiveLeds[i] = -1;
           ClickLeds[i] = -1;
-          // Сбрасываем массив "памяти" при рестарте
           wasClickLed[i] = false;
-          FutureLeds[i] = i + 8;
+          FutureLeds[i] = -1; // Это оставляем для логики игры, но визуально в state=0 будет работать анимация
         }
-        state = 0;
+        
+        state = 0; // Переход в режим ожидания (где будет анимация)
         hintFlag = 0;
-        FastLED.show();
+        
         enc1Pos = 0;
         enc2Pos = 0;
         hue = 40;  // 0-21845 (красный-зелёный)
@@ -1529,6 +1564,9 @@ void loop() {
   } else {
     switch (state) {
       case 0:
+        if (isRestartMode) {
+           HandleLoadingAnimation(); 
+        }
         break;
       case 1:
         // --- ДИАГНОСТИКА ПОБЕДЫ ---
