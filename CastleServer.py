@@ -1915,6 +1915,8 @@ def handle_connect():
 def handle_wifi_connect(data):
     ssid = data.get('ssid')
     password = data.get('password')
+    # Создаем флаг "Интернет разрешен"
+    subprocess.run(['touch', '/home/pi/wifi_enabled'], check=False)
     print(f"Wi-Fi Request: Connecting to {ssid} on wlan1...")
 
     # 1. Сразу меняем статус на "Connecting..."
@@ -1929,6 +1931,7 @@ network={{
     psk="{password}"
     key_mgmt=WPA-PSK
     priority=1
+    scan_ssid=1
 }}
 """
     try:
@@ -1987,6 +1990,8 @@ network={{
 @socketio.on('disconnect_wifi')
 def handle_wifi_disconnect():
     print("Disabling Wi-Fi connection on wlan1...")
+    # Удаляем флаг "Интернет разрешен"
+    subprocess.run(['rm', '-f', '/home/pi/wifi_enabled'], check=False)
     try:
         # Очищаем файл настроек
         empty_conf = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
