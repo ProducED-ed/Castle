@@ -103,7 +103,9 @@ bool safeEndConfirmed = false;      // Флаг подтверждения от 
 unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
 
 // Настройки статического IP
-IPAddress local_IP(192, 168, 4, 204);   
+IPAddress local_IP(192, 168, 4, 204);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 const char* externalApi = "http://192.168.4.1:3000/api";
 
@@ -156,7 +158,7 @@ void setup() {
 
   currentState = IDLE;
   Serial.println("Состояние: IDLE");
-  if (!WiFi.config(local_IP)) {
+  if (!WiFi.config(local_IP, gateway, subnet)) {
     Serial.println("STA Failed to configure");
   }
 
@@ -322,6 +324,16 @@ void setup() {
   
   server.begin();
   Serial.println("HTTP server started");
+  // --- ВИЗУАЛЬНЫЙ ТЕСТ ПРОШИВКИ ---
+  for(int i=0; i<5; i++) {
+    digitalWrite(LED_PIN_1, HIGH); 
+    digitalWrite(LED_PIN_2, HIGH);
+    delay(200);
+    digitalWrite(LED_PIN_1, LOW); 
+    digitalWrite(LED_PIN_2, LOW);
+    delay(200);
+  }
+  // -------------------------------
 }
 
 void loop() {
