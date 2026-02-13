@@ -3675,801 +3675,869 @@ def serial():
      #алгоритм на понижение громкости работает хитро сорян за имена переменных лучше его не трогай намучаешься капец сам делал долго связано в округлением данных float и урпавлением во время эффекта
      #если нужно быстрее или медленне измени значения sleep
      while True:
-          check_story_and_fade_up() # Проверяем, не закончила ли история играть
-          process_serial_queue()
-          # Добавляем блок для отправки сообщений из очереди
-          # --- МОНИТОРИНГ СЕРВЕРА ---
-          # 1. Проверяем очередь Python (Лаг логики)
-          q_size = serial_write_queue.qsize()
-          if q_size > 5: # Если скопилось больше 5 команд
-              logger.warning(f"⚠️ SERVER LAG: В очереди {q_size} команд. Сервер не успевает отправлять!")
-
-          # 2. Проверяем буфер USB (Физический затор)
           try:
-              # out_waiting показывает байты, которые застряли в Linux и не ушли в кабель
-              usb_buffer = ser.out_waiting 
-              if usb_buffer > 100: # Если больше 100 байт ждут отправки
-                   logger.warning(f"⚠️ USB CABLE JAM: {usb_buffer} байт застряло на выходе. Скорость 9600 не справляется!")
-          except:
-              pass 
-          # ---------------------------
-          try:
-              message_to_send = serial_write_queue.get_nowait()
-              # Улучшенное логирование исходящих команд на Arduino
-              description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
-              tag = get_device_tag(message_to_send)
-              logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
-              ser.write(str.encode(message_to_send + '\n'))
-              # Мы даем Arduino 50-100 мс, чтобы обработать команду,
-              # прежде чем слать следующую из очереди.
-              eventlet.sleep(0.05)
-          except eventlet.queue.Empty:
-              pass # Если очередь пуста, ничего не делаем
-          #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
-          eventlet.sleep(0.01)
-          if pygame.mixer.music.get_busy() == False:
-               if nextTrack == 1:
-                    play_background_music("fon8.mp3", loops=-1)
-                    if(language==1):
-                        play_story(story_11_ru)  
-                    if(language==2):
-                        play_story(story_11_en)
-                    if(language==3):
-                        play_story(story_11_ar)
-                    nextTrack = 0
+              check_story_and_fade_up() # Проверяем, не закончила ли история играть
+              process_serial_queue()
+              # Добавляем блок для отправки сообщений из очереди
+              # --- МОНИТОРИНГ СЕРВЕРА ---
+              # 1. Проверяем очередь Python (Лаг логики)
+              q_size = serial_write_queue.qsize()
+              if q_size > 5: # Если скопилось больше 5 команд
+                  logger.warning(f"⚠️ SERVER LAG: В очереди {q_size} команд. Сервер не успевает отправлять!")
 
-                          #----активируем игру
-                    socketio.emit('level', 'active_pedlock',to=None)
-                    socklist.append('active_pedlock')
-                    socketio.emit('level', 'active_owl',to=None)
-                    socklist.append('active_owl')
-                    socketio.emit('level', 'active_cat',to=None)
-                    socklist.append('active_cat')
-                    socketio.emit('level', 'active_projector',to=None)
-                    socklist.append('active_projector')
-               
-          # Добавлен 'elif' для сброса флагов при неактивной игре (restart/pause) ---
-          elif go != 1:
-               fs = 0      # Сбрасываем флаг, чтобы fade-in не запустился
-               flagS = 0   # Сбрасываем флаг, чтобы 'soundoff' не отправился
-               a20 = phoneLevel # Сбрасываем громкость
+              # 2. Проверяем буфер USB (Физический затор)
+              try:
+                  # out_waiting показывает байты, которые застряли в Linux и не ушли в кабель
+                  usb_buffer = ser.out_waiting 
+                  if usb_buffer > 100: # Если больше 100 байт ждут отправки
+                       logger.warning(f"⚠️ USB CABLE JAM: {usb_buffer} байт застряло на выходе. Скорость 9600 не справляется!")
+              except:
+                  pass 
+              # ---------------------------
+              try:
+                  message_to_send = serial_write_queue.get_nowait()
+                  # Улучшенное логирование исходящих команд на Arduino
+                  description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
+                  tag = get_device_tag(message_to_send)
+                  logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
+                  ser.write(str.encode(message_to_send + '\n'))
+                  # Мы даем Arduino 50-100 мс, чтобы обработать команду,
+                  # прежде чем слать следующую из очереди.
+                  eventlet.sleep(0.05)
+              except eventlet.queue.Empty:
+                  pass # Если очередь пуста, ничего не делаем
+              #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
+              eventlet.sleep(0.01)
+              if pygame.mixer.music.get_busy() == False:
+                   if nextTrack == 1:
+                        play_background_music("fon8.mp3", loops=-1)
+                        if(language==1):
+                            play_story(story_11_ru)  
+                        if(language==2):
+                            play_story(story_11_en)
+                        if(language==3):
+                            play_story(story_11_ar)
+                        nextTrack = 0
 
-          # аналог serial.available() rsstrip игнорирует всякие переходы на другую строку и перевод каретки     
-          if ser.in_waiting > 0:
-               line = ser.readline().decode('utf-8', errors='ignore').rstrip()
-               flag = line
-               # --------------------------------------------------------
-               flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
-               flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
+                              #----активируем игру
+                        socketio.emit('level', 'active_pedlock',to=None)
+                        socklist.append('active_pedlock')
+                        socketio.emit('level', 'active_owl',to=None)
+                        socklist.append('active_owl')
+                        socketio.emit('level', 'active_cat',to=None)
+                        socklist.append('active_cat')
+                        socketio.emit('level', 'active_projector',to=None)
+                        socklist.append('active_projector')
+                   
+              # Добавлен 'elif' для сброса флагов при неактивной игре (restart/pause) ---
+              elif go != 1:
+                   fs = 0      # Сбрасываем флаг, чтобы fade-in не запустился
+                   flagS = 0   # Сбрасываем флаг, чтобы 'soundoff' не отправился
+                   a20 = phoneLevel # Сбрасываем громкость
 
-               if flag in flag_on_commands:
-                   base_command = flag.replace('_on', '')
-                   socketio.emit('level', f'{base_command}_on', to=None)
-                   if f'{base_command}_on' not in socklist: socklist.append(f'{base_command}_on')
-                   if f'{base_command}_off' in socklist: socklist.remove(f'{base_command}_off')
-                   logging.debug(f"Processed {flag}")
+              # аналог serial.available() rsstrip игнорирует всякие переходы на другую строку и перевод каретки     
+              if ser.in_waiting > 0:
+                   line = ser.readline().decode('utf-8', errors='ignore').rstrip()
+                   flag = line
+                   # --------------------------------------------------------
+                   flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
+                   flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
 
-               if flag in flag_off_commands:
-                   base_command = flag.replace('_off', '')
-                   socketio.emit('level', f'{base_command}_off', to=None)
-                   if f'{base_command}_off' not in socklist: socklist.append(f'{base_command}_off')
-                   if f'{base_command}_on' in socklist: socklist.remove(f'{base_command}_on')
-                   logging.debug(f"Processed {flag}")
-               # --------------------------------------------------------
-               # --- ПРОВЕРКА ПЕРЕПОЛНЕНИЯ ---
-               if "BUFFER CRITICAL" in flag:
-                   logger.critical(f"🔥🔥🔥 {flag} 🔥🔥🔥") # Красные эмодзи для заметности
-                   # Можно даже отправить звук ошибки на колонки, если хотите:
-                   # play_effect(timeout) 
-               # -----------------------------------
-               logger.debug(f"Raw serial data received: {line}")
-               eventlet.sleep(0.1)
-               # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
-               description = EVENT_DESCRIPTIONS.get(flag, '-')
-               tag = get_device_tag(flag)
-               logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
-               # Логирование смены уровня ---
-               if flag.startswith("level_"):
-                   try:
-                       # Извлекаем номер уровня (например, "level_5" -> "5")
-                       level_number = flag.split('_')[1]
-                       # Логируем на уровне DEBUG (только в файл)
-                       logger.debug(f"ARDUINO LEVEL: Main board transitioned to level {level_number}")
-                       if level_number == "12":
-                           # Это означает, что level 11 (Library) был пройден
-                           # (либо стуком, либо 'rrt3lck'). 
-                           # 'punch' уже останавливает channel2, но 'rrt3lck' - нет.
-                           # Эта проверка остановит звук в любом случае.
-                           logger.info("Level 12 reached. Stopping ghost knock sound (channel 2).")
-                           channel2.stop()
-                       # Активация кнопок 3-х игр ТОЛЬКО по факту наступления уровня 5
-                       if level_number == "5":
-                           socketio.emit('level', 'active_suitcase', to=None)
-                           socklist.append('active_suitcase')
-                           socketio.emit('level', 'active_animals', to=None)
-                           socklist.append('active_animals')
-                           socketio.emit('level', 'active_wolf', to=None)
-                           socklist.append('active_wolf')
-                           logger.info("УРОВЕНЬ 5 НАСТУПИЛ: Кнопки Suitcase, Safe, Wolf активированы.")
-                       # 0. Safe (Уровень 9)
-                       if level_number == "9":
-                           socketio.emit('level', 'active_safe', to=None)
-                           socklist.append('active_safe')
-                           logger.info("УРОВЕНЬ 9 НАСТУПИЛ: Кнопка Safe Open активирована.")
-                       
-                       # 1. Workshop (Уровень 10)
-                       if level_number == "10":
-                           socketio.emit('level', 'active_workshop', to=None)
-                           socklist.append('active_workshop')
-                           # Добавляем safe, чтобы он оставался активным, если нужно, или убираем, если он должен исчезнуть
-                           socketio.emit('level', 'safe', to=None) 
-                           socklist.append('safe')
-                           logger.info("УРОВЕНЬ 10 НАСТУПИЛ: Кнопка Workshop активирована.")
+                   if flag in flag_on_commands:
+                       base_command = flag.replace('_on', '')
+                       socketio.emit('level', f'{base_command}_on', to=None)
+                       if f'{base_command}_on' not in socklist: socklist.append(f'{base_command}_on')
+                       if f'{base_command}_off' in socklist: socklist.remove(f'{base_command}_off')
+                       logging.debug(f"Processed {flag}")
 
-                       # 2. 12 Hours / Library Clock (Уровень 11)
-                       if level_number == "11":
-                           socketio.emit('level', 'active_first_clock_2', to=None)
-                           socklist.append('active_first_clock_2')
-                           logger.info("УРОВЕНЬ 11 НАСТУПИЛ: Кнопка 12 hours активирована.")
+                   if flag in flag_off_commands:
+                       base_command = flag.replace('_off', '')
+                       socketio.emit('level', f'{base_command}_off', to=None)
+                       if f'{base_command}_off' not in socklist: socklist.append(f'{base_command}_off')
+                       if f'{base_command}_on' in socklist: socklist.remove(f'{base_command}_on')
+                       logging.debug(f"Processed {flag}")
+                   # --------------------------------------------------------
+                   # --- ПРОВЕРКА ПЕРЕПОЛНЕНИЯ ---
+                   if "BUFFER CRITICAL" in flag:
+                       logger.critical(f"🔥🔥🔥 {flag} 🔥🔥🔥") # Красные эмодзи для заметности
+                       # Можно даже отправить звук ошибки на колонки, если хотите:
+                       # play_effect(timeout) 
+                   # -----------------------------------
+                   logger.debug(f"Raw serial data received: {line}")
+                   eventlet.sleep(0.1)
+                   # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
+                   description = EVENT_DESCRIPTIONS.get(flag, '-')
+                   tag = get_device_tag(flag)
+                   logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
+                   # Логирование смены уровня ---
+                   if flag.startswith("level_"):
+                       try:
+                           # Извлекаем номер уровня (например, "level_5" -> "5")
+                           level_number = flag.split('_')[1]
+                           # Логируем на уровне DEBUG (только в файл)
+                           logger.debug(f"ARDUINO LEVEL: Main board transitioned to level {level_number}")
+                           if level_number == "12":
+                               # Это означает, что level 11 (Library) был пройден
+                               # (либо стуком, либо 'rrt3lck'). 
+                               # 'punch' уже останавливает channel2, но 'rrt3lck' - нет.
+                               # Эта проверка остановит звук в любом случае.
+                               logger.info("Level 12 reached. Stopping ghost knock sound (channel 2).")
+                               channel2.stop()
+                           # Активация кнопок 3-х игр ТОЛЬКО по факту наступления уровня 5
+                           if level_number == "5":
+                               socketio.emit('level', 'active_suitcase', to=None)
+                               socklist.append('active_suitcase')
+                               socketio.emit('level', 'active_animals', to=None)
+                               socklist.append('active_animals')
+                               socketio.emit('level', 'active_wolf', to=None)
+                               socklist.append('active_wolf')
+                               logger.info("УРОВЕНЬ 5 НАСТУПИЛ: Кнопки Suitcase, Safe, Wolf активированы.")
+                           # 0. Safe (Уровень 9)
+                           if level_number == "9":
+                               socketio.emit('level', 'active_safe', to=None)
+                               socklist.append('active_safe')
+                               logger.info("УРОВЕНЬ 9 НАСТУПИЛ: Кнопка Safe Open активирована.")
+                           
+                           # 1. Workshop (Уровень 10)
+                           if level_number == "10":
+                               socketio.emit('level', 'active_workshop', to=None)
+                               socklist.append('active_workshop')
+                               # Добавляем safe, чтобы он оставался активным, если нужно, или убираем, если он должен исчезнуть
+                               socketio.emit('level', 'safe', to=None) 
+                               socklist.append('safe')
+                               logger.info("УРОВЕНЬ 10 НАСТУПИЛ: Кнопка Workshop активирована.")
 
-                       # 3. Cup (Уровень 13)
-                       if level_number == "13":
-                           socketio.emit('level', 'active_cup', to=None)
-                           socklist.append('active_cup')
-                           logger.info("УРОВЕНЬ 13 НАСТУПИЛ: Кнопка Cup активирована.")
-                       
-                       # -----------------------------------------------
-                   except Exception as e:
-                       logger.warning(f"Could not parse level from Arduino: {flag}. Error: {e}")
-               # --- 
-               # --- Этот цикл также вызывает 'state-storm' и race conditions ---
-               # --- Он не нужен, т.к. @socketio.on('Game') шлет громкость, ---
-               # --- а эта функция (serial) сама отправляет 'level' (напр., 'open_door') ниже по коду ---
-               # for i in socklist:
-               #      #----- постоянно обновляем данные по громкости синхроним 
-               #      socketio.emit('volume', str(phoneLevel))
-               #      #     phoneLeveltmp = phoneLevel
-               #      #     print(phoneLevel)
-               #      ##eventlet.sleep(0.01)
-               #      #if effectLevel is not effectLeveltmp:
-               #      # ----постоянно обновляем данные по громкости синхроним 
-               #      socketio.emit('volume1', str(effectLevel))
-               #      #     effectLeveltmp = effectLevel
-               #      ##eventlet.sleep(0.01)
-               #      #if voiceLevel is not voiceLeveltmp:
-               #      # ----постоянно обновляем данные по громкости синхроним 
-               #      socketio.emit('volume2', str(voiceLevel))
-               #      socketio.emit('level', i ,to=None)
-               #проверяем если пришло значение в виде цифры отправляем на метод на клиенте volt
-               if is_number(flag):
-                    socketio.emit('volt', flag,to=None)
-               #сперва ждем этого сообщения если оно придет тогда смело начинаем квест обработка аналогичная как и наверху это сообщение придет если все двери будут закрыты 
-               if flag == "startgo":
-                     #-----очистим историю
-                     socklist.clear()
-                     lesson_start_process_active = False
-                     train_stage_2_active = False
-                     mansard_galets.clear()
-                     last_mansard_count = 0
-                     fire2Flag = 0
-                     fire1Flag = 0
-                     fire0Flag = 0
-                     caveCounter = 0
-                     storyBasketFlag = 0
-                     catchCount = 0
-                     enemyCatchCount = 0
-                     sintchEnemyCatchCount = 0
-                     redSintchEnemyCatchCount = 0
-                     redClickSintchEnemyCatchCount = 0
-                     story13Flag = 0
-                     goalCount = 0
-                     enemyGoalCount = 0
-                     owlFlewCount = 0
-                     if language==1: 
-                         send_esp32_command(ESP32_API_WOLF_URL, "language_1")
-                         send_esp32_command(ESP32_API_TRAIN_URL, "language_1")
-                         send_esp32_command(ESP32_API_SUITCASE_URL, "language_1")
-                         send_esp32_command(ESP32_API_SAFE_URL, "language_1")
-                     if language==2: 
-                         send_esp32_command(ESP32_API_WOLF_URL, "language_2")
-                         send_esp32_command(ESP32_API_TRAIN_URL, "language_2")
-                         send_esp32_command(ESP32_API_SUITCASE_URL, "language_2")
-                         send_esp32_command(ESP32_API_SAFE_URL, "language_2")
-                     if language==3:  
-                         send_esp32_command(ESP32_API_WOLF_URL, "language_3")
-                         send_esp32_command(ESP32_API_TRAIN_URL, "language_3")
-                         send_esp32_command(ESP32_API_SUITCASE_URL, "language_3")
-                         send_esp32_command(ESP32_API_SAFE_URL, "language_3")
-                     #----добавим в истори старт
-                     socklist.append('50')
-                     socklist.append('start_game')
-                     socketio.emit('level', 'start_game',to=None) 
-                     starts = 1
-                     send_esp32_command(ESP32_API_WOLF_URL, "start")
-                     send_esp32_command(ESP32_API_TRAIN_URL, "start")
-                     # 1. Отправляем 15 для сброса логики загадок (Hard Reset в train.ino)
-                     send_esp32_command(ESP32_API_TRAIN_URL, "set_level_15")
-                     
-                     # 2. Читаем реальную громкость из файла 6.txt
-                     try:
-                         f6 = open('6.txt','r')
-                         real_train_vol = f6.read(4)
-                         f6.close()
-                         # 3. Восстанавливаем громкость через небольшую паузу
-                         eventlet.sleep(0.5) 
-                         send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{real_train_vol}")
-                         logging.info(f"Train volume restored to {real_train_vol} after reset.")
-                     except Exception as e:
-                         logging.error(f"Error restoring train volume: {e}")
-                     send_esp32_command(ESP32_API_SUITCASE_URL, "start")
-                     send_esp32_command(ESP32_API_SAFE_URL, "start")
-                     #----отправим на клиента старт
-                     socketio.emit('level', 'start_game',to=None)
-                     #-----играем фон
-                     play_background_music("fon2.mp3", loops=-1)
-                     eventlet.sleep(8.0)
-                     #-----играем историю
-                     if(language==1):
-                         play_story(story_1_ru)  
-                     if(language==2):
-                         play_story(story_1_en)
-                     if(language==3):
-                         play_story(story_1_ar)
-                     #-----меняем значение переменной
-                     name = "start_story_1"    
-                     
-                     while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                     check_story_and_fade_up()
-                     send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
-                     if(language==1):
-                         play_story(story_2_a_ru)  
-                     if(language==2):
-                         play_story(story_2_a_en)
-                     if(language==3):
-                         play_story(story_2_a_ar)         
-               #---режим для событий в ресте показывает что нужно вернуть на свои места
-               
-               # Добавляем проверку для "грязных" сообщений выключения
-               if "galet_off" in flag:
-                   # Принудительно обрабатываем как выключение
-                   socketio.emit('level', 'owls_galet_off', to=None) # Предполагаем Owls, т.к. они чаще всего шлют это
-                   if 'owls_galet_off' not in socklist: socklist.append('owls_galet_off')
-                   if 'owls_galet_on' in socklist: socklist.remove('owls_galet_on')
+                           # 2. 12 Hours / Library Clock (Уровень 11)
+                           if level_number == "11":
+                               socketio.emit('level', 'active_first_clock_2', to=None)
+                               socklist.append('active_first_clock_2')
+                               logger.info("УРОВЕНЬ 11 НАСТУПИЛ: Кнопка 12 hours активирована.")
 
-                   # И для Main Board (просто galet_on/off)
-                   if 'galet_on' in socklist: socklist.remove('galet_on')
-
-                   logging.debug(f"Detected 'galet_off' inside garbage: {flag}")
-               
-               if starts == 2 or starts == 0 or starts == 3:
-                     
-
-                     flags_active = False
-                     all_flag_triggers = [
-                         "flag1_on", "flag2_on", "flag3_on", "flag4_on",
-                         "workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"
-                     ]
-                     
-                     # Проверяем, является ли текущее сообщение флагом ошибки
-                     if flag in all_flag_triggers:
-                         flags_active = True
-                     
-                     # Проверяем историю
-                     if not flags_active:
-                         for trig in all_flag_triggers:
-                             if trig in socklist:
-                                 flags_active = True
-                                 break
-                     
-                     if flags_active:
-                        if 'Check Flags' not in devices:
-                            devices.append('Check Flags')
-
-                     # Проверка Галетников (Switches) с учетом текущего флага
-                     if "workshop_galet_on" in socklist or flag == "workshop_galet_on":
-                         if "Check Workshop Switch" not in devices: devices.append("Check Workshop Switch")
-                     
-                     if "owls_galet_on" in socklist or flag == "owls_galet_on":
-                         if "Check Owls Switch" not in devices: devices.append("Check Owls Switch")
+                           # 3. Cup (Уровень 13)
+                           if level_number == "13":
+                               socketio.emit('level', 'active_cup', to=None)
+                               socklist.append('active_cup')
+                               logger.info("УРОВЕНЬ 13 НАСТУПИЛ: Кнопка Cup активирована.")
+                           
+                           # -----------------------------------------------
+                       except Exception as e:
+                           logger.warning(f"Could not parse level from Arduino: {flag}. Error: {e}")
+                   # --- 
+                   # --- Этот цикл также вызывает 'state-storm' и race conditions ---
+                   # --- Он не нужен, т.к. @socketio.on('Game') шлет громкость, ---
+                   # --- а эта функция (serial) сама отправляет 'level' (напр., 'open_door') ниже по коду ---
+                   # for i in socklist:
+                   #      #----- постоянно обновляем данные по громкости синхроним 
+                   #      socketio.emit('volume', str(phoneLevel))
+                   #      #     phoneLeveltmp = phoneLevel
+                   #      #     print(phoneLevel)
+                   #      ##eventlet.sleep(0.01)
+                   #      #if effectLevel is not effectLeveltmp:
+                   #      # ----постоянно обновляем данные по громкости синхроним 
+                   #      socketio.emit('volume1', str(effectLevel))
+                   #      #     effectLeveltmp = effectLevel
+                   #      ##eventlet.sleep(0.01)
+                   #      #if voiceLevel is not voiceLeveltmp:
+                   #      # ----постоянно обновляем данные по громкости синхроним 
+                   #      socketio.emit('volume2', str(voiceLevel))
+                   #      socketio.emit('level', i ,to=None)
+                   #проверяем если пришло значение в виде цифры отправляем на метод на клиенте volt
+                   if is_number(flag):
+                        socketio.emit('volt', flag,to=None)
+                   #сперва ждем этого сообщения если оно придет тогда смело начинаем квест обработка аналогичная как и наверху это сообщение придет если все двери будут закрыты 
+                   if flag == "startgo":
+                         #-----очистим историю
+                         socklist.clear()
+                         lesson_start_process_active = False
+                         train_stage_2_active = False
+                         mansard_galets.clear()
+                         last_mansard_count = 0
+                         fire2Flag = 0
+                         fire1Flag = 0
+                         fire0Flag = 0
+                         caveCounter = 0
+                         storyBasketFlag = 0
+                         catchCount = 0
+                         enemyCatchCount = 0
+                         sintchEnemyCatchCount = 0
+                         redSintchEnemyCatchCount = 0
+                         redClickSintchEnemyCatchCount = 0
+                         story13Flag = 0
+                         goalCount = 0
+                         enemyGoalCount = 0
+                         owlFlewCount = 0
+                         if language==1: 
+                             send_esp32_command(ESP32_API_WOLF_URL, "language_1")
+                             send_esp32_command(ESP32_API_TRAIN_URL, "language_1")
+                             send_esp32_command(ESP32_API_SUITCASE_URL, "language_1")
+                             send_esp32_command(ESP32_API_SAFE_URL, "language_1")
+                         if language==2: 
+                             send_esp32_command(ESP32_API_WOLF_URL, "language_2")
+                             send_esp32_command(ESP32_API_TRAIN_URL, "language_2")
+                             send_esp32_command(ESP32_API_SUITCASE_URL, "language_2")
+                             send_esp32_command(ESP32_API_SAFE_URL, "language_2")
+                         if language==3:  
+                             send_esp32_command(ESP32_API_WOLF_URL, "language_3")
+                             send_esp32_command(ESP32_API_TRAIN_URL, "language_3")
+                             send_esp32_command(ESP32_API_SUITCASE_URL, "language_3")
+                             send_esp32_command(ESP32_API_SAFE_URL, "language_3")
+                         #----добавим в истори старт
+                         socklist.append('50')
+                         socklist.append('start_game')
+                         socketio.emit('level', 'start_game',to=None) 
+                         starts = 1
+                         send_esp32_command(ESP32_API_WOLF_URL, "start")
+                         send_esp32_command(ESP32_API_TRAIN_URL, "start")
+                         # 1. Отправляем 15 для сброса логики загадок (Hard Reset в train.ino)
+                         send_esp32_command(ESP32_API_TRAIN_URL, "set_level_15")
                          
-                     if "dog_galet_on" in socklist or flag == "dog_galet_on":
-                         if "Check Dog Switch" not in devices: devices.append("Check Dog Switch")
-                     
-                     # СТАРЫЙ ГАЛЕТНИК (с Main Board) - судя по логам, приходит просто 'galet_on'
-                     if "galet_on" in socklist or flag == "galet_on":
-                          if "Check Galet Switch" not in devices: devices.append("Check Galet Switch")
-
-                     if flag == "open_door":
-                          if 'close_door' in socklist:
-                                   socklist.remove('close_door')
-                          socketio.emit('level', 'open_door',to=None)
-                          socklist.append('open_door')
-                          if 'Check Start Door' not in devices:
-                            devices.append('Check Start Door') 
-                     if flag == "close_door":
-                          if 'Check Start Door' in devices:
-                                   devices.remove('Check Start Door')
-                          if 'open_door' in socklist:
-                                   socklist.remove('open_door')
-                          socketio.emit('level', 'close_door',to=None)
-                          socklist.append('close_door')   
-                     # --- ВОССТАНОВЛЕНО: Обработка flag2 ---
-                     if flag=="flag2_on":
-                          while 'flag2_off' in socklist:
-                                   socklist.remove('flag2_off')
-                          socketio.emit('level', 'flag2_on',to=None)
-                          socklist.append('flag2_on')
-                     if flag=="flag2_off":
-                          while 'flag2_on' in socklist:
-                                   socklist.remove('flag2_on')
-                          socketio.emit('level', 'flag2_off',to=None)
-                          socklist.append('flag2_off')
-                     # --- КОНЕЦ ---
-                     # --- ИЗМЕНЕНО: Обработка уникальных galet-команд ---
-                     if flag in ["workshop_galet_on", "owls_galet_on", "dog_galet_on"]:
-                         tower_name = flag.split('_')[0] # "workshop", "owls", или "dog"
-                         # Общая логика для UI (если нужна)
-                         socketio.emit('level', f'{tower_name}_galet_on', to=None)
-                         if f'{tower_name}_galet_on' not in socklist: socklist.append(f'{tower_name}_galet_on')
-                         if f'{tower_name}_galet_off' in socklist: socklist.remove(f'{tower_name}_galet_off')
-                         # Добавляем в логгер для диагностики
-                         logging.debug(f"Processed {flag}")
-
-                     if flag in ["workshop_galet_off", "owls_galet_off", "dog_galet_off"]:
-                         tower_name = flag.split('_')[0]
-                         socketio.emit('level', f'{tower_name}_galet_off', to=None)
-                         if f'{tower_name}_galet_off' not in socklist: socklist.append(f'{tower_name}_galet_off')
-                         if f'{tower_name}_galet_on' in socklist: socklist.remove(f'{tower_name}_galet_on')
-                         logging.debug(f"Processed {flag}")
-                     # --- КОНЕЦ ИЗМЕНЕНИЯ ---
-
-                     if flag=="cristal_up":
-                          if 'Check Crystals' not in devices:
-                            devices.append('Check Crystals')
-                          if 'crystals_down' in socklist:
-                                   socklist.remove('crystals_down')
-                          socketio.emit('level', 'crystals',to=None)
-                          socklist.append('crystals')   
-
-                     if flag=="cristal_down":
-                          if 'Check Crystals' in devices:
-                                   devices.remove('Check Crystals')
-                          if 'crystals' in socklist:
-                                   socklist.remove('crystals')
-                          socketio.emit('level', 'crystals_down',to=None)
-                          socklist.append('crystals_down')   
-
-                     if flag=="boy_in":
-                          if 'Check Kay' in devices:
-                                   devices.remove('Check Kay')
-                          
-                          if 'start_players' in socklist:
-                                socklist.remove('start_players')
-                          socketio.emit('level', 'stop_players_rest',to=None)
-                          socklist.append('stop_players_rest')
-
-                     if flag=="boy_out":
-                          if 'Check Kay' not in devices:
-                            devices.append('Check Kay')
-                          if 'stop_players_rest' in socklist:
-                                socklist.remove('stop_players_rest')
-                          socketio.emit('level', 'start_players',to=None)
-                          socklist.append('start_players') 
-
-                     if flag=="lib_door":
-                          if 'Check Library' not in devices:
-                            devices.append('Check Library')
-                          if 'close_door_puzzle' in socklist:
-                                socklist.remove('close_door_puzzle')
-                          socketio.emit('level', 'open_door_puzzle',to=None)
-                          socklist.append('open_door_puzzle')
-
-                     if flag=="lib_door_in":
-                          if 'Check Library' in devices:
-                                   devices.remove('Check Library')
-                          if 'open_door_puzzle' in socklist:
-                                socklist.remove('open_door_puzzle')
-                          socketio.emit('level', 'close_door_puzzle',to=None)
-                          socklist.append('close_door_puzzle')
-
-                     if flag=="safe_close":
-                          if 'Check Bank Safe' in devices:
-                                   devices.remove('Check Bank Safe')
-                          if 'safe' in socklist:
-                                socklist.remove('safe')
-                          socketio.emit('level', 'safe_close',to=None)
-                          socklist.append('safe_close')
-
-                     if flag=="safe_open":
-                          if 'Check Bank Safe' not in devices:
-                            devices.append('Check Bank Safe')
-                          if 'safe_close' in socklist:
-                                socklist.remove('safe_close')
-                          socketio.emit('level', 'safe',to=None)
-                          socklist.append('safe')
-
-                     if flag=="crime_close":
-                          if 'Check Crime' in devices:
-                                   devices.remove('Check Crime')
-                          if 'crime' in socklist:
-                                socklist.remove('crime')
-                          socketio.emit('level', 'crime_close',to=None)
-                          socklist.append('crime_close')
-
-                     if flag=="crime_open":
-                          if 'Check Crime' not in devices:
-                            devices.append('Check Crime')
-                          if 'crime_close' in socklist:
-                                socklist.remove('crime_close')
-                          socketio.emit('level', 'crime',to=None)
-                          socklist.append('crime')
-                     # --- Логика для "мальчика" (Kay) в режиме ожидания ---
-                     if flag == "boy_out": # Мальчик ВЫНУТ
-                         # 1. Воспроизводим звук
-                         play_effect(kay_out)
+                         # 2. Читаем реальную громкость из файла 6.txt
+                         try:
+                             f6 = open('6.txt','r')
+                             real_train_vol = f6.read(4)
+                             f6.close()
+                             # 3. Восстанавливаем громкость через небольшую паузу
+                             eventlet.sleep(0.5) 
+                             send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{real_train_vol}")
+                             logging.info(f"Train volume restored to {real_train_vol} after reset.")
+                         except Exception as e:
+                             logging.error(f"Error restoring train volume: {e}")
+                         send_esp32_command(ESP32_API_SUITCASE_URL, "start")
+                         send_esp32_command(ESP32_API_SAFE_URL, "start")
+                         #----отправим на клиента старт
+                         socketio.emit('level', 'start_game',to=None)
+                         #-----играем фон
+                         play_background_music("fon2.mp3", loops=-1)
+                         eventlet.sleep(8.0)
+                         #-----играем историю
+                         if(language==1):
+                             play_story(story_1_ru)  
+                         if(language==2):
+                             play_story(story_1_en)
+                         if(language==3):
+                             play_story(story_1_ar)
+                         #-----меняем значение переменной
+                         name = "start_story_1"    
                          
-                         # 2. Обновляем 'devices' (как в 'ready' проверке)
-                         if 'Check Kay' not in devices:
-                             devices.append('Check Kay')
-                     
-                     if flag == "boy_in": # Мальчик ВСТАВЛЕН
-                         # 1. Воспроизводим звук
-                         play_effect(kay_in)
+                         while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                         check_story_and_fade_up()
+                         send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
+                         if(language==1):
+                             play_story(story_2_a_ru)  
+                         if(language==2):
+                             play_story(story_2_a_en)
+                         if(language==3):
+                             play_story(story_2_a_ar)         
+                   #---режим для событий в ресте показывает что нужно вернуть на свои места
+                   
+                   # Добавляем проверку для "грязных" сообщений выключения
+                   if "galet_off" in flag:
+                       # Принудительно обрабатываем как выключение
+                       socketio.emit('level', 'owls_galet_off', to=None) # Предполагаем Owls, т.к. они чаще всего шлют это
+                       if 'owls_galet_off' not in socklist: socklist.append('owls_galet_off')
+                       if 'owls_galet_on' in socklist: socklist.remove('owls_galet_on')
+
+                       # И для Main Board (просто galet_on/off)
+                       if 'galet_on' in socklist: socklist.remove('galet_on')
+
+                       logging.debug(f"Detected 'galet_off' inside garbage: {flag}")
+                   
+                   if starts == 2 or starts == 0 or starts == 3:
                          
-                         # 2. Обновляем 'devices' (как в 'ready' проверке)
-                         if 'Check Kay' in devices:
-                             devices.remove('Check Kay')
-                                                                                
-               #----если нажали на старт и пришло сообщение от меги что можно играть начинаем обрабатывать сообщения
-               if go == 1 and starts == 1:
-                    #-----игроки открыли стартовую дверь
-                     if flag == "dragon_crystal":
-                          #----играем историю    
-                          if(language==1):
-                              play_story(story_2_b_ru)  
-                          if(language==2):
-                              play_story(story_2_b_en)
-                          if(language==3):
-                              play_story(story_2_b_ar)
-                     if flag == "dragon_crystal_repeat":
-                          #----играем историю    
-                          if(language==1):
-                              play_story(story_2_r_ru)  
-                          if(language==2):
-                              play_story(story_2_r_en)
-                          if(language==3):
-                              play_story(story_2_r_ar)         
-                     if flag == "open_door":
-                          #----отправили на клиента
-                          socketio.emit('level', 'open_door',to=None)
-                          #-----добавили в список
-                          socklist.append('open_door')
-                          play_background_music("fon3.mp3", loops=-1)
-                          #----играем эффект
-                          play_effect(door_act)
 
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1) 
-                          #----играем историю    
-                          if(language==1):
-                              play_story(story_3_ru)  
-                          if(language==2):
-                              play_story(story_3_en)
-                          if(language==3):
-                              play_story(story_3_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          eventlet.sleep(1.1) 
-                          serial_write_queue.put('kay_repeat') 
-                          eventlet.sleep(1.1)     
-                          #------активируем блок на пульте с тумблером
-                          socketio.emit('level', 'active_first_clock',to=None)
-                          socklist.append('active_first_clock')
-                     if flag == "clock1":
-                          #----шлем на клиента
-                          socketio.emit('level', 'first_clock',to=None)
-                          #----добавляем в историю
-                          socklist.append('first_clock')
-                          #----играем эффект
-                          play_effect(h_clock)
-                          #-----ждем окончания эффекта
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1) 
-                          #----играем историю    
-                          if(language==1):
-                              play_story(story_3_a_ru)  
-                          if(language==2):
-                              play_story(story_3_a_en)
-                          if(language==3):
-                              play_story(story_3_a_ar)              
-                          #-----изменяем переменную
-                          name = "story_1"  
-                          #-----активируем блок с галетниками
-                          socketio.emit('level', 'active_second_clock',to=None)
-                          socklist.append('active_second_clock') 
-                     if flag == "clock2":
-                          #----шлем на клиента
-                          play_background_music("fon4.mp3", loops=-1)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_on")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_knock")
-                          socketio.emit('level', 'second_clock', to=None)
-                          #----добавляем в историю
-                          socklist.append('second_clock')
-                          play_effect(uf_clock)
-                          #-----ждем окончания эффекта
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1) 
-                          #----играем историю    
-                          if(language==1):
-                              play_story(story_3_b_ru)  
-                          if(language==2):
-                              play_story(story_3_b_en)
-                          if(language==3):
-                              play_story(story_3_b_ar)  
+                         flags_active = False
+                         all_flag_triggers = [
+                             "flag1_on", "flag2_on", "flag3_on", "flag4_on",
+                             "workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"
+                         ]
+                         
+                         # Проверяем, является ли текущее сообщение флагом ошибки
+                         if flag in all_flag_triggers:
+                             flags_active = True
+                         
+                         # Проверяем историю
+                         if not flags_active:
+                             for trig in all_flag_triggers:
+                                 if trig in socklist:
+                                     flags_active = True
+                                     break
+                         
+                         if flags_active:
+                            if 'Check Flags' not in devices:
+                                devices.append('Check Flags')
 
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)  
-
-                          serial_write_queue.put('after_story_clock2')
-                          eventlet.sleep(1.0)     
-                          #-----изменяем переменную
-                          name = "story_1"  
-                          #-----активируем блок с галетниками
-                          socketio.emit('level', 'active_open_mansard_door',to=None)
-                          socklist.append('active_open_mansard_door') 
-                     if flag == "steps":
-                          #----играем эффект
-                          play_effect(steps)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1) 
-
-                          if(language==1):
-                              play_story(story_3_c_ru)  
-                          if(language==2):
-                              play_story(story_3_c_en)
-                          if(language==3):
-                              play_story(story_3_c_ar)
-
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)         
-
-                          serial_write_queue.put('student_hide')
-                          # --- ЗАЩИТА: Проверяем, не активен ли уже 2 этап ---
-                          if not train_stage_2_active:
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_1")
-                          else:
-                              logger.info("SKIP stage_1 because stage_2 is already active.")
-                          eventlet.sleep(1.0)
-
-                          send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_off")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "train_light_on")
-                          play_background_music("fon5.mp3", loops=-1)
-                          if(language==1):
-                              play_story(story_4_ru)  
-                          if(language==2):
-                              play_story(story_4_en)
-                          if(language==3):
-                              play_story(story_4_ar)
-                          #-----изменяем переменную
-                     if flag == "kay_repeat":
-                          if(language==1):
-                              play_story(story_3_r_ru)  
-                          if(language==2):
-                              play_story(story_3_r_en)
-                          if(language==3):
-                              play_story(story_3_r_ar)
-                     # --- Логика для Прогресс-бара Mansard Game (5 галетников) ---
-                          
-                     # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
-                     galet_signals = {
-                         "galet1": "g1", "galet2": "g2", "galet3": "g3", "galet4": "g4", "galet5": "g5"
-                     }
-                     galet_off_signals = {
-                         "galet1_off": "g1", "galet2_off": "g2", "galet3_off": "g3", "galet4_off": "g4", "galet5_off": "g5"
-                     }
-                  
-                     changed = False
-                  
-                     # 2. Проверяем, пришел ли сигнал ВКЛ
-                     if flag in galet_signals:
-                         # Добавляем, только если его еще не было
-                         if galet_signals[flag] not in mansard_galets:
-                             mansard_galets.add(galet_signals[flag])
-                             changed = True
-                  
-                     # 3. Проверяем, пришел ли сигнал ВЫКЛ
-                     if flag in galet_off_signals:
-                         # Удаляем, только если он там был
-                         if galet_off_signals[flag] in mansard_galets:
-                             mansard_galets.discard(galet_off_signals[flag])
-                             changed = True
-
-                     # 4. Если состояние изменилось, обновляем UI
-                     if changed:
-                         current_count = len(mansard_galets)
-                      
-                         # Проверяем, отличается ли новое значение от старого (чтобы не спамить)
-                         if current_count != last_mansard_count:
-                             percent = current_count * 20
-                             event_name = f"mansard_progress_{percent}" # например, "mansard_progress_40"
-                          
-                             # 4.1. Отправляем в SocketIO
-                             socketio.emit('level', event_name, to=None)
-                          
-                             # 4.2. Обновляем историю (socklist)
-                             # Удаляем старое значение прогресса из истории
-                             old_percent = last_mansard_count * 20
-                             old_event_name = f"mansard_progress_{old_percent}"
-                          
-                             # Используем цикл while, чтобы удалить ВСЕ старые вхождения
-                             while old_event_name in socklist:
-                                 try:
-                                     socklist.remove(old_event_name)
-                                 except ValueError:
-                                     pass # На случай, если что-то пошло не так
-                                  
-                             socklist.append(event_name)
-                          
-                             # 4.3. Обновляем последнее известное значение
-                             last_mansard_count = current_count
-                             logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
-                     # --- Конец Логики Прогресс-бара Mansard Game ---
-                     #----прошли галетники     
-                     if flag=="galet_on":
-                          # --- Фиксируем, что мы перешли на этап 2 ---
-                          train_stage_2_active = True
-                          #-----играем фон
-                          play_background_music("fon6.mp3", loops=-1)
-                          #---ждем окончания эффекта
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          #----играем историю    
-                          if(language==1):
-                              play_story(story_5_ru)  
-                          if(language==2):
-                              play_story(story_5_en)
-                          if(language==3):
-                              play_story(story_5_ar)
-
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          #----отправляем на клиента
-                          socketio.emit('level', 'open_mansard_door',to=None)
-                          #-----добавили в историю
-                          socklist.append('open_mansard_door')
-                          ser.write(b'open_mansard_door\n')
-                          ser.flush() # <--- Принудительная отправка прямо сейчас!
-                          logging.info("SENT [Main Board]: Открыта дверь мансарды (Direct write)")
-                          eventlet.sleep(0.05) # Даем время на отправку
-                          #-----играем эффект
-                          play_effect(door_attic)
-                          if(language==1):
-                              play_story(story_6_ru)  
-                          if(language==2):
-                              play_story(story_6_en)
-                          if(language==3):
-                              play_story(story_6_ar)
-                              
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          send_esp32_command(ESP32_API_WOLF_URL, "game")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "game")
-                          send_esp32_command(ESP32_API_SAFE_URL, "game")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_2") # <-- КОМАНДА ВЫКЛЮЧЕНИЯ
-
-                     if flag=="three_game_end":
-                          send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
-                          socketio.emit('level', 'active_open_mansard_stash',to=None)
-                          socklist.append('active_open_mansard_stash')
-                          #channel3.stop() 
-                          #channel2.stop() 
-                          #pygame.mixer.music.stop()
+                         # Проверка Галетников (Switches) с учетом текущего флага
+                         if "workshop_galet_on" in socklist or flag == "workshop_galet_on":
+                             if "Check Workshop Switch" not in devices: devices.append("Check Workshop Switch")
+                         
+                         if "owls_galet_on" in socklist or flag == "owls_galet_on":
+                             if "Check Owls Switch" not in devices: devices.append("Check Owls Switch")
                              
-                    #---если пришло сообщение что поставили красный флаг проверяем не было ли в истории сообщения что флаг сняли если было удаляем из истории
-                     if "flag1_on" in flag:
-                          if 'flag1_off' in socklist:
-                                   socklist.remove('flag1_off')
-                         #----отправляем на клиента
-                          socketio.emit('level', 'flag1_on',to=None)
-                          #----добавили в историю
-                          if 'flag1_on' not in socklist: socklist.append('flag1_on')
+                         if "dog_galet_on" in socklist or flag == "dog_galet_on":
+                             if "Check Dog Switch" not in devices: devices.append("Check Dog Switch")
+                         
+                         # СТАРЫЙ ГАЛЕТНИК (с Main Board) - судя по логам, приходит просто 'galet_on'
+                         if "galet_on" in socklist or flag == "galet_on":
+                              if "Check Galet Switch" not in devices: devices.append("Check Galet Switch")
+
+                         if flag == "open_door":
+                              if 'close_door' in socklist:
+                                       socklist.remove('close_door')
+                              socketio.emit('level', 'open_door',to=None)
+                              socklist.append('open_door')
+                              if 'Check Start Door' not in devices:
+                                devices.append('Check Start Door') 
+                         if flag == "close_door":
+                              if 'Check Start Door' in devices:
+                                       devices.remove('Check Start Door')
+                              if 'open_door' in socklist:
+                                       socklist.remove('open_door')
+                              socketio.emit('level', 'close_door',to=None)
+                              socklist.append('close_door')   
+                         # --- ВОССТАНОВЛЕНО: Обработка flag2 ---
+                         if flag=="flag2_on":
+                              while 'flag2_off' in socklist:
+                                       socklist.remove('flag2_off')
+                              socketio.emit('level', 'flag2_on',to=None)
+                              socklist.append('flag2_on')
+                         if flag=="flag2_off":
+                              while 'flag2_on' in socklist:
+                                       socklist.remove('flag2_on')
+                              socketio.emit('level', 'flag2_off',to=None)
+                              socklist.append('flag2_off')
+                         # --- КОНЕЦ ---
+                         # --- ИЗМЕНЕНО: Обработка уникальных galet-команд ---
+                         if flag in ["workshop_galet_on", "owls_galet_on", "dog_galet_on"]:
+                             tower_name = flag.split('_')[0] # "workshop", "owls", или "dog"
+                             # Общая логика для UI (если нужна)
+                             socketio.emit('level', f'{tower_name}_galet_on', to=None)
+                             if f'{tower_name}_galet_on' not in socklist: socklist.append(f'{tower_name}_galet_on')
+                             if f'{tower_name}_galet_off' in socklist: socklist.remove(f'{tower_name}_galet_off')
+                             # Добавляем в логгер для диагностики
+                             logging.debug(f"Processed {flag}")
+
+                         if flag in ["workshop_galet_off", "owls_galet_off", "dog_galet_off"]:
+                             tower_name = flag.split('_')[0]
+                             socketio.emit('level', f'{tower_name}_galet_off', to=None)
+                             if f'{tower_name}_galet_off' not in socklist: socklist.append(f'{tower_name}_galet_off')
+                             if f'{tower_name}_galet_on' in socklist: socklist.remove(f'{tower_name}_galet_on')
+                             logging.debug(f"Processed {flag}")
+                         # --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
+                         if flag=="cristal_up":
+                              if 'Check Crystals' not in devices:
+                                devices.append('Check Crystals')
+                              if 'crystals_down' in socklist:
+                                       socklist.remove('crystals_down')
+                              socketio.emit('level', 'crystals',to=None)
+                              socklist.append('crystals')   
+
+                         if flag=="cristal_down":
+                              if 'Check Crystals' in devices:
+                                       devices.remove('Check Crystals')
+                              if 'crystals' in socklist:
+                                       socklist.remove('crystals')
+                              socketio.emit('level', 'crystals_down',to=None)
+                              socklist.append('crystals_down')   
+
+                         if flag=="boy_in":
+                              if 'Check Kay' in devices:
+                                       devices.remove('Check Kay')
+                              
+                              if 'start_players' in socklist:
+                                    socklist.remove('start_players')
+                              socketio.emit('level', 'stop_players_rest',to=None)
+                              socklist.append('stop_players_rest')
+
+                         if flag=="boy_out":
+                              if 'Check Kay' not in devices:
+                                devices.append('Check Kay')
+                              if 'stop_players_rest' in socklist:
+                                    socklist.remove('stop_players_rest')
+                              socketio.emit('level', 'start_players',to=None)
+                              socklist.append('start_players') 
+
+                         if flag=="lib_door":
+                              if 'Check Library' not in devices:
+                                devices.append('Check Library')
+                              if 'close_door_puzzle' in socklist:
+                                    socklist.remove('close_door_puzzle')
+                              socketio.emit('level', 'open_door_puzzle',to=None)
+                              socklist.append('open_door_puzzle')
+
+                         if flag=="lib_door_in":
+                              if 'Check Library' in devices:
+                                       devices.remove('Check Library')
+                              if 'open_door_puzzle' in socklist:
+                                    socklist.remove('open_door_puzzle')
+                              socketio.emit('level', 'close_door_puzzle',to=None)
+                              socklist.append('close_door_puzzle')
+
+                         if flag=="safe_close":
+                              if 'Check Bank Safe' in devices:
+                                       devices.remove('Check Bank Safe')
+                              if 'safe' in socklist:
+                                    socklist.remove('safe')
+                              socketio.emit('level', 'safe_close',to=None)
+                              socklist.append('safe_close')
+
+                         if flag=="safe_open":
+                              if 'Check Bank Safe' not in devices:
+                                devices.append('Check Bank Safe')
+                              if 'safe_close' in socklist:
+                                    socklist.remove('safe_close')
+                              socketio.emit('level', 'safe',to=None)
+                              socklist.append('safe')
+
+                         if flag=="crime_close":
+                              if 'Check Crime' in devices:
+                                       devices.remove('Check Crime')
+                              if 'crime' in socklist:
+                                    socklist.remove('crime')
+                              socketio.emit('level', 'crime_close',to=None)
+                              socklist.append('crime_close')
+
+                         if flag=="crime_open":
+                              if 'Check Crime' not in devices:
+                                devices.append('Check Crime')
+                              if 'crime_close' in socklist:
+                                    socklist.remove('crime_close')
+                              socketio.emit('level', 'crime',to=None)
+                              socklist.append('crime')
+                         # --- Логика для "мальчика" (Kay) в режиме ожидания ---
+                         if flag == "boy_out": # Мальчик ВЫНУТ
+                             # 1. Воспроизводим звук
+                             play_effect(kay_out)
+                             
+                             # 2. Обновляем 'devices' (как в 'ready' проверке)
+                             if 'Check Kay' not in devices:
+                                 devices.append('Check Kay')
+                         
+                         if flag == "boy_in": # Мальчик ВСТАВЛЕН
+                             # 1. Воспроизводим звук
+                             play_effect(kay_in)
+                             
+                             # 2. Обновляем 'devices' (как в 'ready' проверке)
+                             if 'Check Kay' in devices:
+                                 devices.remove('Check Kay')
+                                                                                    
+                   #----если нажали на старт и пришло сообщение от меги что можно играть начинаем обрабатывать сообщения
+                   if go == 1 and starts == 1:
+                        #-----игроки открыли стартовую дверь
+                         if flag == "dragon_crystal":
+                              #----играем историю    
+                              if(language==1):
+                                  play_story(story_2_b_ru)  
+                              if(language==2):
+                                  play_story(story_2_b_en)
+                              if(language==3):
+                                  play_story(story_2_b_ar)
+                         if flag == "dragon_crystal_repeat":
+                              #----играем историю    
+                              if(language==1):
+                                  play_story(story_2_r_ru)  
+                              if(language==2):
+                                  play_story(story_2_r_en)
+                              if(language==3):
+                                  play_story(story_2_r_ar)         
+                         if flag == "open_door":
+                              #----отправили на клиента
+                              socketio.emit('level', 'open_door',to=None)
+                              #-----добавили в список
+                              socklist.append('open_door')
+                              play_background_music("fon3.mp3", loops=-1)
+                              #----играем эффект
+                              play_effect(door_act)
+
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1) 
+                              #----играем историю    
+                              if(language==1):
+                                  play_story(story_3_ru)  
+                              if(language==2):
+                                  play_story(story_3_en)
+                              if(language==3):
+                                  play_story(story_3_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              eventlet.sleep(1.1) 
+                              serial_write_queue.put('kay_repeat') 
+                              eventlet.sleep(1.1)     
+                              #------активируем блок на пульте с тумблером
+                              socketio.emit('level', 'active_first_clock',to=None)
+                              socklist.append('active_first_clock')
+                         if flag == "clock1":
+                              #----шлем на клиента
+                              socketio.emit('level', 'first_clock',to=None)
+                              #----добавляем в историю
+                              socklist.append('first_clock')
+                              #----играем эффект
+                              play_effect(h_clock)
+                              #-----ждем окончания эффекта
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1) 
+                              #----играем историю    
+                              if(language==1):
+                                  play_story(story_3_a_ru)  
+                              if(language==2):
+                                  play_story(story_3_a_en)
+                              if(language==3):
+                                  play_story(story_3_a_ar)              
+                              #-----изменяем переменную
+                              name = "story_1"  
+                              #-----активируем блок с галетниками
+                              socketio.emit('level', 'active_second_clock',to=None)
+                              socklist.append('active_second_clock') 
+                         if flag == "clock2":
+                              #----шлем на клиента
+                              play_background_music("fon4.mp3", loops=-1)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_on")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "ghost_knock")
+                              socketio.emit('level', 'second_clock', to=None)
+                              #----добавляем в историю
+                              socklist.append('second_clock')
+                              play_effect(uf_clock)
+                              #-----ждем окончания эффекта
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1) 
+                              #----играем историю    
+                              if(language==1):
+                                  play_story(story_3_b_ru)  
+                              if(language==2):
+                                  play_story(story_3_b_en)
+                              if(language==3):
+                                  play_story(story_3_b_ar)  
+
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)  
+
+                              serial_write_queue.put('after_story_clock2')
+                              eventlet.sleep(1.0)     
+                              #-----изменяем переменную
+                              name = "story_1"  
+                              #-----активируем блок с галетниками
+                              socketio.emit('level', 'active_open_mansard_door',to=None)
+                              socklist.append('active_open_mansard_door') 
+                         if flag == "steps":
+                              #----играем эффект
+                              play_effect(steps)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1) 
+
+                              if(language==1):
+                                  play_story(story_3_c_ru)  
+                              if(language==2):
+                                  play_story(story_3_c_en)
+                              if(language==3):
+                                  play_story(story_3_c_ar)
+
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)         
+
+                              serial_write_queue.put('student_hide')
+                              # --- ЗАЩИТА: Проверяем, не активен ли уже 2 этап ---
+                              if not train_stage_2_active:
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "stage_1")
+                              else:
+                                  logger.info("SKIP stage_1 because stage_2 is already active.")
+                              eventlet.sleep(1.0)
+
+                              send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_off")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "train_light_on")
+                              play_background_music("fon5.mp3", loops=-1)
+                              if(language==1):
+                                  play_story(story_4_ru)  
+                              if(language==2):
+                                  play_story(story_4_en)
+                              if(language==3):
+                                  play_story(story_4_ar)
+                              #-----изменяем переменную
+                         if flag == "kay_repeat":
+                              if(language==1):
+                                  play_story(story_3_r_ru)  
+                              if(language==2):
+                                  play_story(story_3_r_en)
+                              if(language==3):
+                                  play_story(story_3_r_ar)
+                         # --- Логика для Прогресс-бара Mansard Game (5 галетников) ---
+                              
+                         # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
+                         galet_signals = {
+                             "galet1": "g1", "galet2": "g2", "galet3": "g3", "galet4": "g4", "galet5": "g5"
+                         }
+                         galet_off_signals = {
+                             "galet1_off": "g1", "galet2_off": "g2", "galet3_off": "g3", "galet4_off": "g4", "galet5_off": "g5"
+                         }
+                      
+                         changed = False
+                      
+                         # 2. Проверяем, пришел ли сигнал ВКЛ
+                         if flag in galet_signals:
+                             # Добавляем, только если его еще не было
+                             if galet_signals[flag] not in mansard_galets:
+                                 mansard_galets.add(galet_signals[flag])
+                                 changed = True
+                      
+                         # 3. Проверяем, пришел ли сигнал ВЫКЛ
+                         if flag in galet_off_signals:
+                             # Удаляем, только если он там был
+                             if galet_off_signals[flag] in mansard_galets:
+                                 mansard_galets.discard(galet_off_signals[flag])
+                                 changed = True
+
+                         # 4. Если состояние изменилось, обновляем UI
+                         if changed:
+                             current_count = len(mansard_galets)
                           
-                          # --- СТРАХОВКА ПОБЕДЫ: Если все 4 флага на месте, завершаем уровень ---
-                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
-                              serial_write_queue.put('m2lck')
+                             # Проверяем, отличается ли новое значение от старого (чтобы не спамить)
+                             if current_count != last_mansard_count:
+                                 percent = current_count * 20
+                                 event_name = f"mansard_progress_{percent}" # например, "mansard_progress_40"
+                              
+                                 # 4.1. Отправляем в SocketIO
+                                 socketio.emit('level', event_name, to=None)
+                              
+                                 # 4.2. Обновляем историю (socklist)
+                                 # Удаляем старое значение прогресса из истории
+                                 old_percent = last_mansard_count * 20
+                                 old_event_name = f"mansard_progress_{old_percent}"
+                              
+                                 # Используем цикл while, чтобы удалить ВСЕ старые вхождения
+                                 while old_event_name in socklist:
+                                     try:
+                                         socklist.remove(old_event_name)
+                                     except ValueError:
+                                         pass # На случай, если что-то пошло не так
+                                      
+                                 socklist.append(event_name)
+                              
+                                 # 4.3. Обновляем последнее известное значение
+                                 last_mansard_count = current_count
+                                 logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
+                         # --- Конец Логики Прогресс-бара Mansard Game ---
+                         #----прошли галетники     
+                         if flag=="galet_on":
+                              # --- Фиксируем, что мы перешли на этап 2 ---
+                              train_stage_2_active = True
+                              #-----играем фон
+                              play_background_music("fon6.mp3", loops=-1)
+                              #---ждем окончания эффекта
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              #----играем историю    
+                              if(language==1):
+                                  play_story(story_5_ru)  
+                              if(language==2):
+                                  play_story(story_5_en)
+                              if(language==3):
+                                  play_story(story_5_ar)
 
-                     if "flag2_on" in flag:
-                          if 'flag2_off' in socklist:
-                                   socklist.remove('flag2_off')
-                          socketio.emit('level', 'flag2_on',to=None)
-                          if 'flag2_on' not in socklist: socklist.append('flag2_on')
-                          
-                          # --- СТРАХОВКА ПОБЕДЫ ---
-                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
-                              serial_write_queue.put('m2lck')
-
-                     if "flag3_on" in flag:
-                          if 'flag3_off' in socklist:
-                                   socklist.remove('flag3_off')
-                          socketio.emit('level', 'flag3_on',to=None)
-                          if 'flag3_on' not in socklist: socklist.append('flag3_on')
-                          
-                          # --- СТРАХОВКА ПОБЕДЫ ---
-                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
-                              serial_write_queue.put('m2lck')
-
-                     if "flag4_on" in flag:
-                          if 'flag4_off' in socklist:
-                                   socklist.remove('flag4_off')
-                          socketio.emit('level', 'flag4_on',to=None)
-                          if 'flag4_on' not in socklist: socklist.append('flag4_on') 
-                          
-                          # --- СТРАХОВКА ПОБЕДЫ ---
-                          if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
-                              serial_write_queue.put('m2lck')
-
-                     # --- Обработка снятия флагов (также ищем подстроку) ---
-                     if "flag1_off" in flag:
-                          if 'flag1_on' in socklist:
-                                   socklist.remove('flag1_on')
-                          socketio.emit('level', 'flag1_off',to=None)
-                          if 'flag1_off' not in socklist: socklist.append('flag1_off')
-
-                     if "flag2_off" in flag:
-                          if 'flag2_on' in socklist:
-                                   socklist.remove('flag2_on')
-                          socketio.emit('level', 'flag2_off',to=None)
-                          if 'flag2_off' not in socklist: socklist.append('flag2_off')
-
-                     if "flag3_off" in flag:
-                          if 'flag3_on' in socklist:
-                                   socklist.remove('flag3_on')
-                          socketio.emit('level', 'flag3_off',to=None)
-                          if 'flag3_off' not in socklist: socklist.append('flag3_off')
-
-                     if "flag4_off" in flag:
-                          if 'flag4_on' in socklist:
-                                   socklist.remove('flag4_on')
-                          socketio.emit('level', 'flag4_off',to=None)
-                          if 'flag4_off' not in socklist: socklist.append('flag4_off')
-                    #-------закончили игру с флагами
-                     if flag=="flagsendmr":
-                          #----играем эффект 
-                          pygame.mixer.music.stop()
-                          play_effect(flags)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          play_background_music("fon7.mp3", loops=0) 
-                          if(language==1):
-                              play_story(story_10_ru)  
-                          if(language==2):
-                              play_story(story_10_en)
-                          if(language==3):
-                              play_story(story_10_ar)
-                          nextTrack = 1
-                          
-
-                     if "door_owl" in flag:
-                          # Проверка на повтор: если 'owl' уже есть в истории, игнорируем
-                          if 'owl' in socklist:
-                              logger.debug("Игнорируем повторный door_owl")
-                          else:
-                              #----играем эффект 
-                              play_effect(door_owl)
-                              socketio.emit('level', 'owl',to=None)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              #----отправляем на клиента
+                              socketio.emit('level', 'open_mansard_door',to=None)
                               #-----добавили в историю
-                              socklist.append('owl')
-                              serial_write_queue.put('open_owl_door') 
-                              socketio.emit('level', 'active_owls', to=None)
-                              if 'active_owls' not in socklist:
+                              socklist.append('open_mansard_door')
+                              ser.write(b'open_mansard_door\n')
+                              ser.flush() # <--- Принудительная отправка прямо сейчас!
+                              logging.info("SENT [Main Board]: Открыта дверь мансарды (Direct write)")
+                              eventlet.sleep(0.05) # Даем время на отправку
+                              #-----играем эффект
+                              play_effect(door_attic)
+                              if(language==1):
+                                  play_story(story_6_ru)  
+                              if(language==2):
+                                  play_story(story_6_en)
+                              if(language==3):
+                                  play_story(story_6_ar)
+                                  
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              send_esp32_command(ESP32_API_WOLF_URL, "game")
+                              send_esp32_command(ESP32_API_SUITCASE_URL, "game")
+                              send_esp32_command(ESP32_API_SAFE_URL, "game")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_2") # <-- КОМАНДА ВЫКЛЮЧЕНИЯ
+
+                         if flag=="three_game_end":
+                              send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
+                              socketio.emit('level', 'active_open_mansard_stash',to=None)
+                              socklist.append('active_open_mansard_stash')
+                              #channel3.stop() 
+                              #channel2.stop() 
+                              #pygame.mixer.music.stop()
+                                 
+                        #---если пришло сообщение что поставили красный флаг проверяем не было ли в истории сообщения что флаг сняли если было удаляем из истории
+                         if "flag1_on" in flag:
+                              if 'flag1_off' in socklist:
+                                       socklist.remove('flag1_off')
+                             #----отправляем на клиента
+                              socketio.emit('level', 'flag1_on',to=None)
+                              #----добавили в историю
+                              if 'flag1_on' not in socklist: socklist.append('flag1_on')
+                              
+                              # --- СТРАХОВКА ПОБЕДЫ: Если все 4 флага на месте, завершаем уровень ---
+                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                                  serial_write_queue.put('m2lck')
+
+                         if "flag2_on" in flag:
+                              if 'flag2_off' in socklist:
+                                       socklist.remove('flag2_off')
+                              socketio.emit('level', 'flag2_on',to=None)
+                              if 'flag2_on' not in socklist: socklist.append('flag2_on')
+                              
+                              # --- СТРАХОВКА ПОБЕДЫ ---
+                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                                  serial_write_queue.put('m2lck')
+
+                         if "flag3_on" in flag:
+                              if 'flag3_off' in socklist:
+                                       socklist.remove('flag3_off')
+                              socketio.emit('level', 'flag3_on',to=None)
+                              if 'flag3_on' not in socklist: socklist.append('flag3_on')
+                              
+                              # --- СТРАХОВКА ПОБЕДЫ ---
+                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                                  serial_write_queue.put('m2lck')
+
+                         if "flag4_on" in flag:
+                              if 'flag4_off' in socklist:
+                                       socklist.remove('flag4_off')
+                              socketio.emit('level', 'flag4_on',to=None)
+                              if 'flag4_on' not in socklist: socklist.append('flag4_on') 
+                              
+                              # --- СТРАХОВКА ПОБЕДЫ ---
+                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                                  serial_write_queue.put('m2lck')
+
+                         # --- Обработка снятия флагов (также ищем подстроку) ---
+                         if "flag1_off" in flag:
+                              if 'flag1_on' in socklist:
+                                       socklist.remove('flag1_on')
+                              socketio.emit('level', 'flag1_off',to=None)
+                              if 'flag1_off' not in socklist: socklist.append('flag1_off')
+
+                         if "flag2_off" in flag:
+                              if 'flag2_on' in socklist:
+                                       socklist.remove('flag2_on')
+                              socketio.emit('level', 'flag2_off',to=None)
+                              if 'flag2_off' not in socklist: socklist.append('flag2_off')
+
+                         if "flag3_off" in flag:
+                              if 'flag3_on' in socklist:
+                                       socklist.remove('flag3_on')
+                              socketio.emit('level', 'flag3_off',to=None)
+                              if 'flag3_off' not in socklist: socklist.append('flag3_off')
+
+                         if "flag4_off" in flag:
+                              if 'flag4_on' in socklist:
+                                       socklist.remove('flag4_on')
+                              socketio.emit('level', 'flag4_off',to=None)
+                              if 'flag4_off' not in socklist: socklist.append('flag4_off')
+                        #-------закончили игру с флагами
+                         if flag=="flagsendmr":
+                              #----играем эффект 
+                              pygame.mixer.music.stop()
+                              play_effect(flags)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              play_background_music("fon7.mp3", loops=0) 
+                              if(language==1):
+                                  play_story(story_10_ru)  
+                              if(language==2):
+                                  play_story(story_10_en)
+                              if(language==3):
+                                  play_story(story_10_ar)
+                              nextTrack = 1
+                              
+
+                         if "door_owl" in flag:
+                              # Проверка на повтор: если 'owl' уже есть в истории, игнорируем
+                              if 'owl' in socklist:
+                                  logger.debug("Игнорируем повторный door_owl")
+                              else:
+                                  #----играем эффект 
+                                  play_effect(door_owl)
+                                  socketio.emit('level', 'owl',to=None)
+                                  #-----добавили в историю
+                                  socklist.append('owl')
+                                  serial_write_queue.put('open_owl_door') 
+                                  socketio.emit('level', 'active_owls', to=None)
+                                  if 'active_owls' not in socklist:
+                                      socklist.append('active_owls')
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
+                                  #while effects_are_busy() and go == 1: 
+                                      #eventlet.sleep(0.1)
+                                  eventlet.sleep(2.0)
+                                  if story13Flag == 0:
+                                       story13Flag = 1
+                                       if(language==1):
+                                            play_story(story_13_ru)  
+                                       if(language==2):
+                                            play_story(story_13_en)
+                                       if(language==3):
+                                            play_story(story_13_ar)
+         
+                                       while channel3.get_busy()==True and go == 1: 
+                                            eventlet.sleep(0.1)
+                                       
+         
+                                  if(language==1):
+                                      play_story(story_14_a_ru)  
+                                  if(language==2):
+                                      play_story(story_14_a_en)
+                                  if(language==3):
+                                      play_story(story_14_a_ar)
+                                  while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_14_a
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
+                                  #----активируем игру с совами
+                                  socketio.emit('level', 'active_owls',to=None)
                                   socklist.append('active_owls')
-                              send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
+
+                         if flag=="owl_flew":
+                              # [FIX] Защита от дребезга звука (0.5 сек)
+                              # Используем last_owl_flew_time (надо объявить глобально)
+                              if time.time() - last_owl_flew_time > 0.5:
+                                  last_owl_flew_time = time.time()
+                                  #----играем эффект 
+                                  play_effect(owl_flew)
+                                  owlFlewCount += 1
+                                  if owlFlewCount > 4: owlFlewCount = 4 # Ограничитель
+                                  event_name = f'owl_flew_{owlFlewCount}'
+                                  socketio.emit('level', event_name, to=None)
+                                  socklist.append(event_name)
+                                  #----активируем игру с совами
+
+                         if flag=="owl_end":
+                              #----играем эффект 
+                              play_effect(owl_flew)
+                              socketio.emit('level', 'owls',to=None)
+                              #-----добавили в историю
+                              socklist.append('owls')
+                              owlFlewCount = 4 # Гарантируем 100%
+                              socketio.emit('level', 'owl_flew_4', to=None)
+                              socklist.append(f'owl_flew_4')
+                              send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
+                              if(language==1):
+                                  play_story(story_14_b_ru)  
+                              if(language==2):
+                                  play_story(story_14_b_en)
+                              if(language==3):
+                                  play_story(story_14_b_ar)
+
+                         if flag=="door_witch":
+                              #----играем эффект 
+                              play_effect(door_witch)
+                              socketio.emit('level', 'cat',to=None)
+                              #-----добавили в историю
+                              socklist.append('cat')
+                              send_esp32_command(ESP32_API_TRAIN_URL, "fish_open")
                               send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
                               #while effects_are_busy() and go == 1: 
-                                  #eventlet.sleep(0.1)
+                              #    eventlet.sleep(0.1)
                               eventlet.sleep(2.0)
                               if story13Flag == 0:
                                    story13Flag = 1
@@ -4481,2162 +4549,2099 @@ def serial():
                                         play_story(story_13_ar)
      
                                    while channel3.get_busy()==True and go == 1: 
-                                        eventlet.sleep(0.1)
-                                   
-     
+                                        eventlet.sleep(0.1)     
+
                               if(language==1):
-                                  play_story(story_14_a_ru)  
+                                  play_story(story_17_ru)  
                               if(language==2):
-                                  play_story(story_14_a_en)
+                                  play_story(story_17_en)
                               if(language==3):
-                                  play_story(story_14_a_ar)
-                              while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_14_a
+                                  play_story(story_17_ar)
                               send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
-                              #----активируем игру с совами
-                              socketio.emit('level', 'active_owls',to=None)
-                              socklist.append('active_owls')
-
-                     if flag=="owl_flew":
-                          # [FIX] Защита от дребезга звука (0.5 сек)
-                          # Используем last_owl_flew_time (надо объявить глобально)
-                          if time.time() - last_owl_flew_time > 0.5:
-                              last_owl_flew_time = time.time()
-                              #----играем эффект 
-                              play_effect(owl_flew)
-                              owlFlewCount += 1
-                              if owlFlewCount > 4: owlFlewCount = 4 # Ограничитель
-                              event_name = f'owl_flew_{owlFlewCount}'
-                              socketio.emit('level', event_name, to=None)
-                              socklist.append(event_name)
-                              #----активируем игру с совами
-
-                     if flag=="owl_end":
-                          #----играем эффект 
-                          play_effect(owl_flew)
-                          socketio.emit('level', 'owls',to=None)
-                          #-----добавили в историю
-                          socklist.append('owls')
-                          owlFlewCount = 4 # Гарантируем 100%
-                          socketio.emit('level', 'owl_flew_4', to=None)
-                          socklist.append(f'owl_flew_4')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
-                          if(language==1):
-                              play_story(story_14_b_ru)  
-                          if(language==2):
-                              play_story(story_14_b_en)
-                          if(language==3):
-                              play_story(story_14_b_ar)
-
-                     if flag=="door_witch":
-                          #----играем эффект 
-                          play_effect(door_witch)
-                          socketio.emit('level', 'cat',to=None)
-                          #-----добавили в историю
-                          socklist.append('cat')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "fish_open")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
-                          #while effects_are_busy() and go == 1: 
-                          #    eventlet.sleep(0.1)
-                          eventlet.sleep(2.0)
-                          if story13Flag == 0:
-                               story13Flag = 1
-                               if(language==1):
-                                    play_story(story_13_ru)  
-                               if(language==2):
-                                    play_story(story_13_en)
-                               if(language==3):
-                                    play_story(story_13_ar)
- 
-                               while channel3.get_busy()==True and go == 1: 
-                                    eventlet.sleep(0.1)     
-
-                          if(language==1):
-                              play_story(story_17_ru)  
-                          if(language==2):
-                              play_story(story_17_en)
-                          if(language==3):
-                              play_story(story_17_ar)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
-                          #----активируем игру
-                          socketio.emit('level', 'active_open_potions_stash',to=None)
-                          socklist.append('active_open_potions_stash')                   
-                     #-----поставили первую бутылку парвильно    
-                     if flag=="first_bottle":
-                          #----бежим по истории ищем сообщения об ошибке с бутылками
-                          for i in range(len(socklist)):
-                                if socklist[i] == 'mistake_bottle':
-                                   b=b+1
-                          #----удаляем столько раз сколько нашли         
-                          for i in range(b):
+                              #----активируем игру
+                              socketio.emit('level', 'active_open_potions_stash',to=None)
+                              socklist.append('active_open_potions_stash')                   
+                         #-----поставили первую бутылку парвильно    
+                         if flag=="first_bottle":
+                              #----бежим по истории ищем сообщения об ошибке с бутылками
+                              for i in range(len(socklist)):
+                                    if socklist[i] == 'mistake_bottle':
+                                       b=b+1
+                              #----удаляем столько раз сколько нашли         
+                              for i in range(b):
+                                  if 'mistake_bottle' in socklist:
+                                       socklist.remove('mistake_bottle')
+                              #-----еще раз на всякий         
                               if 'mistake_bottle' in socklist:
                                    socklist.remove('mistake_bottle')
-                          #-----еще раз на всякий         
-                          if 'mistake_bottle' in socklist:
-                               socklist.remove('mistake_bottle')
-                          #------отправляем на клиента     
-                          socketio.emit('level', 'first_bottle',to=None)
-                          #-----добавляем в историю
-                          socklist.append('first_bottle')
-                          #----играем эффект
-                          play_effect(bottle1)
-                     #-----поставили 2 правильную бутылку     
-                     if flag=="second_bottle":
-                          #-----отправили клиенту
-                          socketio.emit('level', 'second_bottle',to=None)
-                          #----добавили в историю
-                          socklist.append('second_bottle')
-                          #----играем эффект
-                          play_effect(bottle2)
-                     #------поставили 3 правильную бутылку     
-                     if flag=="third_bottle":
-                          socketio.emit('level', 'third_bottle',to=None)
-                          socklist.append('third_bottle')
-                          play_effect(bottle3)
-                     #-----поставили последнюю бутылку правильно     
-                     if flag=="four_bottle":
-                          send_esp32_command(ESP32_API_TRAIN_URL, "fish_finish")
-                          for i in range(len(socklist)):
-                                if socklist[i] == 'mistake_bottle':
-                                   b=b+1
-                          #----удаляем столько раз сколько нашли         
-                          for i in range(b):
+                              #------отправляем на клиента     
+                              socketio.emit('level', 'first_bottle',to=None)
+                              #-----добавляем в историю
+                              socklist.append('first_bottle')
+                              #----играем эффект
+                              play_effect(bottle1)
+                         #-----поставили 2 правильную бутылку     
+                         if flag=="second_bottle":
+                              #-----отправили клиенту
+                              socketio.emit('level', 'second_bottle',to=None)
+                              #----добавили в историю
+                              socklist.append('second_bottle')
+                              #----играем эффект
+                              play_effect(bottle2)
+                         #------поставили 3 правильную бутылку     
+                         if flag=="third_bottle":
+                              socketio.emit('level', 'third_bottle',to=None)
+                              socklist.append('third_bottle')
+                              play_effect(bottle3)
+                         #-----поставили последнюю бутылку правильно     
+                         if flag=="four_bottle":
+                              send_esp32_command(ESP32_API_TRAIN_URL, "fish_finish")
+                              for i in range(len(socklist)):
+                                    if socklist[i] == 'mistake_bottle':
+                                       b=b+1
+                              #----удаляем столько раз сколько нашли         
+                              for i in range(b):
+                                  if 'mistake_bottle' in socklist:
+                                       socklist.remove('mistake_bottle')
+                              #-----еще раз на всякий         
                               if 'mistake_bottle' in socklist:
                                    socklist.remove('mistake_bottle')
-                          #-----еще раз на всякий         
-                          if 'mistake_bottle' in socklist:
-                               socklist.remove('mistake_bottle')
-                          #-----отправили на клиента
-                          socketio.emit('level', 'second_bottle',to=None)
-                          #------добавили в историю
-                          socklist.append('second_bottle')
-                          socketio.emit('level', 'first_bottle',to=None)
-                          #------добавили в историю
-                          socklist.append('first_bottle')
-                          socketio.emit('level', 'third_bottle',to=None)
-                          #------добавили в историю
-                          socklist.append('third_bottle')
-                          socketio.emit('level', 'four_bottle',to=None)
-                          #------добавили в историю
-                          socklist.append('four_bottle')
-                          #-----играем эффект другой
-                          play_effect(bottle_end)
+                              #-----отправили на клиента
+                              socketio.emit('level', 'second_bottle',to=None)
+                              #------добавили в историю
+                              socklist.append('second_bottle')
+                              socketio.emit('level', 'first_bottle',to=None)
+                              #------добавили в историю
+                              socklist.append('first_bottle')
+                              socketio.emit('level', 'third_bottle',to=None)
+                              #------добавили в историю
+                              socklist.append('third_bottle')
+                              socketio.emit('level', 'four_bottle',to=None)
+                              #------добавили в историю
+                              socklist.append('four_bottle')
+                              #-----играем эффект другой
+                              play_effect(bottle_end)
 
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-
-                          #------играем голос    
-                          if(language==1):
-                              play_story(story_18_ru)  
-                          if(language==2):
-                              play_story(story_18_en)
-                          if(language==3):
-                              play_story(story_18_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)    
-                          #----активируем игру с метлой
-                     #------сделали ошибку с бутылкой     
-                     if flag=="mistake_bottle":
-                          #----удалим из истории если были на каком либо этапе
-                          if 'first_bottle' in socklist:
-                                   socklist.remove('first_bottle')
-                          if 'second_bottle' in socklist:
-                                   socklist.remove('second_bottle')
-                          if 'third_bottle' in socklist:
-                                   socklist.remove('third_bottle')
-                          if 'four_bottle' in socklist:
-                                   socklist.remove('four_bottle')      
-                          #------отпраялем клиенту                              
-                          socketio.emit('level', 'mistake_bottle',to=None)
-                          #------добавили в историю
-                          socklist.append("mistake_bottle")
-                          #-----играем эффект
-                          play_effect(bottle_fall)   
-   
-                     if flag=="door_dog":
-                          #----играем эффект 
-                          socketio.emit('level', 'pedlock',to=None)
-                          #-----добавили в историю
-                          socklist.append('pedlock')
-                          play_effect(door_dog)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "key_open")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
-                          # Убираем ожидание завершения эффекта
-                          # while effects_are_busy() and go == 1: 
-                          #    eventlet.sleep(0.1)
-                          
-                          # Добавляем фиксированную задержку 2 секунды
-                          eventlet.sleep(2.0)
- 
-                          if story13Flag == 0:
-                               story13Flag = 1
-                               if(language==1):
-                                    play_story(story_13_ru)  
-                               if(language==2):
-                                    play_story(story_13_en)
-                               if(language==3):
-                                    play_story(story_13_ar)
- 
-                               while channel3.get_busy()==True and go == 1: 
-                                    eventlet.sleep(0.1)
-
-                          if(language==1):
-                              play_story(story_19_ru)  
-                          if(language==2):
-                              play_story(story_19_en)
-                          if(language==3):
-                              play_story(story_19_ar)
-                          while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_19
-                          send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
-                          #----активируем игру с собакой
-                          socketio.emit('level', 'active_dog',to=None)
-                          socklist.append('active_dog')
-
-                     if flag=="dog_sleep":
-                          #----играем эффект 
-                          play_effect(dog_sleep)
-
-                     if flag=="dog_growl":
-                          #----играем эффект 
-                          play_effect(dog_growl) 
-                     if flag=="dog_lock":
-                          # Защита от двойного срабатывания
-                          if 'dog_end_processed' in socklist:
-                              logger.debug("Игнорируем повторный dog_lock")
-                          else:
-                              socklist.append('dog_end_processed') # Ставим метку
-                              #----играем эффект 
-                              socketio.emit('level', 'dog',to=None)
-                              #-----добавили в историю
-                              socklist.append('dog')
-                              send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
-                              play_effect(dog_lock)
-
-                              #while effects_are_busy() and go == 1: 
-                              #    eventlet.sleep(0.1)
-
-                              if(language==1):
-                                  play_story(story_21_ru)  
-                              if(language==2):
-                                  play_story(story_21_en)
-                              if(language==3):
-                                  play_story(story_21_ar)
-
-                     if flag=="story_20_a":
-                          if(language==1):
-                              play_story(story_20_a_ru)  
-                          if(language==2):
-                              play_story(story_20_a_en)
-                          if(language==3):
-                              play_story(story_20_a_ar)
-
-                     if flag=="story_20_b":
-                          if(language==1):
-                              play_story(story_20_b_ru)  
-                          if(language==2):
-                              play_story(story_20_b_en)
-                          if(language==3):
-                              play_story(story_20_b_ar) 
-                     if flag=="story_20_c":
-                          if(language==1):
-                              play_story(story_20_c_ru)  
-                          if(language==2):
-                              play_story(story_20_c_en)
-                          if(language==3):
-                              play_story(story_20_c_ar)         
-
-                     if flag=="story_22_a":
-                          # 1. Ждем, пока канал освободится
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          # 2. Воспроизводим историю
-                          if(language==1):
-                              play_story(story_22_a_ru)  
-                          if(language==2):
-                              play_story(story_22_a_en)
-                          if(language==3):
-                              play_story(story_22_a_ar)
-                              
-                          # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
-                          while channel3.get_busy()==True and go == 1:
-                              eventlet.sleep(0.1)
-                          # 4. Отправляем подтверждение на Arduino
-                          serial_write_queue.put('story_22_done')
-
-                     if flag=="story_22_b":
-                          # 1. Ждем, пока канал освободится
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          # 2. Воспроизводим историю
-                          if(language==1):
-                              play_story(story_22_b_ru)  
-                          if(language==2):
-                              play_story(story_22_b_en)
-                          if(language==3):
-                              play_story(story_22_b_ar)
-                             
-                          # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
-                          while channel3.get_busy()==True and go == 1:
-                              eventlet.sleep(0.1)
-                          # 4. Отправляем подтверждение на Arduino
-                          serial_write_queue.put('story_22_done')
-                       
-                     if flag=="story_22_c":
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_22_c_ru)  
-                          if(language==2):
-                              play_story(story_22_c_en)
-                          if(language==3):
-                              play_story(story_22_c_ar)
-                              
-                          # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
-                          while channel3.get_busy()==True and go == 1:
-                              eventlet.sleep(0.1)
-                          # 4. Отправляем подтверждение на Arduino
-                          serial_write_queue.put('story_22_done')
-                          
-                     if flag=="cave_click":
-                          #----играем эффект 
-                          play_effect(cave_click)
-                     if flag=="door_cave":
-                          #----играем эффект 
-                          play_effect(door_cave)
-                          socketio.emit('level', 'active_troll',to=None)
-                          socklist.append('active_troll')
-                          socketio.emit('level', 'mine',to=None)
-                          socklist.append('mine')
-                          # Убираем ожидание завершения эффекта
-                          # while effects_are_busy() and go == 1:
-                          #     eventlet.sleep(0.1)
-                          # Добавляем фиксированную задержку 2 секунды
-                          eventlet.sleep(2.0)
-                          if(language==1):
-                              play_story(story_26_ru)  
-                          if(language==2):
-                              play_story(story_26_en)
-                          if(language==3):
-                              play_story(story_26_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)    
-                     if flag=="cave_search1":
-                          #----играем эффект 
-                          play_effect(cave_search)
-                          socketio.emit('level', 'cave_search1', to=None)
-                          socklist.append('cave_search1')
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_27_a_ru)  
-                          if(language==2):
-                              play_story(story_27_a_en)
-                          if(language==3):
-                              play_story(story_27_a_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          eventlet.sleep(1.1)        
-                          # serial_write_queue.put('cave_search1')    
-                     if flag=="cave_search2":
-                          #----играем эффект 
-                          play_effect(cave_search)
-                          socketio.emit('level', 'cave_search2', to=None)
-                          socklist.append('cave_search2')
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_27_b_ru)  
-                          if(language==2):
-                              play_story(story_27_b_en)
-                          if(language==3):
-                              play_story(story_27_b_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          eventlet.sleep(1.1)         
-                          # serial_write_queue.put('cave_search2')        
-                     if flag=="cave_search3":
-                          #----играем эффект 
-                          play_effect(cave_search)
-                          socketio.emit('level', 'cave_search3', to=None)
-                          socklist.append('cave_search3')
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_27_c_ru)  
-                          if(language==2):
-                              play_story(story_27_c_en)
-                          if(language==3):
-                              play_story(story_27_c_ar) 
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          eventlet.sleep(1.1)        
-                          # serial_write_queue.put('cave_search3')                          
-                     if flag=="cave_end":
-                          #----играем эффект 
-                          socketio.emit('level', 'troll',to=None)
-                          socklist.append('troll')
-                          socketio.emit('level', 'cave_end', to=None)
-                          socklist.append('cave_end')
-                          play_effect(cave_end)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_30_ru)  
-                          if(language==2):
-                              play_story(story_30_en)
-                          if(language==3):
-                              play_story(story_30_ar)    
-                     if flag=="material_end":
-                          #----играем эффект 
-                          socketio.emit('level', 'active_open_bank_door',to=None)
-                          socklist.append('active_open_bank_door')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_4")
-                     if flag=="miror":
-                          socketio.emit('level', 'open_bank_door',to=None)
-                          socklist.append('open_bank_door')
-                          play_effect(door_bank)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_23_ru)  
-                          if(language==2):
-                              play_story(story_23_en)
-                          if(language==3):
-                              play_story(story_23_ar)
-                          while channel3.get_busy()==True and go == 1:
-                              eventlet.sleep(0.1)
-                          eventlet.sleep(1.0)
-                          serial_write_queue.put('open_bank')
-                          # Этот блок немедленно отправит команду 'open_bank', 
-                          # не дожидаясь завершения eventlet.sleep(5.0) и story_24.
-                          while not serial_write_queue.empty():
-                              try:
-                                  message_to_send = serial_write_queue.get_nowait()
-                                  ser.write(str.encode(message_to_send + '\n'))
-                              except eventlet.queue.Empty:
-                                  break # Очередь пуста
-                              eventlet.sleep(0.01) # Даем время на отправку
-                          eventlet.sleep(5.0)
-                          if(language==1):
-                              play_story(story_24_ru)  
-                          if(language==2):
-                              play_story(story_24_en)
-                          if(language==3):
-                              play_story(story_24_ar)
-
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)     
-                     if flag=="safe_turn":
-                          #----играем эффект 
-                          play_effect(safe_turn)
-                          socklist.append('safe_turn')
-                     if flag=="safe_end":
-                          socketio.emit('level', 'safe_end', to=None)
-                          socklist.append('safe_end')
-                          
-                          # Вся остальная логика 'safe_end', которая у вас уже была
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
-                          play_effect(safe_end)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          serial_write_queue.put('open_safe')
-                          
-                          while not serial_write_queue.empty():
-                              try:
-                                  message_to_send = serial_write_queue.get_nowait()
-                                  ser.write(str.encode(message_to_send + '\n'))
-                              except eventlet.queue.Empty:
-                                  break 
-                              eventlet.sleep(0.01) 
-                              
-                          if(language==1):
-                              play_story(story_25_ru)  
-                          if(language==2):
-                              play_story(story_25_en)
-                          if(language==3):
-                              play_story(story_25_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)  
-                          eventlet.sleep(1.1)
-                          if(language==1):
-                              play_story(story_31_ru)  
-                          if(language==2):
-                              play_story(story_31_en)
-                          if(language==3):
-                              play_story(story_31_ar)
-                              
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          serial_write_queue.put('open_workshop')
-                          eventlet.sleep(0.5) 
-                          serial_write_queue.put('open_workshop')
-                          eventlet.sleep(1.1)
-                          play_effect(door_workshop)
-                          play_background_music("fon9.mp3", loops=-1)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_32_ru)  
-                          if(language==2):
-                              play_story(story_32_en)
-                          if(language==3):
-                              play_story(story_32_ar)
-                          
-                          socketio.emit('level', 'safe',to=None)
-                          socklist.append('safe')
-                     
-                     # Список ВСЕХ команд, которые управляют шкалой сейфа
-                     safe_commands_list = ['safe_step_1', 'safe_step_2', 'safe_step_3', 'safe_step_4', 'safe_end', 'safe_reset']
-
-                     # Проверяем, пришел ли флаг, связанный с сейфом
-                     if flag in safe_commands_list:
-                         
-                         # --- Логика ОЧИСТКИ ---
-                         # (Теперь это будет работать, т.к. 'global socklist' объявлен вверху)
-                         socklist = [item for item in socklist if item not in safe_commands_list]
-                         
-                         # --- Логика ДОБАВЛЕНИЯ ---
-                         # Добавляем ТОЛЬКО ОДНУ, самую свежую команду
-                         socklist.append(flag)
-                         socketio.emit('level', flag, to=None)
-                             
-                         # --- Логика ЭФФЕКТОВ/ДЕЙСТВИЙ (кроме 'safe_end') ---
-                         if flag != 'safe_end':
-                             # Воспроизводим звук для 'reset' и 'step' ОДИН РАЗ
-                             play_effect(safe_fix)
-
-                     if flag=="lib_door":
-                          #----играем эффект 
-                          play_effect(lib_door)
-                          ser.write(str.encode('student_hide\n'))
-                          eventlet.sleep(0.1)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_46_ru)  
-                          if(language==2):
-                              play_story(story_46_en)
-                          if(language==3):
-                              play_story(story_46_ar)    
-                          send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          # Отправляем команду на Arduino, чтобы начать 5-секундное мерцание
-                          serial_write_queue.put('library_flicker_start')
-                          eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_47_ru)  
-                          if(language==2):
-                              play_story(story_47_en)
-                          if(language==3):
-                              play_story(story_47_ar)
-
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-
-                          play_background_music("fon15.mp3", loops=-1)
-                          if(language==1):
-                              play_story(story_48_ru)  
-                          if(language==2):
-                              play_story(story_48_en)
-                          if(language==3):
-                              play_story(story_48_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          play_effect(door_top)
-                          send_esp32_command(ESP32_API_WOLF_URL, "day_on")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "day_on")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "day_on")
-                          send_esp32_command(ESP32_API_SAFE_URL, "day_on") 
-                          serial_write_queue.put('door_top')
-                          eventlet.sleep(1)
-                          socketio.emit('level', 'open_door_puzzle',to=None)
-                          socklist.append('open_door_puzzle')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_8")
-                          if(language==1):
-                              play_story(story_49_ru)  
-                          if(language==2):
-                              play_story(story_49_en)
-                          if(language==3):
-                              play_story(story_49_ar)
-                     if flag=="door_basket":
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_9") 
-                          socketio.emit('level', 'cup',to=None)
-                          socklist.append('cup')
-                          #----играем эффект 
-                          play_effect(door_basket)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_50_ru)  
-                          if(language==2):
-                              play_story(story_50_en)
-                          if(language==3):
-                              play_story(story_50_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)    
-                          play_effect(lose1)
-                          socketio.emit('level', 'active_spell',to=None)
-                          socklist.append('active_spell')
-                          
-                     if flag == "swipe_r":
-                          play_effect(swipe_r)
-                     if flag == "swipe_l":
-                          play_effect(swipe_l)
-                              
-                     if flag=="door_spell":
-                          socketio.emit('level', 'spell',to=None)
-                          socklist.append('spell')
-                          #----играем эффект 
-                          play_effect(door_spell) 
-                          socketio.emit('level', 'active_crystals',to=None)
-                          socklist.append('active_crystals')
-                     if flag=="spell_step_1":
-                          socketio.emit('level', 'spell_step_1', to=None) 
-                          socklist.append('spell_step_1')
-                     if flag=="spell_step_2":
-                          socketio.emit('level', 'spell_step_2', to=None) 
-                          socklist.append('spell_step_2')
-                     if flag=="spell_step_3":
-                          socketio.emit('level', 'spell_step_3', to=None) 
-                          socklist.append('spell_step_3')
-                     if flag=="spell_step_4":
-                          socketio.emit('level', 'spell_step_4', to=None) 
-                          socklist.append('spell_step_4')
-                     if flag=="spell_step_5":
-                          socketio.emit('level', 'spell_step_5', to=None) 
-                          socklist.append('spell_step_5')
-                     if flag=="spell_reset":
-                          socketio.emit('level', 'spell_reset', to=None) 
-                          socklist.append('spell_reset')
-                          
-                     if flag=="cristal_up":
-                          #----играем эффект 
-                          play_effect(cristal_up)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_10") 
-                          socketio.emit('level', 'active_open_memory_stash',to=None)
-                          socklist.append('active_open_memory_stash')
-                          socketio.emit('level', 'crystals',to=None)
-                          socklist.append('crystals')  
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          if(language==1):
-                              play_story(story_51_ru)  
-                          if(language==2):
-                              play_story(story_51_en)
-                          if(language==3):
-                              play_story(story_51_ar)
-
-                     if flag=="fire1":
-                          #----играем эффект 
-                          play_effect(fire1)
-                          if fire1Flag == 0 and 'workshop' not in socklist:
-                              fire1Flag = 1
-                              if(language==1):
-                                  play_story(story_32_a_ru)  
-                              if(language==2):
-                                  play_story(story_32_a_en)
-                              if(language==3):
-                                  play_story(story_32_a_ar)
-                     if flag=="fire2":
-                          #----играем эффект 
-                          play_effect(fire2)
-                          if fire2Flag == 0 and 'workshop' not in socklist:
-                              fire2Flag = 1
-                              if(language==1):
-                                  play_story(story_32_b_ru)  
-                              if(language==2):
-                                  play_story(story_32_b_en)
-                              if(language==3):
-                                  play_story(story_32_b_ar)
-                     if flag=="fire3":
-                          #----играем эффект 
-                          play_effect(fire3)
-                     if flag=="fire0":
-                          #----играем эффект 
-                          play_effect(fire0)
-                          if fire0Flag == 0 and 'workshop' not in socklist:
-                              fire0Flag = 1
-                              if(language==1):
-                                  play_story(story_32_c_ru)  
-                              if(language==2):
-                                  play_story(story_32_c_en)
-                              if(language==3):
-                                  play_story(story_32_c_ar)
-                     # Teper' my lovim lyuboye soobshcheniye, nachinayushcheyesya s "item_find"
-                     if flag.startswith("item_find"):
-                          # flag (naprimer, "item_find:crystal") uzhe budet v logakh
-                          # blagodarya "logger.info(f"[SERIAL_IN] {flag}")" vyshe.
-                          
-                          # 1. Vosproizvodim obshchiy zvuk
-                          play_effect(item_find)
-                          
-                          # 2. Otpravlyayem obshchuyu komandu na ESP-kartu (train.ino)
-                          #    (train.ino ostanovit svoyu pul'saciyu pri poluchenii "item_find")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "item_find")
-                     if flag=="item_add":
-                          #----играем эффект 
-                          play_effect(item_add)
-                     if flag=="broom":
-                          #----играем эффект 
-                          play_effect(craft_success)
-                          socketio.emit('level', 'broom', to=None)
-                          socklist.append('broom')
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)    
-                          if(language==1):
-                              play_story(story_33_ru)  
-                          if(language==2):
-                              play_story(story_33_en)
-                          if(language==3):
-                              play_story(story_33_ar)                    
-                     if flag=="helmet":
-                          #----играем эффект 
-                          play_effect(craft_success)
-                          socketio.emit('level', 'helmet', to=None)
-                          socklist.append('helmet')
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)    
-                          if(language==1):
-                              play_story(story_34_ru)  
-                          if(language==2):
-                              play_story(story_34_en)
-                          if(language==3):
-                              play_story(story_34_ar)
-                     if flag=="story_35":
-                          socketio.emit('level', 'workshop',to=None)
-                          socklist.append('workshop') 
-                          send_esp32_command(ESP32_API_TRAIN_URL, "item_end") 
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_6") 
-                          if(language==1):
-                              play_story(story_35_ru)  
-                          if(language==2):
-                              play_story(story_35_en)
-                          if(language==3):
-                              play_story(story_35_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          eventlet.sleep(1.0)
-                          send_esp32_command(ESP32_API_WOLF_URL, "day_off")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "day_off")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "day_off")
-                          send_esp32_command(ESP32_API_SAFE_URL, "day_off")    
-                          play_background_music("fon10.mp3", loops=-1)
-                          if(language==1):
-                              play_story(story_36_ru)  
-                          if(language==2):
-                              play_story(story_36_en)
-                          if(language==3):
-                              play_story(story_36_ar)
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          serial_write_queue.put('student_open')
-                          eventlet.sleep(1.0)     
-                          if(language==1):
-                              play_story(story_37_ru)  
-                          if(language==2):
-                              play_story(story_37_en)
-                          if(language==3):
-                              play_story(story_37_ar)
-
-                     if flag=="h_clock":
-                          socketio.emit('level', 'first_clock_2',to=None)
-                          socklist.append('first_clock_2') 
-                          #----играем эффект 
-                          play_background_music("fon11.mp3", loops=-1)
-                          play_effect(h_clock)
-                          socketio.emit('level', 'active_second_clock_2',to=None)
-                          socklist.append('active_second_clock_2')  
-                     if flag=="uf_clock":
-                          socketio.emit('level', 'second_clock_2',to=None)
-                          socklist.append('second_clock_2')
-                          #----играем эффект 
-                          play_background_music("fon12.mp3", loops=-1)
-                          play_effect(uf_clock)
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
-                          if(language==1):
-                              play_story(story_38_ru)  
-                          if(language==2):
-                              play_story(story_38_en)
-                          if(language==3):
-                              play_story(story_38_ar)
-                          socketio.emit('level', 'active_ghost',to=None)
-                          socklist.append('active_ghost')         
-                     if flag=="story_39":
-                          #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
-                          if(language==1):
-                              play_story(story_39_ru)  
-                          if(language==2):
-                              play_story(story_39_en)
-                          if(language==3):
-                              play_story(story_39_ar) 
-                     if flag=="story_40":
-                          send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
-                          socketio.emit('level', 'story_40', to=None)
-                          socklist.append('story_40') # Добавляем флаг для UI
-                          if(language==1):
-                              play_story(story_40_ru)  
-                          if(language==2):
-                              play_story(story_40_en)
-                          if(language==3):
-                              play_story(story_40_ar)  
-                     if flag=="story_41":
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
-                          socketio.emit('level', 'story_41', to=None)
-                          socklist.append('story_41') # Добавляем флаг для UI
-                          if(language==1):
-                              play_story(story_41_ru)  
-                          if(language==2):
-                              play_story(story_41_en)
-                          if(language==3):
-                              play_story(story_41_ar)
-                     if flag=="story_42":
-                          socketio.emit('level', 'story_42', to=None)
-                          socklist.append('story_42') # Добавляем флаг для UI
-                          if(language==1):
-                              play_story(story_42_ru)  
-                          if(language==2):
-                              play_story(story_42_en)
-                          if(language==3):
-                              play_story(story_42_ar)
-                     if flag == "ghost_knock":
-                          play_effect(knock_castle, loops=-1)
-                     if flag=="punch":
-                          channel2.stop()
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_7") 
-                          socketio.emit('level', 'ghost',to=None)
-                          socklist.append('ghost')
-                          socketio.emit('level', 'punch', to=None)
-                          socklist.append('punch') # Добавляем флаг для UI
-                          if(language==1):
-                              play_story(story_43_ru)  
-                          if(language==2):
-                              play_story(story_43_en)
-                          if(language==3):
-                              play_story(story_43_ar) 
-                          while channel3.get_busy()==True and go == 1: 
-                              eventlet.sleep(0.1)
-                          serial_write_queue.put('open_library')
-                          #send_esp32_command(ESP32_API_TRAIN_URL, #"ghost_game_end")
-                          #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
-                          eventlet.sleep(2.0)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
-                          eventlet.sleep(1.0)
-                          if(language==1):
-                              play_story(story_44_ru)  
-                          if(language==2):
-                              play_story(story_44_en)
-                          if(language==3):
-                              play_story(story_44_ar) 
-
-                     if flag=="star_hint":
-                          channel3.stop()
-                          play_effect(star_hint)
-                          send_esp32_command(ESP32_API_TRAIN_URL, "set_time")
-                          socketio.emit('level', 'set_time', to=None)
-                          socklist.append('set_time')
-                     if flag=="fire":
-                         # Воспроизводим, только если канал эффектов (channel2) свободен.
-                         # Это гарантирует, что звук не запустится, если он еще играет.
-                         if not channel2.get_busy():
-                             play_effect(fireplace)
-                          
-                     if flag=="mistake_crystal":
-                          #----играем эффект
-                          play_effect(mistake_crystal)
-                          print("mistake_crystal")
-                      #----раставили кристаллы на свои места    
-                     if flag=="start_crystal":
-                          #=----просто звуковой эффект
-                          play_background_music("fon16.mp3", loops=-1)
-                          play_effect(start_crystal)   
-                          #----  правильно убрали кристал
-                     if flag=="true_crystal":
-                          play_effect(true_crystal) 
-                     #----3 уровень     
-                     if flag=="third_level":
-                          #----отпраялем на клиента прогресс бар увеличиваем
-                          socketio.emit('level', 'third_level',to=None)
-                          #---добавляем в историю
-                          socklist.append('third_level')
-                          #-----играем эффект
-                          play_effect(level_up)  
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          #------играем голос    
-                          if(language==1):
-                              play_story(story_54_ru)  
-                          if(language==2):
-                              play_story(story_54_en)
-                          if(language==3):
-                              play_story(story_54_ar)
-                      #-----2 уровень        
-                     if flag=="second_level":
-                          socketio.emit('level', 'second_level',to=None)
-                          socklist.append('second_level')
-                          play_effect(level_up)  
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          #------играем голос    
-                          if(language==1):
-                              play_story(story_53_ru)  
-                          if(language==2):
-                              play_story(story_53_en)
-                          if(language==3):
-                              play_story(story_53_ar)
-                     #----прошли 1 уровень      
-                     if flag=="first_level":
-                          socketio.emit('level', 'first_level',to=None)
-                          socklist.append('first_level')
-                          play_effect(level_up)  
-                          while effects_are_busy() and go == 1: 
-                              eventlet.sleep(0.1)
-                          #------играем голос    
-                          if(language==1):
-                              play_story(story_52_ru)  
-                          if(language==2):
-                              play_story(story_52_en)
-                          if(language==3):
-                              play_story(story_52_ar)  
-                     
-
-                     # "boy_in_lesson" (с урока, level 18) -> Запустить интро
-                     # 1. УРОК (Level 18): Вход
-                     if flag == "boy_in_lesson":
-                          # Если интро уже сыграно (урок идет), и мы вернулись с паузы
-                          if level_18_intro_played:
-                              # [FIX] Снимаем с паузы
-                              logger.info("Возобновление урока (снятие с паузы)")
-                              pygame.mixer.music.unpause()
-                              if 'stop_players_rest' in socklist:
-                                    socklist.remove('stop_players_rest')
-                              socketio.emit('level', 'start_players', to=None)
-                          # Если это первый запуск
-                          elif time.time() - last_boy_in_time < 2.0:
-                              logger.debug("Игнорируем повторный boy_in_lesson (дребезг при установке)")
-                          else:
-                              level_18_intro_played = True
-                              # Запоминаем время нового стабильного входа
-                              last_boy_in_time = time.time()
-                              play_background_music("fon18.mp3", loops=-1)
-                              socketio.emit('level', 'start_players', to=None)
-                              socklist.append('start_players')
-                              
-                              if(language==1):
-                                  play_story(story_57_ru)
-                              if(language==2):
-                                  play_story(story_57_en)
-                              if(language==3):
-                                  play_story(story_57_ar)
-                              
-                              # Ждем завершения истории
-                              while channel3.get_busy() == True and go == 1:
-                                  eventlet.sleep(0.1)
-                              
-                              play_effect(applause)
-                              
-                              while channel2.get_busy() == True and go == 1:
-                                  eventlet.sleep(0.1)
-                                  
-                              if(language==1):
-                                  play_story(story_58_ru)
-                              if(language==2):
-                                  play_story(story_58_en)
-                              if(language==3):
-                                  play_story(story_58_ar)
-                              
-                              while channel3.get_busy() == True and go == 1:
-                                  eventlet.sleep(0.1)
-                              
-                              eventlet.sleep(1.0)
-
-                          # 1. Запускаем урок
-                          serial_write_queue.put('start_lesson')
-                          logger.debug("SENT [Arduino]: start_lesson")
-                          
-                          # Ждем 1.5 секунды, чтобы Main Board успел прожевать команду
-                          eventlet.sleep(1.5) 
-                          
-                          # 2. Запускаем игру (Мяч)
-                          serial_write_queue.put('start_game_basket')
-                          logger.debug("SENT [Arduino]: start_game_basket")
-                          
-                          eventlet.sleep(1.0)
-                          socketio.emit('level', 'active_basket', to=None)
-                          socklist.append('active_basket')
-
-                     # 2. УРОК (Level 18): Выход (Пауза)
-                     if flag == "boy_out_lesson":
-                         # Если с момента входа прошло меньше 3 секунд, игнорируем выход.
-                         if time.time() - last_boy_in_time < 3.0:
-                             logger.debug("Игнорируем boy_out_lesson (дребезг контактов)")
-                         else:
-                             level_18_intro_played = False
-                             pygame.mixer.music.pause()
-                             try:
-                                 play_effect(lose1)
-                                 # Играем историю 69 (Мальчик ушел)
-                                 if(language==1): play_story(story_69_ru)
-                                 if(language==2): play_story(story_69_en)
-                                 if(language==3): play_story(story_69_ar)
-                             except Exception as e:
-                                 logger.error(f"Ошибка звука boy_out_lesson: {e}")
-
-                             
-                             socketio.emit('level', 'stop_players_rest', to=None)
-                             socklist.append('stop_players_rest')
-                         
-                     # 3. ИГРА (Level 19): Вход (Возобновление)
-                     if flag == "boy_in_game":
-                          if time.time() - last_boy_in_time < 2.0:
-                              logger.debug("Игнорируем повторный boy_in_game")
-                          else:
-                              last_boy_in_time = time.time()
-                              play_effect(applause)
-                              pygame.mixer.music.unpause()
-                              # Играем историю 70 (Мальчик вернулся)
-                              if(language==1): play_story(story_70_ru)
-                              if(language==2): play_story(story_70_en)
-                              if(language==3): play_story(story_70_ar)
-                              
-                              # Удаляем флаг проигрыша, чтобы пауза снова работала
-                              if 'win_bot' in socklist:
-                                   socklist.remove('win_bot')
-                                   
-                              if 'stop_players_rest' in socklist:
-                                    socklist.remove('stop_players_rest')
-                              socketio.emit('level', 'start_players', to=None)
-                              socklist.append('start_players')
-
-                     # 4. ИГРА (Level 19): Выход (Пауза)
-                     if flag == "boy_out_game":
-                          # ПРОВЕРКА: Если только что выиграл бот, НЕ включаем паузу
-                          # Мы проверяем историю событий (socklist) на наличие 'win_bot'
-                          if 'win_bot' in socklist:
-                               logger.debug("boy_out_game: Игнорируем паузу, так как БОТ ВЫИГРАЛ.")
-                               # Ничего не делаем, пусть играет story_67
-                               # Но нужно удалить win_bot из списка, чтобы при СЛЕДУЮЩЕМ снятии пауза сработала?
-                               # Лучше удалить его при 'boy_in_game' (рестарте уровня).
-                          else:
-                               # Стандартная логика паузы
-                               pygame.mixer.music.pause()
-                               try:
-                                   play_effect(lose1)
-                                   # Играем историю 69 (Мальчик ушел)
-                                   if(language==1): play_story(story_69_ru)
-                                   if(language==2): play_story(story_69_en)
-                                   if(language==3): play_story(story_69_ar)
-                               except Exception as e:
-                                   logger.error(f"Ошибка звука: {e}")
-
-                               
-                               socketio.emit('level', 'stop_players_rest', to=None)
-                               socklist.append('stop_players_rest')
-
-                     if flag=="story_59":
-                          if(language==1):
-                              play_story(story_59_ru)  
-                          if(language==2):
-                              play_story(story_59_en)
-                          if(language==3):
-                              play_story(story_59_ar)
-                     if flag=="story_55":
-                          if(language==1):
-                              play_story(story_55_ru)  
-                          if(language==2):
-                              play_story(story_55_en)
-                          if(language==3):
-                              play_story(story_55_ar)
-                     if flag=="crime_end":
-                          socketio.emit('level', 'crime',to=None)
-                          socklist.append('crime')
-                          send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
-                          socketio.emit('level', 'active_basket',to=None)
-                          socklist.append('active_basket')
-                          play_background_music("fon17.mp3", loops=-1)
-                          if(language==1):
-                              play_story(story_56_ru)  
-                          if(language==2):
-                              play_story(story_56_en)
-                          if(language==3):
-                              play_story(story_56_ar)
-                     if flag=="lesson_goal":
-                          # 1. Воспроизводим звук аплодисментов (Эффект, Канал 2)
-                          play_effect(applause)
-                          
-                          # 2. Воспроизводим story_61_a (История, Канал 3)
-                          # Эта история будет автоматически прервана, если поступит другая команда play_story()
-                          if(language==1):
-                              play_story(story_61_a_ru)  
-                          if(language==2):
-                              play_story(story_61_a_en)
-                          if(language==3):
-                              play_story(story_61_a_ar)
-                     if flag=="flying_ball":
-                          play_effect(flying_ball)
-                          storyBasketFlag = 1
-                     if flag=="catch1":
-                          play_effect(catch1)
-                          if storyBasketFlag == 1:
-                              catchCount += 1
-                              if catchCount == 1:
-                                   if(language==1):
-                                        play_story(story_60_a_ru)  
-                                   if(language==2):
-                                        play_story(story_60_a_en)
-                                   if(language==3):
-                                        play_story(story_60_a_ar)
-                              if catchCount == 2:
-                                   if(language==1):
-                                        play_story(story_60_b_ru)  
-                                   if(language==2):
-                                        play_story(story_60_b_en)
-                                   if(language==3):
-                                        play_story(story_60_b_ar)
-                              if catchCount == 3:
-                                   if(language==1):
-                                        play_story(story_60_c_ru)  
-                                   if(language==2):
-                                        play_story(story_60_c_en)
-                                   if(language==3):
-                                        play_story(story_60_c_ar)   
-                              if catchCount == 4:
-                                   if(language==1):
-                                        play_story(story_60_d_ru)  
-                                   if(language==2):
-                                        play_story(story_60_d_en)
-                                   if(language==3):
-                                        play_story(story_60_d_ar)
-                              if catchCount == 5:
-                                   if(language==1):
-                                        play_story(story_60_e_ru)  
-                                   if(language==2):
-                                        play_story(story_60_e_en)
-                                   if(language==3):
-                                        play_story(story_60_e_ar)
-                              if catchCount == 6:
-                                   if(language==1):
-                                        play_story(story_60_f_ru)  
-                                   if(language==2):
-                                        play_story(story_60_f_en)
-                                   if(language==3):
-                                        play_story(story_60_f_ar)
-                              if catchCount == 7:
-                                   if(language==1):
-                                        play_story(story_60_g_ru)  
-                                   if(language==2):
-                                        play_story(story_60_g_en)
-                                   if(language==3):
-                                        play_story(story_60_g_ar)
-                              if catchCount == 8:
-                                   if(language==1):
-                                        play_story(story_60_h_ru)  
-                                   if(language==2):
-                                        play_story(story_60_h_en)
-                                   if(language==3):
-                                        play_story(story_60_h_ar)
-                              if catchCount == 9:
-                                   if(language==1):
-                                        play_story(story_60_i_ru)  
-                                   if(language==2):
-                                        play_story(story_60_i_en)
-                                   if(language==3):
-                                        play_story(story_60_i_ar)
-                              if catchCount == 10:
-                                   if(language==1):
-                                        play_story(story_60_j_ru)  
-                                   if(language==2):
-                                        play_story(story_60_j_en)
-                                   if(language==3):
-                                        play_story(story_60_j_ar)          
-                              print(catchCount)
-                     if flag=="catch2":
-                          play_effect(catch2)
-                          if storyBasketFlag == 1:
-                              catchCount += 1
-                              if catchCount == 1:
-                                   if(language==1):
-                                        play_story(story_60_a_ru)  
-                                   if(language==2):
-                                        play_story(story_60_a_en)
-                                   if(language==3):
-                                        play_story(story_60_a_ar)
-                              if catchCount == 2:
-                                   if(language==1):
-                                        play_story(story_60_b_ru)  
-                                   if(language==2):
-                                        play_story(story_60_b_en)
-                                   if(language==3):
-                                        play_story(story_60_b_ar)
-                              if catchCount == 3:
-                                   if(language==1):
-                                        play_story(story_60_c_ru)  
-                                   if(language==2):
-                                        play_story(story_60_c_en)
-                                   if(language==3):
-                                        play_story(story_60_c_ar)   
-                              if catchCount == 4:
-                                   if(language==1):
-                                        play_story(story_60_d_ru)  
-                                   if(language==2):
-                                        play_story(story_60_d_en)
-                                   if(language==3):
-                                        play_story(story_60_d_ar)
-                              if catchCount == 5:
-                                   if(language==1):
-                                        play_story(story_60_e_ru)  
-                                   if(language==2):
-                                        play_story(story_60_e_en)
-                                   if(language==3):
-                                        play_story(story_60_e_ar)
-                              if catchCount == 6:
-                                   if(language==1):
-                                        play_story(story_60_f_ru)  
-                                   if(language==2):
-                                        play_story(story_60_f_en)
-                                   if(language==3):
-                                        play_story(story_60_f_ar)
-                              if catchCount == 7:
-                                   if(language==1):
-                                        play_story(story_60_g_ru)  
-                                   if(language==2):
-                                        play_story(story_60_g_en)
-                                   if(language==3):
-                                        play_story(story_60_g_ar)
-                              if catchCount == 8:
-                                   if(language==1):
-                                        play_story(story_60_h_ru)  
-                                   if(language==2):
-                                        play_story(story_60_h_en)
-                                   if(language==3):
-                                        play_story(story_60_h_ar)
-                              if catchCount == 9:
-                                   if(language==1):
-                                        play_story(story_60_i_ru)  
-                                   if(language==2):
-                                        play_story(story_60_i_en)
-                                   if(language==3):
-                                        play_story(story_60_i_ar)
-                              if catchCount == 10:
-                                   if(language==1):
-                                        play_story(story_60_j_ru)  
-                                   if(language==2):
-                                        play_story(story_60_j_en)
-                                   if(language==3):
-                                        play_story(story_60_j_ar)
-                              print(catchCount) 
-                     if flag=="catch3":
-                          play_effect(catch3)
-                          if storyBasketFlag == 1:
-                              catchCount += 1
-                              if catchCount == 1:
-                                   if(language==1):
-                                        play_story(story_60_a_ru)  
-                                   if(language==2):
-                                        play_story(story_60_a_en)
-                                   if(language==3):
-                                        play_story(story_60_a_ar)
-                              if catchCount == 2:
-                                   if(language==1):
-                                        play_story(story_60_b_ru)  
-                                   if(language==2):
-                                        play_story(story_60_b_en)
-                                   if(language==3):
-                                        play_story(story_60_b_ar)
-                              if catchCount == 3:
-                                   if(language==1):
-                                        play_story(story_60_c_ru)  
-                                   if(language==2):
-                                        play_story(story_60_c_en)
-                                   if(language==3):
-                                        play_story(story_60_c_ar)   
-                              if catchCount == 4:
-                                   if(language==1):
-                                        play_story(story_60_d_ru)  
-                                   if(language==2):
-                                        play_story(story_60_d_en)
-                                   if(language==3):
-                                        play_story(story_60_d_ar)
-                              if catchCount == 5:
-                                   if(language==1):
-                                        play_story(story_60_e_ru)  
-                                   if(language==2):
-                                        play_story(story_60_e_en)
-                                   if(language==3):
-                                        play_story(story_60_e_ar)
-                              if catchCount == 6:
-                                   if(language==1):
-                                        play_story(story_60_f_ru)  
-                                   if(language==2):
-                                        play_story(story_60_f_en)
-                                   if(language==3):
-                                        play_story(story_60_f_ar)
-                              if catchCount == 7:
-                                   if(language==1):
-                                        play_story(story_60_g_ru)  
-                                   if(language==2):
-                                        play_story(story_60_g_en)
-                                   if(language==3):
-                                        play_story(story_60_g_ar)
-                              if catchCount == 8:
-                                   if(language==1):
-                                        play_story(story_60_h_ru)  
-                                   if(language==2):
-                                        play_story(story_60_h_en)
-                                   if(language==3):
-                                        play_story(story_60_h_ar)
-                              if catchCount == 9:
-                                   if(language==1):
-                                        play_story(story_60_i_ru)  
-                                   if(language==2):
-                                        play_story(story_60_i_en)
-                                   if(language==3):
-                                        play_story(story_60_i_ar)
-                              if catchCount == 10:
-                                   if(language==1):
-                                        play_story(story_60_j_ru)  
-                                   if(language==2):
-                                        play_story(story_60_j_en)
-                                   if(language==3):
-                                        play_story(story_60_j_ar)
-                              print(catchCount)
-                     if flag=="catch4":
-                          play_effect(catch4)
-                          if storyBasketFlag == 1:
-                              catchCount += 1
-                              if catchCount == 1:
-                                   if(language==1):
-                                        play_story(story_60_a_ru)  
-                                   if(language==2):
-                                        play_story(story_60_a_en)
-                                   if(language==3):
-                                        play_story(story_60_a_ar)
-                              if catchCount == 2:
-                                   if(language==1):
-                                        play_story(story_60_b_ru)  
-                                   if(language==2):
-                                        play_story(story_60_b_en)
-                                   if(language==3):
-                                        play_story(story_60_b_ar)
-                              if catchCount == 3:
-                                   if(language==1):
-                                        play_story(story_60_c_ru)  
-                                   if(language==2):
-                                        play_story(story_60_c_en)
-                                   if(language==3):
-                                        play_story(story_60_c_ar)   
-                              if catchCount == 4:
-                                   if(language==1):
-                                        play_story(story_60_d_ru)  
-                                   if(language==2):
-                                        play_story(story_60_d_en)
-                                   if(language==3):
-                                        play_story(story_60_d_ar)
-                              if catchCount == 5:
-                                   if(language==1):
-                                        play_story(story_60_e_ru)  
-                                   if(language==2):
-                                        play_story(story_60_e_en)
-                                   if(language==3):
-                                        play_story(story_60_e_ar)
-                              if catchCount == 6:
-                                   if(language==1):
-                                        play_story(story_60_f_ru)  
-                                   if(language==2):
-                                        play_story(story_60_f_en)
-                                   if(language==3):
-                                        play_story(story_60_f_ar)
-                              if catchCount == 7:
-                                   if(language==1):
-                                        play_story(story_60_g_ru)  
-                                   if(language==2):
-                                        play_story(story_60_g_en)
-                                   if(language==3):
-                                        play_story(story_60_g_ar)
-                              if catchCount == 8:
-                                   if(language==1):
-                                        play_story(story_60_h_ru)  
-                                   if(language==2):
-                                        play_story(story_60_h_en)
-                                   if(language==3):
-                                        play_story(story_60_h_ar)
-                              if catchCount == 9:
-                                   if(language==1):
-                                        play_story(story_60_i_ru)  
-                                   if(language==2):
-                                        play_story(story_60_i_en)
-                                   if(language==3):
-                                        play_story(story_60_i_ar)
-                              if catchCount == 10:
-                                   if(language==1):
-                                        play_story(story_60_j_ru)  
-                                   if(language==2):
-                                        play_story(story_60_j_en)
-                                   if(language==3):
-                                        play_story(story_60_j_ar) 
-                              print(catchCount)      
-                     # --- Логика голов игрока с счетчиком ---
-                     if flag=="goal_1_player" or flag=="goal_2_player" or flag=="goal_3_player" or flag=="goal_4_player":
-                          # Добавляем инкрементальные флаги для UI
-                          if flag == "goal_1_player":
-                              socklist.append('goal_1_player')
-                              socketio.emit('level', 'goal_1_player',to=None)
-                          if flag == "goal_2_player":
-                              socklist.append('goal_2_player')
-                              socketio.emit('level', 'goal_2_player',to=None)
-                          # 1. Воспроизвести случайный звук гола (goal2-goal7)
-                          play_effect(random.choice(player_goal_sounds))
-                          
-                          # 2. Выбрать правильный список историй по языку
-                          current_story_list = []
-                          if language == 1:
-                              current_story_list = player_goal_stories_ru
-                          elif language == 2:
-                              current_story_list = player_goal_stories_en
-                          elif language == 3:
-                              current_story_list = player_goal_stories_ar
-                          
-                          # 3. Воспроизвести историю по счетчику (начиная с b, c, d...)
-                          if goalCount < len(current_story_list):
-                              play_story(current_story_list[goalCount])
-                          else:
-                              # Если счетчик превысил кол-во историй, проигрываем последнюю
-                              play_story(current_story_list[-1]) 
-                          
-                          # 4. Увеличить счетчик для следующего гола
-                          goalCount += 1
-
-                     # Логика голов БОТА с счетчиком ---
-                     if flag=="goal_1_bot" or flag=="goal_2_bot" or flag=="goal_3_bot" or flag=="goal_4_bot":
-                          # Добавляем инкрементальные флаги для UI
-                          if flag == "goal_1_bot":
-                              socketio.emit('level', 'goal_1_bot',to=None)
-                              socklist.append('goal_1_bot')
-                          if flag == "goal_2_bot":
-                              socketio.emit('level', 'goal_2_bot',to=None)
-                              socklist.append('goal_2_bot')
-                          # 1. Воспроизвести РАНДОМНЫЙ звук
-                          play_effect(random.choice(enemy_goal_sounds))
-
-                          # 2. Выбрать правильный список историй по языку
-                          current_enemy_story_list = []
-                          if language == 1:
-                              current_enemy_story_list = enemy_goal_stories_ru
-                          elif language == 2:
-                              current_enemy_story_list = enemy_goal_stories_en
-                          elif language == 3:
-                              current_enemy_story_list = enemy_goal_stories_ar
-                          
-                          # 3. Воспроизвести историю по счетчику (начиная с a, b, c...)
-                          if enemyGoalCount < len(current_enemy_story_list):
-                              play_story(current_enemy_story_list[enemyGoalCount])
-                          else:
-                              # Если счетчик превысил кол-во историй, проигрываем последнюю
-                              play_story(current_enemy_story_list[-1]) 
-                          
-                          # 4. Увеличить счетчик для следующего гола бота
-                          enemyGoalCount += 1
-
-                     if flag=="start_snitch":
-                          #----играем эффект 
-                          enemyCatchCount += 1
-                          if enemyCatchCount == 1:
-                              play_effect(enemy_catch1)
-                          if enemyCatchCount == 2:
-                              play_effect(enemy_catch2)
-                          if enemyCatchCount == 3:
-                              play_effect(enemy_catch3)
-                          if enemyCatchCount == 4:
-                              play_effect(enemy_catch4)
-                              enemyCatchCount = 0   
-                          sintchEnemyCatchCount += 1
-                          if sintchEnemyCatchCount == 1:
-                               if(language==1):
-                                    play_story(story_62_a_ru)  
-                               if(language==2):
-                                    play_story(story_62_a_en)
-                               if(language==3):
-                                    play_story(story_62_a_ar)
-                          if sintchEnemyCatchCount == 2:
-                               if(language==1):
-                                    play_story(story_62_b_ru)  
-                               if(language==2):
-                                    play_story(story_62_b_en)
-                               if(language==3):
-                                    play_story(story_62_b_ar)
-                          if sintchEnemyCatchCount == 3:
-                               if(language==1):
-                                    play_story(story_62_c_ru)  
-                               if(language==2):
-                                    play_story(story_62_c_en)
-                               if(language==3):
-                                    play_story(story_62_c_ar)   
-                          if sintchEnemyCatchCount == 4:
-                               if(language==1):
-                                    play_story(story_62_d_ru)  
-                               if(language==2):
-                                    play_story(story_62_d_en)
-                               if(language==3):
-                                    play_story(story_62_d_ar)
-                          if sintchEnemyCatchCount == 5:
-                               sintchEnemyCatchCount = 0
-                               if(language==1):
-                                    play_story(story_62_e_ru)  
-                               if(language==2):
-                                    play_story(story_62_e_en)
-                               if(language==3):
-                                    play_story(story_62_e_ar)    
-                          print(enemyCatchCount)                
-
-                     if flag=="red_ball":
-                          #----играем эффект 
-                          enemyCatchCount += 1
-                          if enemyCatchCount == 1:
-                              play_effect(enemy_catch1)
-                          if enemyCatchCount == 2:
-                              play_effect(enemy_catch2)
-                          if enemyCatchCount == 3:
-                              play_effect(enemy_catch3)
-                          if enemyCatchCount == 4:
-                              play_effect(enemy_catch4)
-                              enemyCatchCount = 0   
-                          redSintchEnemyCatchCount += 1
-                          if redSintchEnemyCatchCount == 1:
-                               if(language==1):
-                                    play_story(story_63_a_ru)  
-                               if(language==2):
-                                    play_story(story_63_a_en)
-                               if(language==3):
-                                    play_story(story_63_a_ar)
-                          if redSintchEnemyCatchCount == 2:
-                               if(language==1):
-                                    play_story(story_63_b_ru)  
-                               if(language==2):
-                                    play_story(story_63_b_en)
-                               if(language==3):
-                                    play_story(story_63_b_ar)
-                          if redSintchEnemyCatchCount == 3:
-                               if(language==1):
-                                    play_story(story_63_c_ru)  
-                               if(language==2):
-                                    play_story(story_63_c_en)
-                               if(language==3):
-                                    play_story(story_63_c_ar)   
-                          if redSintchEnemyCatchCount == 4:
-                               if(language==1):
-                                    play_story(story_63_d_ru)  
-                               if(language==2):
-                                    play_story(story_63_d_en)
-                               if(language==3):
-                                    play_story(story_63_d_ar)
-                          if redSintchEnemyCatchCount == 5:
-                               if(language==1):
-                                    play_story(story_63_e_ru)  
-                               if(language==2):
-                                    play_story(story_63_e_en)
-                               if(language==3):
-                                    play_story(story_63_e_ar)
-                          if redSintchEnemyCatchCount == 6:
-                               if(language==1):
-                                    play_story(story_63_f_ru)  
-                               if(language==2):
-                                    play_story(story_63_f_en)
-                               if(language==3):
-                                    play_story(story_63_f_ar)
-                          if redSintchEnemyCatchCount == 7:
-                               if(language==1):
-                                    play_story(story_63_g_ru)  
-                               if(language==2):
-                                    play_story(story_63_g_en)
-                               if(language==3):
-                                    play_story(story_63_g_ar)
-                          if redSintchEnemyCatchCount == 8:
-                               if(language==1):
-                                    play_story(story_63_h_ru)  
-                               if(language==2):
-                                    play_story(story_63_h_en)
-                               if(language==3):
-                                    play_story(story_63_h_ar)
-                          if redSintchEnemyCatchCount == 9:
-                               if(language==1):
-                                    play_story(story_63_i_ru)  
-                               if(language==2):
-                                    play_story(story_63_i_en)
-                               if(language==3):
-                                    play_story(story_63_i_ar)
-                          if redSintchEnemyCatchCount == 10:
-                               redSintchEnemyCatchCount = 0
-                               if(language==1):
-                                    play_story(story_63_j_ru)  
-                               if(language==2):
-                                    play_story(story_63_j_en)
-                               if(language==3):
-                                    play_story(story_63_j_ar)     
-                          print(enemyCatchCount)     
-                     if flag=="enemy_catch1":
-                          play_effect(enemy_catch1)
-                          redClickSintchEnemyCatchCount += 1
-                          if redClickSintchEnemyCatchCount == 1:
-                               if(language==1):
-                                    play_story(story_64_a_ru)  
-                               if(language==2):
-                                    play_story(story_64_a_en)
-                               if(language==3):
-                                    play_story(story_64_a_ar)
-                          if redClickSintchEnemyCatchCount == 2:
-                               redClickSintchEnemyCatchCount = 0
-                               if(language==1):
-                                    play_story(story_64_b_ru)  
-                               if(language==2):
-                                    play_story(story_64_b_en)
-                               if(language==3):
-                                    play_story(story_64_b_ar)          
-                          print(redClickSintchEnemyCatchCount)
-                     if flag=="enemy_catch2":
-                          play_effect(enemy_catch2)
-                          redClickSintchEnemyCatchCount += 1
-                          if redClickSintchEnemyCatchCount == 1:
-                               if(language==1):
-                                    play_story(story_64_a_ru)  
-                               if(language==2):
-                                    play_story(story_64_a_en)
-                               if(language==3):
-                                    play_story(story_64_a_ar)
-                          if redClickSintchEnemyCatchCount == 2:
-                               redClickSintchEnemyCatchCount = 0
-                               if(language==1):
-                                    play_story(story_64_b_ru)  
-                               if(language==2):
-                                    play_story(story_64_b_en)
-                               if(language==3):
-                                    play_story(story_64_b_ar)
-                     if flag=="enemy_catch3":
-                          play_effect(enemy_catch3)
-                          redClickSintchEnemyCatchCount += 1
-                          if redClickSintchEnemyCatchCount == 1:
-                               redClickSintchEnemyCatchCount = 0
-                               if(language==1):
-                                    play_story(story_64_a_ru)  
-                               if(language==2):
-                                    play_story(story_64_a_en)
-                               if(language==3):
-                                    play_story(story_64_a_ar)
-                          if redClickSintchEnemyCatchCount == 2:
-                               if(language==1):
-                                    play_story(story_64_b_ru)  
-                               if(language==2):
-                                    play_story(story_64_b_en)
-                               if(language==3):
-                                    play_story(story_64_b_ar)
-                     if flag=="enemy_catch4":
-                          play_effect(enemy_catch4)
-                          redClickSintchEnemyCatchCount += 1
-                          if redClickSintchEnemyCatchCount == 1:
-                               if(language==1):
-                                    play_story(story_64_a_ru)  
-                               if(language==2):
-                                    play_story(story_64_a_en)
-                               if(language==3):
-                                    play_story(story_64_a_ar)
-                          if redClickSintchEnemyCatchCount == 2:
-                               redClickSintchEnemyCatchCount =0
-                               if(language==1):
-                                    play_story(story_64_b_ru)  
-                               if(language==2):
-                                    play_story(story_64_b_en)
-                               if(language==3):
-                                    play_story(story_64_b_ar)
-                     if flag=="win":
-                          # Сначала ставим в очередь, потом сразу пытаемся отправить
-                          serial_write_queue.put('basket') 
-                          process_serial_queue() # <-- ПРИНУДИТЕЛЬНАЯ ОТПРАВКА
-                          
-                          play_background_music("fon19.mp3", loops=-1)    
-                          if(language==1): play_story(story_66_ru)  
-                          if(language==2): play_story(story_66_en)
-                          if(language==3): play_story(story_66_ar)
-
-                          # Отправляем команды
-                          socketio.emit('level', 'win_player',to=None)
-                          socklist.append('win_player')
-
-                          send_esp32_command(ESP32_API_WOLF_URL, "firework")
-                          send_esp32_command(ESP32_API_TRAIN_URL, "firework")
-                          send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
-                          send_esp32_command(ESP32_API_SAFE_URL, "firework")
-                          
-                          # Звуки голов
-                          play_effect(random.choice(player_goal_sounds))
-                          
-                          # [FIX] Цикл ожидания с обработкой очереди
-                          start_wait = time.time()
-                          while effects_are_busy() and go == 1:
-                              process_serial_queue() # <-- ПРОДОЛЖАЕМ ОТПРАВЛЯТЬ
-                              eventlet.sleep(0.1)
-                              # Защита от вечного цикла (макс 3 сек на звук)
-                              if time.time() - start_wait > 3: break 
-                          
-                          play_effect(random.choice(player_goal_sounds))
-                          
-                          start_wait = time.time()
-                          while effects_are_busy() and go == 1: 
-                              process_serial_queue() # <-- ПРОДОЛЖАЕМ ОТПРАВЛЯТЬ
-                              eventlet.sleep(0.1)
-                              if time.time() - start_wait > 3: break
-
-                          play_effect(win)
-                     if flag=="win_robot":
-                          # Если уже победил (есть в списке), ИГНОРИРУЕМ ПОВТОРЫ
-                          if 'win_bot' not in socklist:
-                              socketio.emit('level', 'win_bot',to=None)
-                              socklist.append('win_bot')
-                              
-                              # --- ПЕРЕНЕСЕНО ВНУТРЬ (чтобы играло 1 раз) ---
-                              play_effect(enemy_goal1)
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
-                              play_background_music("fon17.mp3", loops=-1)    
+
+                              #------играем голос    
                               if(language==1):
-                                  play_story(story_67_ru)  
+                                  play_story(story_18_ru)  
                               if(language==2):
-                                  play_story(story_67_en)
+                                  play_story(story_18_en)
                               if(language==3):
-                                  play_story(story_67_ar)
-                              # ---------------------------------------------
-                    #-------прошли игру с кристалами
-                     if flag=="memory_room_end":
-                         #----отправили на клиента
-                         send_esp32_command(ESP32_API_TRAIN_URL, "stage_0") 
-                         socketio.emit('level', 'memory_room_end',to=None)
-                         #----добавили в историю
-                         socklist.append('memory_room_end')
-                         #------играем эффект
-                         play_effect(brain_end)
-                         #-----активируем последнюю игру
-                         #socketio.emit('level', 'active_basket',to=None)
-                         #socklist.append('active_basket') 
-                         socketio.emit('level', 'active_crime',to=None)
-                         socklist.append('active_crime') 
+                                  play_story(story_18_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)    
+                              #----активируем игру с метлой
+                         #------сделали ошибку с бутылкой     
+                         if flag=="mistake_bottle":
+                              #----удалим из истории если были на каком либо этапе
+                              if 'first_bottle' in socklist:
+                                       socklist.remove('first_bottle')
+                              if 'second_bottle' in socklist:
+                                       socklist.remove('second_bottle')
+                              if 'third_bottle' in socklist:
+                                       socklist.remove('third_bottle')
+                              if 'four_bottle' in socklist:
+                                       socklist.remove('four_bottle')      
+                              #------отпраялем клиенту                              
+                              socketio.emit('level', 'mistake_bottle',to=None)
+                              #------добавили в историю
+                              socklist.append("mistake_bottle")
+                              #-----играем эффект
+                              play_effect(bottle_fall)   
+       
+                         if flag=="door_dog":
+                              #----играем эффект 
+                              socketio.emit('level', 'pedlock',to=None)
+                              #-----добавили в историю
+                              socklist.append('pedlock')
+                              play_effect(door_dog)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "key_open")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks") # Отключаем клики
+                              # Убираем ожидание завершения эффекта
+                              # while effects_are_busy() and go == 1: 
+                              #    eventlet.sleep(0.1)
+                              
+                              # Добавляем фиксированную задержку 2 секунды
+                              eventlet.sleep(2.0)
+     
+                              if story13Flag == 0:
+                                   story13Flag = 1
+                                   if(language==1):
+                                        play_story(story_13_ru)  
+                                   if(language==2):
+                                        play_story(story_13_en)
+                                   if(language==3):
+                                        play_story(story_13_ar)
+     
+                                   while channel3.get_busy()==True and go == 1: 
+                                        eventlet.sleep(0.1)
+
+                              if(language==1):
+                                  play_story(story_19_ru)  
+                              if(language==2):
+                                  play_story(story_19_en)
+                              if(language==3):
+                                  play_story(story_19_ar)
+                              while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_19
+                              send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
+                              #----активируем игру с собакой
+                              socketio.emit('level', 'active_dog',to=None)
+                              socklist.append('active_dog')
+
+                         if flag=="dog_sleep":
+                              #----играем эффект 
+                              play_effect(dog_sleep)
+
+                         if flag=="dog_growl":
+                              #----играем эффект 
+                              play_effect(dog_growl) 
+                         if flag=="dog_lock":
+                              # Защита от двойного срабатывания
+                              if 'dog_end_processed' in socklist:
+                                  logger.debug("Игнорируем повторный dog_lock")
+                              else:
+                                  socklist.append('dog_end_processed') # Ставим метку
+                                  #----играем эффект 
+                                  socketio.emit('level', 'dog',to=None)
+                                  #-----добавили в историю
+                                  socklist.append('dog')
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
+                                  play_effect(dog_lock)
+
+                                  #while effects_are_busy() and go == 1: 
+                                  #    eventlet.sleep(0.1)
+
+                                  if(language==1):
+                                      play_story(story_21_ru)  
+                                  if(language==2):
+                                      play_story(story_21_en)
+                                  if(language==3):
+                                      play_story(story_21_ar)
+
+                         if flag=="story_20_a":
+                              if(language==1):
+                                  play_story(story_20_a_ru)  
+                              if(language==2):
+                                  play_story(story_20_a_en)
+                              if(language==3):
+                                  play_story(story_20_a_ar)
+
+                         if flag=="story_20_b":
+                              if(language==1):
+                                  play_story(story_20_b_ru)  
+                              if(language==2):
+                                  play_story(story_20_b_en)
+                              if(language==3):
+                                  play_story(story_20_b_ar) 
+                         if flag=="story_20_c":
+                              if(language==1):
+                                  play_story(story_20_c_ru)  
+                              if(language==2):
+                                  play_story(story_20_c_en)
+                              if(language==3):
+                                  play_story(story_20_c_ar)         
+
+                         if flag=="story_22_a":
+                              # 1. Ждем, пока канал освободится
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              # 2. Воспроизводим историю
+                              if(language==1):
+                                  play_story(story_22_a_ru)  
+                              if(language==2):
+                                  play_story(story_22_a_en)
+                              if(language==3):
+                                  play_story(story_22_a_ar)
+                                  
+                              # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
+                              while channel3.get_busy()==True and go == 1:
+                                  eventlet.sleep(0.1)
+                              # 4. Отправляем подтверждение на Arduino
+                              serial_write_queue.put('story_22_done')
+
+                         if flag=="story_22_b":
+                              # 1. Ждем, пока канал освободится
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              # 2. Воспроизводим историю
+                              if(language==1):
+                                  play_story(story_22_b_ru)  
+                              if(language==2):
+                                  play_story(story_22_b_en)
+                              if(language==3):
+                                  play_story(story_22_b_ar)
+                                 
+                              # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
+                              while channel3.get_busy()==True and go == 1:
+                                  eventlet.sleep(0.1)
+                              # 4. Отправляем подтверждение на Arduino
+                              serial_write_queue.put('story_22_done')
+                           
+                         if flag=="story_22_c":
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_22_c_ru)  
+                              if(language==2):
+                                  play_story(story_22_c_en)
+                              if(language==3):
+                                  play_story(story_22_c_ar)
+                                  
+                              # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
+                              while channel3.get_busy()==True and go == 1:
+                                  eventlet.sleep(0.1)
+                              # 4. Отправляем подтверждение на Arduino
+                              serial_write_queue.put('story_22_done')
+                              
+                         if flag=="cave_click":
+                              #----играем эффект 
+                              play_effect(cave_click)
+                         if flag=="door_cave":
+                              #----играем эффект 
+                              play_effect(door_cave)
+                              socketio.emit('level', 'active_troll',to=None)
+                              socklist.append('active_troll')
+                              socketio.emit('level', 'mine',to=None)
+                              socklist.append('mine')
+                              # Убираем ожидание завершения эффекта
+                              # while effects_are_busy() and go == 1:
+                              #     eventlet.sleep(0.1)
+                              # Добавляем фиксированную задержку 2 секунды
+                              eventlet.sleep(2.0)
+                              if(language==1):
+                                  play_story(story_26_ru)  
+                              if(language==2):
+                                  play_story(story_26_en)
+                              if(language==3):
+                                  play_story(story_26_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)    
+                         if flag=="cave_search1":
+                              #----играем эффект 
+                              play_effect(cave_search)
+                              socketio.emit('level', 'cave_search1', to=None)
+                              socklist.append('cave_search1')
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_27_a_ru)  
+                              if(language==2):
+                                  play_story(story_27_a_en)
+                              if(language==3):
+                                  play_story(story_27_a_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              eventlet.sleep(1.1)        
+                              # serial_write_queue.put('cave_search1')    
+                         if flag=="cave_search2":
+                              #----играем эффект 
+                              play_effect(cave_search)
+                              socketio.emit('level', 'cave_search2', to=None)
+                              socklist.append('cave_search2')
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_27_b_ru)  
+                              if(language==2):
+                                  play_story(story_27_b_en)
+                              if(language==3):
+                                  play_story(story_27_b_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              eventlet.sleep(1.1)         
+                              # serial_write_queue.put('cave_search2')        
+                         if flag=="cave_search3":
+                              #----играем эффект 
+                              play_effect(cave_search)
+                              socketio.emit('level', 'cave_search3', to=None)
+                              socklist.append('cave_search3')
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_27_c_ru)  
+                              if(language==2):
+                                  play_story(story_27_c_en)
+                              if(language==3):
+                                  play_story(story_27_c_ar) 
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              eventlet.sleep(1.1)        
+                              # serial_write_queue.put('cave_search3')                          
+                         if flag=="cave_end":
+                              #----играем эффект 
+                              socketio.emit('level', 'troll',to=None)
+                              socklist.append('troll')
+                              socketio.emit('level', 'cave_end', to=None)
+                              socklist.append('cave_end')
+                              play_effect(cave_end)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_30_ru)  
+                              if(language==2):
+                                  play_story(story_30_en)
+                              if(language==3):
+                                  play_story(story_30_ar)    
+                         if flag=="material_end":
+                              #----играем эффект 
+                              socketio.emit('level', 'active_open_bank_door',to=None)
+                              socklist.append('active_open_bank_door')
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_4")
+                         if flag=="miror":
+                              socketio.emit('level', 'open_bank_door',to=None)
+                              socklist.append('open_bank_door')
+                              play_effect(door_bank)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_23_ru)  
+                              if(language==2):
+                                  play_story(story_23_en)
+                              if(language==3):
+                                  play_story(story_23_ar)
+                              while channel3.get_busy()==True and go == 1:
+                                  eventlet.sleep(0.1)
+                              eventlet.sleep(1.0)
+                              serial_write_queue.put('open_bank')
+                              # Этот блок немедленно отправит команду 'open_bank', 
+                              # не дожидаясь завершения eventlet.sleep(5.0) и story_24.
+                              while not serial_write_queue.empty():
+                                  try:
+                                      message_to_send = serial_write_queue.get_nowait()
+                                      ser.write(str.encode(message_to_send + '\n'))
+                                  except eventlet.queue.Empty:
+                                      break # Очередь пуста
+                                  eventlet.sleep(0.01) # Даем время на отправку
+                              eventlet.sleep(5.0)
+                              if(language==1):
+                                  play_story(story_24_ru)  
+                              if(language==2):
+                                  play_story(story_24_en)
+                              if(language==3):
+                                  play_story(story_24_ar)
+
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)     
+                         if flag=="safe_turn":
+                              #----играем эффект 
+                              play_effect(safe_turn)
+                              socklist.append('safe_turn')
+                         if flag=="safe_end":
+                              socketio.emit('level', 'safe_end', to=None)
+                              socklist.append('safe_end')
+                              
+                              # Вся остальная логика 'safe_end', которая у вас уже была
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
+                              play_effect(safe_end)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              serial_write_queue.put('open_safe')
+                              
+                              while not serial_write_queue.empty():
+                                  try:
+                                      message_to_send = serial_write_queue.get_nowait()
+                                      ser.write(str.encode(message_to_send + '\n'))
+                                  except eventlet.queue.Empty:
+                                      break 
+                                  eventlet.sleep(0.01) 
+                                  
+                              if(language==1):
+                                  play_story(story_25_ru)  
+                              if(language==2):
+                                  play_story(story_25_en)
+                              if(language==3):
+                                  play_story(story_25_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)  
+                              eventlet.sleep(1.1)
+                              if(language==1):
+                                  play_story(story_31_ru)  
+                              if(language==2):
+                                  play_story(story_31_en)
+                              if(language==3):
+                                  play_story(story_31_ar)
+                                  
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              serial_write_queue.put('open_workshop')
+                              eventlet.sleep(0.5) 
+                              serial_write_queue.put('open_workshop')
+                              eventlet.sleep(1.1)
+                              play_effect(door_workshop)
+                              play_background_music("fon9.mp3", loops=-1)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_32_ru)  
+                              if(language==2):
+                                  play_story(story_32_en)
+                              if(language==3):
+                                  play_story(story_32_ar)
+                              
+                              socketio.emit('level', 'safe',to=None)
+                              socklist.append('safe')
                          
+                         # Список ВСЕХ команд, которые управляют шкалой сейфа
+                         safe_commands_list = ['safe_step_1', 'safe_step_2', 'safe_step_3', 'safe_step_4', 'safe_end', 'safe_reset']
+
+                         # Проверяем, пришел ли флаг, связанный с сейфом
+                         if flag in safe_commands_list:
                              
-                        
-  ###################################################                    #######################################################
-                     
- #########################################################################
-                    #------поставили пацана на место
-                     if flag=="last_on":
-                          #----отправили на клиента 
-                          socketio.emit('level', 'last_on',to=None)
-                          #-----добавили в историю
-                          socklist.append('last_on')
-                          #-----отправили рейтинг
-                          socketio.emit('rate', rateTime,to=None)
-                          socketio.emit('hintCount', str(hintCount),to=None)
-                          rating = rating+hintCount
-                          if rating<=75:
-                               star = 5
-                          elif rating<=99 and rating>75:
-                               star = 4
-                          elif rating <=123 and rating>99:
-                               star = 3
-                          elif rating <=150 and rating>123:
-                               star = 2
-                          elif rating>=180:
-                               star = 1                    
-                          socketio.emit('rating', str(star),to=None)
-                          #----играем фон       
-                          #----меняем переменную
-                          name = "story_12"  
-                          #----удаляем старт из истории
-                          socklist.remove('start_game')
-                          #----переводим флаги в окончание игры
-                          starts= 2
-                          go = -1
-                          eventlet.sleep(0.5)
-                     if flag=="hint_2_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_2_b_ru)
-                         if(language==2):
-                             play_story(hint_2_b_en)
-                         if(language==3):
-                             play_story(hint_2_b_ar)
-                     if flag=="hint_2_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_2_c_ru)
-                         if(language==2):
-                             play_story(hint_2_c_en)
-                         if(language==3):
-                             play_story(hint_2_c_ar)
-                     if flag=="hint_2_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_2_z_ru)
-                         if(language==2):
-                             play_story(hint_2_z_en)
-                         if(language==3):
-                             play_story(hint_2_z_ar)
-                     if flag=="hint_3_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_3_b_ru)
-                         if(language==2):
-                             play_story(hint_3_b_en)
-                         if(language==3):
-                             play_story(hint_3_b_ar)
-                     if flag=="hint_3_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_3_c_ru)
-                         if(language==2):
-                             play_story(hint_3_c_en)
-                         if(language==3):
-                             play_story(hint_3_c_ar)
-                     if flag=="hint_3_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_3_z_ru)
-                         if(language==2):
-                             play_story(hint_3_z_en)
-                         if(language==3):
-                             play_story(hint_3_z_ar)
-                     if flag=="hint_5_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_5_b_ru)
-                         if(language==2):
-                             play_story(hint_5_b_en)
-                         if(language==3):
-                             play_story(hint_5_b_ar)
-                     if flag=="hint_5_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_5_c_ru)
-                         if(language==2):
-                             play_story(hint_5_c_en)
-                         if(language==3):
-                             play_story(hint_5_c_ar)
-                     if flag=="hint_11_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_11_b_ru)
-                         if(language==2):
-                             play_story(hint_11_b_en)
-                         if(language==3):
-                             play_story(hint_11_b_ar)
-                     if flag=="hint_11_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_11_c_ru)
-                         if(language==2):
-                             play_story(hint_11_c_en)
-                         if(language==3):
-                             play_story(hint_11_c_ar)
-                     if flag=="hint_11_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_11_z_ru)
-                         if(language==2):
-                             play_story(hint_11_z_en)
-                         if(language==3):
-                             play_story(hint_11_z_ar)
-                     if flag=="hint_6_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_6_b_ru)
-                         if(language==2):
-                             play_story(hint_6_b_en)
-                         if(language==3):
-                             play_story(hint_6_b_ar)
-                     if flag=="hint_6_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_6_c_ru)
-                         if(language==2):
-                             play_story(hint_6_c_en)
-                         if(language==3):
-                             play_story(hint_6_c_ar)
-                     if flag=="hint_10_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_10_b_ru)
-                         if(language==2):
-                             play_story(hint_10_b_en)
-                         if(language==3):
-                             play_story(hint_10_b_ar)
-                     if flag=="hint_10_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_10_c_ru)
-                         if(language==2):
-                             play_story(hint_10_c_en)
-                         if(language==3):
-                             play_story(hint_10_c_ar)
-                     if flag=="hint_14_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_14_b_ru)
-                         if(language==2):
-                             play_story(hint_14_b_en)
-                         if(language==3):
-                             play_story(hint_14_b_ar)
-                     if flag=="hint_14_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_14_c_ru)
-                         if(language==2):
-                             play_story(hint_14_c_en)
-                         if(language==3):
-                             play_story(hint_14_c_ar)
-                     if flag=="hint_14_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_14_z_ru)
-                         if(language==2):
-                             play_story(hint_14_z_en)
-                         if(language==3):
-                             play_story(hint_14_z_ar)
-                     if flag=="hint_17_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_17_b_ru)
-                         if(language==2):
-                             play_story(hint_17_b_en)
-                         if(language==3):
-                             play_story(hint_17_b_ar)
-                     if flag=="hint_17_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_17_c_ru)
-                         if(language==2):
-                             play_story(hint_17_c_en)
-                         if(language==3):
-                             play_story(hint_17_c_ar)
-                     if flag=="hint_17_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_17_z_ru)
-                         if(language==2):
-                             play_story(hint_17_z_en)
-                         if(language==3):
-                             play_story(hint_17_z_ar)
-                     if flag=="hint_19_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_19_b_ru)
-                         if(language==2):
-                             play_story(hint_19_b_en)
-                         if(language==3):
-                             play_story(hint_19_b_ar)
-                     if flag=="hint_19_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_19_c_ru)
-                         if(language==2):
-                             play_story(hint_19_c_en)
-                         if(language==3):
-                             play_story(hint_19_c_ar)
-                     if flag=="hint_19_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_19_z_ru)
-                         if(language==2):
-                             play_story(hint_19_z_en)
-                         if(language==3):
-                             play_story(hint_19_z_ar)
-                     if flag=="hint_23_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_23_b_ru)
-                         if(language==2):
-                             play_story(hint_23_b_en)
-                         if(language==3):
-                             play_story(hint_23_b_ar)
-                     if flag=="hint_23_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_23_c_ru)
-                         if(language==2):
-                             play_story(hint_23_c_en)
-                         if(language==3):
-                             play_story(hint_23_c_ar)
-                     if flag=="hint_23_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_23_z_ru)
-                         if(language==2):
-                             play_story(hint_23_z_en)
-                         if(language==3):
-                             play_story(hint_23_z_ar)
-                     if flag=="hint_26_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_26_b_ru)
-                         if(language==2):
-                             play_story(hint_26_b_en)
-                         if(language==3):
-                             play_story(hint_26_b_ar)
-                     if flag=="hint_26_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_26_c_ru)
-                         if(language==2):
-                             play_story(hint_26_c_en)
-                         if(language==3):
-                             play_story(hint_26_c_ar)
-                     if flag=="hint_26_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_26_z_ru)
-                         if(language==2):
-                             play_story(hint_26_z_en)
-                         if(language==3):
-                             play_story(hint_26_z_ar)
-                     if flag=="hint_32_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_32_b_ru)
-                         if(language==2):
-                             play_story(hint_32_b_en)
-                         if(language==3):
-                             play_story(hint_32_b_ar)
-                     if flag=="hint_32_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_32_c_ru)
-                         if(language==2):
-                             play_story(hint_32_c_en)
-                         if(language==3):
-                             play_story(hint_32_c_ar)
-                     if flag=="hint_32_d":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_32_d_ru)
-                         if(language==2):
-                             play_story(hint_32_d_en)
-                         if(language==3):
-                             play_story(hint_32_d_ar)
-                     if flag=="hint_32_e":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_32_e_ru)
-                         if(language==2):
-                             play_story(hint_32_e_en)
-                         if(language==3):
-                             play_story(hint_32_e_ar)
-                     if flag=="hint_32_z":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_32_z_ru)
-                         if(language==2):
-                             play_story(hint_32_z_en)
-                         if(language==3):
-                             play_story(hint_32_z_ar)
-                     if flag=="hint_37_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_37_b_ru)
-                         if(language==2):
-                             play_story(hint_37_b_en)
-                         if(language==3):
-                             play_story(hint_37_b_ar)
-                     if flag=="hint_37_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_37_c_ru)
-                         if(language==2):
-                             play_story(hint_37_c_en)
-                         if(language==3):
-                             play_story(hint_37_c_ar)
-                     if flag=="hint_38_b":
-                         hintCount+=1
-                         while channel3.get_busy()==True and go == 1: 
-                             eventlet.sleep(0.1)
+                             # --- Логика ОЧИСТКИ ---
+                             # (Теперь это будет работать, т.к. 'global socklist' объявлен вверху)
+                             socklist = [item for item in socklist if item not in safe_commands_list]
+                             
+                             # --- Логика ДОБАВЛЕНИЯ ---
+                             # Добавляем ТОЛЬКО ОДНУ, самую свежую команду
+                             socklist.append(flag)
+                             socketio.emit('level', flag, to=None)
+                                 
+                             # --- Логика ЭФФЕКТОВ/ДЕЙСТВИЙ (кроме 'safe_end') ---
+                             if flag != 'safe_end':
+                                 # Воспроизводим звук для 'reset' и 'step' ОДИН РАЗ
+                                 play_effect(safe_fix)
+
+                         if flag=="lib_door":
+                              #----играем эффект 
+                              play_effect(lib_door)
+                              ser.write(str.encode('student_hide\n'))
+                              eventlet.sleep(0.1)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_46_ru)  
+                              if(language==2):
+                                  play_story(story_46_en)
+                              if(language==3):
+                                  play_story(story_46_ar)    
+                              send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              # Отправляем команду на Arduino, чтобы начать 5-секундное мерцание
+                              serial_write_queue.put('library_flicker_start')
+                              eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_47_ru)  
+                              if(language==2):
+                                  play_story(story_47_en)
+                              if(language==3):
+                                  play_story(story_47_ar)
+
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+
+                              play_background_music("fon15.mp3", loops=-1)
+                              if(language==1):
+                                  play_story(story_48_ru)  
+                              if(language==2):
+                                  play_story(story_48_en)
+                              if(language==3):
+                                  play_story(story_48_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              play_effect(door_top)
+                              send_esp32_command(ESP32_API_WOLF_URL, "day_on")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "day_on")
+                              send_esp32_command(ESP32_API_SUITCASE_URL, "day_on")
+                              send_esp32_command(ESP32_API_SAFE_URL, "day_on") 
+                              serial_write_queue.put('door_top')
+                              eventlet.sleep(1)
+                              socketio.emit('level', 'open_door_puzzle',to=None)
+                              socklist.append('open_door_puzzle')
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_8")
+                              if(language==1):
+                                  play_story(story_49_ru)  
+                              if(language==2):
+                                  play_story(story_49_en)
+                              if(language==3):
+                                  play_story(story_49_ar)
+                         if flag=="door_basket":
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_9") 
+                              socketio.emit('level', 'cup',to=None)
+                              socklist.append('cup')
+                              #----играем эффект 
+                              play_effect(door_basket)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_50_ru)  
+                              if(language==2):
+                                  play_story(story_50_en)
+                              if(language==3):
+                                  play_story(story_50_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)    
+                              play_effect(lose1)
+                              socketio.emit('level', 'active_spell',to=None)
+                              socklist.append('active_spell')
+                              
+                         if flag == "swipe_r":
+                              play_effect(swipe_r)
+                         if flag == "swipe_l":
+                              play_effect(swipe_l)
+                                  
+                         if flag=="door_spell":
+                              socketio.emit('level', 'spell',to=None)
+                              socklist.append('spell')
+                              #----играем эффект 
+                              play_effect(door_spell) 
+                              socketio.emit('level', 'active_crystals',to=None)
+                              socklist.append('active_crystals')
+                         if flag=="spell_step_1":
+                              socketio.emit('level', 'spell_step_1', to=None) 
+                              socklist.append('spell_step_1')
+                         if flag=="spell_step_2":
+                              socketio.emit('level', 'spell_step_2', to=None) 
+                              socklist.append('spell_step_2')
+                         if flag=="spell_step_3":
+                              socketio.emit('level', 'spell_step_3', to=None) 
+                              socklist.append('spell_step_3')
+                         if flag=="spell_step_4":
+                              socketio.emit('level', 'spell_step_4', to=None) 
+                              socklist.append('spell_step_4')
+                         if flag=="spell_step_5":
+                              socketio.emit('level', 'spell_step_5', to=None) 
+                              socklist.append('spell_step_5')
+                         if flag=="spell_reset":
+                              socketio.emit('level', 'spell_reset', to=None) 
+                              socklist.append('spell_reset')
+                              
+                         if flag=="cristal_up":
+                              #----играем эффект 
+                              play_effect(cristal_up)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_10") 
+                              socketio.emit('level', 'active_open_memory_stash',to=None)
+                              socklist.append('active_open_memory_stash')
+                              socketio.emit('level', 'crystals',to=None)
+                              socklist.append('crystals')  
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              if(language==1):
+                                  play_story(story_51_ru)  
+                              if(language==2):
+                                  play_story(story_51_en)
+                              if(language==3):
+                                  play_story(story_51_ar)
+
+                         if flag=="fire1":
+                              #----играем эффект 
+                              play_effect(fire1)
+                              if fire1Flag == 0 and 'workshop' not in socklist:
+                                  fire1Flag = 1
+                                  if(language==1):
+                                      play_story(story_32_a_ru)  
+                                  if(language==2):
+                                      play_story(story_32_a_en)
+                                  if(language==3):
+                                      play_story(story_32_a_ar)
+                         if flag=="fire2":
+                              #----играем эффект 
+                              play_effect(fire2)
+                              if fire2Flag == 0 and 'workshop' not in socklist:
+                                  fire2Flag = 1
+                                  if(language==1):
+                                      play_story(story_32_b_ru)  
+                                  if(language==2):
+                                      play_story(story_32_b_en)
+                                  if(language==3):
+                                      play_story(story_32_b_ar)
+                         if flag=="fire3":
+                              #----играем эффект 
+                              play_effect(fire3)
+                         if flag=="fire0":
+                              #----играем эффект 
+                              play_effect(fire0)
+                              if fire0Flag == 0 and 'workshop' not in socklist:
+                                  fire0Flag = 1
+                                  if(language==1):
+                                      play_story(story_32_c_ru)  
+                                  if(language==2):
+                                      play_story(story_32_c_en)
+                                  if(language==3):
+                                      play_story(story_32_c_ar)
+                         # Teper' my lovim lyuboye soobshcheniye, nachinayushcheyesya s "item_find"
+                         if flag.startswith("item_find"):
+                              # flag (naprimer, "item_find:crystal") uzhe budet v logakh
+                              # blagodarya "logger.info(f"[SERIAL_IN] {flag}")" vyshe.
+                              
+                              # 1. Vosproizvodim obshchiy zvuk
+                              play_effect(item_find)
+                              
+                              # 2. Otpravlyayem obshchuyu komandu na ESP-kartu (train.ino)
+                              #    (train.ino ostanovit svoyu pul'saciyu pri poluchenii "item_find")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "item_find")
+                         if flag=="item_add":
+                              #----играем эффект 
+                              play_effect(item_add)
+                         if flag=="broom":
+                              #----играем эффект 
+                              play_effect(craft_success)
+                              socketio.emit('level', 'broom', to=None)
+                              socklist.append('broom')
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)    
+                              if(language==1):
+                                  play_story(story_33_ru)  
+                              if(language==2):
+                                  play_story(story_33_en)
+                              if(language==3):
+                                  play_story(story_33_ar)                    
+                         if flag=="helmet":
+                              #----играем эффект 
+                              play_effect(craft_success)
+                              socketio.emit('level', 'helmet', to=None)
+                              socklist.append('helmet')
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)    
+                              if(language==1):
+                                  play_story(story_34_ru)  
+                              if(language==2):
+                                  play_story(story_34_en)
+                              if(language==3):
+                                  play_story(story_34_ar)
+                         if flag=="story_35":
+                              socketio.emit('level', 'workshop',to=None)
+                              socklist.append('workshop') 
+                              send_esp32_command(ESP32_API_TRAIN_URL, "item_end") 
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_6") 
+                              if(language==1):
+                                  play_story(story_35_ru)  
+                              if(language==2):
+                                  play_story(story_35_en)
+                              if(language==3):
+                                  play_story(story_35_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              eventlet.sleep(1.0)
+                              send_esp32_command(ESP32_API_WOLF_URL, "day_off")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "day_off")
+                              send_esp32_command(ESP32_API_SUITCASE_URL, "day_off")
+                              send_esp32_command(ESP32_API_SAFE_URL, "day_off")    
+                              play_background_music("fon10.mp3", loops=-1)
+                              if(language==1):
+                                  play_story(story_36_ru)  
+                              if(language==2):
+                                  play_story(story_36_en)
+                              if(language==3):
+                                  play_story(story_36_ar)
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              serial_write_queue.put('student_open')
+                              eventlet.sleep(1.0)     
+                              if(language==1):
+                                  play_story(story_37_ru)  
+                              if(language==2):
+                                  play_story(story_37_en)
+                              if(language==3):
+                                  play_story(story_37_ar)
+
+                         if flag=="h_clock":
+                              socketio.emit('level', 'first_clock_2',to=None)
+                              socklist.append('first_clock_2') 
+                              #----играем эффект 
+                              play_background_music("fon11.mp3", loops=-1)
+                              play_effect(h_clock)
+                              socketio.emit('level', 'active_second_clock_2',to=None)
+                              socklist.append('active_second_clock_2')  
+                         if flag=="uf_clock":
+                              socketio.emit('level', 'second_clock_2',to=None)
+                              socklist.append('second_clock_2')
+                              #----играем эффект 
+                              play_background_music("fon12.mp3", loops=-1)
+                              play_effect(uf_clock)
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
+                              if(language==1):
+                                  play_story(story_38_ru)  
+                              if(language==2):
+                                  play_story(story_38_en)
+                              if(language==3):
+                                  play_story(story_38_ar)
+                              socketio.emit('level', 'active_ghost',to=None)
+                              socklist.append('active_ghost')         
+                         if flag=="story_39":
+                              #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
+                              if(language==1):
+                                  play_story(story_39_ru)  
+                              if(language==2):
+                                  play_story(story_39_en)
+                              if(language==3):
+                                  play_story(story_39_ar) 
+                         if flag=="story_40":
+                              send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
+                              socketio.emit('level', 'story_40', to=None)
+                              socklist.append('story_40') # Добавляем флаг для UI
+                              if(language==1):
+                                  play_story(story_40_ru)  
+                              if(language==2):
+                                  play_story(story_40_en)
+                              if(language==3):
+                                  play_story(story_40_ar)  
+                         if flag=="story_41":
+                              send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
+                              socketio.emit('level', 'story_41', to=None)
+                              socklist.append('story_41') # Добавляем флаг для UI
+                              if(language==1):
+                                  play_story(story_41_ru)  
+                              if(language==2):
+                                  play_story(story_41_en)
+                              if(language==3):
+                                  play_story(story_41_ar)
+                         if flag=="story_42":
+                              socketio.emit('level', 'story_42', to=None)
+                              socklist.append('story_42') # Добавляем флаг для UI
+                              if(language==1):
+                                  play_story(story_42_ru)  
+                              if(language==2):
+                                  play_story(story_42_en)
+                              if(language==3):
+                                  play_story(story_42_ar)
+                         if flag == "ghost_knock":
+                              play_effect(knock_castle, loops=-1)
+                         if flag=="punch":
+                              channel2.stop()
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_7") 
+                              socketio.emit('level', 'ghost',to=None)
+                              socklist.append('ghost')
+                              socketio.emit('level', 'punch', to=None)
+                              socklist.append('punch') # Добавляем флаг для UI
+                              if(language==1):
+                                  play_story(story_43_ru)  
+                              if(language==2):
+                                  play_story(story_43_en)
+                              if(language==3):
+                                  play_story(story_43_ar) 
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              serial_write_queue.put('open_library')
+                              #send_esp32_command(ESP32_API_TRAIN_URL, #"ghost_game_end")
+                              #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
+                              eventlet.sleep(2.0)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
+                              eventlet.sleep(1.0)
+                              if(language==1):
+                                  play_story(story_44_ru)  
+                              if(language==2):
+                                  play_story(story_44_en)
+                              if(language==3):
+                                  play_story(story_44_ar) 
+
+                         if flag=="star_hint":
+                              channel3.stop()
+                              play_effect(star_hint)
+                              send_esp32_command(ESP32_API_TRAIN_URL, "set_time")
+                              socketio.emit('level', 'set_time', to=None)
+                              socklist.append('set_time')
+                         if flag=="fire":
+                             # Воспроизводим, только если канал эффектов (channel2) свободен.
+                             # Это гарантирует, что звук не запустится, если он еще играет.
+                             if not channel2.get_busy():
+                                 play_effect(fireplace)
+                              
+                         if flag=="mistake_crystal":
+                              #----играем эффект
+                              play_effect(mistake_crystal)
+                              print("mistake_crystal")
+                          #----раставили кристаллы на свои места    
+                         if flag=="start_crystal":
+                              #=----просто звуковой эффект
+                              play_background_music("fon16.mp3", loops=-1)
+                              play_effect(start_crystal)   
+                              #----  правильно убрали кристал
+                         if flag=="true_crystal":
+                              play_effect(true_crystal) 
+                         #----3 уровень     
+                         if flag=="third_level":
+                              #----отпраялем на клиента прогресс бар увеличиваем
+                              socketio.emit('level', 'third_level',to=None)
+                              #---добавляем в историю
+                              socklist.append('third_level')
+                              #-----играем эффект
+                              play_effect(level_up)  
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              #------играем голос    
+                              if(language==1):
+                                  play_story(story_54_ru)  
+                              if(language==2):
+                                  play_story(story_54_en)
+                              if(language==3):
+                                  play_story(story_54_ar)
+                          #-----2 уровень        
+                         if flag=="second_level":
+                              socketio.emit('level', 'second_level',to=None)
+                              socklist.append('second_level')
+                              play_effect(level_up)  
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              #------играем голос    
+                              if(language==1):
+                                  play_story(story_53_ru)  
+                              if(language==2):
+                                  play_story(story_53_en)
+                              if(language==3):
+                                  play_story(story_53_ar)
+                         #----прошли 1 уровень      
+                         if flag=="first_level":
+                              socketio.emit('level', 'first_level',to=None)
+                              socklist.append('first_level')
+                              play_effect(level_up)  
+                              while effects_are_busy() and go == 1: 
+                                  eventlet.sleep(0.1)
+                              #------играем голос    
+                              if(language==1):
+                                  play_story(story_52_ru)  
+                              if(language==2):
+                                  play_story(story_52_en)
+                              if(language==3):
+                                  play_story(story_52_ar)  
                          
-                         if(language==1):
-                             play_story(hint_38_b_ru)
-                         if(language==2):
-                             play_story(hint_38_b_en)
-                         if(language==3):
-                             play_story(hint_38_b_ar)
-                     if flag=="hint_44_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_44_b_ru)
-                         if(language==2):
-                             play_story(hint_44_b_en)
-                         if(language==3):
-                             play_story(hint_44_b_ar)
-                     if flag=="hint_44_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_44_c_ru)
-                         if(language==2):
-                             play_story(hint_44_c_en)
-                         if(language==3):
-                             play_story(hint_44_c_ar)
-                     if flag=="hint_49_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_49_b_ru)
-                         if(language==2):
-                             play_story(hint_49_b_en)
-                         if(language==3):
-                             play_story(hint_49_b_ar)
-                     if flag=="hint_49_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_49_c_ru)
-                         if(language==2):
-                             play_story(hint_49_c_en)
-                         if(language==3):
-                             play_story(hint_49_c_ar)
-                     if flag=="hint_50_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_50_b_ru)
-                         if(language==2):
-                             play_story(hint_50_b_en)
-                         if(language==3):
-                             play_story(hint_50_b_ar)
-                     if flag=="hint_50_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_50_c_ru)
-                         if(language==2):
-                             play_story(hint_50_c_en)
-                         if(language==3):
-                             play_story(hint_50_c_ar)
-                     if flag=="hint_51_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_51_b_ru)
-                         if(language==2):
-                             play_story(hint_51_b_en)
-                         if(language==3):
-                             play_story(hint_51_b_ar)
-                     if flag=="hint_51_c":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_51_c_ru)
-                         if(language==2):
-                             play_story(hint_51_c_en)
-                         if(language==3):
-                             play_story(hint_51_c_ar)
-                     if flag=="hint_56_b":
-                         hintCount+=1
-                         if(language==1):
-                             play_story(hint_56_b_ru)
-                         if(language==2):
-                             play_story(hint_56_b_en)
-                         if(language==3):
-                             play_story(hint_56_b_ar)
-  
+
+                         # "boy_in_lesson" (с урока, level 18) -> Запустить интро
+                         # 1. УРОК (Level 18): Вход
+                         if flag == "boy_in_lesson":
+                              # Если интро уже сыграно (урок идет), и мы вернулись с паузы
+                              if level_18_intro_played:
+                                  # [FIX] Снимаем с паузы
+                                  logger.info("Возобновление урока (снятие с паузы)")
+                                  pygame.mixer.music.unpause()
+                                  if 'stop_players_rest' in socklist:
+                                        socklist.remove('stop_players_rest')
+                                  socketio.emit('level', 'start_players', to=None)
+                              # Если это первый запуск
+                              elif time.time() - last_boy_in_time < 2.0:
+                                  logger.debug("Игнорируем повторный boy_in_lesson (дребезг при установке)")
+                              else:
+                                  level_18_intro_played = True
+                                  # Запоминаем время нового стабильного входа
+                                  last_boy_in_time = time.time()
+                                  play_background_music("fon18.mp3", loops=-1)
+                                  socketio.emit('level', 'start_players', to=None)
+                                  socklist.append('start_players')
+                                  
+                                  if(language==1):
+                                      play_story(story_57_ru)
+                                  if(language==2):
+                                      play_story(story_57_en)
+                                  if(language==3):
+                                      play_story(story_57_ar)
+                                  
+                                  # Ждем завершения истории
+                                  while channel3.get_busy() == True and go == 1:
+                                      eventlet.sleep(0.1)
+                                  
+                                  play_effect(applause)
+                                  
+                                  while channel2.get_busy() == True and go == 1:
+                                      eventlet.sleep(0.1)
+                                      
+                                  if(language==1):
+                                      play_story(story_58_ru)
+                                  if(language==2):
+                                      play_story(story_58_en)
+                                  if(language==3):
+                                      play_story(story_58_ar)
+                                  
+                                  while channel3.get_busy() == True and go == 1:
+                                      eventlet.sleep(0.1)
+                                  
+                                  eventlet.sleep(1.0)
+
+                              # 1. Запускаем урок
+                              serial_write_queue.put('start_lesson')
+                              logger.debug("SENT [Arduino]: start_lesson")
+                              
+                              # Ждем 1.5 секунды, чтобы Main Board успел прожевать команду
+                              eventlet.sleep(1.5) 
+                              
+                              # 2. Запускаем игру (Мяч)
+                              serial_write_queue.put('start_game_basket')
+                              logger.debug("SENT [Arduino]: start_game_basket")
+                              
+                              eventlet.sleep(1.0)
+                              socketio.emit('level', 'active_basket', to=None)
+                              socklist.append('active_basket')
+
+                         # 2. УРОК (Level 18): Выход (Пауза)
+                         if flag == "boy_out_lesson":
+                             # Если с момента входа прошло меньше 3 секунд, игнорируем выход.
+                             if time.time() - last_boy_in_time < 3.0:
+                                 logger.debug("Игнорируем boy_out_lesson (дребезг контактов)")
+                             else:
+                                 level_18_intro_played = False
+                                 pygame.mixer.music.pause()
+                                 try:
+                                     play_effect(lose1)
+                                     # Играем историю 69 (Мальчик ушел)
+                                     if(language==1): play_story(story_69_ru)
+                                     if(language==2): play_story(story_69_en)
+                                     if(language==3): play_story(story_69_ar)
+                                 except Exception as e:
+                                     logger.error(f"Ошибка звука boy_out_lesson: {e}")
+
+                                 
+                                 socketio.emit('level', 'stop_players_rest', to=None)
+                                 socklist.append('stop_players_rest')
+                             
+                         # 3. ИГРА (Level 19): Вход (Возобновление)
+                         if flag == "boy_in_game":
+                              if time.time() - last_boy_in_time < 2.0:
+                                  logger.debug("Игнорируем повторный boy_in_game")
+                              else:
+                                  last_boy_in_time = time.time()
+                                  play_effect(applause)
+                                  pygame.mixer.music.unpause()
+                                  # Играем историю 70 (Мальчик вернулся)
+                                  if(language==1): play_story(story_70_ru)
+                                  if(language==2): play_story(story_70_en)
+                                  if(language==3): play_story(story_70_ar)
+                                  
+                                  # Удаляем флаг проигрыша, чтобы пауза снова работала
+                                  if 'win_bot' in socklist:
+                                       socklist.remove('win_bot')
+                                       
+                                  if 'stop_players_rest' in socklist:
+                                        socklist.remove('stop_players_rest')
+                                  socketio.emit('level', 'start_players', to=None)
+                                  socklist.append('start_players')
+
+                         # 4. ИГРА (Level 19): Выход (Пауза)
+                         if flag == "boy_out_game":
+                              # ПРОВЕРКА: Если только что выиграл бот, НЕ включаем паузу
+                              # Мы проверяем историю событий (socklist) на наличие 'win_bot'
+                              if 'win_bot' in socklist:
+                                   logger.debug("boy_out_game: Игнорируем паузу, так как БОТ ВЫИГРАЛ.")
+                                   # Ничего не делаем, пусть играет story_67
+                                   # Но нужно удалить win_bot из списка, чтобы при СЛЕДУЮЩЕМ снятии пауза сработала?
+                                   # Лучше удалить его при 'boy_in_game' (рестарте уровня).
+                              else:
+                                   # Стандартная логика паузы
+                                   pygame.mixer.music.pause()
+                                   try:
+                                       play_effect(lose1)
+                                       # Играем историю 69 (Мальчик ушел)
+                                       if(language==1): play_story(story_69_ru)
+                                       if(language==2): play_story(story_69_en)
+                                       if(language==3): play_story(story_69_ar)
+                                   except Exception as e:
+                                       logger.error(f"Ошибка звука: {e}")
+
+                                   
+                                   socketio.emit('level', 'stop_players_rest', to=None)
+                                   socklist.append('stop_players_rest')
+
+                         if flag=="story_59":
+                              if(language==1):
+                                  play_story(story_59_ru)  
+                              if(language==2):
+                                  play_story(story_59_en)
+                              if(language==3):
+                                  play_story(story_59_ar)
+                         if flag=="story_55":
+                              if(language==1):
+                                  play_story(story_55_ru)  
+                              if(language==2):
+                                  play_story(story_55_en)
+                              if(language==3):
+                                  play_story(story_55_ar)
+                         if flag=="crime_end":
+                              socketio.emit('level', 'crime',to=None)
+                              socklist.append('crime')
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_12") 
+                              socketio.emit('level', 'active_basket',to=None)
+                              socklist.append('active_basket')
+                              play_background_music("fon17.mp3", loops=-1)
+                              if(language==1):
+                                  play_story(story_56_ru)  
+                              if(language==2):
+                                  play_story(story_56_en)
+                              if(language==3):
+                                  play_story(story_56_ar)
+                         if flag=="lesson_goal":
+                              # 1. Воспроизводим звук аплодисментов (Эффект, Канал 2)
+                              play_effect(applause)
+                              
+                              # 2. Воспроизводим story_61_a (История, Канал 3)
+                              # Эта история будет автоматически прервана, если поступит другая команда play_story()
+                              if(language==1):
+                                  play_story(story_61_a_ru)  
+                              if(language==2):
+                                  play_story(story_61_a_en)
+                              if(language==3):
+                                  play_story(story_61_a_ar)
+                         if flag=="flying_ball":
+                              play_effect(flying_ball)
+                              storyBasketFlag = 1
+                         if flag=="catch1":
+                              play_effect(catch1)
+                              if storyBasketFlag == 1:
+                                  catchCount += 1
+                                  if catchCount == 1:
+                                       if(language==1):
+                                            play_story(story_60_a_ru)  
+                                       if(language==2):
+                                            play_story(story_60_a_en)
+                                       if(language==3):
+                                            play_story(story_60_a_ar)
+                                  if catchCount == 2:
+                                       if(language==1):
+                                            play_story(story_60_b_ru)  
+                                       if(language==2):
+                                            play_story(story_60_b_en)
+                                       if(language==3):
+                                            play_story(story_60_b_ar)
+                                  if catchCount == 3:
+                                       if(language==1):
+                                            play_story(story_60_c_ru)  
+                                       if(language==2):
+                                            play_story(story_60_c_en)
+                                       if(language==3):
+                                            play_story(story_60_c_ar)   
+                                  if catchCount == 4:
+                                       if(language==1):
+                                            play_story(story_60_d_ru)  
+                                       if(language==2):
+                                            play_story(story_60_d_en)
+                                       if(language==3):
+                                            play_story(story_60_d_ar)
+                                  if catchCount == 5:
+                                       if(language==1):
+                                            play_story(story_60_e_ru)  
+                                       if(language==2):
+                                            play_story(story_60_e_en)
+                                       if(language==3):
+                                            play_story(story_60_e_ar)
+                                  if catchCount == 6:
+                                       if(language==1):
+                                            play_story(story_60_f_ru)  
+                                       if(language==2):
+                                            play_story(story_60_f_en)
+                                       if(language==3):
+                                            play_story(story_60_f_ar)
+                                  if catchCount == 7:
+                                       if(language==1):
+                                            play_story(story_60_g_ru)  
+                                       if(language==2):
+                                            play_story(story_60_g_en)
+                                       if(language==3):
+                                            play_story(story_60_g_ar)
+                                  if catchCount == 8:
+                                       if(language==1):
+                                            play_story(story_60_h_ru)  
+                                       if(language==2):
+                                            play_story(story_60_h_en)
+                                       if(language==3):
+                                            play_story(story_60_h_ar)
+                                  if catchCount == 9:
+                                       if(language==1):
+                                            play_story(story_60_i_ru)  
+                                       if(language==2):
+                                            play_story(story_60_i_en)
+                                       if(language==3):
+                                            play_story(story_60_i_ar)
+                                  if catchCount == 10:
+                                       if(language==1):
+                                            play_story(story_60_j_ru)  
+                                       if(language==2):
+                                            play_story(story_60_j_en)
+                                       if(language==3):
+                                            play_story(story_60_j_ar)          
+                                  print(catchCount)
+                         if flag=="catch2":
+                              play_effect(catch2)
+                              if storyBasketFlag == 1:
+                                  catchCount += 1
+                                  if catchCount == 1:
+                                       if(language==1):
+                                            play_story(story_60_a_ru)  
+                                       if(language==2):
+                                            play_story(story_60_a_en)
+                                       if(language==3):
+                                            play_story(story_60_a_ar)
+                                  if catchCount == 2:
+                                       if(language==1):
+                                            play_story(story_60_b_ru)  
+                                       if(language==2):
+                                            play_story(story_60_b_en)
+                                       if(language==3):
+                                            play_story(story_60_b_ar)
+                                  if catchCount == 3:
+                                       if(language==1):
+                                            play_story(story_60_c_ru)  
+                                       if(language==2):
+                                            play_story(story_60_c_en)
+                                       if(language==3):
+                                            play_story(story_60_c_ar)   
+                                  if catchCount == 4:
+                                       if(language==1):
+                                            play_story(story_60_d_ru)  
+                                       if(language==2):
+                                            play_story(story_60_d_en)
+                                       if(language==3):
+                                            play_story(story_60_d_ar)
+                                  if catchCount == 5:
+                                       if(language==1):
+                                            play_story(story_60_e_ru)  
+                                       if(language==2):
+                                            play_story(story_60_e_en)
+                                       if(language==3):
+                                            play_story(story_60_e_ar)
+                                  if catchCount == 6:
+                                       if(language==1):
+                                            play_story(story_60_f_ru)  
+                                       if(language==2):
+                                            play_story(story_60_f_en)
+                                       if(language==3):
+                                            play_story(story_60_f_ar)
+                                  if catchCount == 7:
+                                       if(language==1):
+                                            play_story(story_60_g_ru)  
+                                       if(language==2):
+                                            play_story(story_60_g_en)
+                                       if(language==3):
+                                            play_story(story_60_g_ar)
+                                  if catchCount == 8:
+                                       if(language==1):
+                                            play_story(story_60_h_ru)  
+                                       if(language==2):
+                                            play_story(story_60_h_en)
+                                       if(language==3):
+                                            play_story(story_60_h_ar)
+                                  if catchCount == 9:
+                                       if(language==1):
+                                            play_story(story_60_i_ru)  
+                                       if(language==2):
+                                            play_story(story_60_i_en)
+                                       if(language==3):
+                                            play_story(story_60_i_ar)
+                                  if catchCount == 10:
+                                       if(language==1):
+                                            play_story(story_60_j_ru)  
+                                       if(language==2):
+                                            play_story(story_60_j_en)
+                                       if(language==3):
+                                            play_story(story_60_j_ar)
+                                  print(catchCount) 
+                         if flag=="catch3":
+                              play_effect(catch3)
+                              if storyBasketFlag == 1:
+                                  catchCount += 1
+                                  if catchCount == 1:
+                                       if(language==1):
+                                            play_story(story_60_a_ru)  
+                                       if(language==2):
+                                            play_story(story_60_a_en)
+                                       if(language==3):
+                                            play_story(story_60_a_ar)
+                                  if catchCount == 2:
+                                       if(language==1):
+                                            play_story(story_60_b_ru)  
+                                       if(language==2):
+                                            play_story(story_60_b_en)
+                                       if(language==3):
+                                            play_story(story_60_b_ar)
+                                  if catchCount == 3:
+                                       if(language==1):
+                                            play_story(story_60_c_ru)  
+                                       if(language==2):
+                                            play_story(story_60_c_en)
+                                       if(language==3):
+                                            play_story(story_60_c_ar)   
+                                  if catchCount == 4:
+                                       if(language==1):
+                                            play_story(story_60_d_ru)  
+                                       if(language==2):
+                                            play_story(story_60_d_en)
+                                       if(language==3):
+                                            play_story(story_60_d_ar)
+                                  if catchCount == 5:
+                                       if(language==1):
+                                            play_story(story_60_e_ru)  
+                                       if(language==2):
+                                            play_story(story_60_e_en)
+                                       if(language==3):
+                                            play_story(story_60_e_ar)
+                                  if catchCount == 6:
+                                       if(language==1):
+                                            play_story(story_60_f_ru)  
+                                       if(language==2):
+                                            play_story(story_60_f_en)
+                                       if(language==3):
+                                            play_story(story_60_f_ar)
+                                  if catchCount == 7:
+                                       if(language==1):
+                                            play_story(story_60_g_ru)  
+                                       if(language==2):
+                                            play_story(story_60_g_en)
+                                       if(language==3):
+                                            play_story(story_60_g_ar)
+                                  if catchCount == 8:
+                                       if(language==1):
+                                            play_story(story_60_h_ru)  
+                                       if(language==2):
+                                            play_story(story_60_h_en)
+                                       if(language==3):
+                                            play_story(story_60_h_ar)
+                                  if catchCount == 9:
+                                       if(language==1):
+                                            play_story(story_60_i_ru)  
+                                       if(language==2):
+                                            play_story(story_60_i_en)
+                                       if(language==3):
+                                            play_story(story_60_i_ar)
+                                  if catchCount == 10:
+                                       if(language==1):
+                                            play_story(story_60_j_ru)  
+                                       if(language==2):
+                                            play_story(story_60_j_en)
+                                       if(language==3):
+                                            play_story(story_60_j_ar)
+                                  print(catchCount)
+                         if flag=="catch4":
+                              play_effect(catch4)
+                              if storyBasketFlag == 1:
+                                  catchCount += 1
+                                  if catchCount == 1:
+                                       if(language==1):
+                                            play_story(story_60_a_ru)  
+                                       if(language==2):
+                                            play_story(story_60_a_en)
+                                       if(language==3):
+                                            play_story(story_60_a_ar)
+                                  if catchCount == 2:
+                                       if(language==1):
+                                            play_story(story_60_b_ru)  
+                                       if(language==2):
+                                            play_story(story_60_b_en)
+                                       if(language==3):
+                                            play_story(story_60_b_ar)
+                                  if catchCount == 3:
+                                       if(language==1):
+                                            play_story(story_60_c_ru)  
+                                       if(language==2):
+                                            play_story(story_60_c_en)
+                                       if(language==3):
+                                            play_story(story_60_c_ar)   
+                                  if catchCount == 4:
+                                       if(language==1):
+                                            play_story(story_60_d_ru)  
+                                       if(language==2):
+                                            play_story(story_60_d_en)
+                                       if(language==3):
+                                            play_story(story_60_d_ar)
+                                  if catchCount == 5:
+                                       if(language==1):
+                                            play_story(story_60_e_ru)  
+                                       if(language==2):
+                                            play_story(story_60_e_en)
+                                       if(language==3):
+                                            play_story(story_60_e_ar)
+                                  if catchCount == 6:
+                                       if(language==1):
+                                            play_story(story_60_f_ru)  
+                                       if(language==2):
+                                            play_story(story_60_f_en)
+                                       if(language==3):
+                                            play_story(story_60_f_ar)
+                                  if catchCount == 7:
+                                       if(language==1):
+                                            play_story(story_60_g_ru)  
+                                       if(language==2):
+                                            play_story(story_60_g_en)
+                                       if(language==3):
+                                            play_story(story_60_g_ar)
+                                  if catchCount == 8:
+                                       if(language==1):
+                                            play_story(story_60_h_ru)  
+                                       if(language==2):
+                                            play_story(story_60_h_en)
+                                       if(language==3):
+                                            play_story(story_60_h_ar)
+                                  if catchCount == 9:
+                                       if(language==1):
+                                            play_story(story_60_i_ru)  
+                                       if(language==2):
+                                            play_story(story_60_i_en)
+                                       if(language==3):
+                                            play_story(story_60_i_ar)
+                                  if catchCount == 10:
+                                       if(language==1):
+                                            play_story(story_60_j_ru)  
+                                       if(language==2):
+                                            play_story(story_60_j_en)
+                                       if(language==3):
+                                            play_story(story_60_j_ar) 
+                                  print(catchCount)      
+                         # --- Логика голов игрока с счетчиком ---
+                         if flag=="goal_1_player" or flag=="goal_2_player" or flag=="goal_3_player" or flag=="goal_4_player":
+                              # Добавляем инкрементальные флаги для UI
+                              if flag == "goal_1_player":
+                                  socklist.append('goal_1_player')
+                                  socketio.emit('level', 'goal_1_player',to=None)
+                              if flag == "goal_2_player":
+                                  socklist.append('goal_2_player')
+                                  socketio.emit('level', 'goal_2_player',to=None)
+                              # 1. Воспроизвести случайный звук гола (goal2-goal7)
+                              play_effect(random.choice(player_goal_sounds))
+                              
+                              # 2. Выбрать правильный список историй по языку
+                              current_story_list = []
+                              if language == 1:
+                                  current_story_list = player_goal_stories_ru
+                              elif language == 2:
+                                  current_story_list = player_goal_stories_en
+                              elif language == 3:
+                                  current_story_list = player_goal_stories_ar
+                              
+                              # 3. Воспроизвести историю по счетчику (начиная с b, c, d...)
+                              if goalCount < len(current_story_list):
+                                  play_story(current_story_list[goalCount])
+                              else:
+                                  # Если счетчик превысил кол-во историй, проигрываем последнюю
+                                  play_story(current_story_list[-1]) 
+                              
+                              # 4. Увеличить счетчик для следующего гола
+                              goalCount += 1
+
+                         # Логика голов БОТА с счетчиком ---
+                         if flag=="goal_1_bot" or flag=="goal_2_bot" or flag=="goal_3_bot" or flag=="goal_4_bot":
+                              # Добавляем инкрементальные флаги для UI
+                              if flag == "goal_1_bot":
+                                  socketio.emit('level', 'goal_1_bot',to=None)
+                                  socklist.append('goal_1_bot')
+                              if flag == "goal_2_bot":
+                                  socketio.emit('level', 'goal_2_bot',to=None)
+                                  socklist.append('goal_2_bot')
+                              # 1. Воспроизвести РАНДОМНЫЙ звук
+                              play_effect(random.choice(enemy_goal_sounds))
+
+                              # 2. Выбрать правильный список историй по языку
+                              current_enemy_story_list = []
+                              if language == 1:
+                                  current_enemy_story_list = enemy_goal_stories_ru
+                              elif language == 2:
+                                  current_enemy_story_list = enemy_goal_stories_en
+                              elif language == 3:
+                                  current_enemy_story_list = enemy_goal_stories_ar
+                              
+                              # 3. Воспроизвести историю по счетчику (начиная с a, b, c...)
+                              if enemyGoalCount < len(current_enemy_story_list):
+                                  play_story(current_enemy_story_list[enemyGoalCount])
+                              else:
+                                  # Если счетчик превысил кол-во историй, проигрываем последнюю
+                                  play_story(current_enemy_story_list[-1]) 
+                              
+                              # 4. Увеличить счетчик для следующего гола бота
+                              enemyGoalCount += 1
+
+                         if flag=="start_snitch":
+                              #----играем эффект 
+                              enemyCatchCount += 1
+                              if enemyCatchCount == 1:
+                                  play_effect(enemy_catch1)
+                              if enemyCatchCount == 2:
+                                  play_effect(enemy_catch2)
+                              if enemyCatchCount == 3:
+                                  play_effect(enemy_catch3)
+                              if enemyCatchCount == 4:
+                                  play_effect(enemy_catch4)
+                                  enemyCatchCount = 0   
+                              sintchEnemyCatchCount += 1
+                              if sintchEnemyCatchCount == 1:
+                                   if(language==1):
+                                        play_story(story_62_a_ru)  
+                                   if(language==2):
+                                        play_story(story_62_a_en)
+                                   if(language==3):
+                                        play_story(story_62_a_ar)
+                              if sintchEnemyCatchCount == 2:
+                                   if(language==1):
+                                        play_story(story_62_b_ru)  
+                                   if(language==2):
+                                        play_story(story_62_b_en)
+                                   if(language==3):
+                                        play_story(story_62_b_ar)
+                              if sintchEnemyCatchCount == 3:
+                                   if(language==1):
+                                        play_story(story_62_c_ru)  
+                                   if(language==2):
+                                        play_story(story_62_c_en)
+                                   if(language==3):
+                                        play_story(story_62_c_ar)   
+                              if sintchEnemyCatchCount == 4:
+                                   if(language==1):
+                                        play_story(story_62_d_ru)  
+                                   if(language==2):
+                                        play_story(story_62_d_en)
+                                   if(language==3):
+                                        play_story(story_62_d_ar)
+                              if sintchEnemyCatchCount == 5:
+                                   sintchEnemyCatchCount = 0
+                                   if(language==1):
+                                        play_story(story_62_e_ru)  
+                                   if(language==2):
+                                        play_story(story_62_e_en)
+                                   if(language==3):
+                                        play_story(story_62_e_ar)    
+                              print(enemyCatchCount)                
+
+                         if flag=="red_ball":
+                              #----играем эффект 
+                              enemyCatchCount += 1
+                              if enemyCatchCount == 1:
+                                  play_effect(enemy_catch1)
+                              if enemyCatchCount == 2:
+                                  play_effect(enemy_catch2)
+                              if enemyCatchCount == 3:
+                                  play_effect(enemy_catch3)
+                              if enemyCatchCount == 4:
+                                  play_effect(enemy_catch4)
+                                  enemyCatchCount = 0   
+                              redSintchEnemyCatchCount += 1
+                              if redSintchEnemyCatchCount == 1:
+                                   if(language==1):
+                                        play_story(story_63_a_ru)  
+                                   if(language==2):
+                                        play_story(story_63_a_en)
+                                   if(language==3):
+                                        play_story(story_63_a_ar)
+                              if redSintchEnemyCatchCount == 2:
+                                   if(language==1):
+                                        play_story(story_63_b_ru)  
+                                   if(language==2):
+                                        play_story(story_63_b_en)
+                                   if(language==3):
+                                        play_story(story_63_b_ar)
+                              if redSintchEnemyCatchCount == 3:
+                                   if(language==1):
+                                        play_story(story_63_c_ru)  
+                                   if(language==2):
+                                        play_story(story_63_c_en)
+                                   if(language==3):
+                                        play_story(story_63_c_ar)   
+                              if redSintchEnemyCatchCount == 4:
+                                   if(language==1):
+                                        play_story(story_63_d_ru)  
+                                   if(language==2):
+                                        play_story(story_63_d_en)
+                                   if(language==3):
+                                        play_story(story_63_d_ar)
+                              if redSintchEnemyCatchCount == 5:
+                                   if(language==1):
+                                        play_story(story_63_e_ru)  
+                                   if(language==2):
+                                        play_story(story_63_e_en)
+                                   if(language==3):
+                                        play_story(story_63_e_ar)
+                              if redSintchEnemyCatchCount == 6:
+                                   if(language==1):
+                                        play_story(story_63_f_ru)  
+                                   if(language==2):
+                                        play_story(story_63_f_en)
+                                   if(language==3):
+                                        play_story(story_63_f_ar)
+                              if redSintchEnemyCatchCount == 7:
+                                   if(language==1):
+                                        play_story(story_63_g_ru)  
+                                   if(language==2):
+                                        play_story(story_63_g_en)
+                                   if(language==3):
+                                        play_story(story_63_g_ar)
+                              if redSintchEnemyCatchCount == 8:
+                                   if(language==1):
+                                        play_story(story_63_h_ru)  
+                                   if(language==2):
+                                        play_story(story_63_h_en)
+                                   if(language==3):
+                                        play_story(story_63_h_ar)
+                              if redSintchEnemyCatchCount == 9:
+                                   if(language==1):
+                                        play_story(story_63_i_ru)  
+                                   if(language==2):
+                                        play_story(story_63_i_en)
+                                   if(language==3):
+                                        play_story(story_63_i_ar)
+                              if redSintchEnemyCatchCount == 10:
+                                   redSintchEnemyCatchCount = 0
+                                   if(language==1):
+                                        play_story(story_63_j_ru)  
+                                   if(language==2):
+                                        play_story(story_63_j_en)
+                                   if(language==3):
+                                        play_story(story_63_j_ar)     
+                              print(enemyCatchCount)     
+                         if flag=="enemy_catch1":
+                              play_effect(enemy_catch1)
+                              redClickSintchEnemyCatchCount += 1
+                              if redClickSintchEnemyCatchCount == 1:
+                                   if(language==1):
+                                        play_story(story_64_a_ru)  
+                                   if(language==2):
+                                        play_story(story_64_a_en)
+                                   if(language==3):
+                                        play_story(story_64_a_ar)
+                              if redClickSintchEnemyCatchCount == 2:
+                                   redClickSintchEnemyCatchCount = 0
+                                   if(language==1):
+                                        play_story(story_64_b_ru)  
+                                   if(language==2):
+                                        play_story(story_64_b_en)
+                                   if(language==3):
+                                        play_story(story_64_b_ar)          
+                              print(redClickSintchEnemyCatchCount)
+                         if flag=="enemy_catch2":
+                              play_effect(enemy_catch2)
+                              redClickSintchEnemyCatchCount += 1
+                              if redClickSintchEnemyCatchCount == 1:
+                                   if(language==1):
+                                        play_story(story_64_a_ru)  
+                                   if(language==2):
+                                        play_story(story_64_a_en)
+                                   if(language==3):
+                                        play_story(story_64_a_ar)
+                              if redClickSintchEnemyCatchCount == 2:
+                                   redClickSintchEnemyCatchCount = 0
+                                   if(language==1):
+                                        play_story(story_64_b_ru)  
+                                   if(language==2):
+                                        play_story(story_64_b_en)
+                                   if(language==3):
+                                        play_story(story_64_b_ar)
+                         if flag=="enemy_catch3":
+                              play_effect(enemy_catch3)
+                              redClickSintchEnemyCatchCount += 1
+                              if redClickSintchEnemyCatchCount == 1:
+                                   redClickSintchEnemyCatchCount = 0
+                                   if(language==1):
+                                        play_story(story_64_a_ru)  
+                                   if(language==2):
+                                        play_story(story_64_a_en)
+                                   if(language==3):
+                                        play_story(story_64_a_ar)
+                              if redClickSintchEnemyCatchCount == 2:
+                                   if(language==1):
+                                        play_story(story_64_b_ru)  
+                                   if(language==2):
+                                        play_story(story_64_b_en)
+                                   if(language==3):
+                                        play_story(story_64_b_ar)
+                         if flag=="enemy_catch4":
+                              play_effect(enemy_catch4)
+                              redClickSintchEnemyCatchCount += 1
+                              if redClickSintchEnemyCatchCount == 1:
+                                   if(language==1):
+                                        play_story(story_64_a_ru)  
+                                   if(language==2):
+                                        play_story(story_64_a_en)
+                                   if(language==3):
+                                        play_story(story_64_a_ar)
+                              if redClickSintchEnemyCatchCount == 2:
+                                   redClickSintchEnemyCatchCount =0
+                                   if(language==1):
+                                        play_story(story_64_b_ru)  
+                                   if(language==2):
+                                        play_story(story_64_b_en)
+                                   if(language==3):
+                                        play_story(story_64_b_ar)
+                         if flag=="win":
+                              # Сначала ставим в очередь, потом сразу пытаемся отправить
+                              serial_write_queue.put('basket') 
+                              process_serial_queue() # <-- ПРИНУДИТЕЛЬНАЯ ОТПРАВКА
+                              
+                              play_background_music("fon19.mp3", loops=-1)    
+                              if(language==1): play_story(story_66_ru)  
+                              if(language==2): play_story(story_66_en)
+                              if(language==3): play_story(story_66_ar)
+
+                              # Отправляем команды
+                              socketio.emit('level', 'win_player',to=None)
+                              socklist.append('win_player')
+
+                              send_esp32_command(ESP32_API_WOLF_URL, "firework")
+                              send_esp32_command(ESP32_API_TRAIN_URL, "firework")
+                              send_esp32_command(ESP32_API_SUITCASE_URL, "firework")
+                              send_esp32_command(ESP32_API_SAFE_URL, "firework")
+                              
+                              # Звуки голов
+                              play_effect(random.choice(player_goal_sounds))
+                              
+                              # [FIX] Цикл ожидания с обработкой очереди
+                              start_wait = time.time()
+                              while effects_are_busy() and go == 1:
+                                  process_serial_queue() # <-- ПРОДОЛЖАЕМ ОТПРАВЛЯТЬ
+                                  eventlet.sleep(0.1)
+                                  # Защита от вечного цикла (макс 3 сек на звук)
+                                  if time.time() - start_wait > 3: break 
+                              
+                              play_effect(random.choice(player_goal_sounds))
+                              
+                              start_wait = time.time()
+                              while effects_are_busy() and go == 1: 
+                                  process_serial_queue() # <-- ПРОДОЛЖАЕМ ОТПРАВЛЯТЬ
+                                  eventlet.sleep(0.1)
+                                  if time.time() - start_wait > 3: break
+
+                              play_effect(win)
+                         if flag=="win_robot":
+                              # Если уже победил (есть в списке), ИГНОРИРУЕМ ПОВТОРЫ
+                              if 'win_bot' not in socklist:
+                                  socketio.emit('level', 'win_bot',to=None)
+                                  socklist.append('win_bot')
+                                  
+                                  # --- ПЕРЕНЕСЕНО ВНУТРЬ (чтобы играло 1 раз) ---
+                                  play_effect(enemy_goal1)
+                                  while effects_are_busy() and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  play_background_music("fon17.mp3", loops=-1)    
+                                  if(language==1):
+                                      play_story(story_67_ru)  
+                                  if(language==2):
+                                      play_story(story_67_en)
+                                  if(language==3):
+                                      play_story(story_67_ar)
+                                  # ---------------------------------------------
+                        #-------прошли игру с кристалами
+                         if flag=="memory_room_end":
+                             #----отправили на клиента
+                             send_esp32_command(ESP32_API_TRAIN_URL, "stage_0") 
+                             socketio.emit('level', 'memory_room_end',to=None)
+                             #----добавили в историю
+                             socklist.append('memory_room_end')
+                             #------играем эффект
+                             play_effect(brain_end)
+                             #-----активируем последнюю игру
+                             #socketio.emit('level', 'active_basket',to=None)
+                             #socklist.append('active_basket') 
+                             socketio.emit('level', 'active_crime',to=None)
+                             socklist.append('active_crime') 
+                             
+                                 
+                            
+      ###################################################                    #######################################################
+                         
+     #########################################################################
+                        #------поставили пацана на место
+                         if flag=="last_on":
+                              #----отправили на клиента 
+                              socketio.emit('level', 'last_on',to=None)
+                              #-----добавили в историю
+                              socklist.append('last_on')
+                              #-----отправили рейтинг
+                              socketio.emit('rate', rateTime,to=None)
+                              socketio.emit('hintCount', str(hintCount),to=None)
+                              rating = rating+hintCount
+                              if rating<=75:
+                                   star = 5
+                              elif rating<=99 and rating>75:
+                                   star = 4
+                              elif rating <=123 and rating>99:
+                                   star = 3
+                              elif rating <=150 and rating>123:
+                                   star = 2
+                              elif rating>=180:
+                                   star = 1                    
+                              socketio.emit('rating', str(star),to=None)
+                              #----играем фон       
+                              #----меняем переменную
+                              name = "story_12"  
+                              #----удаляем старт из истории
+                              socklist.remove('start_game')
+                              #----переводим флаги в окончание игры
+                              starts= 2
+                              go = -1
+                              eventlet.sleep(0.5)
+                         if flag=="hint_2_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_2_b_ru)
+                             if(language==2):
+                                 play_story(hint_2_b_en)
+                             if(language==3):
+                                 play_story(hint_2_b_ar)
+                         if flag=="hint_2_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_2_c_ru)
+                             if(language==2):
+                                 play_story(hint_2_c_en)
+                             if(language==3):
+                                 play_story(hint_2_c_ar)
+                         if flag=="hint_2_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_2_z_ru)
+                             if(language==2):
+                                 play_story(hint_2_z_en)
+                             if(language==3):
+                                 play_story(hint_2_z_ar)
+                         if flag=="hint_3_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_3_b_ru)
+                             if(language==2):
+                                 play_story(hint_3_b_en)
+                             if(language==3):
+                                 play_story(hint_3_b_ar)
+                         if flag=="hint_3_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_3_c_ru)
+                             if(language==2):
+                                 play_story(hint_3_c_en)
+                             if(language==3):
+                                 play_story(hint_3_c_ar)
+                         if flag=="hint_3_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_3_z_ru)
+                             if(language==2):
+                                 play_story(hint_3_z_en)
+                             if(language==3):
+                                 play_story(hint_3_z_ar)
+                         if flag=="hint_5_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_5_b_ru)
+                             if(language==2):
+                                 play_story(hint_5_b_en)
+                             if(language==3):
+                                 play_story(hint_5_b_ar)
+                         if flag=="hint_5_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_5_c_ru)
+                             if(language==2):
+                                 play_story(hint_5_c_en)
+                             if(language==3):
+                                 play_story(hint_5_c_ar)
+                         if flag=="hint_11_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_11_b_ru)
+                             if(language==2):
+                                 play_story(hint_11_b_en)
+                             if(language==3):
+                                 play_story(hint_11_b_ar)
+                         if flag=="hint_11_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_11_c_ru)
+                             if(language==2):
+                                 play_story(hint_11_c_en)
+                             if(language==3):
+                                 play_story(hint_11_c_ar)
+                         if flag=="hint_11_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_11_z_ru)
+                             if(language==2):
+                                 play_story(hint_11_z_en)
+                             if(language==3):
+                                 play_story(hint_11_z_ar)
+                         if flag=="hint_6_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_6_b_ru)
+                             if(language==2):
+                                 play_story(hint_6_b_en)
+                             if(language==3):
+                                 play_story(hint_6_b_ar)
+                         if flag=="hint_6_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_6_c_ru)
+                             if(language==2):
+                                 play_story(hint_6_c_en)
+                             if(language==3):
+                                 play_story(hint_6_c_ar)
+                         if flag=="hint_10_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_10_b_ru)
+                             if(language==2):
+                                 play_story(hint_10_b_en)
+                             if(language==3):
+                                 play_story(hint_10_b_ar)
+                         if flag=="hint_10_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_10_c_ru)
+                             if(language==2):
+                                 play_story(hint_10_c_en)
+                             if(language==3):
+                                 play_story(hint_10_c_ar)
+                         if flag=="hint_14_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_14_b_ru)
+                             if(language==2):
+                                 play_story(hint_14_b_en)
+                             if(language==3):
+                                 play_story(hint_14_b_ar)
+                         if flag=="hint_14_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_14_c_ru)
+                             if(language==2):
+                                 play_story(hint_14_c_en)
+                             if(language==3):
+                                 play_story(hint_14_c_ar)
+                         if flag=="hint_14_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_14_z_ru)
+                             if(language==2):
+                                 play_story(hint_14_z_en)
+                             if(language==3):
+                                 play_story(hint_14_z_ar)
+                         if flag=="hint_17_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_17_b_ru)
+                             if(language==2):
+                                 play_story(hint_17_b_en)
+                             if(language==3):
+                                 play_story(hint_17_b_ar)
+                         if flag=="hint_17_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_17_c_ru)
+                             if(language==2):
+                                 play_story(hint_17_c_en)
+                             if(language==3):
+                                 play_story(hint_17_c_ar)
+                         if flag=="hint_17_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_17_z_ru)
+                             if(language==2):
+                                 play_story(hint_17_z_en)
+                             if(language==3):
+                                 play_story(hint_17_z_ar)
+                         if flag=="hint_19_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_19_b_ru)
+                             if(language==2):
+                                 play_story(hint_19_b_en)
+                             if(language==3):
+                                 play_story(hint_19_b_ar)
+                         if flag=="hint_19_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_19_c_ru)
+                             if(language==2):
+                                 play_story(hint_19_c_en)
+                             if(language==3):
+                                 play_story(hint_19_c_ar)
+                         if flag=="hint_19_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_19_z_ru)
+                             if(language==2):
+                                 play_story(hint_19_z_en)
+                             if(language==3):
+                                 play_story(hint_19_z_ar)
+                         if flag=="hint_23_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_23_b_ru)
+                             if(language==2):
+                                 play_story(hint_23_b_en)
+                             if(language==3):
+                                 play_story(hint_23_b_ar)
+                         if flag=="hint_23_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_23_c_ru)
+                             if(language==2):
+                                 play_story(hint_23_c_en)
+                             if(language==3):
+                                 play_story(hint_23_c_ar)
+                         if flag=="hint_23_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_23_z_ru)
+                             if(language==2):
+                                 play_story(hint_23_z_en)
+                             if(language==3):
+                                 play_story(hint_23_z_ar)
+                         if flag=="hint_26_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_26_b_ru)
+                             if(language==2):
+                                 play_story(hint_26_b_en)
+                             if(language==3):
+                                 play_story(hint_26_b_ar)
+                         if flag=="hint_26_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_26_c_ru)
+                             if(language==2):
+                                 play_story(hint_26_c_en)
+                             if(language==3):
+                                 play_story(hint_26_c_ar)
+                         if flag=="hint_26_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_26_z_ru)
+                             if(language==2):
+                                 play_story(hint_26_z_en)
+                             if(language==3):
+                                 play_story(hint_26_z_ar)
+                         if flag=="hint_32_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_32_b_ru)
+                             if(language==2):
+                                 play_story(hint_32_b_en)
+                             if(language==3):
+                                 play_story(hint_32_b_ar)
+                         if flag=="hint_32_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_32_c_ru)
+                             if(language==2):
+                                 play_story(hint_32_c_en)
+                             if(language==3):
+                                 play_story(hint_32_c_ar)
+                         if flag=="hint_32_d":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_32_d_ru)
+                             if(language==2):
+                                 play_story(hint_32_d_en)
+                             if(language==3):
+                                 play_story(hint_32_d_ar)
+                         if flag=="hint_32_e":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_32_e_ru)
+                             if(language==2):
+                                 play_story(hint_32_e_en)
+                             if(language==3):
+                                 play_story(hint_32_e_ar)
+                         if flag=="hint_32_z":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_32_z_ru)
+                             if(language==2):
+                                 play_story(hint_32_z_en)
+                             if(language==3):
+                                 play_story(hint_32_z_ar)
+                         if flag=="hint_37_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_37_b_ru)
+                             if(language==2):
+                                 play_story(hint_37_b_en)
+                             if(language==3):
+                                 play_story(hint_37_b_ar)
+                         if flag=="hint_37_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_37_c_ru)
+                             if(language==2):
+                                 play_story(hint_37_c_en)
+                             if(language==3):
+                                 play_story(hint_37_c_ar)
+                         if flag=="hint_38_b":
+                             hintCount+=1
+                             while channel3.get_busy()==True and go == 1: 
+                                 eventlet.sleep(0.1)
+                             
+                             if(language==1):
+                                 play_story(hint_38_b_ru)
+                             if(language==2):
+                                 play_story(hint_38_b_en)
+                             if(language==3):
+                                 play_story(hint_38_b_ar)
+                         if flag=="hint_44_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_44_b_ru)
+                             if(language==2):
+                                 play_story(hint_44_b_en)
+                             if(language==3):
+                                 play_story(hint_44_b_ar)
+                         if flag=="hint_44_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_44_c_ru)
+                             if(language==2):
+                                 play_story(hint_44_c_en)
+                             if(language==3):
+                                 play_story(hint_44_c_ar)
+                         if flag=="hint_49_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_49_b_ru)
+                             if(language==2):
+                                 play_story(hint_49_b_en)
+                             if(language==3):
+                                 play_story(hint_49_b_ar)
+                         if flag=="hint_49_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_49_c_ru)
+                             if(language==2):
+                                 play_story(hint_49_c_en)
+                             if(language==3):
+                                 play_story(hint_49_c_ar)
+                         if flag=="hint_50_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_50_b_ru)
+                             if(language==2):
+                                 play_story(hint_50_b_en)
+                             if(language==3):
+                                 play_story(hint_50_b_ar)
+                         if flag=="hint_50_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_50_c_ru)
+                             if(language==2):
+                                 play_story(hint_50_c_en)
+                             if(language==3):
+                                 play_story(hint_50_c_ar)
+                         if flag=="hint_51_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_51_b_ru)
+                             if(language==2):
+                                 play_story(hint_51_b_en)
+                             if(language==3):
+                                 play_story(hint_51_b_ar)
+                         if flag=="hint_51_c":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_51_c_ru)
+                             if(language==2):
+                                 play_story(hint_51_c_en)
+                             if(language==3):
+                                 play_story(hint_51_c_ar)
+                         if flag=="hint_56_b":
+                             hintCount+=1
+                             if(language==1):
+                                 play_story(hint_56_b_ru)
+                             if(language==2):
+                                 play_story(hint_56_b_en)
+                             if(language==3):
+                                 play_story(hint_56_b_ar)
+
+              eventlet.sleep(0.1)
+          except Exception as e:
+              logger.error(f"CRASH IN SERIAL LOOP: {e}")
+              eventlet.sleep(1)
    
 #----метод таймера можно не трогать               
 def timer():
@@ -6753,15 +6758,16 @@ LOGIN_PAGE_HTML = """
 
 # Проверка перед каждым запросом: вошел ли админ?
 @app.before_request
-def require_login():
-    # Список страниц, куда можно пускать без пароля (сам вход и статические файлы css/js/картинки)
-    allowed_routes = ['login', 'static']
+def before_request():
+    # Список эндпоинтов, которым НЕ нужен логин
+    allowed_endpoints = ['login', 'static', 'api', 'api_log']
     
-    # Если мы не на странице входа и в сессии нет метки "logged_in" -> перекидываем на вход
-    if request.endpoint not in allowed_routes and 'logged_in' not in session:
-        # Важно: request.endpoint может быть None для некоторых системных запросов
-        if request.endpoint is not None: 
-            return redirect(url_for('login'))
+    # Также проверяем, не начинается ли путь с /api (на случай если эндпоинт не определен)
+    if request.path.startswith('/api'):
+        return None
+
+    if not session.get('logged_in') and request.endpoint not in allowed_endpoints:
+        return redirect(url_for('login'))
 
 # Страница входа
 @app.route('/login', methods=['GET', 'POST'])
