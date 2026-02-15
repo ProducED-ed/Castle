@@ -1,13 +1,6 @@
 Проект: портативная квест-игра "Хроники живого замка".
 АРХИТЕКТУРА.
-Сервер (CastleServer.py): Python (Flask, SocketIO, Eventlet), запущен на
-Raspberry
-Pi. Управляет общей логикой, звуками, таймерами, связью со всеми
-устройствами и является главным хранителем общего состояния игры.
-Центральный контроллер (MAIN_BOARD_V5_COM5.ino): Arduino Mega, подключен к
-серверу по USB Serial. Служит мостом между сервером и контроллерами башен.
-Контроллеры башен: Несколько Arduino, подключенных к MAIN_BOARD_V5_COM5по
-Serial (через порты Serial1, Serial2, Serial3, mySerial).
+Сервер (CastleServer.py): Python (Flask, SocketIO, Eventlet), запущен на Raspberry Pi. Управляет общей логикой, звуками, таймерами, связью со всеми устройствами и является главным хранителем общего состояния игры. Центральный контроллер (MAIN_BOARD_V5_COM5.ino): Arduino Mega, подключен к серверу по USB Serial. Служит мостом между сервером и контроллерами башен. Контроллеры башен: Несколько Arduino, подключенных к MAIN_BOARD_V5_COM5 по Serial (через порты Serial1, Serial2, Serial3, mySerial).
 Внешние устройства (ESP32): wolf.ino, train.ino, chest.ino, safe.ino.
 Подключаются к серверу по Wi-Fi (HTTP POST) через API-обработчик сервера
 @app.route('/api').
