@@ -3213,13 +3213,26 @@ def tmr(res):
                        if 'Check Flags' not in devices: devices.append('Check Flags')
                        break 
                
-               # 2. Проверка галетников
+               # 2. Проверка галетников (ПОЛНАЯ)
+               # Мастерская (SUN)
                if "workshop_galet_on" in socklist:
-                   if "Check Workshop Switch" not in devices: devices.append("Check Workshop Switch")
+                   if "Check SUN Switch" not in devices: devices.append("Check SUN Switch")
+               
+               # Совы (BOAT)
                if "owls_galet_on" in socklist:
-                   if "Check Owls Switch" not in devices: devices.append("Check Owls Switch")
+                   if "Check BOAT Switch" not in devices: devices.append("Check BOAT Switch")
+               
+               # Собака (ROSE)
                if "dog_galet_on" in socklist:
-                   if "Check Dog Switch" not in devices: devices.append("Check Dog Switch")
+                   if "Check ROSE Switch" not in devices: devices.append("Check ROSE Switch")
+               
+               # Баскетбол (WAVE) - ДОБАВЛЕНО
+               if "basket_galet_on" in socklist:
+                   if "Check WAVE Switch" not in devices: devices.append("Check WAVE Switch")
+
+               # Центральный (TREE)
+               if "galet_on" in socklist:
+                   if "Check TREE Switch" not in devices: devices.append("Check TREE Switch")
                    
                # 3. Проверка стартовой двери
                if "open_door" in socklist:
@@ -3742,6 +3755,45 @@ def serial():
                    # --------------------------------------------------------
                    flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
                    flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
+                   
+                   # --- БЛОК ПЕРЕВОДА ГАЛЕТНИКОВ (ARDUINO -> SERVER) ---
+                   if flag == "galet1": # Центральная плата (Tree)
+                       flag = "galet_on" 
+                       # Сохраняем, чтобы работала проверка Main Board
+                       if "galet_on" not in socklist: socklist.append("galet_on")
+
+                   if flag == "galet2": # Мастерская (Sun)
+                       flag = "workshop_galet_on" # Подменяем флаг для дальнейшей логики
+                       if "workshop_galet_on" not in socklist: socklist.append("workshop_galet_on")
+                       socketio.emit('level', 'workshop_galet_on', to=None) # Обновляем UI если надо
+
+                   if flag == "galet3": # Баскетбол (Basket/Moon)
+                       flag = "basket_galet_on"
+                       if "basket_galet_on" not in socklist: socklist.append("basket_galet_on")
+                       # socketio.emit('level', 'basket_galet_on', to=None)
+
+                   if flag == "galet4": # Собака (Rose)
+                       flag = "dog_galet_on"
+                       if "dog_galet_on" not in socklist: socklist.append("dog_galet_on")
+                       socketio.emit('level', 'dog_galet_on', to=None)
+
+                   if flag == "galet5": # Совы (Boat)
+                       flag = "owls_galet_on"
+                       if "owls_galet_on" not in socklist: socklist.append("owls_galet_on")
+                       socketio.emit('level', 'owls_galet_on', to=None)
+
+                   # Обработка выключения (удаляем из истории)
+                   if flag == "galet1_off": 
+                       if 'galet_on' in socklist: socklist.remove('galet_on')
+                   if flag == "galet2_off":
+                       if 'workshop_galet_on' in socklist: socklist.remove('workshop_galet_on')
+                   if flag == "galet3_off":
+                       if 'basket_galet_on' in socklist: socklist.remove('basket_galet_on')
+                   if flag == "galet4_off":
+                       if 'dog_galet_on' in socklist: socklist.remove('dog_galet_on')
+                   if flag == "galet5_off":
+                       if 'owls_galet_on' in socklist: socklist.remove('owls_galet_on')
+                   # ----------------------------------------------------
 
                    if flag in flag_on_commands:
                        base_command = flag.replace('_on', '')
@@ -3886,6 +3938,7 @@ def serial():
                          socklist.append('start_game')
                          socketio.emit('level', 'start_game',to=None) 
                          starts = 1
+                         go = 1
                          send_esp32_command(ESP32_API_WOLF_URL, "start")
                          send_esp32_command(ESP32_API_TRAIN_URL, "start")
                          # 1. Отправляем 15 для сброса логики загадок (Hard Reset в train.ino)
@@ -3969,17 +4022,16 @@ def serial():
 
                          # Проверка Галетников (Switches) с учетом текущего флага
                          if "workshop_galet_on" in socklist or flag == "workshop_galet_on":
-                             if "Check Workshop Switch" not in devices: devices.append("Check Workshop Switch")
+                             if "Check SUN Switch" not in devices: devices.append("Check SUN Switch")
                          
                          if "owls_galet_on" in socklist or flag == "owls_galet_on":
-                             if "Check Owls Switch" not in devices: devices.append("Check Owls Switch")
+                             if "Check BOAT Switch" not in devices: devices.append("Check BOAT Switch")
                              
                          if "dog_galet_on" in socklist or flag == "dog_galet_on":
-                             if "Check Dog Switch" not in devices: devices.append("Check Dog Switch")
+                             if "Check ROSE Switch" not in devices: devices.append("Check ROSE Switch")
                          
-                         # СТАРЫЙ ГАЛЕТНИК (с Main Board) - судя по логам, приходит просто 'galet_on'
                          if "galet_on" in socklist or flag == "galet_on":
-                              if "Check Galet Switch" not in devices: devices.append("Check Galet Switch")
+                              if "Check TREE Switch" not in devices: devices.append("Check TREE Switch")
 
                          if flag == "open_door":
                               if 'close_door' in socklist:
@@ -4264,10 +4316,18 @@ def serial():
                               
                          # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
                          galet_signals = {
-                             "galet1": "g1", "galet2": "g2", "galet3": "g3", "galet4": "g4", "galet5": "g5"
+                             "galet_on": "g1",           # Central (Tree)
+                             "workshop_galet_on": "g2",  # Workshop (Sun)
+                             "basket_galet_on": "g3",    # Basket (Moon)
+                             "dog_galet_on": "g4",       # Dog (Rose)
+                             "owls_galet_on": "g5"       # Owls (Boat)
                          }
                          galet_off_signals = {
-                             "galet1_off": "g1", "galet2_off": "g2", "galet3_off": "g3", "galet4_off": "g4", "galet5_off": "g5"
+                             "galet_off": "g1",          # Central Off
+                             "workshop_galet_off": "g2", # Workshop Off
+                             "basket_galet_off": "g3",   # Basket Off
+                             "dog_galet_off": "g4",      # Dog Off
+                             "owls_galet_off": "g5"      # Owls Off
                          }
                       
                          changed = False
@@ -4800,9 +4860,16 @@ def serial():
                          if flag=="cave_click":
                               #----играем эффект 
                               play_effect(cave_click)
+                              socketio.emit('level', 'cave_click', to=None)
+                              if 'cave_click' not in socklist: # (Опционально)
+                                  socklist.append('cave_click')
+                         if flag=="cave_reset":
+                              play_effect(cave_click)
+                              socketio.emit('level', 'cave_reset', to=None)
                          if flag=="door_cave":
                               #----играем эффект 
                               play_effect(door_cave)
+                              socketio.emit('level', 'door_cave', to=None)
                               socketio.emit('level', 'active_troll',to=None)
                               socklist.append('active_troll')
                               socketio.emit('level', 'mine',to=None)
