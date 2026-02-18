@@ -233,6 +233,8 @@ const char* password = "questquest";
 
 // Настройки статического IP
 IPAddress local_IP(192, 168, 4, 202);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 const char* externalApi = "http://192.168.4.1:3000/api";
 
@@ -397,7 +399,7 @@ void HandleLoadingAnimation() {
 
   static int pos = 0;
   pos++;
-  if (pos > 8) pos = 0; // Диапазон 0-8
+  if (pos > 8) pos = 1; // Диапазон 0-8
 
   // Рисуем синюю комету только на карте
   ledMap[pos] = CRGB::Blue; 
@@ -411,6 +413,14 @@ void setup() {
   mySerial.begin(9600, SERIAL_8N1, 16, 17);
   FastLED.addLeds<WS2812B, DATA_PIN1, GRB>(leds1, NUM_LEDS1);
   FastLED.addLeds<WS2812B, 18, GRB>(ledMap, 30);
+
+  // --- ИСПРАВЛЕНИЕ I2C (снижение скорости) ---
+  // 1. Явно запускаем I2C (обычно SDA=21, SCL=22 для ESP32)
+  Wire.begin(); 
+  // 2. Снижаем частоту до 10 кГц (10000) для максимальной надежности
+  // Если будет работать слишком медленно, попробуйте 50000 (50 кГц)
+  Wire.setClock(10000); 
+  // ------------------------------------------
 
   Serial.print("Checking PCF8574 (INPUTS) at 0x20... ");
   Wire.beginTransmission(0x20);
@@ -468,7 +478,7 @@ void setup() {
   myMP3.stop();
 
 
-  if (!WiFi.config(local_IP)) {
+  if (!WiFi.config(local_IP, gateway, subnet)) {
     Serial.println("STA Failed to configure");
   }
   WiFi.begin(ssid, password);
@@ -480,7 +490,7 @@ void setup() {
 
   Serial.println("\nWiFi connected");
   Serial.println("IP address: " + WiFi.localIP().toString());
-  sendLogToServer("ESP32 Train is ready. IP: " + WiFi.localIP().toString());
+  SendData("{\"log\":\"ESP32 Train is ready. IP: " + WiFi.localIP().toString() + "\"}");
 
   server.on("/", HTTP_GET, []() {
     server.send(200, "text/plain", "ESP32 Server is running");
@@ -503,7 +513,7 @@ void setup() {
         SendData("{\"log\":\"Train: Playing Train sound\"}");
         isRestartMode = false;
         currentTrainStage = 0; // Сброс этапа при старте
-        // --- ИЗМЕНЕНИЕ: Явно гасим все светодиоды ---
+        // --- Явно гасим все светодиоды ---
         for (int i = 0; i <= 8; i++) {
           ledMap[i] = CRGB::Black;
         }
@@ -573,7 +583,6 @@ void setup() {
                    mapClicksDisabled = false;
 
                    // Настройка стартовой точки (как в команде start)
-                   // В вашем коде start стоит ActiveLeds[4] = 12.
                    // Если стартовая точка это 12 (желтая), а остальные белые:
                    ActiveLeds[4] = 12; 
                    
