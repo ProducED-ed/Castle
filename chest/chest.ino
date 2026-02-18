@@ -59,6 +59,8 @@ unsigned long timerDoor;
 bool storyFlag;
 int language=1;
 bool afterEffect;
+bool flagTrack = 0; 
+unsigned long trackTimer = 0;
 bool hintFlag = 1;
 bool chestEndConfirmed = false;      // Флаг подтверждения от сервера
 unsigned long chestEndSendTimer = 0; // Таймер для периодической отправки
@@ -134,7 +136,9 @@ const char* password = "questquest";
 //const char* password = "32744965";
 
 // Настройки статического IP
-IPAddress local_IP(192, 168, 4, 203);   
+IPAddress local_IP(192, 168, 4, 203);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 const char* externalApi = "http://192.168.4.1:3000/api";
 
@@ -158,6 +162,44 @@ void sendLogToServer(String payload) {
     http.end();
   }
 }
+
+// --- ДОБАВЛЕНО: Функция для завершения игры (открытие + история) ---
+void finalizeGame() {
+  if (state == 4) return; // Защита от повторного срабатывания
+  
+  state = 4; // Переходим в финальное состояние
+  OpenLock(SHERIF_EM2); // Открываем замок
+  
+  // Воспроизводим историю согласно языку
+  if(language == 1) {
+    myMP3.playMp3Folder(TRACK_STORY_8_RU);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (RU)\"}");
+  }
+  else if(language == 2) {
+    myMP3.playMp3Folder(TRACK_STORY_8_EN);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (EN)\"}");
+  }
+  else if(language == 3) {
+    myMP3.playMp3Folder(TRACK_STORY_8_AR);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (AR)\"}");
+  }
+  else if(language == 4) {
+    myMP3.playMp3Folder(TRACK_STORY_8_GE);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (GE)\"}");
+  }
+  else if(language == 5) {
+    myMP3.playMp3Folder(TRACK_STORY_8_SP);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (SP)\"}");
+  }
+  else if(language == 6) {
+    myMP3.playMp3Folder(TRACK_STORY_8_CH);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (CH)\"}");
+  }
+  
+  trackTimer = millis();
+  flagTrack = 1; 
+}
+// ------------------------------------------------------------------
 
 void setup() {
   delay(2000);
@@ -220,8 +262,8 @@ void setup() {
   myMP3.volume(value);
   myMP3.stop();
 
-  if (!WiFi.config(local_IP)) {
-    Serial.println("STA Failed to configure");
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+  Serial.println("STA Failed to configure");
   }
 
   WiFi.begin(ssid, password);
@@ -364,6 +406,7 @@ void setup() {
             Serial.println("Некорректный уровень громкости");
         }
     }
+    sendLogToServer("{\"log\":\"ESP32 Chest is ready. IP: 192.168.4.203\"}");
 }
 
       if(body == "\"start\""){
@@ -405,7 +448,9 @@ void setup() {
       if(body == "\"skip\""){
         //OpenLock(SHERIF_EM2);
         timerEndLed = millis();
-      timerEndLock = millis();
+        timerEndLock = millis();
+        flagTrack = 0; 
+        trackTimer = millis();
         state = 3;
         myMP3.disableLoop();
         myMP3.stop();
@@ -627,6 +672,14 @@ void loop() {
         }
       }
       randomTwinkleEffect();
+      // --- Страховочный таймаут ---
+      // Если звук конца (TRACK_SUITCASE_END) играет дольше 5 секунд
+      // или сигнал окончания потерялся, принудительно переходим дальше.
+      if (millis() - timerEndLed > 5000) {
+         sendLogToServer("{\"log\":\"Chest: Force finish by timeout\"}");
+         finalizeGame();
+      }
+      // ---------------------------------------
      break;
     case 4:
     //if(myMP3.readState() == 512){
@@ -687,6 +740,8 @@ void SymbolEye() {
           sendLogToServer("{\"log\":\"Chest: Playing Suitcase End sound\"}");
           timerEndLed = millis();
           timerEndLock = millis();
+          flagTrack = 0;
+          trackTimer = millis();
           state = 3; // Переходим в состояние отправки и анимации
           flag = 0;
       }
@@ -983,8 +1038,6 @@ void randomTwinkleEffect() {
   }
 }
 void handlePlayerQueries() {
-  static bool flagTrack;
-  static unsigned long trackTimer;
   if(millis()- trackTimer >= 2000){
     flagTrack = 0;
   }
@@ -1027,36 +1080,11 @@ void handlePlayerQueries() {
         Serial.println("again");
       }
 
-        if (finishedTrack == TRACK_SUITCASE_END && !flagTrack) {
-          state++;
-          OpenLock(SHERIF_EM2);
-          if(language == 1) {
-            myMP3.playMp3Folder(TRACK_STORY_8_RU);
-            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (RU)\"}");
-          }
-          if(language == 2) {
-            myMP3.playMp3Folder(TRACK_STORY_8_EN);
-            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (EN)\"}");
-          }
-          if(language == 3) {
-            myMP3.playMp3Folder(TRACK_STORY_8_AR);
-            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (AR)\"}");
-          }
-          if(language == 4) {
-            myMP3.playMp3Folder(TRACK_STORY_8_GE);
-            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (GE)\"}");
-          }
-          if(language == 5) {
-            myMP3.playMp3Folder(TRACK_STORY_8_SP);
-            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (SP)\"}");
-          }
-          if(language == 6) {
-            myMP3.playMp3Folder(TRACK_STORY_8_CH);
-            sendLogToServer("{\"log\":\"Chest: Playing Story 8 (CH)\"}");
-          }
-          trackTimer = millis();
-          flagTrack = 1;  
-        }
+      // --- Логика финала ---
+      if (finishedTrack == TRACK_SUITCASE_END) {
+          // Вызываем общую функцию финала
+          finalizeGame();
+      }
     }
   }
 }
