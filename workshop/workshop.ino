@@ -797,7 +797,6 @@ void handleUartCommands() {
     } else if (command == "day_off") {
       fireworkActive = false; // Сбрасываем фейерверк
       digitalWrite(LED_FLOOR1_PIN, LOW);
-      digitalWrite(LED_FLOOR2_PIN, LOW);
     } else if (command == "light_on") {
       digitalWrite(ROOF_LIGHT_PIN, HIGH);
     } else if (command == "light_off") {
