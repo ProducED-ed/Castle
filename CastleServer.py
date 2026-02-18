@@ -441,708 +441,707 @@ kay_out = pygame.mixer.Sound('kay_out.wav')
 # Списки для голов и историй ---
 player_goal_sounds = [goal1,goal2, goal3, goal4, goal5, goal6, goal7]
 
-#тут очень много историй и подсказок так что старайся если будешь добавлять файлы сжимать их предусмотрено много языков так что можно добавлять вплоть до китайского в нашей
-# версии на последний момент было 3 языка просто замени названия
-
-story_1_en = pygame.mixer.Sound("story_1_en.wav")
-story_1_ar = pygame.mixer.Sound("story_1_ar.wav")
-story_1_ru = pygame.mixer.Sound("story_1_ru.wav")
-
-story_2_a_en = pygame.mixer.Sound("story_2_a_en.wav")
-story_2_a_ar = pygame.mixer.Sound("story_2_a_ar.wav")
-story_2_a_ru = pygame.mixer.Sound("story_2_a_ru.wav")
-
-story_2_b_en = pygame.mixer.Sound("story_2_b_en.wav")
-story_2_b_ar = pygame.mixer.Sound("story_2_b_ar.wav")
-story_2_b_ru = pygame.mixer.Sound("story_2_b_ru.wav")
-
-story_2_r_en = pygame.mixer.Sound("story_2_r_en.wav")
-story_2_r_ar = pygame.mixer.Sound("story_2_r_ar.wav")
-story_2_r_ru = pygame.mixer.Sound("story_2_r_ru.wav")
-
-story_3_en = pygame.mixer.Sound("story_3_en.wav")
-story_3_ar = pygame.mixer.Sound("story_3_ar.wav")
-story_3_ru = pygame.mixer.Sound("story_3_ru.wav")
-
-story_3_r_en = pygame.mixer.Sound("story_3_r_en.wav")
-story_3_r_ar = pygame.mixer.Sound("story_3_r_ar.wav")
-story_3_r_ru = pygame.mixer.Sound("story_3_r_ru.wav")
-
-story_3_a_en = pygame.mixer.Sound("story_3_a_en.wav")
-story_3_a_ar = pygame.mixer.Sound("story_3_a_ar.wav")
-story_3_a_ru = pygame.mixer.Sound("story_3_a_ru.wav")
-
-story_3_b_en = pygame.mixer.Sound("story_3_b_en.wav")
-story_3_b_ar = pygame.mixer.Sound("story_3_b_ar.wav")
-story_3_b_ru = pygame.mixer.Sound("story_3_b_ru.wav")
-
-story_3_c_en = pygame.mixer.Sound("story_3_c_en.wav")
-story_3_c_ar = pygame.mixer.Sound("story_3_c_ar.wav")
-story_3_c_ru = pygame.mixer.Sound("story_3_c_ru.wav")
-
-story_4_en = pygame.mixer.Sound("story_4_en.wav")
-story_4_ar = pygame.mixer.Sound("story_4_ar.wav")
-story_4_ru = pygame.mixer.Sound("story_4_ru.wav")
-
-story_5_en = pygame.mixer.Sound("story_5_en.wav")
-story_5_ar = pygame.mixer.Sound("story_5_ar.wav")
-story_5_ru = pygame.mixer.Sound("story_5_ru.wav")
-
-story_6_en = pygame.mixer.Sound("story_6_en.wav")
-story_6_ar = pygame.mixer.Sound("story_6_ar.wav")
-story_6_ru = pygame.mixer.Sound("story_6_ru.wav")
-
-story_10_en = pygame.mixer.Sound("story_10_en.wav")
-story_10_ar = pygame.mixer.Sound("story_10_ar.wav")
-story_10_ru = pygame.mixer.Sound("story_10_ru.wav")
-
-story_11_en = pygame.mixer.Sound("story_11_en.wav")
-story_11_ar = pygame.mixer.Sound("story_11_ar.wav")
-story_11_ru = pygame.mixer.Sound("story_11_ru.wav")
-
-story_12_a_en = pygame.mixer.Sound("story_12_a_en.wav")
-story_12_a_ar = pygame.mixer.Sound("story_12_a_ar.wav")
-story_12_a_ru = pygame.mixer.Sound("story_12_a_ru.wav")
-
-story_12_b_en = pygame.mixer.Sound("story_12_b_en.wav")
-story_12_b_ar = pygame.mixer.Sound("story_12_b_ar.wav")
-story_12_b_ru = pygame.mixer.Sound("story_12_b_ru.wav")
-
-story_12_c_en = pygame.mixer.Sound("story_12_c_en.wav")
-story_12_c_ar = pygame.mixer.Sound("story_12_c_ar.wav")
-story_12_c_ru = pygame.mixer.Sound("story_12_c_ru.wav")
-
-story_12_d_en = pygame.mixer.Sound("story_12_d_en.wav")
-story_12_d_ar = pygame.mixer.Sound("story_12_d_ar.wav")
-story_12_d_ru = pygame.mixer.Sound("story_12_d_ru.wav")
-
-story_13_en = pygame.mixer.Sound("story_13_en.wav")
-story_13_ar = pygame.mixer.Sound("story_13_ar.wav")
-story_13_ru = pygame.mixer.Sound("story_13_ru.wav")
-
-story_14_a_en = pygame.mixer.Sound("story_14_a_en.wav")
-story_14_a_ar = pygame.mixer.Sound("story_14_a_ar.wav")
-story_14_a_ru = pygame.mixer.Sound("story_14_a_ru.wav")
-
-story_14_b_en = pygame.mixer.Sound("story_14_b_en.wav")
-story_14_b_ar = pygame.mixer.Sound("story_14_b_ar.wav")
-story_14_b_ru = pygame.mixer.Sound("story_14_b_ru.wav")
-
-story_17_en = pygame.mixer.Sound("story_17_en.wav")
-story_17_ar = pygame.mixer.Sound("story_17_ar.wav")
-story_17_ru = pygame.mixer.Sound("story_17_ru.wav")
-
-story_18_en = pygame.mixer.Sound("story_18_en.wav")
-story_18_ar = pygame.mixer.Sound("story_18_ar.wav")
-story_18_ru = pygame.mixer.Sound("story_18_ru.wav")
-
-story_19_en = pygame.mixer.Sound("story_19_en.wav")
-story_19_ar = pygame.mixer.Sound("story_19_ar.wav")
-story_19_ru = pygame.mixer.Sound("story_19_ru.wav")
-
-story_20_a_en = pygame.mixer.Sound("story_20_a_en.wav")
-story_20_a_ar = pygame.mixer.Sound("story_20_a_ar.wav")
-story_20_a_ru = pygame.mixer.Sound("story_20_a_ru.wav")
-
-story_20_b_en = pygame.mixer.Sound("story_20_b_en.wav")
-story_20_b_ar = pygame.mixer.Sound("story_20_b_ar.wav")
-story_20_b_ru = pygame.mixer.Sound("story_20_b_ru.wav")
-
-story_20_c_en = pygame.mixer.Sound("story_20_c_en.wav")
-story_20_c_ar = pygame.mixer.Sound("story_20_c_ar.wav")
-story_20_c_ru = pygame.mixer.Sound("story_20_c_ru.wav")
-
-story_21_en = pygame.mixer.Sound("story_21_en.wav")
-story_21_ar = pygame.mixer.Sound("story_21_ar.wav")
-story_21_ru = pygame.mixer.Sound("story_21_ru.wav")
-
-story_22_a_en = pygame.mixer.Sound("story_22_a_en.wav")
-story_22_a_ar = pygame.mixer.Sound("story_22_a_ar.wav")
-story_22_a_ru = pygame.mixer.Sound("story_22_a_ru.wav")
-
-story_22_b_en = pygame.mixer.Sound("story_22_b_en.wav")
-story_22_b_ar = pygame.mixer.Sound("story_22_b_ar.wav")
-story_22_b_ru = pygame.mixer.Sound("story_22_b_ru.wav")
-
-story_22_c_en = pygame.mixer.Sound("story_22_c_en.wav")
-story_22_c_ar = pygame.mixer.Sound("story_22_c_ar.wav")
-story_22_c_ru = pygame.mixer.Sound("story_22_c_ru.wav")
-
-story_23_en = pygame.mixer.Sound("story_23_en.wav")
-story_23_ar = pygame.mixer.Sound("story_23_ar.wav")
-story_23_ru = pygame.mixer.Sound("story_23_ru.wav")
-
-story_24_en = pygame.mixer.Sound("story_24_en.wav")
-story_24_ar = pygame.mixer.Sound("story_24_ar.wav")
-story_24_ru = pygame.mixer.Sound("story_24_ru.wav")
-
-story_25_en = pygame.mixer.Sound("story_25_en.wav")
-story_25_ar = pygame.mixer.Sound("story_25_ar.wav")
-story_25_ru = pygame.mixer.Sound("story_25_ru.wav")
-
-story_26_en = pygame.mixer.Sound("story_26_en.wav")
-story_26_ar = pygame.mixer.Sound("story_26_ar.wav")
-story_26_ru = pygame.mixer.Sound("story_26_ru.wav")
-
-story_27_a_en = pygame.mixer.Sound("story_27_a_en.wav")
-story_27_a_ar = pygame.mixer.Sound("story_27_a_ar.wav")
-story_27_a_ru = pygame.mixer.Sound("story_27_a_ru.wav")
-
-story_27_b_en = pygame.mixer.Sound("story_27_b_en.wav")
-story_27_b_ar = pygame.mixer.Sound("story_27_b_ar.wav")
-story_27_b_ru = pygame.mixer.Sound("story_27_b_ru.wav")
-
-story_27_c_en = pygame.mixer.Sound("story_27_c_en.wav")
-story_27_c_ar = pygame.mixer.Sound("story_27_c_ar.wav")
-story_27_c_ru = pygame.mixer.Sound("story_27_c_ru.wav")
-
-story_30_en = pygame.mixer.Sound("story_30_en.wav")
-story_30_ar = pygame.mixer.Sound("story_30_ar.wav")
-story_30_ru = pygame.mixer.Sound("story_30_ru.wav")
-
-story_31_en = pygame.mixer.Sound("story_31_en.wav")
-story_31_ar = pygame.mixer.Sound("story_31_ar.wav")
-story_31_ru = pygame.mixer.Sound("story_31_ru.wav")
-
-story_32_en = pygame.mixer.Sound("story_32_en.wav")
-story_32_ar = pygame.mixer.Sound("story_32_ar.wav")
-story_32_ru = pygame.mixer.Sound("story_32_ru.wav")
-
-story_32_a_en = pygame.mixer.Sound("story_32_a_en.wav")
-story_32_a_ar = pygame.mixer.Sound("story_32_a_ar.wav")
-story_32_a_ru = pygame.mixer.Sound("story_32_a_ru.wav")
-
-story_32_b_en = pygame.mixer.Sound("story_32_b_en.wav")
-story_32_b_ar = pygame.mixer.Sound("story_32_b_ar.wav")
-story_32_b_ru = pygame.mixer.Sound("story_32_b_ru.wav")
-
-story_32_c_en = pygame.mixer.Sound("story_32_c_en.wav")
-story_32_c_ar = pygame.mixer.Sound("story_32_c_ar.wav")
-story_32_c_ru = pygame.mixer.Sound("story_32_c_ru.wav")
-
-story_33_en = pygame.mixer.Sound("story_33_en.wav")
-story_33_ar = pygame.mixer.Sound("story_33_ar.wav")
-story_33_ru = pygame.mixer.Sound("story_33_ru.wav")
-
-story_34_en = pygame.mixer.Sound("story_34_en.wav")
-story_34_ar = pygame.mixer.Sound("story_34_ar.wav")
-story_34_ru = pygame.mixer.Sound("story_34_ru.wav")
-
-story_35_en = pygame.mixer.Sound("story_35_en.wav")
-story_35_ar = pygame.mixer.Sound("story_35_ar.wav")
-story_35_ru = pygame.mixer.Sound("story_35_ru.wav")
-
-story_36_en = pygame.mixer.Sound("story_36_en.wav")
-story_36_ar = pygame.mixer.Sound("story_36_ar.wav")
-story_36_ru = pygame.mixer.Sound("story_36_ru.wav")
-
-story_37_en = pygame.mixer.Sound("story_37_en.wav")
-story_37_ar = pygame.mixer.Sound("story_37_ar.wav")
-story_37_ru = pygame.mixer.Sound("story_37_ru.wav")
-
-story_38_en = pygame.mixer.Sound("story_38_en.wav")
-story_38_ar = pygame.mixer.Sound("story_38_ar.wav")
-story_38_ru = pygame.mixer.Sound("story_38_ru.wav")
-
-story_39_en = pygame.mixer.Sound("story_39_en.wav")
-story_39_ar = pygame.mixer.Sound("story_39_ar.wav")
-story_39_ru = pygame.mixer.Sound("story_39_ru.wav")
-
-story_40_en = pygame.mixer.Sound("story_40_en.wav")
-story_40_ar = pygame.mixer.Sound("story_40_ar.wav")
-story_40_ru = pygame.mixer.Sound("story_40_ru.wav")
-
-story_41_en = pygame.mixer.Sound("story_41_en.wav")
-story_41_ar = pygame.mixer.Sound("story_41_ar.wav")
-story_41_ru = pygame.mixer.Sound("story_41_ru.wav")
-
-story_42_en = pygame.mixer.Sound("story_42_en.wav")
-story_42_ar = pygame.mixer.Sound("story_42_ar.wav")
-story_42_ru = pygame.mixer.Sound("story_42_ru.wav")
-
-story_43_en = pygame.mixer.Sound("story_43_en.wav")
-story_43_ar = pygame.mixer.Sound("story_43_ar.wav")
-story_43_ru = pygame.mixer.Sound("story_43_ru.wav")
-
-story_44_en = pygame.mixer.Sound("story_44_en.wav")
-story_44_ar = pygame.mixer.Sound("story_44_ar.wav")
-story_44_ru = pygame.mixer.Sound("story_44_ru.wav")
-
-#story_45_en = pygame.mixer.Sound("story_45_en.wav")
-#story_45_ar = pygame.mixer.Sound("story_45_ar.wav")
-#story_45_ru = pygame.mixer.Sound("story_45_ru.wav")
+# Истории
+
+story_1_en = "story_1_en.wav"
+story_1_ar = "story_1_ar.wav"
+story_1_ru = "story_1_ru.wav"
+
+story_2_a_en = "story_2_a_en.wav"
+story_2_a_ar = "story_2_a_ar.wav"
+story_2_a_ru = "story_2_a_ru.wav"
+
+story_2_b_en = "story_2_b_en.wav"
+story_2_b_ar = "story_2_b_ar.wav"
+story_2_b_ru = "story_2_b_ru.wav"
+
+story_2_r_en = "story_2_r_en.wav"
+story_2_r_ar = "story_2_r_ar.wav"
+story_2_r_ru = "story_2_r_ru.wav"
+
+story_3_en = "story_3_en.wav"
+story_3_ar = "story_3_ar.wav"
+story_3_ru = "story_3_ru.wav"
+
+story_3_r_en = "story_3_r_en.wav"
+story_3_r_ar = "story_3_r_ar.wav"
+story_3_r_ru = "story_3_r_ru.wav"
+
+story_3_a_en = "story_3_a_en.wav"
+story_3_a_ar = "story_3_a_ar.wav"
+story_3_a_ru = "story_3_a_ru.wav"
+
+story_3_b_en = "story_3_b_en.wav"
+story_3_b_ar = "story_3_b_ar.wav"
+story_3_b_ru = "story_3_b_ru.wav"
+
+story_3_c_en = "story_3_c_en.wav"
+story_3_c_ar = "story_3_c_ar.wav"
+story_3_c_ru = "story_3_c_ru.wav"
+
+story_4_en = "story_4_en.wav"
+story_4_ar = "story_4_ar.wav"
+story_4_ru = "story_4_ru.wav"
+
+story_5_en = "story_5_en.wav"
+story_5_ar = "story_5_ar.wav"
+story_5_ru = "story_5_ru.wav"
+
+story_6_en = "story_6_en.wav"
+story_6_ar = "story_6_ar.wav"
+story_6_ru = "story_6_ru.wav"
+
+story_10_en = "story_10_en.wav"
+story_10_ar = "story_10_ar.wav"
+story_10_ru = "story_10_ru.wav"
+
+story_11_en = "story_11_en.wav"
+story_11_ar = "story_11_ar.wav"
+story_11_ru = "story_11_ru.wav"
+
+story_12_a_en = "story_12_a_en.wav"
+story_12_a_ar = "story_12_a_ar.wav"
+story_12_a_ru = "story_12_a_ru.wav"
+
+story_12_b_en = "story_12_b_en.wav"
+story_12_b_ar = "story_12_b_ar.wav"
+story_12_b_ru = "story_12_b_ru.wav"
+
+story_12_c_en = "story_12_c_en.wav"
+story_12_c_ar = "story_12_c_ar.wav"
+story_12_c_ru = "story_12_c_ru.wav"
+
+story_12_d_en = "story_12_d_en.wav"
+story_12_d_ar = "story_12_d_ar.wav"
+story_12_d_ru = "story_12_d_ru.wav"
+
+story_13_en = "story_13_en.wav"
+story_13_ar = "story_13_ar.wav"
+story_13_ru = "story_13_ru.wav"
+
+story_14_a_en = "story_14_a_en.wav"
+story_14_a_ar = "story_14_a_ar.wav"
+story_14_a_ru = "story_14_a_ru.wav"
+
+story_14_b_en = "story_14_b_en.wav"
+story_14_b_ar = "story_14_b_ar.wav"
+story_14_b_ru = "story_14_b_ru.wav"
+
+story_17_en = "story_17_en.wav"
+story_17_ar = "story_17_ar.wav"
+story_17_ru = "story_17_ru.wav"
+
+story_18_en = "story_18_en.wav"
+story_18_ar = "story_18_ar.wav"
+story_18_ru = "story_18_ru.wav"
+
+story_19_en = "story_19_en.wav"
+story_19_ar = "story_19_ar.wav"
+story_19_ru = "story_19_ru.wav"
+
+story_20_a_en = "story_20_a_en.wav"
+story_20_a_ar = "story_20_a_ar.wav"
+story_20_a_ru = "story_20_a_ru.wav"
+
+story_20_b_en = "story_20_b_en.wav"
+story_20_b_ar = "story_20_b_ar.wav"
+story_20_b_ru = "story_20_b_ru.wav"
+
+story_20_c_en = "story_20_c_en.wav"
+story_20_c_ar = "story_20_c_ar.wav"
+story_20_c_ru = "story_20_c_ru.wav"
+
+story_21_en = "story_21_en.wav"
+story_21_ar = "story_21_ar.wav"
+story_21_ru = "story_21_ru.wav"
+
+story_22_a_en = "story_22_a_en.wav"
+story_22_a_ar = "story_22_a_ar.wav"
+story_22_a_ru = "story_22_a_ru.wav"
+
+story_22_b_en = "story_22_b_en.wav"
+story_22_b_ar = "story_22_b_ar.wav"
+story_22_b_ru = "story_22_b_ru.wav"
+
+story_22_c_en = "story_22_c_en.wav"
+story_22_c_ar = "story_22_c_ar.wav"
+story_22_c_ru = "story_22_c_ru.wav"
+
+story_23_en = "story_23_en.wav"
+story_23_ar = "story_23_ar.wav"
+story_23_ru = "story_23_ru.wav"
+
+story_24_en = "story_24_en.wav"
+story_24_ar = "story_24_ar.wav"
+story_24_ru = "story_24_ru.wav"
+
+story_25_en = "story_25_en.wav"
+story_25_ar = "story_25_ar.wav"
+story_25_ru = "story_25_ru.wav"
+
+story_26_en = "story_26_en.wav"
+story_26_ar = "story_26_ar.wav"
+story_26_ru = "story_26_ru.wav"
+
+story_27_a_en = "story_27_a_en.wav"
+story_27_a_ar = "story_27_a_ar.wav"
+story_27_a_ru = "story_27_a_ru.wav"
+
+story_27_b_en = "story_27_b_en.wav"
+story_27_b_ar = "story_27_b_ar.wav"
+story_27_b_ru = "story_27_b_ru.wav"
+
+story_27_c_en = "story_27_c_en.wav"
+story_27_c_ar = "story_27_c_ar.wav"
+story_27_c_ru = "story_27_c_ru.wav"
+
+story_30_en = "story_30_en.wav"
+story_30_ar = "story_30_ar.wav"
+story_30_ru = "story_30_ru.wav"
+
+story_31_en = "story_31_en.wav"
+story_31_ar = "story_31_ar.wav"
+story_31_ru = "story_31_ru.wav"
+
+story_32_en = "story_32_en.wav"
+story_32_ar = "story_32_ar.wav"
+story_32_ru = "story_32_ru.wav"
+
+story_32_a_en = "story_32_a_en.wav"
+story_32_a_ar = "story_32_a_ar.wav"
+story_32_a_ru = "story_32_a_ru.wav"
+
+story_32_b_en = "story_32_b_en.wav"
+story_32_b_ar = "story_32_b_ar.wav"
+story_32_b_ru = "story_32_b_ru.wav"
+
+story_32_c_en = "story_32_c_en.wav"
+story_32_c_ar = "story_32_c_ar.wav"
+story_32_c_ru = "story_32_c_ru.wav"
+
+story_33_en = "story_33_en.wav"
+story_33_ar = "story_33_ar.wav"
+story_33_ru = "story_33_ru.wav"
+
+story_34_en = "story_34_en.wav"
+story_34_ar = "story_34_ar.wav"
+story_34_ru = "story_34_ru.wav"
+
+story_35_en = "story_35_en.wav"
+story_35_ar = "story_35_ar.wav"
+story_35_ru = "story_35_ru.wav"
+
+story_36_en = "story_36_en.wav"
+story_36_ar = "story_36_ar.wav"
+story_36_ru = "story_36_ru.wav"
+
+story_37_en = "story_37_en.wav"
+story_37_ar = "story_37_ar.wav"
+story_37_ru = "story_37_ru.wav"
+
+story_38_en = "story_38_en.wav"
+story_38_ar = "story_38_ar.wav"
+story_38_ru = "story_38_ru.wav"
+
+story_39_en = "story_39_en.wav"
+story_39_ar = "story_39_ar.wav"
+story_39_ru = "story_39_ru.wav"
+
+story_40_en = "story_40_en.wav"
+story_40_ar = "story_40_ar.wav"
+story_40_ru = "story_40_ru.wav"
+
+story_41_en = "story_41_en.wav"
+story_41_ar = "story_41_ar.wav"
+story_41_ru = "story_41_ru.wav"
+
+story_42_en = "story_42_en.wav"
+story_42_ar = "story_42_ar.wav"
+story_42_ru = "story_42_ru.wav"
+
+story_43_en = "story_43_en.wav"
+story_43_ar = "story_43_ar.wav"
+story_43_ru = "story_43_ru.wav"
+
+story_44_en = "story_44_en.wav"
+story_44_ar = "story_44_ar.wav"
+story_44_ru = "story_44_ru.wav"
+
+#story_45_en = "story_45_en.wav"
+#story_45_ar = "story_45_ar.wav"
+#story_45_ru = "story_45_ru.wav"
 
-story_46_en = pygame.mixer.Sound("story_46_en.wav")
-story_46_ar = pygame.mixer.Sound("story_46_ar.wav")
-story_46_ru = pygame.mixer.Sound("story_46_ru.wav")
+story_46_en = "story_46_en.wav"
+story_46_ar = "story_46_ar.wav"
+story_46_ru = "story_46_ru.wav"
 
-story_47_en = pygame.mixer.Sound("story_47_en.wav")
-story_47_ar = pygame.mixer.Sound("story_47_ar.wav")
-story_47_ru = pygame.mixer.Sound("story_47_ru.wav")
+story_47_en = "story_47_en.wav"
+story_47_ar = "story_47_ar.wav"
+story_47_ru = "story_47_ru.wav"
 
-story_48_en = pygame.mixer.Sound("story_48_en.wav")
-story_48_ar = pygame.mixer.Sound("story_48_ar.wav")
-story_48_ru = pygame.mixer.Sound("story_48_ru.wav")
+story_48_en = "story_48_en.wav"
+story_48_ar = "story_48_ar.wav"
+story_48_ru = "story_48_ru.wav"
 
-story_49_en = pygame.mixer.Sound("story_49_en.wav")
-story_49_ar = pygame.mixer.Sound("story_49_ar.wav")
-story_49_ru = pygame.mixer.Sound("story_49_ru.wav")
+story_49_en = "story_49_en.wav"
+story_49_ar = "story_49_ar.wav"
+story_49_ru = "story_49_ru.wav"
 
-story_50_en = pygame.mixer.Sound("story_50_en.wav")
-story_50_ar = pygame.mixer.Sound("story_50_ar.wav")
-story_50_ru = pygame.mixer.Sound("story_50_ru.wav")
+story_50_en = "story_50_en.wav"
+story_50_ar = "story_50_ar.wav"
+story_50_ru = "story_50_ru.wav"
 
-story_51_en = pygame.mixer.Sound("story_51_en.wav")
-story_51_ar = pygame.mixer.Sound("story_51_ar.wav")
-story_51_ru = pygame.mixer.Sound("story_51_ru.wav")
+story_51_en = "story_51_en.wav"
+story_51_ar = "story_51_ar.wav"
+story_51_ru = "story_51_ru.wav"
 
-story_52_en = pygame.mixer.Sound("story_52_en.wav")
-story_52_ar = pygame.mixer.Sound("story_52_ar.wav")
-story_52_ru = pygame.mixer.Sound("story_52_ru.wav")
+story_52_en = "story_52_en.wav"
+story_52_ar = "story_52_ar.wav"
+story_52_ru = "story_52_ru.wav"
 
-story_53_en = pygame.mixer.Sound("story_53_en.wav")
-story_53_ar = pygame.mixer.Sound("story_53_ar.wav")
-story_53_ru = pygame.mixer.Sound("story_53_ru.wav")
+story_53_en = "story_53_en.wav"
+story_53_ar = "story_53_ar.wav"
+story_53_ru = "story_53_ru.wav"
 
-story_54_en = pygame.mixer.Sound("story_54_en.wav")
-story_54_ar = pygame.mixer.Sound("story_54_ar.wav")
-story_54_ru = pygame.mixer.Sound("story_54_ru.wav")
+story_54_en = "story_54_en.wav"
+story_54_ar = "story_54_ar.wav"
+story_54_ru = "story_54_ru.wav"
 
-story_55_en = pygame.mixer.Sound("story_55_en.wav")
-story_55_ar = pygame.mixer.Sound("story_55_ar.wav")
-story_55_ru = pygame.mixer.Sound("story_55_ru.wav")
+story_55_en = "story_55_en.wav"
+story_55_ar = "story_55_ar.wav"
+story_55_ru = "story_55_ru.wav"
 
-story_56_en = pygame.mixer.Sound("story_56_en.wav")
-story_56_ar = pygame.mixer.Sound("story_56_ar.wav")
-story_56_ru = pygame.mixer.Sound("story_56_ru.wav")
+story_56_en = "story_56_en.wav"
+story_56_ar = "story_56_ar.wav"
+story_56_ru = "story_56_ru.wav"
 
-story_57_en = pygame.mixer.Sound("story_57_en.wav")
-story_57_ar = pygame.mixer.Sound("story_57_ar.wav")
-story_57_ru = pygame.mixer.Sound("story_57_ru.wav")
+story_57_en = "story_57_en.wav"
+story_57_ar = "story_57_ar.wav"
+story_57_ru = "story_57_ru.wav"
 
-story_58_en = pygame.mixer.Sound("story_58_en.wav")
-story_58_ar = pygame.mixer.Sound("story_58_ar.wav")
-story_58_ru = pygame.mixer.Sound("story_58_ru.wav")
+story_58_en = "story_58_en.wav"
+story_58_ar = "story_58_ar.wav"
+story_58_ru = "story_58_ru.wav"
 
-story_59_en = pygame.mixer.Sound("story_59_en.wav")
-story_59_ar = pygame.mixer.Sound("story_59_ar.wav")
-story_59_ru = pygame.mixer.Sound("story_59_ru.wav")
+story_59_en = "story_59_en.wav"
+story_59_ar = "story_59_ar.wav"
+story_59_ru = "story_59_ru.wav"
 
-story_60_a_en = pygame.mixer.Sound("story_60_a_en.wav")
-story_60_a_ar = pygame.mixer.Sound("story_60_a_ar.wav")
-story_60_a_ru = pygame.mixer.Sound("story_60_a_ru.wav")
+story_60_a_en = "story_60_a_en.wav"
+story_60_a_ar = "story_60_a_ar.wav"
+story_60_a_ru = "story_60_a_ru.wav"
 
-story_60_b_en = pygame.mixer.Sound("story_60_b_en.wav")
-story_60_b_ar = pygame.mixer.Sound("story_60_b_ar.wav")
-story_60_b_ru = pygame.mixer.Sound("story_60_b_ru.wav")
+story_60_b_en = "story_60_b_en.wav"
+story_60_b_ar = "story_60_b_ar.wav"
+story_60_b_ru = "story_60_b_ru.wav"
 
-story_60_c_en = pygame.mixer.Sound("story_60_c_en.wav")
-story_60_c_ar = pygame.mixer.Sound("story_60_c_ar.wav")
-story_60_c_ru = pygame.mixer.Sound("story_60_c_ru.wav")
+story_60_c_en = "story_60_c_en.wav"
+story_60_c_ar = "story_60_c_ar.wav"
+story_60_c_ru = "story_60_c_ru.wav"
 
-story_60_d_en = pygame.mixer.Sound("story_60_d_en.wav")
-story_60_d_ar = pygame.mixer.Sound("story_60_d_ar.wav")
-story_60_d_ru = pygame.mixer.Sound("story_60_d_ru.wav")
+story_60_d_en = "story_60_d_en.wav"
+story_60_d_ar = "story_60_d_ar.wav"
+story_60_d_ru = "story_60_d_ru.wav"
 
-story_60_e_en = pygame.mixer.Sound("story_60_e_en.wav")
-story_60_e_ar = pygame.mixer.Sound("story_60_e_ar.wav")
-story_60_e_ru = pygame.mixer.Sound("story_60_e_ru.wav")
+story_60_e_en = "story_60_e_en.wav"
+story_60_e_ar = "story_60_e_ar.wav"
+story_60_e_ru = "story_60_e_ru.wav"
 
-story_60_f_en = pygame.mixer.Sound("story_60_f_en.wav")
-story_60_f_ar = pygame.mixer.Sound("story_60_f_ar.wav")
-story_60_f_ru = pygame.mixer.Sound("story_60_f_ru.wav")
+story_60_f_en = "story_60_f_en.wav"
+story_60_f_ar = "story_60_f_ar.wav"
+story_60_f_ru = "story_60_f_ru.wav"
 
-story_60_g_en = pygame.mixer.Sound("story_60_g_en.wav")
-story_60_g_ar = pygame.mixer.Sound("story_60_g_ar.wav")
-story_60_g_ru = pygame.mixer.Sound("story_60_g_ru.wav")
+story_60_g_en = "story_60_g_en.wav"
+story_60_g_ar = "story_60_g_ar.wav"
+story_60_g_ru = "story_60_g_ru.wav"
 
-story_60_h_en = pygame.mixer.Sound("story_60_h_en.wav")
-story_60_h_ar = pygame.mixer.Sound("story_60_h_ar.wav")
-story_60_h_ru = pygame.mixer.Sound("story_60_h_ru.wav")
+story_60_h_en = "story_60_h_en.wav"
+story_60_h_ar = "story_60_h_ar.wav"
+story_60_h_ru = "story_60_h_ru.wav"
 
-story_60_i_en = pygame.mixer.Sound("story_60_i_en.wav")
-story_60_i_ar = pygame.mixer.Sound("story_60_i_ar.wav")
-story_60_i_ru = pygame.mixer.Sound("story_60_i_ru.wav")
+story_60_i_en = "story_60_i_en.wav"
+story_60_i_ar = "story_60_i_ar.wav"
+story_60_i_ru = "story_60_i_ru.wav"
 
-story_60_j_en = pygame.mixer.Sound("story_60_j_en.wav")
-story_60_j_ar = pygame.mixer.Sound("story_60_j_ar.wav")
-story_60_j_ru = pygame.mixer.Sound("story_60_j_ru.wav")
+story_60_j_en = "story_60_j_en.wav"
+story_60_j_ar = "story_60_j_ar.wav"
+story_60_j_ru = "story_60_j_ru.wav"
 
 
-story_61_a_en = pygame.mixer.Sound("story_61_a_en.wav")
-story_61_a_ar = pygame.mixer.Sound("story_61_a_ar.wav")
-story_61_a_ru = pygame.mixer.Sound("story_61_a_ru.wav")
+story_61_a_en = "story_61_a_en.wav"
+story_61_a_ar = "story_61_a_ar.wav"
+story_61_a_ru = "story_61_a_ru.wav"
 
-story_61_b_en = pygame.mixer.Sound("story_61_b_en.wav")
-story_61_b_ar = pygame.mixer.Sound("story_61_b_ar.wav")
-story_61_b_ru = pygame.mixer.Sound("story_61_b_ru.wav")
+story_61_b_en = "story_61_b_en.wav"
+story_61_b_ar = "story_61_b_ar.wav"
+story_61_b_ru = "story_61_b_ru.wav"
 
-story_61_d_en = pygame.mixer.Sound("story_61_d_en.wav")
-story_61_d_ar = pygame.mixer.Sound("story_61_d_ar.wav")
-story_61_d_ru = pygame.mixer.Sound("story_61_d_ru.wav")
+story_61_d_en = "story_61_d_en.wav"
+story_61_d_ar = "story_61_d_ar.wav"
+story_61_d_ru = "story_61_d_ru.wav"
 
-story_61_e_en = pygame.mixer.Sound("story_61_e_en.wav")
-story_61_e_ar = pygame.mixer.Sound("story_61_e_ar.wav")
-story_61_e_ru = pygame.mixer.Sound("story_61_e_ru.wav")
+story_61_e_en = "story_61_e_en.wav"
+story_61_e_ar = "story_61_e_ar.wav"
+story_61_e_ru = "story_61_e_ru.wav"
 
-story_61_f_en = pygame.mixer.Sound("story_61_f_en.wav")
-story_61_f_ar = pygame.mixer.Sound("story_61_f_ar.wav")
-story_61_f_ru = pygame.mixer.Sound("story_61_f_ru.wav")
+story_61_f_en = "story_61_f_en.wav"
+story_61_f_ar = "story_61_f_ar.wav"
+story_61_f_ru = "story_61_f_ru.wav"
 
-story_61_g_en = pygame.mixer.Sound("story_61_g_en.wav")
-story_61_g_ar = pygame.mixer.Sound("story_61_g_ar.wav")
-story_61_g_ru = pygame.mixer.Sound("story_61_g_ru.wav")
+story_61_g_en = "story_61_g_en.wav"
+story_61_g_ar = "story_61_g_ar.wav"
+story_61_g_ru = "story_61_g_ru.wav"
 
-story_61_h_en = pygame.mixer.Sound("story_61_h_en.wav")
-story_61_h_ar = pygame.mixer.Sound("story_61_h_ar.wav")
-story_61_h_ru = pygame.mixer.Sound("story_61_h_ru.wav")
+story_61_h_en = "story_61_h_en.wav"
+story_61_h_ar = "story_61_h_ar.wav"
+story_61_h_ru = "story_61_h_ru.wav"
 
-story_61_i_en = pygame.mixer.Sound("story_61_i_en.wav")
-story_61_i_ar = pygame.mixer.Sound("story_61_i_ar.wav")
-story_61_i_ru = pygame.mixer.Sound("story_61_i_ru.wav")
+story_61_i_en = "story_61_i_en.wav"
+story_61_i_ar = "story_61_i_ar.wav"
+story_61_i_ru = "story_61_i_ru.wav"
 
-story_61_j_en = pygame.mixer.Sound("story_61_j_en.wav")
-story_61_j_ar = pygame.mixer.Sound("story_61_j_ar.wav")
-story_61_j_ru = pygame.mixer.Sound("story_61_j_ru.wav")
+story_61_j_en = "story_61_j_en.wav"
+story_61_j_ar = "story_61_j_ar.wav"
+story_61_j_ru = "story_61_j_ru.wav"
 
-story_61_c_en = pygame.mixer.Sound("story_61_c_en.wav")
-story_61_c_ar = pygame.mixer.Sound("story_61_c_ar.wav")
-story_61_c_ru = pygame.mixer.Sound("story_61_c_ru.wav")
+story_61_c_en = "story_61_c_en.wav"
+story_61_c_ar = "story_61_c_ar.wav"
+story_61_c_ru = "story_61_c_ru.wav"
 
-story_62_a_en = pygame.mixer.Sound("story_62_a_en.wav")
-story_62_a_ar = pygame.mixer.Sound("story_62_a_ar.wav")
-story_62_a_ru = pygame.mixer.Sound("story_62_a_ru.wav")
+story_62_a_en = "story_62_a_en.wav"
+story_62_a_ar = "story_62_a_ar.wav"
+story_62_a_ru = "story_62_a_ru.wav"
 
-story_62_b_en = pygame.mixer.Sound("story_62_b_en.wav")
-story_62_b_ar = pygame.mixer.Sound("story_62_b_ar.wav")
-story_62_b_ru = pygame.mixer.Sound("story_62_b_ru.wav")
+story_62_b_en = "story_62_b_en.wav"
+story_62_b_ar = "story_62_b_ar.wav"
+story_62_b_ru = "story_62_b_ru.wav"
 
-story_62_c_en = pygame.mixer.Sound("story_62_c_en.wav")
-story_62_c_ar = pygame.mixer.Sound("story_62_c_ar.wav")
-story_62_c_ru = pygame.mixer.Sound("story_62_c_ru.wav")
+story_62_c_en = "story_62_c_en.wav"
+story_62_c_ar = "story_62_c_ar.wav"
+story_62_c_ru = "story_62_c_ru.wav"
 
-story_62_d_en = pygame.mixer.Sound("story_62_d_en.wav")
-story_62_d_ar = pygame.mixer.Sound("story_62_d_ar.wav")
-story_62_d_ru = pygame.mixer.Sound("story_62_d_ru.wav")
+story_62_d_en = "story_62_d_en.wav"
+story_62_d_ar = "story_62_d_ar.wav"
+story_62_d_ru = "story_62_d_ru.wav"
 
-story_62_e_en = pygame.mixer.Sound("story_62_e_en.wav")
-story_62_e_ar = pygame.mixer.Sound("story_62_e_ar.wav")
-story_62_e_ru = pygame.mixer.Sound("story_62_e_ru.wav")
+story_62_e_en = "story_62_e_en.wav"
+story_62_e_ar = "story_62_e_ar.wav"
+story_62_e_ru = "story_62_e_ru.wav"
 
-story_63_a_en = pygame.mixer.Sound("story_63_a_en.wav")
-story_63_a_ar = pygame.mixer.Sound("story_63_a_ar.wav")
-story_63_a_ru = pygame.mixer.Sound("story_63_a_ru.wav")
+story_63_a_en = "story_63_a_en.wav"
+story_63_a_ar = "story_63_a_ar.wav"
+story_63_a_ru = "story_63_a_ru.wav"
 
-story_63_b_en = pygame.mixer.Sound("story_63_b_en.wav")
-story_63_b_ar = pygame.mixer.Sound("story_63_b_ar.wav")
-story_63_b_ru = pygame.mixer.Sound("story_63_b_ru.wav")
+story_63_b_en = "story_63_b_en.wav"
+story_63_b_ar = "story_63_b_ar.wav"
+story_63_b_ru = "story_63_b_ru.wav"
 
-story_63_c_en = pygame.mixer.Sound("story_63_c_en.wav")
-story_63_c_ar = pygame.mixer.Sound("story_63_c_ar.wav")
-story_63_c_ru = pygame.mixer.Sound("story_63_c_ru.wav")
+story_63_c_en = "story_63_c_en.wav"
+story_63_c_ar = "story_63_c_ar.wav"
+story_63_c_ru = "story_63_c_ru.wav"
 
-story_63_d_en = pygame.mixer.Sound("story_63_d_en.wav")
-story_63_d_ar = pygame.mixer.Sound("story_63_d_ar.wav")
-story_63_d_ru = pygame.mixer.Sound("story_63_d_ru.wav")
+story_63_d_en = "story_63_d_en.wav"
+story_63_d_ar = "story_63_d_ar.wav"
+story_63_d_ru = "story_63_d_ru.wav"
 
-story_63_e_en = pygame.mixer.Sound("story_63_e_en.wav")
-story_63_e_ar = pygame.mixer.Sound("story_63_e_ar.wav")
-story_63_e_ru = pygame.mixer.Sound("story_63_e_ru.wav")
+story_63_e_en = "story_63_e_en.wav"
+story_63_e_ar = "story_63_e_ar.wav"
+story_63_e_ru = "story_63_e_ru.wav"
 
-story_63_f_en = pygame.mixer.Sound("story_63_f_en.wav")
-story_63_f_ar = pygame.mixer.Sound("story_63_f_ar.wav")
-story_63_f_ru = pygame.mixer.Sound("story_63_f_ru.wav")
+story_63_f_en = "story_63_f_en.wav"
+story_63_f_ar = "story_63_f_ar.wav"
+story_63_f_ru = "story_63_f_ru.wav"
 
-story_63_g_en = pygame.mixer.Sound("story_63_g_en.wav")
-story_63_g_ar = pygame.mixer.Sound("story_63_g_ar.wav")
-story_63_g_ru = pygame.mixer.Sound("story_63_g_ru.wav")
+story_63_g_en = "story_63_g_en.wav"
+story_63_g_ar = "story_63_g_ar.wav"
+story_63_g_ru = "story_63_g_ru.wav"
 
-story_63_h_en = pygame.mixer.Sound("story_63_h_en.wav")
-story_63_h_ar = pygame.mixer.Sound("story_63_h_ar.wav")
-story_63_h_ru = pygame.mixer.Sound("story_63_h_ru.wav")
+story_63_h_en = "story_63_h_en.wav"
+story_63_h_ar = "story_63_h_ar.wav"
+story_63_h_ru = "story_63_h_ru.wav"
 
-story_63_i_en = pygame.mixer.Sound("story_63_i_en.wav")
-story_63_i_ar = pygame.mixer.Sound("story_63_i_ar.wav")
-story_63_i_ru = pygame.mixer.Sound("story_63_i_ru.wav")
+story_63_i_en = "story_63_i_en.wav"
+story_63_i_ar = "story_63_i_ar.wav"
+story_63_i_ru = "story_63_i_ru.wav"
 
-story_63_j_en = pygame.mixer.Sound("story_63_j_en.wav")
-story_63_j_ar = pygame.mixer.Sound("story_63_j_ar.wav")
-story_63_j_ru = pygame.mixer.Sound("story_63_j_ru.wav")
+story_63_j_en = "story_63_j_en.wav"
+story_63_j_ar = "story_63_j_ar.wav"
+story_63_j_ru = "story_63_j_ru.wav"
 
-story_64_a_en = pygame.mixer.Sound("story_64_a_en.wav")
-story_64_a_ar = pygame.mixer.Sound("story_64_a_ar.wav")
-story_64_a_ru = pygame.mixer.Sound("story_64_a_ru.wav")
+story_64_a_en = "story_64_a_en.wav"
+story_64_a_ar = "story_64_a_ar.wav"
+story_64_a_ru = "story_64_a_ru.wav"
 
-story_64_b_en = pygame.mixer.Sound("story_64_b_en.wav")
-story_64_b_ar = pygame.mixer.Sound("story_64_b_ar.wav")
-story_64_b_ru = pygame.mixer.Sound("story_64_b_ru.wav")
+story_64_b_en = "story_64_b_en.wav"
+story_64_b_ar = "story_64_b_ar.wav"
+story_64_b_ru = "story_64_b_ru.wav"
 
-story_65_a_en = pygame.mixer.Sound("story_65_a_en.wav")
-story_65_a_ar = pygame.mixer.Sound("story_65_a_ar.wav")
-story_65_a_ru = pygame.mixer.Sound("story_65_a_ru.wav")
+story_65_a_en = "story_65_a_en.wav"
+story_65_a_ar = "story_65_a_ar.wav"
+story_65_a_ru = "story_65_a_ru.wav"
 
-story_65_b_en = pygame.mixer.Sound("story_65_b_en.wav")
-story_65_b_ar = pygame.mixer.Sound("story_65_b_ar.wav")
-story_65_b_ru = pygame.mixer.Sound("story_65_b_ru.wav")
+story_65_b_en = "story_65_b_en.wav"
+story_65_b_ar = "story_65_b_ar.wav"
+story_65_b_ru = "story_65_b_ru.wav"
 
-story_65_c_en = pygame.mixer.Sound("story_65_c_en.wav")
-story_65_c_ar = pygame.mixer.Sound("story_65_c_ar.wav")
-story_65_c_ru = pygame.mixer.Sound("story_65_c_ru.wav")
+story_65_c_en = "story_65_c_en.wav"
+story_65_c_ar = "story_65_c_ar.wav"
+story_65_c_ru = "story_65_c_ru.wav"
 
-story_65_d_en = pygame.mixer.Sound("story_65_d_en.wav")
-story_65_d_ar = pygame.mixer.Sound("story_65_d_ar.wav")
-story_65_d_ru = pygame.mixer.Sound("story_65_d_ru.wav")
+story_65_d_en = "story_65_d_en.wav"
+story_65_d_ar = "story_65_d_ar.wav"
+story_65_d_ru = "story_65_d_ru.wav"
 
-story_65_e_en = pygame.mixer.Sound("story_65_e_en.wav")
-story_65_e_ar = pygame.mixer.Sound("story_65_e_ar.wav")
-story_65_e_ru = pygame.mixer.Sound("story_65_e_ru.wav")
+story_65_e_en = "story_65_e_en.wav"
+story_65_e_ar = "story_65_e_ar.wav"
+story_65_e_ru = "story_65_e_ru.wav"
 
-story_65_f_en = pygame.mixer.Sound("story_65_f_en.wav")
-story_65_f_ar = pygame.mixer.Sound("story_65_f_ar.wav")
-story_65_f_ru = pygame.mixer.Sound("story_65_f_ru.wav")
+story_65_f_en = "story_65_f_en.wav"
+story_65_f_ar = "story_65_f_ar.wav"
+story_65_f_ru = "story_65_f_ru.wav"
 
-story_65_g_en = pygame.mixer.Sound("story_65_g_en.wav")
-story_65_g_ar = pygame.mixer.Sound("story_65_g_ar.wav")
-story_65_g_ru = pygame.mixer.Sound("story_65_g_ru.wav")
+story_65_g_en = "story_65_g_en.wav"
+story_65_g_ar = "story_65_g_ar.wav"
+story_65_g_ru = "story_65_g_ru.wav"
 
-story_65_h_en = pygame.mixer.Sound("story_65_h_en.wav")
-story_65_h_ar = pygame.mixer.Sound("story_65_h_ar.wav")
-story_65_h_ru = pygame.mixer.Sound("story_65_h_ru.wav")
+story_65_h_en = "story_65_h_en.wav"
+story_65_h_ar = "story_65_h_ar.wav"
+story_65_h_ru = "story_65_h_ru.wav"
 
-story_65_i_en = pygame.mixer.Sound("story_65_i_en.wav")
-story_65_i_ar = pygame.mixer.Sound("story_65_i_ar.wav")
-story_65_i_ru = pygame.mixer.Sound("story_65_i_ru.wav")
+story_65_i_en = "story_65_i_en.wav"
+story_65_i_ar = "story_65_i_ar.wav"
+story_65_i_ru = "story_65_i_ru.wav"
 
-story_65_j_en = pygame.mixer.Sound("story_65_j_en.wav")
-story_65_j_ar = pygame.mixer.Sound("story_65_j_ar.wav")
-story_65_j_ru = pygame.mixer.Sound("story_65_j_ru.wav")
+story_65_j_en = "story_65_j_en.wav"
+story_65_j_ar = "story_65_j_ar.wav"
+story_65_j_ru = "story_65_j_ru.wav"
 
-story_66_en = pygame.mixer.Sound("story_66_en.wav")
-story_66_ar = pygame.mixer.Sound("story_66_ar.wav")
-story_66_ru = pygame.mixer.Sound("story_66_ru.wav")
+story_66_en = "story_66_en.wav"
+story_66_ar = "story_66_ar.wav"
+story_66_ru = "story_66_ru.wav"
 
-story_67_en = pygame.mixer.Sound("story_67_en.wav")
-story_67_ar = pygame.mixer.Sound("story_67_ar.wav")
-story_67_ru = pygame.mixer.Sound("story_67_ru.wav")
+story_67_en = "story_67_en.wav"
+story_67_ar = "story_67_ar.wav"
+story_67_ru = "story_67_ru.wav"
 
-story_68_en = pygame.mixer.Sound("story_68_en.wav")
-story_68_ar = pygame.mixer.Sound("story_68_ar.wav")
-story_68_ru = pygame.mixer.Sound("story_68_ru.wav")
+story_68_en = "story_68_en.wav"
+story_68_ar = "story_68_ar.wav"
+story_68_ru = "story_68_ru.wav"
 
-story_69_en = pygame.mixer.Sound("story_69_en.wav")
-story_69_ar = pygame.mixer.Sound("story_69_ar.wav")
-story_69_ru = pygame.mixer.Sound("story_69_ru.wav")
+story_69_en = "story_69_en.wav"
+story_69_ar = "story_69_ar.wav"
+story_69_ru = "story_69_ru.wav"
 
-story_70_en = pygame.mixer.Sound("story_70_en.wav")
-story_70_ar = pygame.mixer.Sound("story_70_ar.wav")
-story_70_ru = pygame.mixer.Sound("story_70_ru.wav")
+story_70_en = "story_70_en.wav"
+story_70_ar = "story_70_ar.wav"
+story_70_ru = "story_70_ru.wav"
 
 #дракон
-hint_2_b_en = pygame.mixer.Sound("hint_2_b_en.wav")
-hint_2_b_ar = pygame.mixer.Sound("hint_2_b_ar.wav")
-hint_2_b_ru = pygame.mixer.Sound("hint_2_b_ru.wav")
+hint_2_b_en = "hint_2_b_en.wav"
+hint_2_b_ar = "hint_2_b_ar.wav"
+hint_2_b_ru = "hint_2_b_ru.wav"
 
-hint_2_c_en = pygame.mixer.Sound("hint_2_c_en.wav")
-hint_2_c_ar = pygame.mixer.Sound("hint_2_c_ar.wav")
-hint_2_c_ru = pygame.mixer.Sound("hint_2_c_ru.wav")
+hint_2_c_en = "hint_2_c_en.wav"
+hint_2_c_ar = "hint_2_c_ar.wav"
+hint_2_c_ru = "hint_2_c_ru.wav"
 
-hint_2_z_en = pygame.mixer.Sound("hint_2_z_en.wav")
-hint_2_z_ar = pygame.mixer.Sound("hint_2_z_ar.wav")
-hint_2_z_ru = pygame.mixer.Sound("hint_2_z_ru.wav")
+hint_2_z_en = "hint_2_z_en.wav"
+hint_2_z_ar = "hint_2_z_ar.wav"
+hint_2_z_ru = "hint_2_z_ru.wav"
 
 #мальчик
-hint_3_b_en = pygame.mixer.Sound("hint_3_b_en.wav")
-hint_3_b_ar = pygame.mixer.Sound("hint_3_b_ar.wav")
-hint_3_b_ru = pygame.mixer.Sound("hint_3_b_ru.wav")
+hint_3_b_en = "hint_3_b_en.wav"
+hint_3_b_ar = "hint_3_b_ar.wav"
+hint_3_b_ru = "hint_3_b_ru.wav"
 
-hint_3_c_en = pygame.mixer.Sound("hint_3_c_en.wav")
-hint_3_c_ar = pygame.mixer.Sound("hint_3_c_ar.wav")
-hint_3_c_ru = pygame.mixer.Sound("hint_3_c_ru.wav")
+hint_3_c_en = "hint_3_c_en.wav"
+hint_3_c_ar = "hint_3_c_ar.wav"
+hint_3_c_ru = "hint_3_c_ru.wav"
 
-hint_3_z_en = pygame.mixer.Sound("hint_3_z_en.wav")
-hint_3_z_ar = pygame.mixer.Sound("hint_3_z_ar.wav")
-hint_3_z_ru = pygame.mixer.Sound("hint_3_z_ru.wav")
+hint_3_z_en = "hint_3_z_en.wav"
+hint_3_z_ar = "hint_3_z_ar.wav"
+hint_3_z_ru = "hint_3_z_ru.wav"
 
 #дракон
-hint_5_b_en = pygame.mixer.Sound("hint_5_b_en.wav")
-hint_5_b_ar = pygame.mixer.Sound("hint_5_b_ar.wav")
-hint_5_b_ru = pygame.mixer.Sound("hint_5_b_ru.wav")
+hint_5_b_en = "hint_5_b_en.wav"
+hint_5_b_ar = "hint_5_b_ar.wav"
+hint_5_b_ru = "hint_5_b_ru.wav"
 
-hint_5_c_en = pygame.mixer.Sound("hint_5_c_en.wav")
-hint_5_c_ar = pygame.mixer.Sound("hint_5_c_ar.wav")
-hint_5_c_ru = pygame.mixer.Sound("hint_5_c_ru.wav")
-
-#макгонагл
-hint_6_b_en = pygame.mixer.Sound("hint_6_b_en.wav")
-hint_6_b_ar = pygame.mixer.Sound("hint_6_b_ar.wav")
-hint_6_b_ru = pygame.mixer.Sound("hint_6_b_ru.wav")
-
-hint_6_c_en = pygame.mixer.Sound("hint_6_c_en.wav")
-hint_6_c_ar = pygame.mixer.Sound("hint_6_c_ar.wav")
-hint_6_c_ru = pygame.mixer.Sound("hint_6_c_ru.wav")
+hint_5_c_en = "hint_5_c_en.wav"
+hint_5_c_ar = "hint_5_c_ar.wav"
+hint_5_c_ru = "hint_5_c_ru.wav"
 
 #макгонагл
-hint_10_b_en = pygame.mixer.Sound("hint_10_b_en.wav")
-hint_10_b_ar = pygame.mixer.Sound("hint_10_b_ar.wav")
-hint_10_b_ru = pygame.mixer.Sound("hint_10_b_ru.wav")
+hint_6_b_en = "hint_6_b_en.wav"
+hint_6_b_ar = "hint_6_b_ar.wav"
+hint_6_b_ru = "hint_6_b_ru.wav"
 
-hint_10_c_en = pygame.mixer.Sound("hint_10_c_en.wav")
-hint_10_c_ar = pygame.mixer.Sound("hint_10_c_ar.wav")
-hint_10_c_ru = pygame.mixer.Sound("hint_10_c_ru.wav")
+hint_6_c_en = "hint_6_c_en.wav"
+hint_6_c_ar = "hint_6_c_ar.wav"
+hint_6_c_ru = "hint_6_c_ru.wav"
 
-hint_11_b_en = pygame.mixer.Sound("hint_11_b_en.wav")
-hint_11_b_ar = pygame.mixer.Sound("hint_11_b_ar.wav")
-hint_11_b_ru = pygame.mixer.Sound("hint_11_b_ru.wav")
+#макгонагл
+hint_10_b_en = "hint_10_b_en.wav"
+hint_10_b_ar = "hint_10_b_ar.wav"
+hint_10_b_ru = "hint_10_b_ru.wav"
 
-hint_11_c_en = pygame.mixer.Sound("hint_11_c_en.wav")
-hint_11_c_ar = pygame.mixer.Sound("hint_11_c_ar.wav")
-hint_11_c_ru = pygame.mixer.Sound("hint_11_c_ru.wav")
+hint_10_c_en = "hint_10_c_en.wav"
+hint_10_c_ar = "hint_10_c_ar.wav"
+hint_10_c_ru = "hint_10_c_ru.wav"
 
-hint_11_z_en = pygame.mixer.Sound("hint_11_z_en.wav")
-hint_11_z_ar = pygame.mixer.Sound("hint_11_z_ar.wav")
-hint_11_z_ru = pygame.mixer.Sound("hint_11_z_ru.wav")
+hint_11_b_en = "hint_11_b_en.wav"
+hint_11_b_ar = "hint_11_b_ar.wav"
+hint_11_b_ru = "hint_11_b_ru.wav"
+
+hint_11_c_en = "hint_11_c_en.wav"
+hint_11_c_ar = "hint_11_c_ar.wav"
+hint_11_c_ru = "hint_11_c_ru.wav"
+
+hint_11_z_en = "hint_11_z_en.wav"
+hint_11_z_ar = "hint_11_z_ar.wav"
+hint_11_z_ru = "hint_11_z_ru.wav"
 
 #гном
-hint_14_b_en = pygame.mixer.Sound("hint_14_b_en.wav")
-hint_14_b_ar = pygame.mixer.Sound("hint_14_b_ar.wav")
-hint_14_b_ru = pygame.mixer.Sound("hint_14_b_ru.wav")
+hint_14_b_en = "hint_14_b_en.wav"
+hint_14_b_ar = "hint_14_b_ar.wav"
+hint_14_b_ru = "hint_14_b_ru.wav"
 
-hint_14_c_en = pygame.mixer.Sound("hint_14_c_en.wav")
-hint_14_c_ar = pygame.mixer.Sound("hint_14_c_ar.wav")
-hint_14_c_ru = pygame.mixer.Sound("hint_14_c_ru.wav")
+hint_14_c_en = "hint_14_c_en.wav"
+hint_14_c_ar = "hint_14_c_ar.wav"
+hint_14_c_ru = "hint_14_c_ru.wav"
 
-hint_14_z_en = pygame.mixer.Sound("hint_14_z_en.wav")
-hint_14_z_ar = pygame.mixer.Sound("hint_14_z_ar.wav")
-hint_14_z_ru = pygame.mixer.Sound("hint_14_z_ru.wav")
+hint_14_z_en = "hint_14_z_en.wav"
+hint_14_z_ar = "hint_14_z_ar.wav"
+hint_14_z_ru = "hint_14_z_ru.wav"
 
 #ведьма
-hint_17_b_en = pygame.mixer.Sound("hint_17_b_en.wav")
-hint_17_b_ar = pygame.mixer.Sound("hint_17_b_ar.wav")
-hint_17_b_ru = pygame.mixer.Sound("hint_17_b_ru.wav")
+hint_17_b_en = "hint_17_b_en.wav"
+hint_17_b_ar = "hint_17_b_ar.wav"
+hint_17_b_ru = "hint_17_b_ru.wav"
 
-hint_17_c_en = pygame.mixer.Sound("hint_17_c_en.wav")
-hint_17_c_ar = pygame.mixer.Sound("hint_17_c_ar.wav")
-hint_17_c_ru = pygame.mixer.Sound("hint_17_c_ru.wav")
+hint_17_c_en = "hint_17_c_en.wav"
+hint_17_c_ar = "hint_17_c_ar.wav"
+hint_17_c_ru = "hint_17_c_ru.wav"
 
-hint_17_z_en = pygame.mixer.Sound("hint_17_z_en.wav")
-hint_17_z_ar = pygame.mixer.Sound("hint_17_z_ar.wav")
-hint_17_z_ru = pygame.mixer.Sound("hint_17_z_ru.wav")
+hint_17_z_en = "hint_17_z_en.wav"
+hint_17_z_ar = "hint_17_z_ar.wav"
+hint_17_z_ru = "hint_17_z_ru.wav"
 
 #рыцарь
-hint_19_b_en = pygame.mixer.Sound("hint_19_b_en.wav")
-hint_19_b_ar = pygame.mixer.Sound("hint_19_b_ar.wav")
-hint_19_b_ru = pygame.mixer.Sound("hint_19_b_ru.wav")
+hint_19_b_en = "hint_19_b_en.wav"
+hint_19_b_ar = "hint_19_b_ar.wav"
+hint_19_b_ru = "hint_19_b_ru.wav"
 
-hint_19_c_en = pygame.mixer.Sound("hint_19_c_en.wav")
-hint_19_c_ar = pygame.mixer.Sound("hint_19_c_ar.wav")
-hint_19_c_ru = pygame.mixer.Sound("hint_19_c_ru.wav")
+hint_19_c_en = "hint_19_c_en.wav"
+hint_19_c_ar = "hint_19_c_ar.wav"
+hint_19_c_ru = "hint_19_c_ru.wav"
 
-hint_19_z_en = pygame.mixer.Sound("hint_19_z_en.wav")
-hint_19_z_ar = pygame.mixer.Sound("hint_19_z_ar.wav")
-hint_19_z_ru = pygame.mixer.Sound("hint_19_z_ru.wav")
+hint_19_z_en = "hint_19_z_en.wav"
+hint_19_z_ar = "hint_19_z_ar.wav"
+hint_19_z_ru = "hint_19_z_ru.wav"
 
 #гоблин
-hint_23_b_en = pygame.mixer.Sound("hint_23_b_en.wav")
-hint_23_b_ar = pygame.mixer.Sound("hint_23_b_ar.wav")
-hint_23_b_ru = pygame.mixer.Sound("hint_23_b_ru.wav")
+hint_23_b_en = "hint_23_b_en.wav"
+hint_23_b_ar = "hint_23_b_ar.wav"
+hint_23_b_ru = "hint_23_b_ru.wav"
 
-hint_23_c_en = pygame.mixer.Sound("hint_23_c_en.wav")
-hint_23_c_ar = pygame.mixer.Sound("hint_23_c_ar.wav")
-hint_23_c_ru = pygame.mixer.Sound("hint_23_c_ru.wav")
+hint_23_c_en = "hint_23_c_en.wav"
+hint_23_c_ar = "hint_23_c_ar.wav"
+hint_23_c_ru = "hint_23_c_ru.wav"
 
-hint_23_z_en = pygame.mixer.Sound("hint_23_z_en.wav")
-hint_23_z_ar = pygame.mixer.Sound("hint_23_z_ar.wav")
-hint_23_z_ru = pygame.mixer.Sound("hint_23_z_ru.wav")
+hint_23_z_en = "hint_23_z_en.wav"
+hint_23_z_ar = "hint_23_z_ar.wav"
+hint_23_z_ru = "hint_23_z_ru.wav"
 
 #троль
-hint_26_b_en = pygame.mixer.Sound("hint_26_b_en.wav")
-hint_26_b_ar = pygame.mixer.Sound("hint_26_b_ar.wav")
-hint_26_b_ru = pygame.mixer.Sound("hint_26_b_ru.wav")
+hint_26_b_en = "hint_26_b_en.wav"
+hint_26_b_ar = "hint_26_b_ar.wav"
+hint_26_b_ru = "hint_26_b_ru.wav"
 
-hint_26_c_en = pygame.mixer.Sound("hint_26_c_en.wav")
-hint_26_c_ar = pygame.mixer.Sound("hint_26_c_ar.wav")
-hint_26_c_ru = pygame.mixer.Sound("hint_26_c_ru.wav")
+hint_26_c_en = "hint_26_c_en.wav"
+hint_26_c_ar = "hint_26_c_ar.wav"
+hint_26_c_ru = "hint_26_c_ru.wav"
 
-hint_26_z_en = pygame.mixer.Sound("hint_26_z_en.wav")
-hint_26_z_ar = pygame.mixer.Sound("hint_26_z_ar.wav")
-hint_26_z_ru = pygame.mixer.Sound("hint_26_z_ru.wav")
+hint_26_z_en = "hint_26_z_en.wav"
+hint_26_z_ar = "hint_26_z_ar.wav"
+hint_26_z_ru = "hint_26_z_ru.wav"
 
 #плотник
-hint_32_b_en = pygame.mixer.Sound("hint_32_b_en.wav")
-hint_32_b_ar = pygame.mixer.Sound("hint_32_b_ar.wav")
-hint_32_b_ru = pygame.mixer.Sound("hint_32_b_ru.wav")
+hint_32_b_en = "hint_32_b_en.wav"
+hint_32_b_ar = "hint_32_b_ar.wav"
+hint_32_b_ru = "hint_32_b_ru.wav"
 
-hint_32_c_en = pygame.mixer.Sound("hint_32_c_en.wav")
-hint_32_c_ar = pygame.mixer.Sound("hint_32_c_ar.wav")
-hint_32_c_ru = pygame.mixer.Sound("hint_32_c_ru.wav")
+hint_32_c_en = "hint_32_c_en.wav"
+hint_32_c_ar = "hint_32_c_ar.wav"
+hint_32_c_ru = "hint_32_c_ru.wav"
 
-hint_32_d_en = pygame.mixer.Sound("hint_32_d_en.wav")
-hint_32_d_ar = pygame.mixer.Sound("hint_32_d_ar.wav")
-hint_32_d_ru = pygame.mixer.Sound("hint_32_d_ru.wav")
+hint_32_d_en = "hint_32_d_en.wav"
+hint_32_d_ar = "hint_32_d_ar.wav"
+hint_32_d_ru = "hint_32_d_ru.wav"
 
-hint_32_e_en = pygame.mixer.Sound("hint_32_e_en.wav")
-hint_32_e_ar = pygame.mixer.Sound("hint_32_e_ar.wav")
-hint_32_e_ru = pygame.mixer.Sound("hint_32_e_ru.wav")
+hint_32_e_en = "hint_32_e_en.wav"
+hint_32_e_ar = "hint_32_e_ar.wav"
+hint_32_e_ru = "hint_32_e_ru.wav"
 
-hint_32_z_en = pygame.mixer.Sound("hint_32_z_en.wav")
-hint_32_z_ar = pygame.mixer.Sound("hint_32_z_ar.wav")
-hint_32_z_ru = pygame.mixer.Sound("hint_32_z_ru.wav")
-
-#студент
-hint_37_b_en = pygame.mixer.Sound("hint_37_b_en.wav")
-hint_37_b_ar = pygame.mixer.Sound("hint_37_b_ar.wav")
-hint_37_b_ru = pygame.mixer.Sound("hint_37_b_ru.wav")
-
-hint_37_c_en = pygame.mixer.Sound("hint_37_c_en.wav")
-hint_37_c_ar = pygame.mixer.Sound("hint_37_c_ar.wav")
-hint_37_c_ru = pygame.mixer.Sound("hint_37_c_ru.wav")
-
-hint_38_b_en = pygame.mixer.Sound("hint_38_b_en.wav")
-hint_38_b_ar = pygame.mixer.Sound("hint_38_b_ar.wav")
-hint_38_b_ru = pygame.mixer.Sound("hint_38_b_ru.wav")
+hint_32_z_en = "hint_32_z_en.wav"
+hint_32_z_ar = "hint_32_z_ar.wav"
+hint_32_z_ru = "hint_32_z_ru.wav"
 
 #студент
-hint_44_b_en = pygame.mixer.Sound("hint_44_b_en.wav")
-hint_44_b_ar = pygame.mixer.Sound("hint_44_b_ar.wav")
-hint_44_b_ru = pygame.mixer.Sound("hint_44_b_ru.wav")
+hint_37_b_en = "hint_37_b_en.wav"
+hint_37_b_ar = "hint_37_b_ar.wav"
+hint_37_b_ru = "hint_37_b_ru.wav"
 
-hint_44_c_en = pygame.mixer.Sound("hint_44_c_en.wav")
-hint_44_c_ar = pygame.mixer.Sound("hint_44_c_ar.wav")
-hint_44_c_ru = pygame.mixer.Sound("hint_44_c_ru.wav")
+hint_37_c_en = "hint_37_c_en.wav"
+hint_37_c_ar = "hint_37_c_ar.wav"
+hint_37_c_ru = "hint_37_c_ru.wav"
+
+hint_38_b_en = "hint_38_b_en.wav"
+hint_38_b_ar = "hint_38_b_ar.wav"
+hint_38_b_ru = "hint_38_b_ru.wav"
+
+#студент
+hint_44_b_en = "hint_44_b_en.wav"
+hint_44_b_ar = "hint_44_b_ar.wav"
+hint_44_b_ru = "hint_44_b_ru.wav"
+
+hint_44_c_en = "hint_44_c_en.wav"
+hint_44_c_ar = "hint_44_c_ar.wav"
+hint_44_c_ru = "hint_44_c_ru.wav"
 
 #пугачева
-hint_49_b_en = pygame.mixer.Sound("hint_49_b_en.wav")
-hint_49_b_ar = pygame.mixer.Sound("hint_49_b_ar.wav")
-hint_49_b_ru = pygame.mixer.Sound("hint_49_b_ru.wav")
+hint_49_b_en = "hint_49_b_en.wav"
+hint_49_b_ar = "hint_49_b_ar.wav"
+hint_49_b_ru = "hint_49_b_ru.wav"
 
-hint_49_c_en = pygame.mixer.Sound("hint_49_c_en.wav")
-hint_49_c_ar = pygame.mixer.Sound("hint_49_c_ar.wav")
-hint_49_c_ru = pygame.mixer.Sound("hint_49_c_ru.wav")
+hint_49_c_en = "hint_49_c_en.wav"
+hint_49_c_ar = "hint_49_c_ar.wav"
+hint_49_c_ru = "hint_49_c_ru.wav"
 
 #пугачева
-hint_50_b_en = pygame.mixer.Sound("hint_50_b_en.wav")
-hint_50_b_ar = pygame.mixer.Sound("hint_50_b_ar.wav")
-hint_50_b_ru = pygame.mixer.Sound("hint_50_b_ru.wav")
+hint_50_b_en = "hint_50_b_en.wav"
+hint_50_b_ar = "hint_50_b_ar.wav"
+hint_50_b_ru = "hint_50_b_ru.wav"
 
-hint_50_c_en = pygame.mixer.Sound("hint_50_c_en.wav")
-hint_50_c_ar = pygame.mixer.Sound("hint_50_c_ar.wav")
-hint_50_c_ru = pygame.mixer.Sound("hint_50_c_ru.wav")
+hint_50_c_en = "hint_50_c_en.wav"
+hint_50_c_ar = "hint_50_c_ar.wav"
+hint_50_c_ru = "hint_50_c_ru.wav"
 
 #пугчева
-hint_51_b_en = pygame.mixer.Sound("hint_51_b_en.wav")
-hint_51_b_ar = pygame.mixer.Sound("hint_51_b_ar.wav")
-hint_51_b_ru = pygame.mixer.Sound("hint_51_b_ru.wav")
+hint_51_b_en = "hint_51_b_en.wav"
+hint_51_b_ar = "hint_51_b_ar.wav"
+hint_51_b_ru = "hint_51_b_ru.wav"
 
-hint_51_c_en = pygame.mixer.Sound("hint_51_c_en.wav")
-hint_51_c_ar = pygame.mixer.Sound("hint_51_c_ar.wav")
-hint_51_c_ru = pygame.mixer.Sound("hint_51_c_ru.wav")
+hint_51_c_en = "hint_51_c_en.wav"
+hint_51_c_ar = "hint_51_c_ar.wav"
+hint_51_c_ru = "hint_51_c_ru.wav"
 
 #снова студент
-hint_56_b_en = pygame.mixer.Sound("hint_56_b_en.wav")
-hint_56_b_ar = pygame.mixer.Sound("hint_56_b_ar.wav")
-hint_56_b_ru = pygame.mixer.Sound("hint_56_b_ru.wav")
+hint_56_b_en = "hint_56_b_en.wav"
+hint_56_b_ar = "hint_56_b_ar.wav"
+hint_56_b_ru = "hint_56_b_ru.wav"
 
-# --- ДОБАВЛЕНО: Карта для логирования имен звуковых файлов ---
+# --- Карта для логирования имен звуковых файлов ---
 # Эта карта сопоставляет объект pygame.mixer.Sound с его именем файла (или переменной)
 # для удобочитаемого лога.
 try:
@@ -1230,516 +1229,6 @@ try:
         kay_in: "kay_in.wav",
         kay_out: "kay_out.wav",
 
-        # Истории
-        story_1_en: "story_1_en.wav",
-        story_1_ar: "story_1_ar.wav",
-        story_1_ru: "story_1_ru.wav",
-        story_2_a_en: "story_2_a_en.wav",
-        story_2_a_ar: "story_2_a_ar.wav",
-        story_2_a_ru: "story_2_a_ru.wav",
-        story_2_b_en: "story_2_b_en.wav",
-        story_2_b_ar: "story_2_b_ar.wav",
-        story_2_b_ru: "story_2_b_ru.wav",
-        story_2_r_en: "story_2_r_en.wav",
-        story_2_r_ar: "story_2_r_ar.wav",
-        story_2_r_ru: "story_2_r_ru.wav",
-        story_3_en: "story_3_en.wav",
-        story_3_ar: "story_3_ar.wav",
-        story_3_ru: "story_3_ru.wav",
-        story_3_r_en: "story_3_r_en.wav",
-        story_3_r_ar: "story_3_r_ar.wav",
-        story_3_r_ru: "story_3_r_ru.wav",
-        story_3_a_en: "story_3_a_en.wav",
-        story_3_a_ar: "story_3_a_ar.wav",
-        story_3_a_ru: "story_3_a_ru.wav",
-        story_3_b_en: "story_3_b_en.wav",
-        story_3_b_ar: "story_3_b_ar.wav",
-        story_3_b_ru: "story_3_b_ru.wav",
-        story_3_c_en: "story_3_c_en.wav",
-        story_3_c_ar: "story_3_c_ar.wav",
-        story_3_c_ru: "story_3_c_ru.wav",
-        story_4_en: "story_4_en.wav",
-        story_4_ar: "story_4_ar.wav",
-        story_4_ru: "story_4_ru.wav",
-        story_5_en: "story_5_en.wav",
-        story_5_ar: "story_5_ar.wav",
-        story_5_ru: "story_5_ru.wav",
-        story_6_en: "story_6_en.wav",
-        story_6_ar: "story_6_ar.wav",
-        story_6_ru: "story_6_ru.wav",
-        story_10_en: "story_10_en.wav",
-        story_10_ar: "story_10_ar.wav",
-        story_10_ru: "story_10_ru.wav",
-        story_11_en: "story_11_en.wav",
-        story_11_ar: "story_11_ar.wav",
-        story_11_ru: "story_11_ru.wav",
-        story_12_a_en: "story_12_a_en.wav",
-        story_12_a_ar: "story_12_a_ar.wav",
-        story_12_a_ru: "story_12_a_ru.wav",
-        story_12_b_en: "story_12_b_en.wav",
-        story_12_b_ar: "story_12_b_ar.wav",
-        story_12_b_ru: "story_12_b_ru.wav",
-        story_12_c_en: "story_12_c_en.wav",
-        story_12_c_ar: "story_12_c_ar.wav",
-        story_12_c_ru: "story_12_c_ru.wav",
-        story_12_d_en: "story_12_d_en.wav",
-        story_12_d_ar: "story_12_d_ar.wav",
-        story_12_d_ru: "story_12_d_ru.wav",
-        story_13_en: "story_13_en.wav",
-        story_13_ar: "story_13_ar.wav",
-        story_13_ru: "story_13_ru.wav",
-        story_14_a_en: "story_14_a_en.wav",
-        story_14_a_ar: "story_14_a_ar.wav",
-        story_14_a_ru: "story_14_a_ru.wav",
-        story_14_b_en: "story_14_b_en.wav",
-        story_14_b_ar: "story_14_b_ar.wav",
-        story_14_b_ru: "story_14_b_ru.wav",
-        story_17_en: "story_17_en.wav",
-        story_17_ar: "story_17_ar.wav",
-        story_17_ru: "story_17_ru.wav",
-        story_18_en: "story_18_en.wav",
-        story_18_ar: "story_18_ar.wav",
-        story_18_ru: "story_18_ru.wav",
-        story_19_en: "story_19_en.wav",
-        story_19_ar: "story_19_ar.wav",
-        story_19_ru: "story_19_ru.wav",
-        story_20_a_en: "story_20_a_en.wav",
-        story_20_a_ar: "story_20_a_ar.wav",
-        story_20_a_ru: "story_20_a_ru.wav",
-        story_20_b_en: "story_20_b_en.wav",
-        story_20_b_ar: "story_20_b_ar.wav",
-        story_20_b_ru: "story_20_b_ru.wav",
-        story_20_c_en: "story_20_c_en.wav",
-        story_20_c_ar: "story_20_c_ar.wav",
-        story_20_c_ru: "story_20_c_ru.wav",
-        story_21_en: "story_21_en.wav",
-        story_21_ar: "story_21_ar.wav",
-        story_21_ru: "story_21_ru.wav",
-        story_22_a_en: "story_22_a_en.wav",
-        story_22_a_ar: "story_22_a_ar.wav",
-        story_22_a_ru: "story_22_a_ru.wav",
-        story_22_b_en: "story_22_b_en.wav",
-        story_22_b_ar: "story_22_b_ar.wav",
-        story_22_b_ru: "story_22_b_ru.wav",
-        story_22_c_en: "story_22_c_en.wav",
-        story_22_c_ar: "story_22_c_ar.wav",
-        story_22_c_ru: "story_22_c_ru.wav",
-        story_23_en: "story_23_en.wav",
-        story_23_ar: "story_23_ar.wav",
-        story_23_ru: "story_23_ru.wav",
-        story_24_en: "story_24_en.wav",
-        story_24_ar: "story_24_ar.wav",
-        story_24_ru: "story_24_ru.wav",
-        story_25_en: "story_25_en.wav",
-        story_25_ar: "story_25_ar.wav",
-        story_25_ru: "story_25_ru.wav",
-        story_26_en: "story_26_en.wav",
-        story_26_ar: "story_26_ar.wav",
-        story_26_ru: "story_26_ru.wav",
-        story_27_a_en: "story_27_a_en.wav",
-        story_27_a_ar: "story_27_a_ar.wav",
-        story_27_a_ru: "story_27_a_ru.wav",
-        story_27_b_en: "story_27_b_en.wav",
-        story_27_b_ar: "story_27_b_ar.wav",
-        story_27_b_ru: "story_27_b_ru.wav",
-        story_27_c_en: "story_27_c_en.wav",
-        story_27_c_ar: "story_27_c_ar.wav",
-        story_27_c_ru: "story_27_c_ru.wav",
-        story_30_en: "story_30_en.wav",
-        story_30_ar: "story_30_ar.wav",
-        story_30_ru: "story_30_ru.wav",
-        story_31_en: "story_31_en.wav",
-        story_31_ar: "story_31_ar.wav",
-        story_31_ru: "story_31_ru.wav",
-        story_32_en: "story_32_en.wav",
-        story_32_ar: "story_32_ar.wav",
-        story_32_ru: "story_32_ru.wav",
-        story_32_a_en: "story_32_a_en.wav",
-        story_32_a_ar: "story_32_a_ar.wav",
-        story_32_a_ru: "story_32_a_ru.wav",
-        story_32_b_en: "story_32_b_en.wav",
-        story_32_b_ar: "story_32_b_ar.wav",
-        story_32_b_ru: "story_32_b_ru.wav",
-        story_32_c_en: "story_32_c_en.wav",
-        story_32_c_ar: "story_32_c_ar.wav",
-        story_32_c_ru: "story_32_c_ru.wav",
-        story_33_en: "story_33_en.wav",
-        story_33_ar: "story_33_ar.wav",
-        story_33_ru: "story_33_ru.wav",
-        story_34_en: "story_34_en.wav",
-        story_34_ar: "story_34_ar.wav",
-        story_34_ru: "story_34_ru.wav",
-        story_35_en: "story_35_en.wav",
-        story_35_ar: "story_35_ar.wav",
-        story_35_ru: "story_35_ru.wav",
-        story_36_en: "story_36_en.wav",
-        story_36_ar: "story_36_ar.wav",
-        story_36_ru: "story_36_ru.wav",
-        story_37_en: "story_37_en.wav",
-        story_37_ar: "story_37_ar.wav",
-        story_37_ru: "story_37_ru.wav",
-        story_38_en: "story_38_en.wav",
-        story_38_ar: "story_38_ar.wav",
-        story_38_ru: "story_38_ru.wav",
-        story_39_en: "story_39_en.wav",
-        story_39_ar: "story_39_ar.wav",
-        story_39_ru: "story_39_ru.wav",
-        story_40_en: "story_40_en.wav",
-        story_40_ar: "story_40_ar.wav",
-        story_40_ru: "story_40_ru.wav",
-        story_41_en: "story_41_en.wav",
-        story_41_ar: "story_41_ar.wav",
-        story_41_ru: "story_41_ru.wav",
-        story_42_en: "story_42_en.wav",
-        story_42_ar: "story_42_ar.wav",
-        story_42_ru: "story_42_ru.wav",
-        story_43_en: "story_43_en.wav",
-        story_43_ar: "story_43_ar.wav",
-        story_43_ru: "story_43_ru.wav",
-        story_44_en: "story_44_en.wav",
-        story_44_ar: "story_44_ar.wav",
-        story_44_ru: "story_44_ru.wav",
-        story_46_en: "story_46_en.wav",
-        story_46_ar: "story_46_ar.wav",
-        story_46_ru: "story_46_ru.wav",
-        story_47_en: "story_47_en.wav",
-        story_47_ar: "story_47_ar.wav",
-        story_47_ru: "story_47_ru.wav",
-        story_48_en: "story_48_en.wav",
-        story_48_ar: "story_48_ar.wav",
-        story_48_ru: "story_48_ru.wav",
-        story_49_en: "story_49_en.wav",
-        story_49_ar: "story_49_ar.wav",
-        story_49_ru: "story_49_ru.wav",
-        story_50_en: "story_50_en.wav",
-        story_50_ar: "story_50_ar.wav",
-        story_50_ru: "story_50_ru.wav",
-        story_51_en: "story_51_en.wav",
-        story_51_ar: "story_51_ar.wav",
-        story_51_ru: "story_51_ru.wav",
-        story_52_en: "story_52_en.wav",
-        story_52_ar: "story_52_ar.wav",
-        story_52_ru: "story_52_ru.wav",
-        story_53_en: "story_53_en.wav",
-        story_53_ar: "story_53_ar.wav",
-        story_53_ru: "story_53_ru.wav",
-        story_54_en: "story_54_en.wav",
-        story_54_ar: "story_54_ar.wav",
-        story_54_ru: "story_54_ru.wav",
-        story_55_en: "story_55_en.wav",
-        story_55_ar: "story_55_ar.wav",
-        story_55_ru: "story_55_ru.wav",
-        story_56_en: "story_56_en.wav",
-        story_56_ar: "story_56_ar.wav",
-        story_56_ru: "story_56_ru.wav",
-        story_57_en: "story_57_en.wav",
-        story_57_ar: "story_57_ar.wav",
-        story_57_ru: "story_57_ru.wav",
-        story_58_en: "story_58_en.wav",
-        story_58_ar: "story_58_ar.wav",
-        story_58_ru: "story_58_ru.wav",
-        story_59_en: "story_59_en.wav",
-        story_59_ar: "story_59_ar.wav",
-        story_59_ru: "story_59_ru.wav",
-        story_60_a_en: "story_60_a_en.wav",
-        story_60_a_ar: "story_60_a_ar.wav",
-        story_60_a_ru: "story_60_a_ru.wav",
-        story_60_b_en: "story_60_b_en.wav",
-        story_60_b_ar: "story_60_b_ar.wav",
-        story_60_b_ru: "story_60_b_ru.wav",
-        story_60_c_en: "story_60_c_en.wav",
-        story_60_c_ar: "story_60_c_ar.wav",
-        story_60_c_ru: "story_60_c_ru.wav",
-        story_60_d_en: "story_60_d_en.wav",
-        story_60_d_ar: "story_60_d_ar.wav",
-        story_60_d_ru: "story_60_d_ru.wav",
-        story_60_e_en: "story_60_e_en.wav",
-        story_60_e_ar: "story_60_e_ar.wav",
-        story_60_e_ru: "story_60_e_ru.wav",
-        story_60_f_en: "story_60_f_en.wav",
-        story_60_f_ar: "story_60_f_ar.wav",
-        story_60_f_ru: "story_60_f_ru.wav",
-        story_60_g_en: "story_60_g_en.wav",
-        story_60_g_ar: "story_60_g_ar.wav",
-        story_60_g_ru: "story_60_g_ru.wav",
-        story_60_h_en: "story_60_h_en.wav",
-        story_60_h_ar: "story_60_h_ar.wav",
-        story_60_h_ru: "story_60_h_ru.wav",
-        story_60_i_en: "story_60_i_en.wav",
-        story_60_i_ar: "story_60_i_ar.wav",
-        story_60_i_ru: "story_60_i_ru.wav",
-        story_60_j_en: "story_60_j_en.wav",
-        story_60_j_ar: "story_60_j_ar.wav",
-        story_60_j_ru: "story_60_j_ru.wav",
-        story_61_a_en: "story_61_a_en.wav",
-        story_61_a_ar: "story_61_a_ar.wav",
-        story_61_a_ru: "story_61_a_ru.wav",
-        story_61_b_en: "story_61_b_en.wav",
-        story_61_b_ar: "story_61_b_ar.wav",
-        story_61_b_ru: "story_61_b_ru.wav",
-        story_61_d_en: "story_61_d_en.wav",
-        story_61_d_ar: "story_61_d_ar.wav",
-        story_61_d_ru: "story_61_d_ru.wav",
-        story_61_e_en: "story_61_e_en.wav",
-        story_61_e_ar: "story_61_e_ar.wav",
-        story_61_e_ru: "story_61_e_ru.wav",
-        story_61_f_en: "story_61_f_en.wav",
-        story_61_f_ar: "story_61_f_ar.wav",
-        story_61_f_ru: "story_61_f_ru.wav",
-        story_61_g_en: "story_61_g_en.wav",
-        story_61_g_ar: "story_61_g_ar.wav",
-        story_61_g_ru: "story_61_g_ru.wav",
-        story_61_h_en: "story_61_h_en.wav",
-        story_61_h_ar: "story_61_h_ar.wav",
-        story_61_h_ru: "story_61_h_ru.wav",
-        story_61_i_en: "story_61_i_en.wav",
-        story_61_i_ar: "story_61_i_ar.wav",
-        story_61_i_ru: "story_61_i_ru.wav",
-        story_61_j_en: "story_61_j_en.wav",
-        story_61_j_ar: "story_61_j_ar.wav",
-        story_61_j_ru: "story_61_j_ru.wav",
-        story_61_c_en: "story_61_c_en.wav",
-        story_61_c_ar: "story_61_c_ar.wav",
-        story_61_c_ru: "story_61_c_ru.wav",
-        story_62_a_en: "story_62_a_en.wav",
-        story_62_a_ar: "story_62_a_ar.wav",
-        story_62_a_ru: "story_62_a_ru.wav",
-        story_62_b_en: "story_62_b_en.wav",
-        story_62_b_ar: "story_62_b_ar.wav",
-        story_62_b_ru: "story_62_b_ru.wav",
-        story_62_c_en: "story_62_c_en.wav",
-        story_62_c_ar: "story_62_c_ar.wav",
-        story_62_c_ru: "story_62_c_ru.wav",
-        story_62_d_en: "story_62_d_en.wav",
-        story_62_d_ar: "story_62_d_ar.wav",
-        story_62_d_ru: "story_62_d_ru.wav",
-        story_62_e_en: "story_62_e_en.wav",
-        story_62_e_ar: "story_62_e_ar.wav",
-        story_62_e_ru: "story_62_e_ru.wav",
-        story_63_a_en: "story_63_a_en.wav",
-        story_63_a_ar: "story_63_a_ar.wav",
-        story_63_a_ru: "story_63_a_ru.wav",
-        story_63_b_en: "story_63_b_en.wav",
-        story_63_b_ar: "story_63_b_ar.wav",
-        story_63_b_ru: "story_63_b_ru.wav",
-        story_63_c_en: "story_63_c_en.wav",
-        story_63_c_ar: "story_63_c_ar.wav",
-        story_63_c_ru: "story_63_c_ru.wav",
-        story_63_d_en: "story_63_d_en.wav",
-        story_63_d_ar: "story_63_d_ar.wav",
-        story_63_d_ru: "story_63_d_ru.wav",
-        story_63_e_en: "story_63_e_en.wav",
-        story_63_e_ar: "story_63_e_ar.wav",
-        story_63_e_ru: "story_63_e_ru.wav",
-        story_63_f_en: "story_63_f_en.wav",
-        story_63_f_ar: "story_63_f_ar.wav",
-        story_63_f_ru: "story_63_f_ru.wav",
-        story_63_g_en: "story_63_g_en.wav",
-        story_63_g_ar: "story_63_g_ar.wav",
-        story_63_g_ru: "story_63_g_ru.wav",
-        story_63_h_en: "story_63_h_en.wav",
-        story_63_h_ar: "story_63_h_ar.wav",
-        story_63_h_ru: "story_63_h_ru.wav",
-        story_63_i_en: "story_63_i_en.wav",
-        story_63_i_ar: "story_63_i_ar.wav",
-        story_63_i_ru: "story_63_i_ru.wav",
-        story_63_j_en: "story_63_j_en.wav",
-        story_63_j_ar: "story_63_j_ar.wav",
-        story_63_j_ru: "story_63_j_ru.wav",
-        story_64_a_en: "story_64_a_en.wav",
-        story_64_a_ar: "story_64_a_ar.wav",
-        story_64_a_ru: "story_64_a_ru.wav",
-        story_64_b_en: "story_64_b_en.wav",
-        story_64_b_ar: "story_64_b_ar.wav",
-        story_64_b_ru: "story_64_b_ru.wav",
-        story_65_a_en: "story_65_a_en.wav",
-        story_65_a_ar: "story_65_a_ar.wav",
-        story_65_a_ru: "story_65_a_ru.wav",
-        story_65_b_en: "story_65_b_en.wav",
-        story_65_b_ar: "story_65_b_ar.wav",
-        story_65_b_ru: "story_65_b_ru.wav",
-        story_65_c_en: "story_65_c_en.wav",
-        story_65_c_ar: "story_65_c_ar.wav",
-        story_65_c_ru: "story_65_c_ru.wav",
-        story_65_d_en: "story_65_d_en.wav",
-        story_65_d_ar: "story_65_d_ar.wav",
-        story_65_d_ru: "story_65_d_ru.wav",
-        story_65_e_en: "story_65_e_en.wav",
-        story_65_e_ar: "story_65_e_ar.wav",
-        story_65_e_ru: "story_65_e_ru.wav",
-        story_65_f_en: "story_65_f_en.wav",
-        story_65_f_ar: "story_65_f_ar.wav",
-        story_65_f_ru: "story_65_f_ru.wav",
-        story_65_g_en: "story_65_g_en.wav",
-        story_65_g_ar: "story_65_g_ar.wav",
-        story_65_g_ru: "story_65_g_ru.wav",
-        story_65_h_en: "story_65_h_en.wav",
-        story_65_h_ar: "story_65_h_ar.wav",
-        story_65_h_ru: "story_65_h_ru.wav",
-        story_65_i_en: "story_65_i_en.wav",
-        story_65_i_ar: "story_65_i_ar.wav",
-        story_65_i_ru: "story_65_i_ru.wav",
-        story_65_j_en: "story_65_j_en.wav",
-        story_65_j_ar: "story_65_j_ar.wav",
-        story_65_j_ru: "story_65_j_ru.wav",
-        story_66_en: "story_66_en.wav",
-        story_66_ar: "story_66_ar.wav",
-        story_66_ru: "story_66_ru.wav",
-        story_67_en: "story_67_en.wav",
-        story_67_ar: "story_67_ar.wav",
-        story_67_ru: "story_67_ru.wav",
-        story_68_en: "story_68_en.wav",
-        story_68_ar: "story_68_ar.wav",
-        story_68_ru: "story_68_ru.wav",
-        story_69_en: "story_69_en.wav",
-        story_69_ar: "story_69_ar.wav",
-        story_69_ru: "story_69_ru.wav",
-        story_70_en: "story_70_en.wav",
-        story_70_ar: "story_70_ar.wav",
-        story_70_ru: "story_70_ru.wav",
-
-        # Подсказки
-        hint_2_b_en: "hint_2_b_en.wav",
-        hint_2_b_ar: "hint_2_b_ar.wav",
-        hint_2_b_ru: "hint_2_b_ru.wav",
-        hint_2_c_en: "hint_2_c_en.wav",
-        hint_2_c_ar: "hint_2_c_ar.wav",
-        hint_2_c_ru: "hint_2_c_ru.wav",
-        hint_2_z_en: "hint_2_z_en.wav",
-        hint_2_z_ar: "hint_2_z_ar.wav",
-        hint_2_z_ru: "hint_2_z_ru.wav",
-        hint_3_b_en: "hint_3_b_en.wav",
-        hint_3_b_ar: "hint_3_b_ar.wav",
-        hint_3_b_ru: "hint_3_b_ru.wav",
-        hint_3_c_en: "hint_3_c_en.wav",
-        hint_3_c_ar: "hint_3_c_ar.wav",
-        hint_3_c_ru: "hint_3_c_ru.wav",
-        hint_3_z_en: "hint_3_z_en.wav",
-        hint_3_z_ar: "hint_3_z_ar.wav",
-        hint_3_z_ru: "hint_3_z_ru.wav",
-        hint_5_b_en: "hint_5_b_en.wav",
-        hint_5_b_ar: "hint_5_b_ar.wav",
-        hint_5_b_ru: "hint_5_b_ru.wav",
-        hint_5_c_en: "hint_5_c_en.wav",
-        hint_5_c_ar: "hint_5_c_ar.wav",
-        hint_5_c_ru: "hint_5_c_ru.wav",
-        hint_6_b_en: "hint_6_b_en.wav",
-        hint_6_b_ar: "hint_6_b_ar.wav",
-        hint_6_b_ru: "hint_6_b_ru.wav",
-        hint_6_c_en: "hint_6_c_en.wav",
-        hint_6_c_ar: "hint_6_c_ar.wav",
-        hint_6_c_ru: "hint_6_c_ru.wav",
-        hint_10_b_en: "hint_10_b_en.wav",
-        hint_10_b_ar: "hint_10_b_ar.wav",
-        hint_10_b_ru: "hint_10_b_ru.wav",
-        hint_10_c_en: "hint_10_c_en.wav",
-        hint_10_c_ar: "hint_10_c_ar.wav",
-        hint_10_c_ru: "hint_10_c_ru.wav",
-        hint_11_b_en: "hint_11_b_en.wav",
-        hint_11_b_ar: "hint_11_b_ar.wav",
-        hint_11_b_ru: "hint_11_b_ru.wav",
-        hint_11_c_en: "hint_11_c_en.wav",
-        hint_11_c_ar: "hint_11_c_ar.wav",
-        hint_11_c_ru: "hint_11_c_ru.wav",
-        hint_11_z_en: "hint_11_z_en.wav",
-        hint_11_z_ar: "hint_11_z_ar.wav",
-        hint_11_z_ru: "hint_11_z_ru.wav",
-        hint_14_b_en: "hint_14_b_en.wav",
-        hint_14_b_ar: "hint_14_b_ar.wav",
-        hint_14_b_ru: "hint_14_b_ru.wav",
-        hint_14_c_en: "hint_14_c_en.wav",
-        hint_14_c_ar: "hint_14_c_ar.wav",
-        hint_14_c_ru: "hint_14_c_ru.wav",
-        hint_14_z_en: "hint_14_z_en.wav",
-        hint_14_z_ar: "hint_14_z_ar.wav",
-        hint_14_z_ru: "hint_14_z_ru.wav",
-        hint_17_b_en: "hint_17_b_en.wav",
-        hint_17_b_ar: "hint_17_b_ar.wav",
-        hint_17_b_ru: "hint_17_b_ru.wav",
-        hint_17_c_en: "hint_17_c_en.wav",
-        hint_17_c_ar: "hint_17_c_ar.wav",
-        hint_17_c_ru: "hint_17_c_ru.wav",
-        hint_17_z_en: "hint_17_z_en.wav",
-        hint_17_z_ar: "hint_17_z_ar.wav",
-        hint_17_z_ru: "hint_17_z_ru.wav",
-        hint_19_b_en: "hint_19_b_en.wav",
-        hint_19_b_ar: "hint_19_b_ar.wav",
-        hint_19_b_ru: "hint_19_b_ru.wav",
-        hint_19_c_en: "hint_19_c_en.wav",
-        hint_19_c_ar: "hint_19_c_ar.wav",
-        hint_19_c_ru: "hint_19_c_ru.wav",
-        hint_19_z_en: "hint_19_z_en.wav",
-        hint_19_z_ar: "hint_19_z_ar.wav",
-        hint_19_z_ru: "hint_19_z_ru.wav",
-        hint_23_b_en: "hint_23_b_en.wav",
-        hint_23_b_ar: "hint_23_b_ar.wav",
-        hint_23_b_ru: "hint_23_b_ru.wav",
-        hint_23_c_en: "hint_23_c_en.wav",
-        hint_23_c_ar: "hint_23_c_ar.wav",
-        hint_23_c_ru: "hint_23_c_ru.wav",
-        hint_23_z_en: "hint_23_z_en.wav",
-        hint_23_z_ar: "hint_23_z_ar.wav",
-        hint_23_z_ru: "hint_23_z_ru.wav",
-        hint_26_b_en: "hint_26_b_en.wav",
-        hint_26_b_ar: "hint_26_b_ar.wav",
-        hint_26_b_ru: "hint_26_b_ru.wav",
-        hint_26_c_en: "hint_26_c_en.wav",
-        hint_26_c_ar: "hint_26_c_ar.wav",
-        hint_26_c_ru: "hint_26_c_ru.wav",
-        hint_26_z_en: "hint_26_z_en.wav",
-        hint_26_z_ar: "hint_26_z_ar.wav",
-        hint_26_z_ru: "hint_26_z_ru.wav",
-        hint_32_b_en: "hint_32_b_en.wav",
-        hint_32_b_ar: "hint_32_b_ar.wav",
-        hint_32_b_ru: "hint_32_b_ru.wav",
-        hint_32_c_en: "hint_32_c_en.wav",
-        hint_32_c_ar: "hint_32_c_ar.wav",
-        hint_32_c_ru: "hint_32_c_ru.wav",
-        hint_32_d_en: "hint_32_d_en.wav",
-        hint_32_d_ar: "hint_32_d_ar.wav",
-        hint_32_d_ru: "hint_32_d_ru.wav",
-        hint_32_e_en: "hint_32_e_en.wav",
-        hint_32_e_ar: "hint_32_e_ar.wav",
-        hint_32_e_ru: "hint_32_e_ru.wav",
-        hint_32_z_en: "hint_32_z_en.wav",
-        hint_32_z_ar: "hint_32_z_ar.wav",
-        hint_32_z_ru: "hint_32_z_ru.wav",
-        hint_37_b_en: "hint_37_b_en.wav",
-        hint_37_b_ar: "hint_37_b_ar.wav",
-        hint_37_b_ru: "hint_37_b_ru.wav",
-        hint_37_c_en: "hint_37_c_en.wav",
-        hint_37_c_ar: "hint_37_c_ar.wav",
-        hint_37_c_ru: "hint_37_c_ru.wav",
-        hint_38_b_en: "hint_38_b_en.wav",
-        hint_38_b_ar: "hint_38_b_ar.wav",
-        hint_38_b_ru: "hint_38_b_ru.wav",
-        hint_44_b_en: "hint_44_b_en.wav",
-        hint_44_b_ar: "hint_44_b_ar.wav",
-        hint_44_b_ru: "hint_44_b_ru.wav",
-        hint_44_c_en: "hint_44_c_en.wav",
-        hint_44_c_ar: "hint_44_c_ar.wav",
-        hint_44_c_ru: "hint_44_c_ru.wav",
-        hint_49_b_en: "hint_49_b_en.wav",
-        hint_49_b_ar: "hint_49_b_ar.wav",
-        hint_49_b_ru: "hint_49_b_ru.wav",
-        hint_49_c_en: "hint_49_c_en.wav",
-        hint_49_c_ar: "hint_49_c_ar.wav",
-        hint_49_c_ru: "hint_49_c_ru.wav",
-        hint_50_b_en: "hint_50_b_en.wav",
-        hint_50_b_ar: "hint_50_b_ar.wav",
-        hint_50_b_ru: "hint_50_b_ru.wav",
-        hint_50_c_en: "hint_50_c_en.wav",
-        hint_50_c_ar: "hint_50_c_ar.wav",
-        hint_50_c_ru: "hint_50_c_ru.wav",
-        hint_51_b_en: "hint_51_b_en.wav",
-        hint_51_b_ar: "hint_51_b_ar.wav",
-        hint_51_b_ru: "hint_51_b_ru.wav",
-        hint_51_c_en: "hint_51_c_en.wav",
-        hint_51_c_ar: "hint_51_c_ar.wav",
-        hint_51_c_ru: "hint_51_c_ru.wav",
-        hint_56_b_en: "hint_56_b_en.wav",
-        hint_56_b_ar: "hint_56_b_ar.wav",
-        hint_56_b_ru: "hint_56_b_ru.wav",
     }
 except NameError:
     # Это может случиться, если скрипт запущен не полностью,
@@ -1777,6 +1266,42 @@ enemy_goal_stories_en = [
 enemy_goal_stories_ar = [
     story_65_a_ar, story_65_b_ar, story_65_c_ar, story_65_d_ar, story_65_e_ar, 
     story_65_f_ar, story_65_g_ar, story_65_h_ar, story_65_i_ar, story_65_j_ar
+]
+
+# --- Story 62: Тайм-аут игрока (поймал, но долго не бросал) ---
+timeout_stories_ru = [
+    story_62_a_ru, story_62_b_ru, story_62_c_ru, story_62_d_ru, story_62_e_ru
+]
+timeout_stories_en = [
+    story_62_a_en, story_62_b_en, story_62_c_en, story_62_d_en, story_62_e_en
+]
+timeout_stories_ar = [
+    story_62_a_ar, story_62_b_ar, story_62_c_ar, story_62_d_ar, story_62_e_ar
+]
+
+# --- Story 63: Враг перехватил мяч ---
+red_ball_active_stories_ru = [
+    story_63_a_ru, story_63_b_ru, story_63_c_ru, story_63_d_ru, story_63_e_ru,
+    story_63_f_ru, story_63_g_ru, story_63_h_ru, story_63_i_ru, story_63_j_ru
+]
+red_ball_active_stories_en = [
+    story_63_a_en, story_63_b_en, story_63_c_en, story_63_d_en, story_63_e_en,
+    story_63_f_en, story_63_g_en, story_63_h_en, story_63_i_en, story_63_j_en
+]
+red_ball_active_stories_ar = [
+    story_63_a_ar, story_63_b_ar, story_63_c_ar, story_63_d_ar, story_63_e_ar,
+    story_63_f_ar, story_63_g_ar, story_63_h_ar, story_63_i_ar, story_63_j_ru # Внимание: тут в оригинале был j_ru для арабского, проверьте
+]
+
+# --- Story 64: Игрок перехватил мяч ---
+enemy_catch_stories_ru = [
+    story_64_a_ru, story_64_b_ru
+]
+enemy_catch_stories_en = [
+    story_64_a_en, story_64_b_en
+]
+enemy_catch_stories_ar = [
+    story_64_a_ar, story_64_b_ar
 ]
 
 #---------читаем файлы записываем в переменные 
@@ -3231,7 +2756,7 @@ def tmr(res):
                    if "Check WAVE Switch" not in devices: devices.append("Check WAVE Switch")
 
                # Центральный (TREE)
-               if "galet_on" in socklist:
+               if "galet_on" in socklist or "central_galet_on" in socklist:
                    if "Check TREE Switch" not in devices: devices.append("Check TREE Switch")
                    
                # 3. Проверка стартовой двери
@@ -3337,24 +2862,39 @@ def is_number(str):
     except ValueError:
         return False  
 
-def play_story(audio_file, loops=0, volume_file='3.txt'):
-    # --- Улучшено логирование звуков ---
-    try:
-        # Пытаемся найти имя файла в карте, чтобы лог был читаемым.
-        audio_name = _SOUND_NAME_MAP.get(audio_file, "Неизвестный аудиофайл истории")
-        logging.info(f"PLAY [История]: {audio_name}")
-    except Exception as e:
-        # На случай, если что-то пойдет не так с логированием.
-        logging.error(f"Ошибка логирования имени истории: {e}")
-    # Воспроизводит историю/подсказку, АВТОМАТИЧЕСКИ приглушая фоновую музыку.
+def play_story(audio_source, loops=0, volume_file='3.txt'):
+    # --- ОБНОВЛЕННАЯ ЛОГИКА: ЛЕНИВАЯ ЗАГРУЗКА ---
     global story_fade_active, phoneLevel, go
     
+    sound_object = None
+    filename_for_log = "Unknown"
+
+    # 1. Проверяем, что нам передали: строку (имя файла) или объект Sound
+    if isinstance(audio_source, str):
+        # Если это строка, значит нужно загрузить файл сейчас
+        filename_for_log = audio_source
+        try:
+            # Загружаем аудио в память только сейчас
+            sound_object = pygame.mixer.Sound(audio_source)
+        except Exception as e:
+            logging.error(f"Ошибка загрузки файла истории {audio_source}: {e}")
+            return
+    elif isinstance(audio_source, pygame.mixer.Sound):
+        # Если это уже объект (для совместимости), используем как есть
+        sound_object = audio_source
+        # Пытаемся найти имя для лога (если есть в карте)
+        filename_for_log = _SOUND_NAME_MAP.get(audio_source, "Sound Object")
+    else:
+        logging.error("play_story: получен неверный тип аудио источника")
+        return
+
+    logging.info(f"PLAY [История/Подсказка]: {filename_for_log}")
+
     # СТРАХОВКА: Если канал историй молчит, значит фейд точно не активен.
-    # Сбрасываем флаг, чтобы гарантировать приглушение для новой истории.
     if not channel3.get_busy():
         story_fade_active = False
     
-    # 1. Приглушаем фоновую музыку (только если она еще не приглушена)
+    # 2. Приглушаем фоновую музыку (только если она еще не приглушена)
     if not story_fade_active and go == 1:
         story_fade_active = True
         serial_write_queue.put('soundon')
@@ -3365,29 +2905,30 @@ def play_story(audio_file, loops=0, volume_file='3.txt'):
                 phoneLevel = float(f.read(4))
         except Exception as e:
             logger.error(f"Ошибка чтения файла громкости 1.txt (в play_story): {e}")
-            pass # Используем старое значение
+            pass 
 
         temp_vol = phoneLevel 
         target_vol = 0.1 # Целевая громкость 10%
         
         while temp_vol > target_vol and go == 1:
             temp_vol = round(temp_vol, 2) - 0.01
-            if temp_vol < target_vol: temp_vol = target_vol # Гарантия, что не уйдем ниже
+            if temp_vol < target_vol: temp_vol = target_vol 
             pygame.mixer.music.set_volume(round(temp_vol, 2))
-            eventlet.sleep(0.05) # Плавное затухание
-        # Даем микшеру "вздохнуть" после цикла изменения громкости,
-        # чтобы предотвратить "заикание" при немедленном
-        # запуске нового звука.
+            eventlet.sleep(0.05) 
+        
         eventlet.sleep(0.1)
     
-    # 2. Воспроизводим саму историю
-    if audio_file:
-        channel3.play(audio_file, loops=loops)
+    # 3. Воспроизводим
+    if sound_object:
+        channel3.play(sound_object, loops=loops)
         
         # Устанавливаем громкость истории
-        with open(volume_file, 'r') as f:
-            volume = float(f.read(4))
-            channel3.set_volume(volume, volume)
+        try:
+            with open(volume_file, 'r') as f:
+                volume = float(f.read(4))
+                channel3.set_volume(volume, volume)
+        except Exception as e:
+            logger.error(f"Ошибка установки громкости истории: {e}")
             
 def effects_are_busy():
     """Возвращает True, если играет ЛЮБОЙ из каналов эффектов"""
@@ -3630,6 +3171,38 @@ def check_story_and_fade_up():
         
         # 3. Сбрасываем флаг
         story_fade_active = False
+        
+basket_timeout_timer = None # Переменная для хранения таймера
+timeoutCount = 0            # Счетчик для story_62
+
+def handle_basket_timeout():
+    """Функция вызывается, если игрок долго не забивал мяч"""
+    global timeoutCount, language
+    
+    # 1. Логируем событие
+    logging.info("BASKETBALL: Player timeout (story_62 triggered)")
+
+    # 2. Выбираем список историй по языку и воспроизводим (как раньше)
+    current_list = []
+    if language == 1: current_list = timeout_stories_ru
+    elif language == 2: current_list = timeout_stories_en
+    elif language == 3: current_list = timeout_stories_ar
+        
+    if current_list:
+        if timeoutCount < len(current_list):
+            play_story(current_list[timeoutCount])
+        else:
+            play_story(current_list[-1])
+            
+    # 3. Увеличиваем счетчик
+    timeoutCount += 1
+    if timeoutCount >= len(current_list):
+        timeoutCount = 0 
+        
+    # 4. [ВАЖНО] Перезапускаем механику мяча на ленте!
+    # Мы отправляем команду Arduino, чтобы она снова запустила "летающий мяч"
+    serial_write_queue.put('start_game_basket')
+    logging.info("BASKETBALL: Player timeout (story_62 triggered)")
 
 #здесь уже обрабатываем все сообщения приходящие из меги и отображаем на пульте        
 def serial():
@@ -3757,34 +3330,57 @@ def serial():
                    flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
                    
                    # --- БЛОК ПЕРЕВОДА ГАЛЕТНИКОВ (ARDUINO -> SERVER) ---
-                   if flag == "galet1": # Центральная плата (Tree)
-                       flag = "galet_on" 
-                       # Сохраняем, чтобы работала проверка Main Board
-                       if "galet_on" not in socklist: socklist.append("galet_on")
+                   
+                   # 1. Central (Tree) - galet1
+                   if flag == "galet1": 
+                       flag = "central_galet_on"
+                       if "central_galet_on" not in socklist: socklist.append("central_galet_on")
+                   if flag == "galet1_off": 
+                       flag = "central_galet_off" # <--- ВАЖНО: Переименовываем
+                       if "central_galet_on" in socklist: socklist.remove("central_galet_on")
 
-                   if flag == "galet2": # Мастерская (Sun)
-                       flag = "workshop_galet_on" # Подменяем флаг для дальнейшей логики
+                   # 2. Workshop (Sun) - galet2
+                   if flag == "galet2": 
+                       flag = "workshop_galet_on"
                        if "workshop_galet_on" not in socklist: socklist.append("workshop_galet_on")
-                       socketio.emit('level', 'workshop_galet_on', to=None) # Обновляем UI если надо
+                       socketio.emit('level', 'workshop_galet_on', to=None)
+                   if flag == "galet2_off":
+                       flag = "workshop_galet_off" # <--- ВАЖНО: Переименовываем
+                       if "workshop_galet_on" in socklist: socklist.remove("workshop_galet_on")
+                       socketio.emit('level', 'workshop_galet_off', to=None)
 
-                   if flag == "galet3": # Баскетбол (Basket/Moon)
+                   # 3. Basket (Wave/Moon) - galet3
+                   if flag == "galet3": 
                        flag = "basket_galet_on"
                        if "basket_galet_on" not in socklist: socklist.append("basket_galet_on")
-                       # socketio.emit('level', 'basket_galet_on', to=None)
+                   if flag == "galet3_off":
+                       flag = "basket_galet_off" # <--- ВАЖНО: Переименовываем
+                       if "basket_galet_on" in socklist: socklist.remove("basket_galet_on")
 
-                   if flag == "galet4": # Собака (Rose)
+                   # 4. Dog (Rose) - galet4
+                   if flag == "galet4": 
                        flag = "dog_galet_on"
                        if "dog_galet_on" not in socklist: socklist.append("dog_galet_on")
                        socketio.emit('level', 'dog_galet_on', to=None)
+                   if flag == "galet4_off":
+                       flag = "dog_galet_off" # <--- ВАЖНО: Переименовываем
+                       if "dog_galet_on" in socklist: socklist.remove("dog_galet_on")
+                       socketio.emit('level', 'dog_galet_off', to=None)
 
-                   if flag == "galet5": # Совы (Boat)
+                   # 5. Owls (Boat) - galet5
+                   if flag == "galet5": 
                        flag = "owls_galet_on"
                        if "owls_galet_on" not in socklist: socklist.append("owls_galet_on")
                        socketio.emit('level', 'owls_galet_on', to=None)
+                   if flag == "galet5_off":
+                       flag = "owls_galet_off" # <--- ВАЖНО: Переименовываем
+                       if "owls_galet_on" in socklist: socklist.remove("owls_galet_on")
+                       socketio.emit('level', 'owls_galet_off', to=None)
+                   # ----------------------------------------------------
 
                    # Обработка выключения (удаляем из истории)
                    if flag == "galet1_off": 
-                       if 'galet_on' in socklist: socklist.remove('galet_on')
+                       if 'central_galet_on' in socklist: socklist.remove('central_galet_on')
                    if flag == "galet2_off":
                        if 'workshop_galet_on' in socklist: socklist.remove('workshop_galet_on')
                    if flag == "galet3_off":
@@ -4316,14 +3912,14 @@ def serial():
                               
                          # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
                          galet_signals = {
-                             "galet_on": "g1",           # Central (Tree)
+                             "central_galet_on": "g1",           # Central (Tree)
                              "workshop_galet_on": "g2",  # Workshop (Sun)
                              "basket_galet_on": "g3",    # Basket (Moon)
                              "dog_galet_on": "g4",       # Dog (Rose)
                              "owls_galet_on": "g5"       # Owls (Boat)
                          }
                          galet_off_signals = {
-                             "galet_off": "g1",          # Central Off
+                             "central_galet_off": "g1",          # Central Off
                              "workshop_galet_off": "g2", # Workshop Off
                              "basket_galet_off": "g3",   # Basket Off
                              "dog_galet_off": "g4",      # Dog Off
@@ -5650,6 +5246,16 @@ def serial():
                          if flag=="catch1":
                               play_effect(catch1)
                               if storyBasketFlag == 1:
+                                  # Если таймер уже был запущен (быстро перехватили), сбрасываем его
+                                  if basket_timeout_timer: 
+                                      basket_timeout_timer.cancel()
+                                  
+                                  # Запускаем новый таймер на рандомное время (например, от 10 до 15 секунд)
+                                  # handle_basket_timeout - функция, которую мы создали выше
+                                  delay_time = random.randint(10, 15) 
+                                  basket_timeout_timer = threading.Timer(delay_time, handle_basket_timeout)
+                                  basket_timeout_timer.start()
+                                  # --------------------------------------
                                   catchCount += 1
                                   if catchCount == 1:
                                        if(language==1):
@@ -5725,6 +5331,16 @@ def serial():
                          if flag=="catch2":
                               play_effect(catch2)
                               if storyBasketFlag == 1:
+                                  # Если таймер уже был запущен (быстро перехватили), сбрасываем его
+                                  if basket_timeout_timer: 
+                                      basket_timeout_timer.cancel()
+                                  
+                                  # Запускаем новый таймер на рандомное время (например, от 10 до 15 секунд)
+                                  # handle_basket_timeout - функция, которую мы создали выше
+                                  delay_time = random.randint(10, 15) 
+                                  basket_timeout_timer = threading.Timer(delay_time, handle_basket_timeout)
+                                  basket_timeout_timer.start()
+                                  # --------------------------------------
                                   catchCount += 1
                                   if catchCount == 1:
                                        if(language==1):
@@ -5800,6 +5416,16 @@ def serial():
                          if flag=="catch3":
                               play_effect(catch3)
                               if storyBasketFlag == 1:
+                                  # Если таймер уже был запущен (быстро перехватили), сбрасываем его
+                                  if basket_timeout_timer: 
+                                      basket_timeout_timer.cancel()
+                                  
+                                  # Запускаем новый таймер на рандомное время (например, от 10 до 15 секунд)
+                                  # handle_basket_timeout - функция, которую мы создали выше
+                                  delay_time = random.randint(10, 15) 
+                                  basket_timeout_timer = threading.Timer(delay_time, handle_basket_timeout)
+                                  basket_timeout_timer.start()
+                                  # --------------------------------------
                                   catchCount += 1
                                   if catchCount == 1:
                                        if(language==1):
@@ -5875,6 +5501,16 @@ def serial():
                          if flag=="catch4":
                               play_effect(catch4)
                               if storyBasketFlag == 1:
+                                  # Если таймер уже был запущен (быстро перехватили), сбрасываем его
+                                  if basket_timeout_timer: 
+                                      basket_timeout_timer.cancel()
+                                  
+                                  # Запускаем новый таймер на рандомное время (например, от 10 до 15 секунд)
+                                  # handle_basket_timeout - функция, которую мы создали выше
+                                  delay_time = random.randint(10, 15) 
+                                  basket_timeout_timer = threading.Timer(delay_time, handle_basket_timeout)
+                                  basket_timeout_timer.start()
+                                  # --------------------------------------
                                   catchCount += 1
                                   if catchCount == 1:
                                        if(language==1):
@@ -5949,6 +5585,10 @@ def serial():
                                   print(catchCount)      
                          # --- Логика голов игрока с счетчиком ---
                          if flag=="goal_1_player" or flag=="goal_2_player" or flag=="goal_3_player" or flag=="goal_4_player":
+                              # --- ОТМЕНА ТАЙМЕРА ---
+                              if basket_timeout_timer:
+                                  basket_timeout_timer.cancel()
+                                  basket_timeout_timer = None
                               # Добавляем инкрементальные флаги для UI
                               if flag == "goal_1_player":
                                   socklist.append('goal_1_player')
@@ -6060,165 +5700,65 @@ def serial():
                                         play_story(story_62_e_ar)    
                               print(enemyCatchCount)                
 
-                         if flag=="red_ball":
-                              #----играем эффект 
+                         if flag == "red_ball":
+                              # Эффекты
                               enemyCatchCount += 1
-                              if enemyCatchCount == 1:
-                                  play_effect(enemy_catch1)
-                              if enemyCatchCount == 2:
-                                  play_effect(enemy_catch2)
-                              if enemyCatchCount == 3:
-                                  play_effect(enemy_catch3)
-                              if enemyCatchCount == 4:
+                              # Логика эффектов (catch1...catch4) остается прежней
+                              if enemyCatchCount == 1: play_effect(enemy_catch1)
+                              elif enemyCatchCount == 2: play_effect(enemy_catch2)
+                              elif enemyCatchCount == 3: play_effect(enemy_catch3)
+                              elif enemyCatchCount == 4:
                                   play_effect(enemy_catch4)
                                   enemyCatchCount = 0   
+
+                              # --- НОВАЯ ЛОГИКА СО СПИСКАМИ (Story 63) ---
+                              current_list = []
+                              if language == 1: current_list = red_ball_active_stories_ru
+                              elif language == 2: current_list = red_ball_active_stories_en
+                              elif language == 3: current_list = red_ball_active_stories_ar
+
+                              if current_list:
+                                  if redSintchEnemyCatchCount < len(current_list):
+                                      play_story(current_list[redSintchEnemyCatchCount])
+                                  else:
+                                      play_story(current_list[-1])
+ 
                               redSintchEnemyCatchCount += 1
-                              if redSintchEnemyCatchCount == 1:
-                                   if(language==1):
-                                        play_story(story_63_a_ru)  
-                                   if(language==2):
-                                        play_story(story_63_a_en)
-                                   if(language==3):
-                                        play_story(story_63_a_ar)
-                              if redSintchEnemyCatchCount == 2:
-                                   if(language==1):
-                                        play_story(story_63_b_ru)  
-                                   if(language==2):
-                                        play_story(story_63_b_en)
-                                   if(language==3):
-                                        play_story(story_63_b_ar)
-                              if redSintchEnemyCatchCount == 3:
-                                   if(language==1):
-                                        play_story(story_63_c_ru)  
-                                   if(language==2):
-                                        play_story(story_63_c_en)
-                                   if(language==3):
-                                        play_story(story_63_c_ar)   
-                              if redSintchEnemyCatchCount == 4:
-                                   if(language==1):
-                                        play_story(story_63_d_ru)  
-                                   if(language==2):
-                                        play_story(story_63_d_en)
-                                   if(language==3):
-                                        play_story(story_63_d_ar)
-                              if redSintchEnemyCatchCount == 5:
-                                   if(language==1):
-                                        play_story(story_63_e_ru)  
-                                   if(language==2):
-                                        play_story(story_63_e_en)
-                                   if(language==3):
-                                        play_story(story_63_e_ar)
-                              if redSintchEnemyCatchCount == 6:
-                                   if(language==1):
-                                        play_story(story_63_f_ru)  
-                                   if(language==2):
-                                        play_story(story_63_f_en)
-                                   if(language==3):
-                                        play_story(story_63_f_ar)
-                              if redSintchEnemyCatchCount == 7:
-                                   if(language==1):
-                                        play_story(story_63_g_ru)  
-                                   if(language==2):
-                                        play_story(story_63_g_en)
-                                   if(language==3):
-                                        play_story(story_63_g_ar)
-                              if redSintchEnemyCatchCount == 8:
-                                   if(language==1):
-                                        play_story(story_63_h_ru)  
-                                   if(language==2):
-                                        play_story(story_63_h_en)
-                                   if(language==3):
-                                        play_story(story_63_h_ar)
-                              if redSintchEnemyCatchCount == 9:
-                                   if(language==1):
-                                        play_story(story_63_i_ru)  
-                                   if(language==2):
-                                        play_story(story_63_i_en)
-                                   if(language==3):
-                                        play_story(story_63_i_ar)
-                              if redSintchEnemyCatchCount == 10:
+                              # Сброс счетчика, если прошли все истории (опционально)
+                              if redSintchEnemyCatchCount >= len(current_list):
                                    redSintchEnemyCatchCount = 0
-                                   if(language==1):
-                                        play_story(story_63_j_ru)  
-                                   if(language==2):
-                                        play_story(story_63_j_en)
-                                   if(language==3):
-                                        play_story(story_63_j_ar)     
-                              print(enemyCatchCount)     
-                         if flag=="enemy_catch1":
-                              play_effect(enemy_catch1)
+                            
+                              print(enemyCatchCount)
+                         if flag == "enemy_catch1" or flag == "enemy_catch2" or flag == "enemy_catch3" or flag == "enemy_catch4":
+                              # Определяем какой эффект играть
+                              if flag == "enemy_catch1": play_effect(enemy_catch1)
+                              if flag == "enemy_catch2": play_effect(enemy_catch2)
+                              if flag == "enemy_catch3": play_effect(enemy_catch3)
+                              if flag == "enemy_catch4": play_effect(enemy_catch4)
+
+                              # --- ЛОГИКА СО СПИСКАМИ (Story 64) ---
+                              current_list = []
+                              if language == 1: current_list = enemy_catch_stories_ru
+                              elif language == 2: current_list = enemy_catch_stories_en
+                              elif language == 3: current_list = enemy_catch_stories_ar
+
+                              if current_list:
+                                  if redClickSintchEnemyCatchCount < len(current_list):
+                                      play_story(current_list[redClickSintchEnemyCatchCount])
+                                  else:
+                                      play_story(current_list[-1])
+                              
                               redClickSintchEnemyCatchCount += 1
-                              if redClickSintchEnemyCatchCount == 1:
-                                   if(language==1):
-                                        play_story(story_64_a_ru)  
-                                   if(language==2):
-                                        play_story(story_64_a_en)
-                                   if(language==3):
-                                        play_story(story_64_a_ar)
-                              if redClickSintchEnemyCatchCount == 2:
-                                   redClickSintchEnemyCatchCount = 0
-                                   if(language==1):
-                                        play_story(story_64_b_ru)  
-                                   if(language==2):
-                                        play_story(story_64_b_en)
-                                   if(language==3):
-                                        play_story(story_64_b_ar)          
+                              # Сброс счетчика
+                              if redClickSintchEnemyCatchCount >= len(current_list):
+                                  redClickSintchEnemyCatchCount = 0
+                                  
                               print(redClickSintchEnemyCatchCount)
-                         if flag=="enemy_catch2":
-                              play_effect(enemy_catch2)
-                              redClickSintchEnemyCatchCount += 1
-                              if redClickSintchEnemyCatchCount == 1:
-                                   if(language==1):
-                                        play_story(story_64_a_ru)  
-                                   if(language==2):
-                                        play_story(story_64_a_en)
-                                   if(language==3):
-                                        play_story(story_64_a_ar)
-                              if redClickSintchEnemyCatchCount == 2:
-                                   redClickSintchEnemyCatchCount = 0
-                                   if(language==1):
-                                        play_story(story_64_b_ru)  
-                                   if(language==2):
-                                        play_story(story_64_b_en)
-                                   if(language==3):
-                                        play_story(story_64_b_ar)
-                         if flag=="enemy_catch3":
-                              play_effect(enemy_catch3)
-                              redClickSintchEnemyCatchCount += 1
-                              if redClickSintchEnemyCatchCount == 1:
-                                   redClickSintchEnemyCatchCount = 0
-                                   if(language==1):
-                                        play_story(story_64_a_ru)  
-                                   if(language==2):
-                                        play_story(story_64_a_en)
-                                   if(language==3):
-                                        play_story(story_64_a_ar)
-                              if redClickSintchEnemyCatchCount == 2:
-                                   if(language==1):
-                                        play_story(story_64_b_ru)  
-                                   if(language==2):
-                                        play_story(story_64_b_en)
-                                   if(language==3):
-                                        play_story(story_64_b_ar)
-                         if flag=="enemy_catch4":
-                              play_effect(enemy_catch4)
-                              redClickSintchEnemyCatchCount += 1
-                              if redClickSintchEnemyCatchCount == 1:
-                                   if(language==1):
-                                        play_story(story_64_a_ru)  
-                                   if(language==2):
-                                        play_story(story_64_a_en)
-                                   if(language==3):
-                                        play_story(story_64_a_ar)
-                              if redClickSintchEnemyCatchCount == 2:
-                                   redClickSintchEnemyCatchCount =0
-                                   if(language==1):
-                                        play_story(story_64_b_ru)  
-                                   if(language==2):
-                                        play_story(story_64_b_en)
-                                   if(language==3):
-                                        play_story(story_64_b_ar)
                          if flag=="win":
+                              # --- ОТМЕНА ТАЙМЕРА ---
+                              if basket_timeout_timer:
+                                  basket_timeout_timer.cancel()
+                                  basket_timeout_timer = None
                               # Сначала ставим в очередь, потом сразу пытаемся отправить
                               serial_write_queue.put('basket') 
                               process_serial_queue() # <-- ПРИНУДИТЕЛЬНАЯ ОТПРАВКА
