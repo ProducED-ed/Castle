@@ -1,6 +1,6 @@
 
 //-------------------------- библиотеки
-#define crimeDoorPin 38     // геркон на дверь в тюрьме первая комната
+#define crimeDoorPin 38     // геркон на мальчика в тюрьме первая комната
 #define startDoorPin 41     // геркон открытия первой комнаты
 #define voltagePin A1       // аналогвый пин напруга
 #define goldMaterialPin 47  // проставить пин золота
@@ -973,11 +973,22 @@ void PowerOn() {
     }
     
     if (buff.indexOf("ready") != -1) {
-       // ... (код ready как был, но с защитой от повтора) ...
        _dataQueue = 0; _towerTimer = 0; _towerCounter = 0; doorEvent = 0;
        mansardEvent = 0; libraryEvent = 0; galet1Event = 0; galet2Event = 0;
        galet3Event = 0; galet4Event = 0; galet5Event = 0; sealEvent = 0;
        sealSpaceEvent = 0; finalEvent = 0; bugTimerScroll = 0;
+
+       Serial1.println("ready"); delay(10);
+       Serial1.println("check_state"); delay(20); // Плотник (SUN)
+
+       Serial2.println("ready"); delay(10);
+       Serial2.println("check_state"); delay(20); // Баскетбол (BASKET)
+
+       Serial3.println("ready"); delay(10);
+       Serial3.println("check_state"); delay(20); // Собака (ROSE)
+
+       mySerial.println("ready"); delay(10);
+       mySerial.println("check_state"); delay(50); // Совы (BOAT)
        
        Serial1.println("ready"); delay(20);
        Serial2.println("ready"); delay(20);
@@ -990,7 +1001,7 @@ void PowerOn() {
        if (digitalReadExpander(4, board4)) Serial.println("cristal_up");
        if (digitalReadExpander(7, board1)) Serial.println("boy_out");
        if (digitalReadExpander(5, board3)) Serial.println("lib_door");
-       if (digitalReadExpander(1, board2)) Serial.println("crime_open");
+       if (digitalReadExpander(1, board2)) Serial.println("crime_open"); // Концевик в замке (локере)
        if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println("safe_open");
        
        digitalWrite(MansardLight, LOW); digitalWrite(LastTowerTopLight, LOW);
@@ -2480,7 +2491,10 @@ void MapGame() {
     } 
     else if (calculateSimilarity(buff, "cave_click") > 70) {
       Serial.println("cave_click");
-    } 
+    }
+    else if (calculateSimilarity(buff, "cave_reset") > 70) {
+      Serial.println("cave_reset");
+    }
     else if (calculateSimilarity(buff, "door_cave") > 70) {
       Serial.println("door_cave");
     } 
@@ -4537,7 +4551,29 @@ void handleLocks() {
 
   for (int i = 0; i < DOORS; i++) {
     if (active[i]) {
-      // Если замк уже включен, проверяем сколько времени прошло
+       // --- Логика датчика для Тюрьмы (CrimeDoor) ---
+      // Задача: Щелкать каждые 5 сек ТОЛЬКО если дверь закрыта.
+      if (doors[i] == CrimeDoor) {
+         // Из PowerOn: if (digitalReadExpander(1, board2)) Serial.println("crime_open");
+         // Значит: HIGH (true) = Дверь открыта. LOW (false) = Дверь закрыта.
+         
+         bool isPhysicallyOpen = digitalReadExpander(1, board2);
+
+         if (isPhysicallyOpen) {
+            // Если дверь физически открыта:
+            // 1. Гарантированно выключаем соленоид, чтобы не грелся.
+            digitalWrite(doors[i], LOW);
+            // 2. Постоянно обновляем таймер "последнего открытия".
+            // Это нужно, чтобы условие (now - lastOpen >= 5000) не сработало.
+            // Как только дверь закроют, isPhysicallyOpen станет false, 
+            // таймер перестанет сбрасываться, и через 5 секунд соленоид сработает.
+            lastOpen[i] = now; 
+            
+            continue; // Пропускаем стандартную логику для этой двери
+         }
+      }
+
+      // Если замок уже включен, проверяем сколько времени прошло
       if (digitalRead(doors[i]) == HIGH) {
         if (now - lastOpen[i] >= 500) {
           digitalWrite(doors[i], LOW);  // выключаем после 500мс
@@ -4560,7 +4596,7 @@ void OpenAll() {
   
   for (int i = 0; i < DOORS; i++) {
     digitalWrite(doors[i], HIGH); // Включаем
-    delay(300);                   
+    delay(500);                   
     digitalWrite(doors[i], LOW);  // Выключаем
     delay(100);                   
   }
@@ -5934,7 +5970,10 @@ void RestOn() {
     memory_Led.show(); GoldStrip.show(); strip1.show(); strip2.show();
 
     // 5. Сброс переменных игровой логики
-    _presentTimer; _stages = 0; _present = 0; lightBr = 0;
+    _presentTimer; _stages = 0; _present = 0;
+    discoBallsActive = false;    // Выключаем флаг диско-шаров/зеленой волны
+    lessonSaluteActive = false;  // Выключаем флаг салюта урока
+    lightBr = 0;
     iterator = 0; symbolFade = 1; flagSalut = 1; _levels = 0; _stones = 0;
     symbolBrightness = 0; symbolFadeTimer = 0; fadeWhiteTimer = 0;
     rainbowCycles = 0; rainbowCycleCycles = 0; repeatCount = 0;
@@ -6023,7 +6062,7 @@ void RestOn() {
        if (digitalReadExpander(4, board4)) Serial.println("cristal_up");
        if (digitalReadExpander(7, board1)) Serial.println("boy_out");
        if (digitalReadExpander(5, board3)) Serial.println("lib_door");
-       if (digitalReadExpander(1, board2)) Serial.println("crime_open");
+       if (digitalReadExpander(1, board2)) Serial.println("crime_open"); // Концевик в замке (локере)
        if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println("safe_open");
       
        // Выключаем свет для проверки
@@ -6085,23 +6124,51 @@ void ListenForReady() {
     return;
   }
 
-  // 2. Пока время не вышло, слушаем все порты и пересылаем сообщения
-  // (Код пересылки остается без изменений, он был верен)
+  // 2. Слушаем башни и МЕНЯЕМ имена галетников, чтобы сервер их различал
+
+  // --- Workshop (Serial1) -> galet2 (SUN) ---
   if (Serial1.available()) {
-    String buff = Serial1.readStringUntil('\n'); buff.trim();
-    if (buff.length() > 0) Serial.println(buff);
+    String buff = Serial1.readStringUntil('\n');
+    buff.trim();
+    if (buff.length() > 0) {
+        // Подмена команд
+        if (buff == "galet_on") Serial.println("galet2");
+        else if (buff == "galet_off") Serial.println("galet2_off");
+        else Serial.println(buff); // Остальное шлем как есть (логи)
+    }
   }
+
+  // --- Basket (Serial2) -> galet3 (BASKET) ---
   if (Serial2.available()) {
-    String buff = Serial2.readStringUntil('\n'); buff.trim();
-    if (buff.length() > 0) Serial.println(buff);
+    String buff = Serial2.readStringUntil('\n'); 
+    buff.trim();
+    if (buff.length() > 0) {
+        if (buff == "galet_on") Serial.println("galet3");
+        else if (buff == "galet_off") Serial.println("galet3_off");
+        else Serial.println(buff);
+    }
   }
+
+  // --- Dog (Serial3) -> galet4 (ROSE) ---
   if (Serial3.available()) {
-    String buff = Serial3.readStringUntil('\n'); buff.trim();
-    if (buff.length() > 0) Serial.println(buff);
+    String buff = Serial3.readStringUntil('\n'); 
+    buff.trim();
+    if (buff.length() > 0) {
+        if (buff == "galet_on") Serial.println("galet4");
+        else if (buff == "galet_off") Serial.println("galet4_off");
+        else Serial.println(buff);
+    }
   }
+
+  // --- Owls (mySerial) -> galet5 (BOAT) ---
   if (mySerial.available()) {
-    String buff = mySerial.readStringUntil('\n'); buff.trim();
-    if (buff.length() > 0) Serial.println(buff);
+    String buff = mySerial.readStringUntil('\n'); 
+    buff.trim();
+    if (buff.length() > 0) {
+        if (buff == "galet_on" || buff == "owls_galet_on") Serial.println("galet5");
+        else if (buff == "galet_off" || buff == "owls_galet_off") Serial.println("galet5_off");
+        else Serial.println(buff);
+    }
   }
 }
 
