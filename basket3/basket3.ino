@@ -382,25 +382,25 @@ void MetallBlink(int number){
 
 void _Button_1() {
   if (butt1.isPress()) { buttonSequence = 1; Serial1.println("cave_click"); delay(100); }
-  if (butt3.isPress() || butt2.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_click"); delay(100); }
+  if (butt3.isPress() || butt2.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 void _Button_2() {
-  if (butt4.isPress() || butt2.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_click"); delay(100); }
+  if (butt4.isPress() || butt2.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
   if (butt3.isPress()) { buttonSequence = 2; Serial1.println("cave_click"); delay(100); }
 }
 void _Button_3() {
   if (butt4.isPress()) { buttonSequence = 3; Serial1.println("cave_click"); delay(100); }
-  if (butt2.isPress() || butt3.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_click"); delay(100); }
+  if (butt2.isPress() || butt3.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 void _Button_4() {
-  if (butt1.isPress() || butt3.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_click"); delay(100); }
+  if (butt1.isPress() || butt3.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
   if (butt2.isPress()) { buttonSequence = 4; Serial1.println("cave_click"); delay(100); }
 }
 void _Button_5() {
   if (butt3.isPress()) {
     OpenLock(SHERIF_EM1); digitalWrite(trollLed, HIGH); Serial1.println("door_cave"); state++;
   }
-  if (butt2.isPress() || butt4.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_click"); delay(100); }
+  if (butt2.isPress() || butt4.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 
 // --- BasketLesson: Прямое чтение кнопки + Логи ---
