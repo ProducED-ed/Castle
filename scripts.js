@@ -174,6 +174,9 @@ $('.ui.dropdown')
 	 $('#spell_progress').progress({
         percent: 0
      });
+	 $('#mine_progress').progress({
+        percent: 0
+     });
 
  //настройка подключения не менять
      output = document.getElementById('output');//присвоим переменной значение элемента с id output 
@@ -468,7 +471,8 @@ $('.ui.dropdown')
     });
     //нажали на рестарт обрати внимание данные шлем на сервер пока на пульте ничего не отображается
     $('#Restart').click(function(){
-      socket.emit('time', 'restart'); 
+      socket.emit('time', 'restart');
+	  restflag = 0;
       rFlag = 0;
       gFlag=0;
       yFlag=0;
@@ -599,6 +603,21 @@ $('.ui.dropdown')
                 $('#safe_progress').progress({ percent: 0 });
                 // Сбрасываем все флаги, чтобы можно было начать заново
                 safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
+            }
+			
+			// 1. Шаг вперед (клик)
+            if (inp === 'cave_click') {
+                $('#mine_progress').progress('increment');
+            }
+			
+			if (inp === 'cave_reset') {
+                $('#mine_progress').progress({ percent: 0 }); // Сбрасываем шкалу в 0
+            }
+
+            // 2. Победа (открытие двери) - полная шкала
+            if (inp === 'door_cave') {
+                $('#mine_progress').progress({ percent: 100 });
+				$('#mine').addClass('positive'); // Делаем кнопку зеленой
             }
 
             // 3. Troll Game (Прогресс-бар)
@@ -847,15 +866,15 @@ $('.ui.dropdown')
             if(inp === 'flag1_on') {
                 //используем флажок на всякий
                 if(rFlag==0){
-                    $('#greenflag').removeClass('white')//удалим класс white
-                    $('#greenflag').addClass('green')//добавим класс red
+                    $('#redflag').removeClass('white')//удалим класс white
+                    $('#redflag').addClass('red')//добавим класс red
                     rFlag = 1;
                 }
             }
             if(inp === 'flag2_on') {
                 if(gFlag==0){
-                    $('#redflag').removeClass('white')
-                    $('#redflag').addClass('red')
+                    $('#greenflag').removeClass('white')
+                    $('#greenflag').addClass('green')
                     gFlag = 1;
                 }
             }
@@ -875,15 +894,15 @@ $('.ui.dropdown')
             }
             if(inp === 'flag1_off') {
                 if(rFlag==1){
-                    $('#greenflag').removeClass('green')//удалим класс red 
-                    $('#greenflag').addClass('white')//добавим класс white
+                    $('#redflag').removeClass('red')//удалим класс red 
+                    $('#redflag').addClass('white')//добавим класс white
                     rFlag = 0;
                 }
             }
             if(inp === 'flag2_off') {
                 if(gFlag==1){
-                    $('#redflag').removeClass('red')
-                    $('#redflag').addClass('white')
+                    $('#greenflag').removeClass('green')
+                    $('#greenflag').addClass('white')
                     gFlag = 0;
                 }
             }
@@ -1258,6 +1277,7 @@ $('.ui.dropdown')
 
                 $('#safe_progress').progress({ percent: 0 });
                 $('#troll_progress').progress({ percent: 0 });
+				$('#mine_progress').progress({ percent: 0 });
 				$('#ghost_step_1').removeClass('positive');
 				$('#ghost_step_1_indic').removeClass('check');
 				$('#ghost_step_2').removeClass('positive');
