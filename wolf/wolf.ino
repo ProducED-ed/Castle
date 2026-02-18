@@ -201,6 +201,8 @@ const char* password = "questquest";
 
 // Настройки статического IP
 IPAddress local_IP(192, 168, 4, 201);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 const char* externalApi = "http://192.168.4.1:3000/api";
 
@@ -259,6 +261,14 @@ void setup() {
   delay(2000);
   Serial.begin(115200);
   delay(100);
+
+  // --- ИСПРАВЛЕНИЕ I2C (снижение скорости) ---
+  // Явно инициализируем шину I2C перед использованием
+  Wire.begin();
+  // Устанавливаем скорость 10 кГц для стабильной работы на длинных линиях
+  Wire.setClock(10000); 
+  // ------------------------------------------
+
   if (!OUTPUTS.begin(0x20, &Wire)) {
     Serial.println("Couldn't find PCF8574");
   }
@@ -326,6 +336,7 @@ void setup() {
   ghost.setType(LOW_PULL);
   ghost.setDirection(NORM_OPEN);
   ghost.setTickMode(AUTO);
+  pinMode(25, INPUT_PULLDOWN);
 
 
   Serial.println("1");
@@ -336,7 +347,7 @@ void setup() {
   myMP3.stop();
 
   Serial.println("2");
-   if (!WiFi.config(local_IP)) {
+   if (!WiFi.config(local_IP, gateway, subnet)) {
      Serial.println("STA Failed to configure");
    }
   Serial.println("3");
@@ -1078,6 +1089,22 @@ void WolfGame() {
   }
 
   OUTPUTS.digitalWrite(wolfEyeLed, HIGH);
+
+  // --- Проверка сброса (разрыв цепи) ПЕРЕД ВСЕМ ОСТАЛЬНЫМ ---
+  lightCircut1 = !rightCloud3Gerk.isHold();
+  lightCircut2 = !leftCloudGerk.isHold();
+  
+  if ((lightCircut1 || lightCircut2)) {
+    Serial.println("Circuit broken! Resetting to State 1");
+    
+    state = 1; // Сбрасываем этап
+    
+    // Важно: Сбрасываем флаги, чтобы аудио не блокировало логику
+    cloudFiPlaying = false; 
+    TRACK_Flag = 1; // Чтобы при возврате история могла начаться заново (по желанию)
+    return; // Выходим из функции немедленно
+  }
+  // -----------------------------------------------------------------------
 
   // Проверяем геркон ВОЛКА немедленно ---
   // Это позволяет выиграть "в первой фазе", прервав story_B.
