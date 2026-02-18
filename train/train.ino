@@ -224,6 +224,18 @@ const unsigned long GHOST_IGNORE_DURATION = 3000; // 3 секунды
 Encoder enc1(33, 25);
 Encoder enc2(35, 32);
 Encoder enc3(39, 34);
+// --- Функции для прерываний ---
+// IRAM_ATTR хранит функцию в оперативной памяти для максимальной скорости
+void IRAM_ATTR isrEnc1() {
+  enc1.tick(); 
+}
+void IRAM_ATTR isrEnc2() {
+  enc2.tick(); 
+}
+void IRAM_ATTR isrEnc3() {
+  enc3.tick(); 
+}
+
 DFRobotDFPlayerMini myMP3;
 
 const char* ssid = "Castle";
@@ -451,6 +463,19 @@ void setup() {
   enc1.setType(TYPE2);
   enc2.setType(TYPE2);
   enc3.setType(TYPE2);
+  // --- Включаем прерывания на всех пинах энкодеров ---
+  // Энкодер 1 (Пины 33, 25)
+  attachInterrupt(33, isrEnc1, CHANGE);
+  attachInterrupt(25, isrEnc1, CHANGE);
+
+  // Энкодер 2 (Пины 35, 32)
+  attachInterrupt(35, isrEnc2, CHANGE);
+  attachInterrupt(32, isrEnc2, CHANGE);
+
+  // Энкодер 3 (Пины 39, 34)
+  attachInterrupt(39, isrEnc3, CHANGE);
+  attachInterrupt(34, isrEnc3, CHANGE);
+
   pinMode(TUNNEL_LED, OUTPUT);
   pinMode(UF_LED, OUTPUT);
 
@@ -1919,9 +1944,6 @@ void MapLeds() {
 }
 
 void TrainGame() {
-  enc1.tick();
-  enc2.tick();
-  enc3.tick();
 
   if (enc1.isLeft()) {
     hue += 5;
