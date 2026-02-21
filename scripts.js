@@ -199,37 +199,23 @@ $('.ui.dropdown')
              }					
          }, 3000);
          intID = setInterval(function() {
-             socket.emit('Game', {'level': 'all'});//отправляем heartbeat опрашиваем сервер раз в 100 мс
-             //socket.emit('time', 'timer');    
-              
-             
-         }, 100);
+             socket.emit('Game', {'level': 'all'});//отправляем heartbeat опрашиваем сервер раз в 500 мс
+             //socket.emit('time', 'timer');
+         }, 2000);
          
          
      });
      //если нет ответа от сервака 
      socket.on('disconnect', function() {
          if (isShuttingDown) {
-            // ДА, это было плановое выключение.
+            // ДА, это плановое выключение.
+            // Модальное окно "System Halted" отсюда УБРАНО.
+            // Оно теперь покажется только после окончания таймера в 20 секунд.
             
-            // --- ИЗМЕНЕНИЕ: Вместо закрытия окна, показываем сообщение "Готово" ---
-            swal.fire({
-                title: "System Halted",
-                html: "<div style='font-size: 1.2em; color: green;'>Connection lost.<br>It is safe to turn off the power switch now.</div>",
-                icon: "success",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false // Убираем кнопку, чтобы сообщение висело постоянно
-            });
-            // ----------------------------------------------------------------------
-            
-            // Обновляем фон на всякий случай
+            // Просто обновляем фоновый текст таймера
             output.innerHTML = 'Turn off the power';
             $('#output').css('color', 'red').css('font-weight', 'bold');
             
-            // Важно: НЕ сбрасываем флаг isShuttingDown = false здесь, 
-            // чтобы блок else ниже не сработал при попытках реконнекта.
-
          } else {
             // НЕТ, это обычный дисконнект (сеть, сбой сервера и т.д.)
             output.innerHTML = 'Disconnected';
@@ -353,8 +339,11 @@ $('.ui.dropdown')
     socket.on('timer', function (e) {
         //проверка на строку
         if (typeof (e) === 'string') {
+            // Игнорируем обновление нулей таймера от сервера, пока идет проверка или квест готов
+            if (currentGameState === 'ready_processing' || currentGameState === 'ready') {
+                return;
+            }
             $('#output').text(e);
-
         }
     });
     //получаем значение рейтинга и времен
@@ -381,10 +370,16 @@ $('.ui.dropdown')
             
             // 2. ПРОВЕРЯЕМ: Если строка с ошибками не пустая, показываем модальное окно
             if (devices.trim().length > 0) {
+                 
+                 // Превращаем строку с запятыми в красивый столбик с маркерами
+                 let formattedList = devices.split(', ').join('<br>• ');
+
                  swal.fire({
                      title: "Check",
                      icon: "info",
-                     html: 'Not connected : ' + '&nbsp&nbsp' + devices
+                     // Выводим HTML, добавляем выравнивание по левому краю для удобства чтения
+                     html: '<h3 style="margin-bottom: 15px;">Not connected:</h3>' + 
+                           '<div style="text-align: left; display: inline-block; font-size: 1.1em;">• ' + formattedList + '</div>'
                 })
             }
             // 3. Если строка пустая (нет ошибок), ничего не делаем.
@@ -406,9 +401,15 @@ $('.ui.dropdown')
 		// Немедленная очистка состояния ошибки при клике ---
         devices = "";      // 1. Очищаем переменную с текстом ошибок
         swal.close();      // 2. Принудительно закрываем открытое модальное окно
+        
+        // Мгновенно выводим индикацию проверки вместо таймера
+        currentGameState = 'ready_processing';
+        $('#output').text('Checking...');
+        $('#output').css('color', 'orange');
+
         // 3. Отправляем команду на сервер
         socket.emit('time', 'ready');
-    }); 
+    });
     //нажатие на старт тоже отправляем данные на сервак и отпускаем флаги
     $('#Start').click(function(){
       socket.emit('time', 'start');//шлем на сервер
@@ -1212,7 +1213,9 @@ $('.ui.dropdown')
             if(inp === 'arabian') {
                 $('#language').text('Arabian');
             }
-            
+            if(inp === 'french') {
+                $('#language').text('French');
+            }
                 
             
             if(inp === 'HIGH') {
@@ -1249,6 +1252,10 @@ $('.ui.dropdown')
             ////////////////////////////////
             if(inp === 'rest') {
 				currentGameState = 'rest';
+                // Сбрасываем текст и цвет таймера при рестарте
+                $('#output').text('0:00:00');
+                $('#output').css('color', 'white');
+                
                 //если пришло с сервера rest все скидываем обновляем приводим к виду по умолчанию
                 $('#Restart').css('border','red 2px solid');
                 $('#estart').addClass('loading'); 
@@ -1343,6 +1350,9 @@ $('.ui.dropdown')
             }
             if(inp === 'start_game') {
 				currentGameState = 'start_game';
+                // Возвращаем таймеру белый цвет при запуске
+                $('#output').css('color', 'white');
+                
                 restflag = 0;
                 $('#Ready').css('border','grey 2px solid');
                 $('#ready_icon').removeClass('orange');
@@ -1438,13 +1448,26 @@ $('.ui.dropdown')
                 $('#Start').removeClass('disabled');
                 restflag = 1;
 				disBut = 0;
+                
+                // --- Выводим успешный статус готовности ---
+                $('#output').text('Ready to start');
+                $('#output').css('color', '#2ecc71'); // Зеленый цвет
             }
 			// --- Блокировка и разблокировка кнопки "Ready" ---
             if(inp === 'ready_processing') {
+                currentGameState = 'ready_processing';
                 $('#Ready').addClass('disabled loading'); // Блокируем кнопку и добавляем анимацию загрузки
             }
             if(inp === 'ready_finished') {
                 $('#Ready').removeClass('disabled loading'); // Снимаем блокировку и анимацию
+                
+                // Если проверка прервалась ошибкой (мы не перешли в статус 'ready')
+                // возвращаем нули на таймере
+                if (currentGameState === 'ready_processing') {
+                    currentGameState = 'rest';
+                    $('#output').text('0:00:00');
+                    $('#output').css('color', 'white');
+                }
             }
         }
     });
@@ -1483,26 +1506,58 @@ $('.ui.dropdown')
         socket.emit('Remote','animals')
     });
 
-     $('#power_off').click(function(){
-        // 1. Устанавливаем флаг, что мы инициировали выключение
+    $('#power_off').click(function(){
+        // 1. Ставим флаг, чтобы при потере связи не выскакивала ошибка "Disconnected"
         isShuttingDown = true; 
         
-        // 2. Показываем модальное окно "Идет выключение..."
+        // 2. Отправляем команду на сервер (он начнет процесс выключения)
+        socket.emit('Remote','off');
+
+        // 3. Запускаем красивое окно с таймером на 20 секунд
+        let timerInterval;
         swal.fire({
-            title: "Shutting Down",
-            html: "The system is safely shutting down.<br>Please wait, do not turn off the power...",
-            icon: "warning",
-            // Запрещаем закрытие окна
+            title: 'Shutting Down...',
+            html: 'System handling processes.<br>Safe shutdown in <b>20</b> seconds.',
+            icon: 'warning',
+            timer: 20000,           // 20 секунд
+            timerProgressBar: true, // Анимированная полоска внизу
             allowOutsideClick: false,
             allowEscapeKey: false,
-            // Показываем индикатор загрузки
+            showConfirmButton: false,
             didOpen: () => {
-                swal.showLoading();
+                swal.showLoading(); // Добавляет индикатор загрузки
+                
+                // Логика обновления цифр таймера
+                const b = swal.getHtmlContainer().querySelector('b');
+                timerInterval = setInterval(() => {
+                    if (b) {
+                        // Обновляем текст (осталось секунд)
+                        b.textContent = Math.ceil(swal.getTimerLeft() / 1000);
+                    }
+                }, 100);
+            },
+            willClose: () => {
+                clearInterval(timerInterval);
+            }
+        }).then((result) => {
+            // 4. Это сработает, когда таймер (20 сек) закончится
+            if (result.dismiss === swal.DismissReason.timer) {
+                swal.fire({
+                    title: "System Halted",
+                    html: "<div style='font-size: 1.2em; color: green;'>The system is safely shut down.<br>It is safe to turn off the power switch now.</div>",
+                    icon: "success",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false 
+                });
+                
+                // Меняем статус в хедере для надежности
+                if(output) {
+                    output.innerHTML = 'Turn Power OFF';
+                    $('#output').css('color', 'red');
+                }
             }
         });
-        
-        // 3. Отправляем команду на сервер (сервер воспроизведет звук)
-        socket.emit('Remote','off');
     });
 
     $('#wolf').click(function(){
@@ -1595,7 +1650,10 @@ $('.ui.dropdown')
     });   
     $('#arabian').click(function(){
         socket.emit('Remote','arabian')
-    });  
+    });
+	$('#french').click(function(){
+        socket.emit('Remote','french')
+    });
 
     $('#Castle1').click(function () {
         socket.emit('WLAN', 'ssid=Castle1')
@@ -1881,14 +1939,7 @@ $('.ui.dropdown')
 			buttonDownSafe.addEventListener(stop, function() {
 				clearInterval(timerIntervalDownSafe);
 			});
-
-
-      socket.on('timer', function(e) {
-//обновляем текст с таймером
-if (typeof(e) === 'string') {
-$('#output').text(e);   
-}
- });
+			
  // --- WI-FI LOGIC (FIXED) ---
     
     // 1. Открыть/Закрыть меню + ПРОВЕРКА СТАТУСА
