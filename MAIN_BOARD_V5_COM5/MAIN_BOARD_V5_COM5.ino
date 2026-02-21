@@ -852,11 +852,8 @@ void loop() {
           mySerial.println("restart");
           
           OpenAll();
+          isRestInitialized = false;
           RestOn();
-          
-          // [ВАЖНО] Сбрасываем флаг инициализации RestOn
-          isRestInitialized = false; 
-          
           level = 25;
           break; 
         }
@@ -966,7 +963,8 @@ void PowerOn() {
       Serial2.println("restart");
       Serial3.println("restart");
       mySerial.println("restart");
-      OpenAll(); 
+      OpenAll();
+      isRestInitialized = false;
       RestOn();
       level = 25;
       return;
@@ -1823,7 +1821,7 @@ void GaletGame() {
   // Победа: Все 5 включены И предохранитель снят
   if (activeGalets == 5 && gameReadyToWin) {
     delay(200);
-    Serial.println("galet_on"); // Финальная команда победы
+    Serial.println("mansard_finish"); // Финальная команда победы
     
     // Сброс состояния для следующего раза (или рестарта)
     galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
