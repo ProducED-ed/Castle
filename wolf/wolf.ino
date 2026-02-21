@@ -86,7 +86,7 @@ const int TRACK_CLOUD_FI = 4;
 const int TRACK_STORY_9_A_RU = 12;
 const int TRACK_STORY_9_A_EN = 22;
 const int TRACK_STORY_9_A_AR = 32;
-const int TRACK_STORY_9_A_GE = 5;
+const int TRACK_STORY_9_A_FR = 42;
 const int TRACK_STORY_9_A_SP = 5;
 const int TRACK_STORY_9_A_CH = 5;
 
@@ -94,7 +94,7 @@ const int TRACK_STORY_9_A_CH = 5;
 const int TRACK_STORY_9_B_RU = 13;
 const int TRACK_STORY_9_B_EN = 23;
 const int TRACK_STORY_9_B_AR = 33;
-const int TRACK_STORY_9_B_GE = 6;
+const int TRACK_STORY_9_B_FR = 43;
 const int TRACK_STORY_9_B_SP = 6;
 const int TRACK_STORY_9_B_CH = 6;
 
@@ -102,7 +102,7 @@ const int TRACK_STORY_9_B_CH = 6;
 const int TRACK_STORY_9_C_RU = 14;
 const int TRACK_STORY_9_C_EN = 24;
 const int TRACK_STORY_9_C_AR = 34;
-const int TRACK_STORY_9_C_GE = 7;
+const int TRACK_STORY_9_C_FR = 44;
 const int TRACK_STORY_9_C_SP = 7;
 const int TRACK_STORY_9_C_CH = 7;
 
@@ -111,7 +111,7 @@ const int TRACK_STORY_9_C_CH = 7;
 const int TRACK_HINT_1_RU = 16;
 const int TRACK_HINT_1_EN = 26;
 const int TRACK_HINT_1_AR = 36;
-const int TRACK_HINT_1_GE = 9;
+const int TRACK_HINT_1_FR = 46;
 const int TRACK_HINT_1_SP = 9;
 const int TRACK_HINT_1_CH = 9;
 
@@ -119,7 +119,7 @@ const int TRACK_HINT_1_CH = 9;
 const int TRACK_HINT_2_RU = 17;
 const int TRACK_HINT_2_EN = 27;
 const int TRACK_HINT_2_AR = 37;
-const int TRACK_HINT_2_GE = 10;
+const int TRACK_HINT_2_FR = 47;
 const int TRACK_HINT_2_SP = 10;
 const int TRACK_HINT_2_CH = 10;
 
@@ -127,7 +127,7 @@ const int TRACK_HINT_2_CH = 10;
 const int TRACK_HINT_3_RU = 18;
 const int TRACK_HINT_3_EN = 28;
 const int TRACK_HINT_3_AR = 38;
-const int TRACK_HINT_3_GE = 11;
+const int TRACK_HINT_3_FR = 48;
 const int TRACK_HINT_3_SP = 11;
 const int TRACK_HINT_3_CH = 11;
 
@@ -135,7 +135,7 @@ const int TRACK_HINT_3_CH = 11;
 const int TRACK_HINT_4_RU = 19;
 const int TRACK_HINT_4_EN = 29;
 const int TRACK_HINT_4_AR = 39;
-const int TRACK_HINT_4_GE = 11;
+const int TRACK_HINT_4_FR = 49;
 const int TRACK_HINT_4_SP = 11;
 const int TRACK_HINT_4_CH = 11;
 
@@ -143,7 +143,7 @@ const int TRACK_HINT_4_CH = 11;
 const int TRACK_HINT_5_RU = 20;
 const int TRACK_HINT_5_EN = 30;
 const int TRACK_HINT_5_AR = 40;
-const int TRACK_HINT_5_GE = 11;
+const int TRACK_HINT_5_FR = 50;
 const int TRACK_HINT_5_SP = 11;
 const int TRACK_HINT_5_CH = 11;
 
@@ -151,7 +151,7 @@ const int TRACK_HINT_5_CH = 11;
 const int TRACK_HINT_6_RU = 21;
 const int TRACK_HINT_6_EN = 31;
 const int TRACK_HINT_6_AR = 41;
-const int TRACK_HINT_6_GE = 11;
+const int TRACK_HINT_6_FR = 51;
 const int TRACK_HINT_6_SP = 11;
 const int TRACK_HINT_6_CH = 11;
 
@@ -159,7 +159,7 @@ const int TRACK_HINT_6_CH = 11;
 const int TRACK_HINT_0_RU = 15;
 const int TRACK_HINT_0_EN = 25;
 const int TRACK_HINT_0_AR = 35;
-const int TRACK_HINT_0_GE = 8;
+const int TRACK_HINT_0_FR = 45;
 const int TRACK_HINT_0_SP = 8;
 const int TRACK_HINT_0_CH = 8;
 
@@ -257,6 +257,15 @@ void sendLogToServer(String payload) {
   }
 }
 
+// --- Переменные для датчика вибрации ---
+// volatile обязательно для переменных, используемых в прерываниях
+volatile bool vibrationDetected = false; 
+
+// Функция, которая вызывается мгновенно при ударе
+void IRAM_ATTR vibrationISR() {
+  vibrationDetected = true;
+}
+
 void setup() {
   delay(2000);
   Serial.begin(115200);
@@ -337,7 +346,8 @@ void setup() {
   ghost.setDirection(NORM_OPEN);
   ghost.setTickMode(AUTO);
   pinMode(25, INPUT_PULLDOWN);
-
+  // Подключаем прерывание: срабатывает, когда сигнал меняется с LOW на HIGH (RISING)
+  attachInterrupt(digitalPinToInterrupt(25), vibrationISR, RISING);
 
   Serial.println("1");
   if (!myMP3.begin(mySerial, true, true)) {
@@ -538,8 +548,8 @@ void setup() {
           sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (AR)\"}");
         }
         if (language == 4) {
-          myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (GE)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_9_C_FR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (FR)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
@@ -642,8 +652,8 @@ void loop() {
         sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (AR)\"}");
       }
       if (language == 4) {
-        myMP3.playMp3Folder(TRACK_HINT_0_GE);
-        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (GE)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_0_FR);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (FR)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_HINT_0_SP);
@@ -674,8 +684,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (AR)\"}");
         }
         if (language == 4) {
-          myMP3.playMp3Folder(TRACK_HINT_1_GE);
-          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_1_FR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 1 (FR)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_1_SP);
@@ -701,8 +711,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (AR)\"}");
         }
         if (language == 4) {
-          myMP3.playMp3Folder(TRACK_HINT_2_GE);
-          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_2_FR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 2 (FR)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_2_SP);
@@ -728,8 +738,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (AR)\"}");
         }
         if (language == 4) {
-          myMP3.playMp3Folder(TRACK_HINT_3_GE);
-          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_3_FR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 3 (FR)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_3_SP);
@@ -755,8 +765,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (AR)\"}");
         }
         if (language == 4) {
-          myMP3.playMp3Folder(TRACK_HINT_4_GE);
-          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_4_FR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 4 (FR)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_4_SP);
@@ -782,8 +792,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (AR)\"}");
         }
         if (language == 4) {
-          myMP3.playMp3Folder(TRACK_HINT_5_GE);
-          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_5_FR);
+          sendLogToServer("{\"log\":\"Wolf: Playing Hint 5 (FR)\"}");
         }
         if (language == 5) {
           myMP3.playMp3Folder(TRACK_HINT_5_SP);
@@ -814,8 +824,8 @@ void loop() {
         sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (AR)\"}");
       }
       if (language == 4) {
-        myMP3.playMp3Folder(TRACK_HINT_6_GE);
-        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (GE)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_6_FR);
+        sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (FR)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_HINT_6_SP);
@@ -830,11 +840,21 @@ void loop() {
   }
 
 
-  if (ghostFlag == 1 and (ghost.isSingle() or ghost.isDouble() or ghost.isTriple())) {
-    ghostFlag = 0;
+  if (ghostFlag == 1 && vibrationDetected) {
+    ghostFlag = 0;           // Выключаем игру, чтобы не сработало повторно
+    vibrationDetected = false; // Сбрасываем флаг вибрации
+    
     myMP3.stop();
     Serial.println("ghost_game_WIN");
     GhostSendData();
+    
+    // Небольшая задержка, чтобы успокоить датчик
+    delay(100); 
+  }
+  
+  // Если игра НЕ активна, но вибрация идет - просто сбрасываем флаг, чтобы он не копился
+  if (ghostFlag == 0 && vibrationDetected) {
+     vibrationDetected = false;
   }
 
 
@@ -929,8 +949,8 @@ void MoonGame() {
         sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (AR)\"}");
       }
       if (language == 4) {
-        myMP3.playMp3Folder(TRACK_STORY_9_A_GE);
-        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (GE)\"}");
+        myMP3.playMp3Folder(TRACK_STORY_9_A_FR);
+        sendLogToServer("{\"log\":\"Wolf: Playing Story 9 A (FR)\"}");
       }
       if (language == 5) {
         myMP3.playMp3Folder(TRACK_STORY_9_A_SP);
@@ -1072,8 +1092,8 @@ void WolfGame() {
       sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (AR)\"}");
     }
     if (language == 4) {
-      myMP3.playMp3Folder(TRACK_STORY_9_B_GE);
-      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (GE)\"}");
+      myMP3.playMp3Folder(TRACK_STORY_9_B_FR);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 B (FR)\"}");
     }
     if (language == 5) {
       myMP3.playMp3Folder(TRACK_STORY_9_B_SP);
@@ -1128,8 +1148,8 @@ void WolfGame() {
       sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (AR)\"}");
     }
     if (language == 4) {
-      myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (GE)\"}");
+      myMP3.playMp3Folder(TRACK_STORY_9_C_FR);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (FR)\"}");
     }
     if (language == 5) {
       myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
@@ -1189,8 +1209,8 @@ void WolfGame() {
       sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (AR)\"}");
     }
     if (language == 4) {
-      myMP3.playMp3Folder(TRACK_STORY_9_C_GE);
-      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (GE)\"}");
+      myMP3.playMp3Folder(TRACK_STORY_9_C_FR);
+      sendLogToServer("{\"log\":\"Wolf: Playing Story 9 C (FR)\"}");
     }
     if (language == 5) {
       myMP3.playMp3Folder(TRACK_STORY_9_C_SP);
@@ -1302,7 +1322,7 @@ void handlePlayerQueries() {
       if (finishedTrack == TRACK_STORY_9_B_RU ||
           finishedTrack == TRACK_STORY_9_B_EN ||
           finishedTrack == TRACK_STORY_9_B_AR ||
-          finishedTrack == TRACK_STORY_9_B_GE) { // Для GE, SP, CH номер трека один - 6
+          finishedTrack == TRACK_STORY_9_B_FR) { 
             cloudFiPlaying = false;
             Serial.println("Story B finished, unlocking game state.");
       }
