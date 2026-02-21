@@ -446,700 +446,865 @@ player_goal_sounds = [goal1,goal2, goal3, goal4, goal5, goal6, goal7]
 story_1_en = "story_1_en.wav"
 story_1_ar = "story_1_ar.wav"
 story_1_ru = "story_1_ru.wav"
+story_1_fr = "story_1_fr.wav"
 
 story_2_a_en = "story_2_a_en.wav"
 story_2_a_ar = "story_2_a_ar.wav"
 story_2_a_ru = "story_2_a_ru.wav"
+story_2_a_fr = "story_2_a_fr.wav"
 
 story_2_b_en = "story_2_b_en.wav"
 story_2_b_ar = "story_2_b_ar.wav"
 story_2_b_ru = "story_2_b_ru.wav"
+story_2_b_fr = "story_2_b_fr.wav"
 
 story_2_r_en = "story_2_r_en.wav"
 story_2_r_ar = "story_2_r_ar.wav"
 story_2_r_ru = "story_2_r_ru.wav"
+story_2_r_fr = "story_2_r_fr.wav"
 
 story_3_en = "story_3_en.wav"
 story_3_ar = "story_3_ar.wav"
 story_3_ru = "story_3_ru.wav"
+story_3_fr = "story_3_fr.wav"
 
 story_3_r_en = "story_3_r_en.wav"
 story_3_r_ar = "story_3_r_ar.wav"
 story_3_r_ru = "story_3_r_ru.wav"
+story_3_r_fr = "story_3_r_fr.wav"
 
 story_3_a_en = "story_3_a_en.wav"
 story_3_a_ar = "story_3_a_ar.wav"
 story_3_a_ru = "story_3_a_ru.wav"
+story_3_a_fr = "story_3_a_fr.wav"
 
 story_3_b_en = "story_3_b_en.wav"
 story_3_b_ar = "story_3_b_ar.wav"
 story_3_b_ru = "story_3_b_ru.wav"
+story_3_b_fr = "story_3_b_fr.wav"
 
 story_3_c_en = "story_3_c_en.wav"
 story_3_c_ar = "story_3_c_ar.wav"
 story_3_c_ru = "story_3_c_ru.wav"
+story_3_c_fr = "story_3_c_fr.wav"
 
 story_4_en = "story_4_en.wav"
 story_4_ar = "story_4_ar.wav"
 story_4_ru = "story_4_ru.wav"
+story_4_fr = "story_4_fr.wav"
 
 story_5_en = "story_5_en.wav"
 story_5_ar = "story_5_ar.wav"
 story_5_ru = "story_5_ru.wav"
+story_5_fr = "story_5_fr.wav"
 
 story_6_en = "story_6_en.wav"
 story_6_ar = "story_6_ar.wav"
 story_6_ru = "story_6_ru.wav"
+story_6_fr = "story_6_fr.wav"
 
 story_10_en = "story_10_en.wav"
 story_10_ar = "story_10_ar.wav"
 story_10_ru = "story_10_ru.wav"
+story_10_fr = "story_10_fr.wav"
 
 story_11_en = "story_11_en.wav"
 story_11_ar = "story_11_ar.wav"
 story_11_ru = "story_11_ru.wav"
+story_11_fr = "story_11_fr.wav"
 
 story_12_a_en = "story_12_a_en.wav"
 story_12_a_ar = "story_12_a_ar.wav"
 story_12_a_ru = "story_12_a_ru.wav"
+story_12_a_fr = "story_12_a_fr.wav"
 
 story_12_b_en = "story_12_b_en.wav"
 story_12_b_ar = "story_12_b_ar.wav"
 story_12_b_ru = "story_12_b_ru.wav"
+story_12_b_fr = "story_12_b_fr.wav"
 
 story_12_c_en = "story_12_c_en.wav"
 story_12_c_ar = "story_12_c_ar.wav"
 story_12_c_ru = "story_12_c_ru.wav"
+story_12_c_fr = "story_12_c_fr.wav"
 
 story_12_d_en = "story_12_d_en.wav"
 story_12_d_ar = "story_12_d_ar.wav"
 story_12_d_ru = "story_12_d_ru.wav"
+story_12_d_fr = "story_12_d_fr.wav"
 
 story_13_en = "story_13_en.wav"
 story_13_ar = "story_13_ar.wav"
 story_13_ru = "story_13_ru.wav"
+story_13_fr = "story_13_fr.wav"
 
 story_14_a_en = "story_14_a_en.wav"
 story_14_a_ar = "story_14_a_ar.wav"
 story_14_a_ru = "story_14_a_ru.wav"
+story_14_a_fr = "story_14_a_fr.wav"
 
 story_14_b_en = "story_14_b_en.wav"
 story_14_b_ar = "story_14_b_ar.wav"
 story_14_b_ru = "story_14_b_ru.wav"
+story_14_b_fr = "story_14_b_fr.wav"
 
 story_17_en = "story_17_en.wav"
 story_17_ar = "story_17_ar.wav"
 story_17_ru = "story_17_ru.wav"
+story_17_fr = "story_17_fr.wav"
 
 story_18_en = "story_18_en.wav"
 story_18_ar = "story_18_ar.wav"
 story_18_ru = "story_18_ru.wav"
+story_18_fr = "story_18_fr.wav"
 
 story_19_en = "story_19_en.wav"
 story_19_ar = "story_19_ar.wav"
 story_19_ru = "story_19_ru.wav"
+story_19_fr = "story_19_fr.wav"
 
 story_20_a_en = "story_20_a_en.wav"
 story_20_a_ar = "story_20_a_ar.wav"
 story_20_a_ru = "story_20_a_ru.wav"
+story_20_a_fr = "story_20_a_fr.wav"
 
 story_20_b_en = "story_20_b_en.wav"
 story_20_b_ar = "story_20_b_ar.wav"
 story_20_b_ru = "story_20_b_ru.wav"
+story_20_b_fr = "story_20_b_fr.wav"
 
 story_20_c_en = "story_20_c_en.wav"
 story_20_c_ar = "story_20_c_ar.wav"
 story_20_c_ru = "story_20_c_ru.wav"
+story_20_c_fr = "story_20_c_fr.wav"
 
 story_21_en = "story_21_en.wav"
 story_21_ar = "story_21_ar.wav"
 story_21_ru = "story_21_ru.wav"
+story_21_fr = "story_21_fr.wav"
 
 story_22_a_en = "story_22_a_en.wav"
 story_22_a_ar = "story_22_a_ar.wav"
 story_22_a_ru = "story_22_a_ru.wav"
+story_22_a_fr = "story_22_a_fr.wav"
 
 story_22_b_en = "story_22_b_en.wav"
 story_22_b_ar = "story_22_b_ar.wav"
 story_22_b_ru = "story_22_b_ru.wav"
+story_22_b_fr = "story_22_b_fr.wav"
 
 story_22_c_en = "story_22_c_en.wav"
 story_22_c_ar = "story_22_c_ar.wav"
 story_22_c_ru = "story_22_c_ru.wav"
+story_22_c_fr = "story_22_c_fr.wav"
 
 story_23_en = "story_23_en.wav"
 story_23_ar = "story_23_ar.wav"
 story_23_ru = "story_23_ru.wav"
+story_23_fr = "story_23_fr.wav"
 
 story_24_en = "story_24_en.wav"
 story_24_ar = "story_24_ar.wav"
 story_24_ru = "story_24_ru.wav"
+story_24_fr = "story_24_fr.wav"
 
 story_25_en = "story_25_en.wav"
 story_25_ar = "story_25_ar.wav"
 story_25_ru = "story_25_ru.wav"
+story_25_fr = "story_25_fr.wav"
 
 story_26_en = "story_26_en.wav"
 story_26_ar = "story_26_ar.wav"
 story_26_ru = "story_26_ru.wav"
+story_26_fr = "story_26_fr.wav"
 
 story_27_a_en = "story_27_a_en.wav"
 story_27_a_ar = "story_27_a_ar.wav"
 story_27_a_ru = "story_27_a_ru.wav"
+story_27_a_fr = "story_27_a_fr.wav"
 
 story_27_b_en = "story_27_b_en.wav"
 story_27_b_ar = "story_27_b_ar.wav"
 story_27_b_ru = "story_27_b_ru.wav"
+story_27_b_fr = "story_27_b_fr.wav"
 
 story_27_c_en = "story_27_c_en.wav"
 story_27_c_ar = "story_27_c_ar.wav"
 story_27_c_ru = "story_27_c_ru.wav"
+story_27_c_fr = "story_27_c_fr.wav"
 
 story_30_en = "story_30_en.wav"
 story_30_ar = "story_30_ar.wav"
 story_30_ru = "story_30_ru.wav"
+story_30_fr = "story_30_fr.wav"
 
 story_31_en = "story_31_en.wav"
 story_31_ar = "story_31_ar.wav"
 story_31_ru = "story_31_ru.wav"
+story_31_fr = "story_31_fr.wav"
 
 story_32_en = "story_32_en.wav"
 story_32_ar = "story_32_ar.wav"
 story_32_ru = "story_32_ru.wav"
+story_32_fr = "story_32_fr.wav"
 
 story_32_a_en = "story_32_a_en.wav"
 story_32_a_ar = "story_32_a_ar.wav"
 story_32_a_ru = "story_32_a_ru.wav"
+story_32_a_fr = "story_32_a_fr.wav"
 
 story_32_b_en = "story_32_b_en.wav"
 story_32_b_ar = "story_32_b_ar.wav"
 story_32_b_ru = "story_32_b_ru.wav"
+story_32_b_fr = "story_32_b_fr.wav"
 
 story_32_c_en = "story_32_c_en.wav"
 story_32_c_ar = "story_32_c_ar.wav"
 story_32_c_ru = "story_32_c_ru.wav"
+story_32_c_fr = "story_32_c_fr.wav"
 
 story_33_en = "story_33_en.wav"
 story_33_ar = "story_33_ar.wav"
 story_33_ru = "story_33_ru.wav"
+story_33_fr = "story_33_fr.wav"
 
 story_34_en = "story_34_en.wav"
 story_34_ar = "story_34_ar.wav"
 story_34_ru = "story_34_ru.wav"
+story_34_fr = "story_34_fr.wav"
 
 story_35_en = "story_35_en.wav"
 story_35_ar = "story_35_ar.wav"
 story_35_ru = "story_35_ru.wav"
+story_35_fr = "story_35_fr.wav"
 
 story_36_en = "story_36_en.wav"
 story_36_ar = "story_36_ar.wav"
 story_36_ru = "story_36_ru.wav"
+story_36_fr = "story_36_fr.wav"
 
 story_37_en = "story_37_en.wav"
 story_37_ar = "story_37_ar.wav"
 story_37_ru = "story_37_ru.wav"
+story_37_fr = "story_37_fr.wav"
 
 story_38_en = "story_38_en.wav"
 story_38_ar = "story_38_ar.wav"
 story_38_ru = "story_38_ru.wav"
+story_38_fr = "story_38_fr.wav"
 
 story_39_en = "story_39_en.wav"
 story_39_ar = "story_39_ar.wav"
 story_39_ru = "story_39_ru.wav"
+story_39_fr = "story_39_fr.wav"
 
 story_40_en = "story_40_en.wav"
 story_40_ar = "story_40_ar.wav"
 story_40_ru = "story_40_ru.wav"
+story_40_fr = "story_40_fr.wav"
 
 story_41_en = "story_41_en.wav"
 story_41_ar = "story_41_ar.wav"
 story_41_ru = "story_41_ru.wav"
+story_41_fr = "story_41_fr.wav"
 
 story_42_en = "story_42_en.wav"
 story_42_ar = "story_42_ar.wav"
 story_42_ru = "story_42_ru.wav"
+story_42_fr = "story_42_fr.wav"
 
 story_43_en = "story_43_en.wav"
 story_43_ar = "story_43_ar.wav"
 story_43_ru = "story_43_ru.wav"
+story_43_fr = "story_43_fr.wav"
 
 story_44_en = "story_44_en.wav"
 story_44_ar = "story_44_ar.wav"
 story_44_ru = "story_44_ru.wav"
-
-#story_45_en = "story_45_en.wav"
-#story_45_ar = "story_45_ar.wav"
-#story_45_ru = "story_45_ru.wav"
+story_44_fr = "story_44_fr.wav"
 
 story_46_en = "story_46_en.wav"
 story_46_ar = "story_46_ar.wav"
 story_46_ru = "story_46_ru.wav"
+story_46_fr = "story_46_fr.wav"
 
 story_47_en = "story_47_en.wav"
 story_47_ar = "story_47_ar.wav"
 story_47_ru = "story_47_ru.wav"
+story_47_fr = "story_47_fr.wav"
 
 story_48_en = "story_48_en.wav"
 story_48_ar = "story_48_ar.wav"
 story_48_ru = "story_48_ru.wav"
+story_48_fr = "story_48_fr.wav"
 
 story_49_en = "story_49_en.wav"
 story_49_ar = "story_49_ar.wav"
 story_49_ru = "story_49_ru.wav"
+story_49_fr = "story_49_fr.wav"
 
 story_50_en = "story_50_en.wav"
 story_50_ar = "story_50_ar.wav"
 story_50_ru = "story_50_ru.wav"
+story_50_fr = "story_50_fr.wav"
 
 story_51_en = "story_51_en.wav"
 story_51_ar = "story_51_ar.wav"
 story_51_ru = "story_51_ru.wav"
+story_51_fr = "story_51_fr.wav"
 
 story_52_en = "story_52_en.wav"
 story_52_ar = "story_52_ar.wav"
 story_52_ru = "story_52_ru.wav"
+story_52_fr = "story_52_fr.wav"
 
 story_53_en = "story_53_en.wav"
 story_53_ar = "story_53_ar.wav"
 story_53_ru = "story_53_ru.wav"
+story_53_fr = "story_53_fr.wav"
 
 story_54_en = "story_54_en.wav"
 story_54_ar = "story_54_ar.wav"
 story_54_ru = "story_54_ru.wav"
+story_54_fr = "story_54_fr.wav"
 
 story_55_en = "story_55_en.wav"
 story_55_ar = "story_55_ar.wav"
 story_55_ru = "story_55_ru.wav"
+story_55_fr = "story_55_fr.wav"
 
 story_56_en = "story_56_en.wav"
 story_56_ar = "story_56_ar.wav"
 story_56_ru = "story_56_ru.wav"
+story_56_fr = "story_56_fr.wav"
 
 story_57_en = "story_57_en.wav"
 story_57_ar = "story_57_ar.wav"
 story_57_ru = "story_57_ru.wav"
+story_57_fr = "story_57_fr.wav"
 
 story_58_en = "story_58_en.wav"
 story_58_ar = "story_58_ar.wav"
 story_58_ru = "story_58_ru.wav"
+story_58_fr = "story_58_fr.wav"
 
 story_59_en = "story_59_en.wav"
 story_59_ar = "story_59_ar.wav"
 story_59_ru = "story_59_ru.wav"
+story_59_fr = "story_59_fr.wav"
 
 story_60_a_en = "story_60_a_en.wav"
 story_60_a_ar = "story_60_a_ar.wav"
 story_60_a_ru = "story_60_a_ru.wav"
+story_60_a_fr = "story_60_a_fr.wav"
 
 story_60_b_en = "story_60_b_en.wav"
 story_60_b_ar = "story_60_b_ar.wav"
 story_60_b_ru = "story_60_b_ru.wav"
+story_60_b_fr = "story_60_b_fr.wav"
 
 story_60_c_en = "story_60_c_en.wav"
 story_60_c_ar = "story_60_c_ar.wav"
 story_60_c_ru = "story_60_c_ru.wav"
+story_60_c_fr = "story_60_c_fr.wav"
 
 story_60_d_en = "story_60_d_en.wav"
 story_60_d_ar = "story_60_d_ar.wav"
 story_60_d_ru = "story_60_d_ru.wav"
+story_60_d_fr = "story_60_d_fr.wav"
 
 story_60_e_en = "story_60_e_en.wav"
 story_60_e_ar = "story_60_e_ar.wav"
 story_60_e_ru = "story_60_e_ru.wav"
+story_60_e_fr = "story_60_e_fr.wav"
 
 story_60_f_en = "story_60_f_en.wav"
 story_60_f_ar = "story_60_f_ar.wav"
 story_60_f_ru = "story_60_f_ru.wav"
+story_60_f_fr = "story_60_f_fr.wav"
 
 story_60_g_en = "story_60_g_en.wav"
 story_60_g_ar = "story_60_g_ar.wav"
 story_60_g_ru = "story_60_g_ru.wav"
+story_60_g_fr = "story_60_g_fr.wav"
 
 story_60_h_en = "story_60_h_en.wav"
 story_60_h_ar = "story_60_h_ar.wav"
 story_60_h_ru = "story_60_h_ru.wav"
+story_60_h_fr = "story_60_h_fr.wav"
 
 story_60_i_en = "story_60_i_en.wav"
 story_60_i_ar = "story_60_i_ar.wav"
 story_60_i_ru = "story_60_i_ru.wav"
+story_60_i_fr = "story_60_i_fr.wav"
 
 story_60_j_en = "story_60_j_en.wav"
 story_60_j_ar = "story_60_j_ar.wav"
 story_60_j_ru = "story_60_j_ru.wav"
+story_60_j_fr = "story_60_j_fr.wav"
 
 
 story_61_a_en = "story_61_a_en.wav"
 story_61_a_ar = "story_61_a_ar.wav"
 story_61_a_ru = "story_61_a_ru.wav"
+story_61_a_fr = "story_61_a_fr.wav"
 
 story_61_b_en = "story_61_b_en.wav"
 story_61_b_ar = "story_61_b_ar.wav"
 story_61_b_ru = "story_61_b_ru.wav"
+story_61_b_fr = "story_61_b_fr.wav"
 
 story_61_d_en = "story_61_d_en.wav"
 story_61_d_ar = "story_61_d_ar.wav"
 story_61_d_ru = "story_61_d_ru.wav"
+story_61_d_fr = "story_61_d_fr.wav"
 
 story_61_e_en = "story_61_e_en.wav"
 story_61_e_ar = "story_61_e_ar.wav"
 story_61_e_ru = "story_61_e_ru.wav"
+story_61_e_fr = "story_61_e_fr.wav"
 
 story_61_f_en = "story_61_f_en.wav"
 story_61_f_ar = "story_61_f_ar.wav"
 story_61_f_ru = "story_61_f_ru.wav"
+story_61_f_fr = "story_61_f_fr.wav"
 
 story_61_g_en = "story_61_g_en.wav"
 story_61_g_ar = "story_61_g_ar.wav"
 story_61_g_ru = "story_61_g_ru.wav"
+story_61_g_fr = "story_61_g_fr.wav"
 
 story_61_h_en = "story_61_h_en.wav"
 story_61_h_ar = "story_61_h_ar.wav"
 story_61_h_ru = "story_61_h_ru.wav"
+story_61_h_fr = "story_61_h_fr.wav"
 
 story_61_i_en = "story_61_i_en.wav"
 story_61_i_ar = "story_61_i_ar.wav"
 story_61_i_ru = "story_61_i_ru.wav"
+story_61_i_fr = "story_61_i_fr.wav"
 
 story_61_j_en = "story_61_j_en.wav"
 story_61_j_ar = "story_61_j_ar.wav"
 story_61_j_ru = "story_61_j_ru.wav"
+story_61_j_fr = "story_61_j_fr.wav"
 
 story_61_c_en = "story_61_c_en.wav"
 story_61_c_ar = "story_61_c_ar.wav"
 story_61_c_ru = "story_61_c_ru.wav"
+story_61_c_fr = "story_61_c_fr.wav"
 
 story_62_a_en = "story_62_a_en.wav"
 story_62_a_ar = "story_62_a_ar.wav"
 story_62_a_ru = "story_62_a_ru.wav"
+story_62_a_fr = "story_62_a_fr.wav"
 
 story_62_b_en = "story_62_b_en.wav"
 story_62_b_ar = "story_62_b_ar.wav"
 story_62_b_ru = "story_62_b_ru.wav"
+story_62_b_fr = "story_62_b_fr.wav"
 
 story_62_c_en = "story_62_c_en.wav"
 story_62_c_ar = "story_62_c_ar.wav"
 story_62_c_ru = "story_62_c_ru.wav"
+story_62_c_fr = "story_62_c_fr.wav"
 
 story_62_d_en = "story_62_d_en.wav"
 story_62_d_ar = "story_62_d_ar.wav"
 story_62_d_ru = "story_62_d_ru.wav"
+story_62_d_fr = "story_62_d_fr.wav"
 
 story_62_e_en = "story_62_e_en.wav"
 story_62_e_ar = "story_62_e_ar.wav"
 story_62_e_ru = "story_62_e_ru.wav"
+story_62_e_fr = "story_62_e_fr.wav"
 
 story_63_a_en = "story_63_a_en.wav"
 story_63_a_ar = "story_63_a_ar.wav"
 story_63_a_ru = "story_63_a_ru.wav"
+story_63_a_fr = "story_63_a_fr.wav"
 
 story_63_b_en = "story_63_b_en.wav"
 story_63_b_ar = "story_63_b_ar.wav"
 story_63_b_ru = "story_63_b_ru.wav"
+story_63_b_fr = "story_63_b_fr.wav"
 
 story_63_c_en = "story_63_c_en.wav"
 story_63_c_ar = "story_63_c_ar.wav"
 story_63_c_ru = "story_63_c_ru.wav"
+story_63_c_fr = "story_63_c_fr.wav"
 
 story_63_d_en = "story_63_d_en.wav"
 story_63_d_ar = "story_63_d_ar.wav"
 story_63_d_ru = "story_63_d_ru.wav"
+story_63_d_fr = "story_63_d_fr.wav"
 
 story_63_e_en = "story_63_e_en.wav"
 story_63_e_ar = "story_63_e_ar.wav"
 story_63_e_ru = "story_63_e_ru.wav"
+story_63_e_fr = "story_63_e_fr.wav"
 
 story_63_f_en = "story_63_f_en.wav"
 story_63_f_ar = "story_63_f_ar.wav"
 story_63_f_ru = "story_63_f_ru.wav"
+story_63_f_fr = "story_63_f_fr.wav"
 
 story_63_g_en = "story_63_g_en.wav"
 story_63_g_ar = "story_63_g_ar.wav"
 story_63_g_ru = "story_63_g_ru.wav"
+story_63_g_fr = "story_63_g_fr.wav"
 
 story_63_h_en = "story_63_h_en.wav"
 story_63_h_ar = "story_63_h_ar.wav"
 story_63_h_ru = "story_63_h_ru.wav"
+story_63_h_fr = "story_63_h_fr.wav"
 
 story_63_i_en = "story_63_i_en.wav"
 story_63_i_ar = "story_63_i_ar.wav"
 story_63_i_ru = "story_63_i_ru.wav"
+story_63_i_fr = "story_63_i_fr.wav"
 
 story_63_j_en = "story_63_j_en.wav"
 story_63_j_ar = "story_63_j_ar.wav"
 story_63_j_ru = "story_63_j_ru.wav"
+story_63_j_fr = "story_63_j_fr.wav"
 
 story_64_a_en = "story_64_a_en.wav"
 story_64_a_ar = "story_64_a_ar.wav"
 story_64_a_ru = "story_64_a_ru.wav"
+story_64_a_fr = "story_64_a_fr.wav"
 
 story_64_b_en = "story_64_b_en.wav"
 story_64_b_ar = "story_64_b_ar.wav"
 story_64_b_ru = "story_64_b_ru.wav"
+story_64_b_fr = "story_64_b_fr.wav"
 
 story_65_a_en = "story_65_a_en.wav"
 story_65_a_ar = "story_65_a_ar.wav"
 story_65_a_ru = "story_65_a_ru.wav"
+story_65_a_fr = "story_65_a_fr.wav"
 
 story_65_b_en = "story_65_b_en.wav"
 story_65_b_ar = "story_65_b_ar.wav"
 story_65_b_ru = "story_65_b_ru.wav"
+story_65_b_fr = "story_65_b_fr.wav"
 
 story_65_c_en = "story_65_c_en.wav"
 story_65_c_ar = "story_65_c_ar.wav"
 story_65_c_ru = "story_65_c_ru.wav"
+story_65_c_fr = "story_65_c_fr.wav"
 
 story_65_d_en = "story_65_d_en.wav"
 story_65_d_ar = "story_65_d_ar.wav"
 story_65_d_ru = "story_65_d_ru.wav"
+story_65_d_fr = "story_65_d_fr.wav"
 
 story_65_e_en = "story_65_e_en.wav"
 story_65_e_ar = "story_65_e_ar.wav"
 story_65_e_ru = "story_65_e_ru.wav"
+story_65_e_fr = "story_65_e_fr.wav"
 
 story_65_f_en = "story_65_f_en.wav"
 story_65_f_ar = "story_65_f_ar.wav"
 story_65_f_ru = "story_65_f_ru.wav"
+story_65_f_fr = "story_65_f_fr.wav"
 
 story_65_g_en = "story_65_g_en.wav"
 story_65_g_ar = "story_65_g_ar.wav"
 story_65_g_ru = "story_65_g_ru.wav"
+story_65_g_fr = "story_65_g_fr.wav"
 
 story_65_h_en = "story_65_h_en.wav"
 story_65_h_ar = "story_65_h_ar.wav"
 story_65_h_ru = "story_65_h_ru.wav"
+story_65_h_fr = "story_65_h_fr.wav"
 
 story_65_i_en = "story_65_i_en.wav"
 story_65_i_ar = "story_65_i_ar.wav"
 story_65_i_ru = "story_65_i_ru.wav"
+story_65_i_fr = "story_65_i_fr.wav"
 
 story_65_j_en = "story_65_j_en.wav"
 story_65_j_ar = "story_65_j_ar.wav"
 story_65_j_ru = "story_65_j_ru.wav"
+story_65_j_fr = "story_65_j_fr.wav"
 
 story_66_en = "story_66_en.wav"
 story_66_ar = "story_66_ar.wav"
 story_66_ru = "story_66_ru.wav"
+story_66_fr = "story_66_fr.wav"
 
 story_67_en = "story_67_en.wav"
 story_67_ar = "story_67_ar.wav"
 story_67_ru = "story_67_ru.wav"
+story_67_fr = "story_67_fr.wav"
 
 story_68_en = "story_68_en.wav"
 story_68_ar = "story_68_ar.wav"
 story_68_ru = "story_68_ru.wav"
+story_68_fr = "story_68_fr.wav"
 
 story_69_en = "story_69_en.wav"
 story_69_ar = "story_69_ar.wav"
 story_69_ru = "story_69_ru.wav"
+story_69_fr = "story_69_fr.wav"
 
 story_70_en = "story_70_en.wav"
 story_70_ar = "story_70_ar.wav"
 story_70_ru = "story_70_ru.wav"
+story_70_fr = "story_70_fr.wav"
 
 #дракон
 hint_2_b_en = "hint_2_b_en.wav"
 hint_2_b_ar = "hint_2_b_ar.wav"
 hint_2_b_ru = "hint_2_b_ru.wav"
+hint_2_b_fr = "hint_2_b_fr.wav"
 
 hint_2_c_en = "hint_2_c_en.wav"
 hint_2_c_ar = "hint_2_c_ar.wav"
 hint_2_c_ru = "hint_2_c_ru.wav"
+hint_2_c_fr = "hint_2_c_fr.wav"
 
 hint_2_z_en = "hint_2_z_en.wav"
 hint_2_z_ar = "hint_2_z_ar.wav"
 hint_2_z_ru = "hint_2_z_ru.wav"
+hint_2_z_fr = "hint_2_z_fr.wav"
 
 #мальчик
 hint_3_b_en = "hint_3_b_en.wav"
 hint_3_b_ar = "hint_3_b_ar.wav"
 hint_3_b_ru = "hint_3_b_ru.wav"
+hint_3_b_fr = "hint_3_b_fr.wav"
 
 hint_3_c_en = "hint_3_c_en.wav"
 hint_3_c_ar = "hint_3_c_ar.wav"
 hint_3_c_ru = "hint_3_c_ru.wav"
+hint_3_c_fr = "hint_3_c_fr.wav"
 
 hint_3_z_en = "hint_3_z_en.wav"
 hint_3_z_ar = "hint_3_z_ar.wav"
 hint_3_z_ru = "hint_3_z_ru.wav"
+hint_3_z_fr = "hint_3_z_fr.wav"
 
 #дракон
 hint_5_b_en = "hint_5_b_en.wav"
 hint_5_b_ar = "hint_5_b_ar.wav"
 hint_5_b_ru = "hint_5_b_ru.wav"
+hint_5_b_fr = "hint_5_b_fr.wav"
 
 hint_5_c_en = "hint_5_c_en.wav"
 hint_5_c_ar = "hint_5_c_ar.wav"
 hint_5_c_ru = "hint_5_c_ru.wav"
+hint_5_c_fr = "hint_5_c_fr.wav"
 
 #макгонагл
 hint_6_b_en = "hint_6_b_en.wav"
 hint_6_b_ar = "hint_6_b_ar.wav"
 hint_6_b_ru = "hint_6_b_ru.wav"
+hint_6_b_fr = "hint_6_b_fr.wav"
 
 hint_6_c_en = "hint_6_c_en.wav"
 hint_6_c_ar = "hint_6_c_ar.wav"
 hint_6_c_ru = "hint_6_c_ru.wav"
+hint_6_c_fr = "hint_6_c_fr.wav"
 
 #макгонагл
 hint_10_b_en = "hint_10_b_en.wav"
 hint_10_b_ar = "hint_10_b_ar.wav"
 hint_10_b_ru = "hint_10_b_ru.wav"
+hint_10_b_fr = "hint_10_b_fr.wav"
 
 hint_10_c_en = "hint_10_c_en.wav"
 hint_10_c_ar = "hint_10_c_ar.wav"
 hint_10_c_ru = "hint_10_c_ru.wav"
+hint_10_c_fr = "hint_10_c_fr.wav"
 
 hint_11_b_en = "hint_11_b_en.wav"
 hint_11_b_ar = "hint_11_b_ar.wav"
 hint_11_b_ru = "hint_11_b_ru.wav"
+hint_11_b_fr = "hint_11_b_fr.wav"
 
 hint_11_c_en = "hint_11_c_en.wav"
 hint_11_c_ar = "hint_11_c_ar.wav"
 hint_11_c_ru = "hint_11_c_ru.wav"
+hint_11_c_fr = "hint_11_c_fr.wav"
 
 hint_11_z_en = "hint_11_z_en.wav"
 hint_11_z_ar = "hint_11_z_ar.wav"
 hint_11_z_ru = "hint_11_z_ru.wav"
+hint_11_z_fr = "hint_11_z_fr.wav"
 
 #гном
 hint_14_b_en = "hint_14_b_en.wav"
 hint_14_b_ar = "hint_14_b_ar.wav"
 hint_14_b_ru = "hint_14_b_ru.wav"
+hint_14_b_fr = "hint_14_b_fr.wav"
 
 hint_14_c_en = "hint_14_c_en.wav"
 hint_14_c_ar = "hint_14_c_ar.wav"
 hint_14_c_ru = "hint_14_c_ru.wav"
+hint_14_c_fr = "hint_14_c_fr.wav"
 
 hint_14_z_en = "hint_14_z_en.wav"
 hint_14_z_ar = "hint_14_z_ar.wav"
 hint_14_z_ru = "hint_14_z_ru.wav"
+hint_14_z_fr = "hint_14_z_fr.wav"
 
 #ведьма
 hint_17_b_en = "hint_17_b_en.wav"
 hint_17_b_ar = "hint_17_b_ar.wav"
 hint_17_b_ru = "hint_17_b_ru.wav"
+hint_17_b_fr = "hint_17_b_fr.wav"
 
 hint_17_c_en = "hint_17_c_en.wav"
 hint_17_c_ar = "hint_17_c_ar.wav"
 hint_17_c_ru = "hint_17_c_ru.wav"
+hint_17_c_fr = "hint_17_c_fr.wav"
 
 hint_17_z_en = "hint_17_z_en.wav"
 hint_17_z_ar = "hint_17_z_ar.wav"
 hint_17_z_ru = "hint_17_z_ru.wav"
+hint_17_z_fr = "hint_17_z_fr.wav"
 
 #рыцарь
 hint_19_b_en = "hint_19_b_en.wav"
 hint_19_b_ar = "hint_19_b_ar.wav"
 hint_19_b_ru = "hint_19_b_ru.wav"
+hint_19_b_fr = "hint_19_b_fr.wav"
 
 hint_19_c_en = "hint_19_c_en.wav"
 hint_19_c_ar = "hint_19_c_ar.wav"
 hint_19_c_ru = "hint_19_c_ru.wav"
+hint_19_c_fr = "hint_19_c_fr.wav"
 
 hint_19_z_en = "hint_19_z_en.wav"
 hint_19_z_ar = "hint_19_z_ar.wav"
 hint_19_z_ru = "hint_19_z_ru.wav"
+hint_19_z_fr = "hint_19_z_fr.wav"
 
 #гоблин
 hint_23_b_en = "hint_23_b_en.wav"
 hint_23_b_ar = "hint_23_b_ar.wav"
 hint_23_b_ru = "hint_23_b_ru.wav"
+hint_23_b_fr = "hint_23_b_fr.wav"
 
 hint_23_c_en = "hint_23_c_en.wav"
 hint_23_c_ar = "hint_23_c_ar.wav"
 hint_23_c_ru = "hint_23_c_ru.wav"
+hint_23_c_fr = "hint_23_c_fr.wav"
 
 hint_23_z_en = "hint_23_z_en.wav"
 hint_23_z_ar = "hint_23_z_ar.wav"
 hint_23_z_ru = "hint_23_z_ru.wav"
+hint_23_z_fr = "hint_23_z_fr.wav"
 
 #троль
 hint_26_b_en = "hint_26_b_en.wav"
 hint_26_b_ar = "hint_26_b_ar.wav"
 hint_26_b_ru = "hint_26_b_ru.wav"
+hint_26_b_fr = "hint_26_b_fr.wav"
 
 hint_26_c_en = "hint_26_c_en.wav"
 hint_26_c_ar = "hint_26_c_ar.wav"
 hint_26_c_ru = "hint_26_c_ru.wav"
+hint_26_c_fr = "hint_26_c_fr.wav"
 
 hint_26_z_en = "hint_26_z_en.wav"
 hint_26_z_ar = "hint_26_z_ar.wav"
 hint_26_z_ru = "hint_26_z_ru.wav"
+hint_26_z_fr = "hint_26_z_fr.wav"
 
 #плотник
 hint_32_b_en = "hint_32_b_en.wav"
 hint_32_b_ar = "hint_32_b_ar.wav"
 hint_32_b_ru = "hint_32_b_ru.wav"
+hint_32_b_fr = "hint_32_b_fr.wav"
 
 hint_32_c_en = "hint_32_c_en.wav"
 hint_32_c_ar = "hint_32_c_ar.wav"
 hint_32_c_ru = "hint_32_c_ru.wav"
+hint_32_c_fr = "hint_32_c_fr.wav"
 
 hint_32_d_en = "hint_32_d_en.wav"
 hint_32_d_ar = "hint_32_d_ar.wav"
 hint_32_d_ru = "hint_32_d_ru.wav"
+hint_32_d_fr = "hint_32_d_fr.wav"
 
 hint_32_e_en = "hint_32_e_en.wav"
 hint_32_e_ar = "hint_32_e_ar.wav"
 hint_32_e_ru = "hint_32_e_ru.wav"
+hint_32_e_fr = "hint_32_e_fr.wav"
 
 hint_32_z_en = "hint_32_z_en.wav"
 hint_32_z_ar = "hint_32_z_ar.wav"
 hint_32_z_ru = "hint_32_z_ru.wav"
+hint_32_z_fr = "hint_32_z_fr.wav"
 
 #студент
 hint_37_b_en = "hint_37_b_en.wav"
 hint_37_b_ar = "hint_37_b_ar.wav"
 hint_37_b_ru = "hint_37_b_ru.wav"
+hint_37_b_fr = "hint_37_b_fr.wav"
 
 hint_37_c_en = "hint_37_c_en.wav"
 hint_37_c_ar = "hint_37_c_ar.wav"
 hint_37_c_ru = "hint_37_c_ru.wav"
+hint_37_c_fr = "hint_37_c_fr.wav"
 
 hint_38_b_en = "hint_38_b_en.wav"
 hint_38_b_ar = "hint_38_b_ar.wav"
 hint_38_b_ru = "hint_38_b_ru.wav"
+hint_38_b_fr = "hint_38_b_fr.wav"
 
 #студент
 hint_44_b_en = "hint_44_b_en.wav"
 hint_44_b_ar = "hint_44_b_ar.wav"
 hint_44_b_ru = "hint_44_b_ru.wav"
+hint_44_b_fr = "hint_44_b_fr.wav"
 
 hint_44_c_en = "hint_44_c_en.wav"
 hint_44_c_ar = "hint_44_c_ar.wav"
 hint_44_c_ru = "hint_44_c_ru.wav"
+hint_44_c_fr = "hint_44_c_fr.wav"
 
 #пугачева
 hint_49_b_en = "hint_49_b_en.wav"
 hint_49_b_ar = "hint_49_b_ar.wav"
 hint_49_b_ru = "hint_49_b_ru.wav"
+hint_49_b_fr = "hint_49_b_fr.wav"
 
 hint_49_c_en = "hint_49_c_en.wav"
 hint_49_c_ar = "hint_49_c_ar.wav"
 hint_49_c_ru = "hint_49_c_ru.wav"
+hint_49_c_fr = "hint_49_c_fr.wav"
 
 #пугачева
 hint_50_b_en = "hint_50_b_en.wav"
 hint_50_b_ar = "hint_50_b_ar.wav"
 hint_50_b_ru = "hint_50_b_ru.wav"
+hint_50_b_fr = "hint_50_b_fr.wav"
 
 hint_50_c_en = "hint_50_c_en.wav"
 hint_50_c_ar = "hint_50_c_ar.wav"
 hint_50_c_ru = "hint_50_c_ru.wav"
+hint_50_c_fr = "hint_50_c_fr.wav"
 
 #пугчева
 hint_51_b_en = "hint_51_b_en.wav"
 hint_51_b_ar = "hint_51_b_ar.wav"
 hint_51_b_ru = "hint_51_b_ru.wav"
+hint_51_b_fr = "hint_51_b_fr.wav"
 
 hint_51_c_en = "hint_51_c_en.wav"
 hint_51_c_ar = "hint_51_c_ar.wav"
 hint_51_c_ru = "hint_51_c_ru.wav"
+hint_51_c_fr = "hint_51_c_fr.wav"
 
 #снова студент
 hint_56_b_en = "hint_56_b_en.wav"
 hint_56_b_ar = "hint_56_b_ar.wav"
 hint_56_b_ru = "hint_56_b_ru.wav"
+hint_56_b_fr = "hint_56_b_fr.wav"
 
 # --- Карта для логирования имен звуковых файлов ---
 # Эта карта сопоставляет объект pygame.mixer.Sound с его именем файла (или переменной)
@@ -1251,6 +1416,10 @@ player_goal_stories_ar = [
     story_61_b_ar, story_61_c_ar, story_61_d_ar, story_61_e_ar, story_61_f_ar, 
     story_61_g_ar, story_61_h_ar, story_61_i_ar, story_61_j_ru
 ]
+player_goal_stories_fr = [
+    story_61_b_fr, story_61_c_fr, story_61_d_fr, story_61_e_fr, story_61_f_fr, 
+    story_61_g_fr, story_61_h_fr, story_61_i_fr, story_61_j_fr
+]
 
 enemy_goal_sounds = [enemy_goal1, enemy_goal2, enemy_goal3, enemy_goal4]
 
@@ -1267,6 +1436,10 @@ enemy_goal_stories_ar = [
     story_65_a_ar, story_65_b_ar, story_65_c_ar, story_65_d_ar, story_65_e_ar, 
     story_65_f_ar, story_65_g_ar, story_65_h_ar, story_65_i_ar, story_65_j_ar
 ]
+enemy_goal_stories_fr = [
+    story_65_a_fr, story_65_b_fr, story_65_c_fr, story_65_d_fr, story_65_e_fr, 
+    story_65_f_fr, story_65_g_fr, story_65_h_fr, story_65_i_fr, story_65_j_fr
+]
 
 # --- Story 62: Тайм-аут игрока (поймал, но долго не бросал) ---
 timeout_stories_ru = [
@@ -1277,6 +1450,9 @@ timeout_stories_en = [
 ]
 timeout_stories_ar = [
     story_62_a_ar, story_62_b_ar, story_62_c_ar, story_62_d_ar, story_62_e_ar
+]
+timeout_stories_fr = [
+    story_62_a_fr, story_62_b_fr, story_62_c_fr, story_62_d_fr, story_62_e_fr
 ]
 
 # --- Story 63: Враг перехватил мяч ---
@@ -1292,6 +1468,10 @@ red_ball_active_stories_ar = [
     story_63_a_ar, story_63_b_ar, story_63_c_ar, story_63_d_ar, story_63_e_ar,
     story_63_f_ar, story_63_g_ar, story_63_h_ar, story_63_i_ar, story_63_j_ru # Внимание: тут в оригинале был j_ru для арабского, проверьте
 ]
+red_ball_active_stories_fr = [
+    story_63_a_fr, story_63_b_fr, story_63_c_fr, story_63_d_fr, story_63_e_fr,
+    story_63_f_fr, story_63_g_fr, story_63_h_fr, story_63_i_fr, story_63_j_fr
+]
 
 # --- Story 64: Игрок перехватил мяч ---
 enemy_catch_stories_ru = [
@@ -1302,6 +1482,9 @@ enemy_catch_stories_en = [
 ]
 enemy_catch_stories_ar = [
     story_64_a_ar, story_64_b_ar
+]
+enemy_catch_stories_fr = [
+    story_64_a_fr, story_64_b_fr
 ]
 
 #---------читаем файлы записываем в переменные 
@@ -1756,44 +1939,45 @@ def Remote(check):
        f4.close() 
        #----присваиваем значение переменной
        language = 1
+       logger.info("Language switched to Russian (ID: 1)")
        send_esp32_command(ESP32_API_WOLF_URL, "language_1")
        send_esp32_command(ESP32_API_TRAIN_URL, "language_1")
        send_esp32_command(ESP32_API_SUITCASE_URL, "language_1")
        send_esp32_command(ESP32_API_SAFE_URL, "language_1")
-       #------если какая то история или подсказка воспроизводится в методе langRu озвучиваем ту же дорожку только на русском
-       #if channel3.get_busy()==True:
-         # langRu()
-      #-------иначе просто воспроизведем ее еще раз    
-       #else:
-          #langRuRepeat(name)
 
      if check == 'english':
        f4 = open('4.txt','w')
        f4.write('2')
        f4.close() 
-       language = 2 
+       language = 2
+       logger.info("Language switched to English (ID: 2)")
        send_esp32_command(ESP32_API_WOLF_URL, "language_2")
        send_esp32_command(ESP32_API_TRAIN_URL, "language_2")
        send_esp32_command(ESP32_API_SUITCASE_URL, "language_2")
        send_esp32_command(ESP32_API_SAFE_URL, "language_2")
-       #if channel3.get_busy()==True:
-          #langEn()
-       #else:
-          #langEnRepeat(name)
           
      if check == 'arabian':
        f4 = open('4.txt','w')
        f4.write('3')
        f4.close() 
-       language = 3 
+       language = 3
+       logger.info("Language switched to Arabian (ID: 3)")
        send_esp32_command(ESP32_API_WOLF_URL, "language_3")
        send_esp32_command(ESP32_API_TRAIN_URL, "language_3")
        send_esp32_command(ESP32_API_SUITCASE_URL, "language_3")
        send_esp32_command(ESP32_API_SAFE_URL, "language_3")
-       #if channel3.get_busy()==True:
-          #langFr()
-       #else:
-          #langFrRepeat(name)           
+          
+     if check == 'french':       # Если нажали "French"
+       f4 = open('4.txt','w')    # Открываем файл настроек
+       f4.write('4')             # Записываем цифру 4 (это будет код французского)
+       f4.close() 
+       language = 4              # Переключаем переменную
+       logger.info("Language switched to French (ID: 4)")
+       # Отправляем команду на внешние устройства (если они прошиты под это)
+       send_esp32_command(ESP32_API_WOLF_URL, "language_4")
+       send_esp32_command(ESP32_API_TRAIN_URL, "language_4")
+       send_esp32_command(ESP32_API_SUITCASE_URL, "language_4")
+       send_esp32_command(ESP32_API_SAFE_URL, "language_4")
 
     #----нажали выключить
      if check == 'off':
@@ -1914,6 +2098,8 @@ def Remote(check):
                  play_story(story_5_en)
              if(language==3):
                  play_story(story_5_ar)
+             if(language==4):
+                 play_story(story_5_fr)
 
              while channel3.get_busy()==True and go == 1: 
                  eventlet.sleep(0.1)
@@ -1924,6 +2110,8 @@ def Remote(check):
                  play_story(story_6_en)
              if(language==3):
                  play_story(story_6_ar)
+             if(language==4):
+                 play_story(story_6_fr)
 
              while channel3.get_busy()==True and go == 1: 
                  eventlet.sleep(0.1)
@@ -2035,6 +2223,8 @@ def Remote(check):
                  play_story(story_17_en) #
              if(language==3):
                  play_story(story_17_ar) #
+             if(language==4):
+                 play_story(story_17_fr)
 
              # 4. Активируем следующий этап
              socketio.emit('level', 'active_open_potions_stash',to=None) #
@@ -2085,6 +2275,8 @@ def Remote(check):
                  play_story(story_14_b_en) #
              if(language==3):
                  play_story(story_14_b_ar) #
+             if(language==4):
+                 play_story(story_14_b_fr)
              eventlet.sleep(1)
         if check == 'projector':
              #-----отправка клиенту 
@@ -2432,6 +2624,8 @@ def handle_data():
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
+               if(language==4):
+                   play_story(story_12_a_fr)
           elif mapClickHints == 1:
                mapClickHints = 0
                if(language==1):
@@ -2440,6 +2634,8 @@ def handle_data():
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
+               if(language==4):
+                   play_story(story_12_b_fr)
 
         if 'map' in data and data['map'] == 'fish':
           logger.debug("'map: fish' logic triggered.")
@@ -2456,6 +2652,8 @@ def handle_data():
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
+               if(language==4):
+                   play_story(story_12_a_fr)
           elif mapClickHints == 1:
                mapClickHints = 0
                if(language==1):
@@ -2464,6 +2662,8 @@ def handle_data():
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
+               if(language==4):
+                   play_story(story_12_b_fr)
 
         if 'map' in data and data['map'] == 'key':
           logger.debug("'map: key' logic triggered.")
@@ -2480,6 +2680,8 @@ def handle_data():
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
+               if(language==4):
+                   play_story(story_12_a_fr)
           elif mapClickHints == 1:
                mapClickHints = 0
                if(language==1):
@@ -2488,6 +2690,8 @@ def handle_data():
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
+               if(language==4):
+                   play_story(story_12_b_fr)
 
         if 'map' in data and data['map'] == 'train':
           logger.debug("'map: train' logic triggered.")
@@ -2508,6 +2712,8 @@ def handle_data():
                    play_story(story_12_a_en)
                if(language==3):
                    play_story(story_12_a_ar)
+               if(language==4):
+                   play_story(story_12_a_fr)
           elif mapClickHints == 1:
                mapClickHints = 0
                if(language==1):
@@ -2516,6 +2722,8 @@ def handle_data():
                    play_story(story_12_b_en)
                if(language==3):
                    play_story(story_12_b_ar)
+               if(language==4):
+                   play_story(story_12_b_fr)
 
         if 'train' in data and data['train'] == 'end':
             logger.debug("'train: end' logic triggered.")
@@ -2553,6 +2761,8 @@ def handle_data():
                    play_story(story_12_c_en)
                if(language==3):
                    play_story(story_12_c_ar)
+               if(language==4):
+                   play_story(story_12_c_fr)
           elif mapClickOut == 1:
                mapClickOut = 0
                if(language==1):
@@ -2561,6 +2771,8 @@ def handle_data():
                    play_story(story_12_d_en)
                if(language==3):
                    play_story(story_12_d_ar)
+               if(language==4):
+                   play_story(story_12_d_fr)
 
         if 'ghost' in data and data['ghost'] == 'end':
             logger.debug("'ghost: end' logic triggered.")
@@ -2608,6 +2820,8 @@ def tmr(res):
          socketio.emit('lang', 'english', to=None)
      if language==3: 
          socketio.emit('lang', 'arabian', to=None) 
+     if language==4: 
+         socketio.emit('lang', 'french', to=None) 
     
      #----если пришло сообщение о паузе проверяем что бы игра находилась в режиме старта
      if res =='pause':
@@ -3187,6 +3401,7 @@ def handle_basket_timeout():
     if language == 1: current_list = timeout_stories_ru
     elif language == 2: current_list = timeout_stories_en
     elif language == 3: current_list = timeout_stories_ar
+    elif language == 4: current_list = timeout_stories_fr
         
     if current_list:
         if timeoutCount < len(current_list):
@@ -3303,6 +3518,8 @@ def serial():
                             play_story(story_11_en)
                         if(language==3):
                             play_story(story_11_ar)
+                        if(language==4):
+                            play_story(story_11_fr)
                         nextTrack = 0
 
                               #----активируем игру
@@ -3529,6 +3746,11 @@ def serial():
                              send_esp32_command(ESP32_API_TRAIN_URL, "language_3")
                              send_esp32_command(ESP32_API_SUITCASE_URL, "language_3")
                              send_esp32_command(ESP32_API_SAFE_URL, "language_3")
+                         if language==4: 
+                             send_esp32_command(ESP32_API_WOLF_URL, "language_4")
+                             send_esp32_command(ESP32_API_TRAIN_URL, "language_4")
+                             send_esp32_command(ESP32_API_SUITCASE_URL, "language_4")
+                             send_esp32_command(ESP32_API_SAFE_URL, "language_4")
                          #----добавим в истори старт
                          socklist.append('50')
                          socklist.append('start_game')
@@ -3565,6 +3787,8 @@ def serial():
                              play_story(story_1_en)
                          if(language==3):
                              play_story(story_1_ar)
+                         if(language==4):
+                             play_story(story_1_fr)
                          #-----меняем значение переменной
                          name = "start_story_1"    
                          
@@ -3578,6 +3802,8 @@ def serial():
                              play_story(story_2_a_en)
                          if(language==3):
                              play_story(story_2_a_ar)         
+                         if(language==4):
+                             play_story(story_2_a_fr)
                    #---режим для событий в ресте показывает что нужно вернуть на свои места
                    
                    # Добавляем проверку для "грязных" сообщений выключения
@@ -3781,6 +4007,8 @@ def serial():
                                   play_story(story_2_b_en)
                               if(language==3):
                                   play_story(story_2_b_ar)
+                              if(language==4):
+                                  play_story(story_2_b_fr)
                          if flag == "dragon_crystal_repeat":
                               #----играем историю    
                               if(language==1):
@@ -3789,6 +4017,8 @@ def serial():
                                   play_story(story_2_r_en)
                               if(language==3):
                                   play_story(story_2_r_ar)         
+                              if(language==4):
+                                  play_story(story_2_r_fr)
                          if flag == "open_door":
                               #----отправили на клиента
                               socketio.emit('level', 'open_door',to=None)
@@ -3807,6 +4037,8 @@ def serial():
                                   play_story(story_3_en)
                               if(language==3):
                                   play_story(story_3_ar)
+                              if(language==4):
+                                  play_story(story_3_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.1) 
@@ -3832,6 +4064,8 @@ def serial():
                                   play_story(story_3_a_en)
                               if(language==3):
                                   play_story(story_3_a_ar)              
+                              if(language==4):
+                                  play_story(story_3_a_fr)
                               #-----изменяем переменную
                               name = "story_1"  
                               #-----активируем блок с галетниками
@@ -3856,6 +4090,8 @@ def serial():
                                   play_story(story_3_b_en)
                               if(language==3):
                                   play_story(story_3_b_ar)  
+                              if(language==4):
+                                  play_story(story_3_b_fr)
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)  
@@ -3879,6 +4115,8 @@ def serial():
                                   play_story(story_3_c_en)
                               if(language==3):
                                   play_story(story_3_c_ar)
+                              if(language==4):
+                                  play_story(story_3_c_fr)
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)         
@@ -3900,6 +4138,8 @@ def serial():
                                   play_story(story_4_en)
                               if(language==3):
                                   play_story(story_4_ar)
+                              if(language==4):
+                                  play_story(story_4_fr)
                               #-----изменяем переменную
                          if flag == "kay_repeat":
                               if(language==1):
@@ -3908,6 +4148,8 @@ def serial():
                                   play_story(story_3_r_en)
                               if(language==3):
                                   play_story(story_3_r_ar)
+                              if(language==4):
+                                  play_story(story_3_r_fr)
                          # --- Логика для Прогресс-бара Mansard Game (5 галетников) ---
                               
                          # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
@@ -3948,8 +4190,16 @@ def serial():
                           
                              # Проверяем, отличается ли новое значение от старого (чтобы не спамить)
                              if current_count != last_mansard_count:
-                                 percent = current_count * 20
-                                 event_name = f"mansard_progress_{percent}" # например, "mansard_progress_40"
+                                 raw_percent = current_count * 20
+                                 
+                                 # ОГРАНИЧЕНИЕ: Не показываем 100% автоматически.
+                                 # Максимум 80%, пока не придет команда 'mansard_finish'.
+                                 if raw_percent >= 100:
+                                     percent = 80
+                                 else:
+                                     percent = raw_percent
+                                     
+                                 event_name = f"mansard_progress_{percent}"
                               
                                  # 4.1. Отправляем в SocketIO
                                  socketio.emit('level', event_name, to=None)
@@ -3972,48 +4222,61 @@ def serial():
                                  last_mansard_count = current_count
                                  logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
                          # --- Конец Логики Прогресс-бара Mansard Game ---
-                         #----прошли галетники     
-                         if flag=="galet_on":
-                              # --- Фиксируем, что мы перешли на этап 2 ---
+                         
+                         # НОВЫЙ ОБРАБОТЧИК ПОБЕДЫ (вместо if flag=="galet_on":)
+                         if flag == "mansard_finish":
+                              # 1. Принудительно ставим 100% на шкале
+                              socketio.emit('level', 'mansard_progress_100', to=None)
+                              
+                              # Чистим историю от старых процентов (0, 20, 40...)
+                              for i in range(0, 100, 20):
+                                  t_name = f"mansard_progress_{i}"
+                                  while t_name in socklist: socklist.remove(t_name)
+                              
+                              # Записываем 100% в историю
+                              if 'mansard_progress_100' not in socklist:
+                                  socklist.append('mansard_progress_100')
+                              
+                              # Фиксируем состояние счетчика на 5, чтобы логика процентов не перерисовала его обратно
+                              last_mansard_count = 5 
+
+                              # 2. ЗАПУСКАЕМ СЦЕНАРИЙ ПОБЕДЫ (тот же, что был раньше)
                               train_stage_2_active = True
-                              #-----играем фон
                               play_background_music("fon6.mp3", loops=-1)
-                              #---ждем окончания эффекта
+                              
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
-                              #----играем историю    
-                              if(language==1):
-                                  play_story(story_5_ru)  
-                              if(language==2):
-                                  play_story(story_5_en)
-                              if(language==3):
-                                  play_story(story_5_ar)
+                              
+                              # Истории
+                              if(language==1): play_story(story_5_ru)  
+                              if(language==2): play_story(story_5_en)
+                              if(language==3): play_story(story_5_ar)
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
-                              #----отправляем на клиента
+                              
+                              # Открываем дверь на пульте
                               socketio.emit('level', 'open_mansard_door',to=None)
-                              #-----добавили в историю
                               socklist.append('open_mansard_door')
+                              
+                              # Открываем физическую дверь (дублируем команду на всякий случай, хотя Мега сама открывает)
                               ser.write(b'open_mansard_door\n')
-                              ser.flush() # <--- Принудительная отправка прямо сейчас!
-                              logging.info("SENT [Main Board]: Открыта дверь мансарды (Direct write)")
-                              eventlet.sleep(0.05) # Даем время на отправку
-                              #-----играем эффект
+                              ser.flush()
+                              
                               play_effect(door_attic)
-                              if(language==1):
-                                  play_story(story_6_ru)  
-                              if(language==2):
-                                  play_story(story_6_en)
-                              if(language==3):
-                                  play_story(story_6_ar)
+                              
+                              if(language==1): play_story(story_6_ru)  
+                              if(language==2): play_story(story_6_en)
+                              if(language==3): play_story(story_6_ar)
                                   
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
+                              
+                              # Активируем следующие этапы
                               send_esp32_command(ESP32_API_WOLF_URL, "game")
                               send_esp32_command(ESP32_API_SUITCASE_URL, "game")
                               send_esp32_command(ESP32_API_SAFE_URL, "game")
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_2") # <-- КОМАНДА ВЫКЛЮЧЕНИЯ
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
 
                          if flag=="three_game_end":
                               send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
@@ -4106,6 +4369,8 @@ def serial():
                                   play_story(story_10_en)
                               if(language==3):
                                   play_story(story_10_ar)
+                              if(language==4):
+                                  play_story(story_10_fr)
                               nextTrack = 1
                               
 
@@ -4136,6 +4401,8 @@ def serial():
                                             play_story(story_13_en)
                                        if(language==3):
                                             play_story(story_13_ar)
+                                       if(language==4):
+                                            play_story(story_13_fr)
          
                                        while channel3.get_busy()==True and go == 1: 
                                             eventlet.sleep(0.1)
@@ -4147,6 +4414,8 @@ def serial():
                                       play_story(story_14_a_en)
                                   if(language==3):
                                       play_story(story_14_a_ar)
+                                  if(language==4):
+                                      play_story(story_14_a_fr)
                                   while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_14_a
                                   send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                                   #----активируем игру с совами
@@ -4183,6 +4452,8 @@ def serial():
                                   play_story(story_14_b_en)
                               if(language==3):
                                   play_story(story_14_b_ar)
+                              if(language==4):
+                                  play_story(story_14_b_fr)
 
                          if flag=="door_witch":
                               #----играем эффект 
@@ -4203,6 +4474,8 @@ def serial():
                                         play_story(story_13_en)
                                    if(language==3):
                                         play_story(story_13_ar)
+                                   if(language==4):
+                                        play_story(story_13_fr)
      
                                    while channel3.get_busy()==True and go == 1: 
                                         eventlet.sleep(0.1)     
@@ -4213,6 +4486,8 @@ def serial():
                                   play_story(story_17_en)
                               if(language==3):
                                   play_story(story_17_ar)
+                              if(language==4):
+                                  play_story(story_17_fr)
                               send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                               #----активируем игру
                               socketio.emit('level', 'active_open_potions_stash',to=None)
@@ -4288,6 +4563,8 @@ def serial():
                                   play_story(story_18_en)
                               if(language==3):
                                   play_story(story_18_ar)
+                              if(language==4):
+                                  play_story(story_18_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)    
                               #----активируем игру с метлой
@@ -4332,6 +4609,8 @@ def serial():
                                         play_story(story_13_en)
                                    if(language==3):
                                         play_story(story_13_ar)
+                                   if(language==4):
+                                        play_story(story_13_fr)
      
                                    while channel3.get_busy()==True and go == 1: 
                                         eventlet.sleep(0.1)
@@ -4342,6 +4621,8 @@ def serial():
                                   play_story(story_19_en)
                               if(language==3):
                                   play_story(story_19_ar)
+                              if(language==4):
+                                  play_story(story_19_fr)
                               while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_19
                               send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                               #----активируем игру с собакой
@@ -4377,6 +4658,8 @@ def serial():
                                       play_story(story_21_en)
                                   if(language==3):
                                       play_story(story_21_ar)
+                                  if(language==4):
+                                      play_story(story_21_fr)
 
                          if flag=="story_20_a":
                               if(language==1):
@@ -4385,6 +4668,8 @@ def serial():
                                   play_story(story_20_a_en)
                               if(language==3):
                                   play_story(story_20_a_ar)
+                              if(language==4):
+                                  play_story(story_20_a_fr)
 
                          if flag=="story_20_b":
                               if(language==1):
@@ -4393,6 +4678,8 @@ def serial():
                                   play_story(story_20_b_en)
                               if(language==3):
                                   play_story(story_20_b_ar) 
+                              if(language==4):
+                                  play_story(story_20_b_fr)
                          if flag=="story_20_c":
                               if(language==1):
                                   play_story(story_20_c_ru)  
@@ -4400,6 +4687,8 @@ def serial():
                                   play_story(story_20_c_en)
                               if(language==3):
                                   play_story(story_20_c_ar)         
+                              if(language==4):
+                                  play_story(story_20_c_fr)
 
                          if flag=="story_22_a":
                               # 1. Ждем, пока канал освободится
@@ -4412,6 +4701,8 @@ def serial():
                                   play_story(story_22_a_en)
                               if(language==3):
                                   play_story(story_22_a_ar)
+                              if(language==4):
+                                  play_story(story_22_a_fr)
                                   
                               # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
                               while channel3.get_busy()==True and go == 1:
@@ -4430,6 +4721,8 @@ def serial():
                                   play_story(story_22_b_en)
                               if(language==3):
                                   play_story(story_22_b_ar)
+                              if(language==4):
+                                  play_story(story_22_b_fr)
                                  
                               # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
                               while channel3.get_busy()==True and go == 1:
@@ -4446,6 +4739,8 @@ def serial():
                                   play_story(story_22_c_en)
                               if(language==3):
                                   play_story(story_22_c_ar)
+                              if(language==4):
+                                  play_story(story_22_c_fr)
                                   
                               # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
                               while channel3.get_busy()==True and go == 1:
@@ -4481,6 +4776,8 @@ def serial():
                                   play_story(story_26_en)
                               if(language==3):
                                   play_story(story_26_ar)
+                              if(language==4):
+                                  play_story(story_26_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)    
                          if flag=="cave_search1":
@@ -4496,6 +4793,8 @@ def serial():
                                   play_story(story_27_a_en)
                               if(language==3):
                                   play_story(story_27_a_ar)
+                              if(language==4):
+                                  play_story(story_27_a_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.1)        
@@ -4513,6 +4812,8 @@ def serial():
                                   play_story(story_27_b_en)
                               if(language==3):
                                   play_story(story_27_b_ar)
+                              if(language==4):
+                                  play_story(story_27_b_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               while channel3.get_busy()==True and go == 1: 
@@ -4532,6 +4833,8 @@ def serial():
                                   play_story(story_27_c_en)
                               if(language==3):
                                   play_story(story_27_c_ar) 
+                              if(language==4):
+                                  play_story(story_27_c_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.1)        
@@ -4552,6 +4855,8 @@ def serial():
                                   play_story(story_30_en)
                               if(language==3):
                                   play_story(story_30_ar)    
+                              if(language==4):
+                                  play_story(story_30_fr)
                          if flag=="material_end":
                               #----играем эффект 
                               socketio.emit('level', 'active_open_bank_door',to=None)
@@ -4569,6 +4874,8 @@ def serial():
                                   play_story(story_23_en)
                               if(language==3):
                                   play_story(story_23_ar)
+                              if(language==4):
+                                  play_story(story_23_fr)
                               while channel3.get_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.0)
@@ -4589,6 +4896,8 @@ def serial():
                                   play_story(story_24_en)
                               if(language==3):
                                   play_story(story_24_ar)
+                              if(language==4):
+                                  play_story(story_24_fr)
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)     
@@ -4621,6 +4930,8 @@ def serial():
                                   play_story(story_25_en)
                               if(language==3):
                                   play_story(story_25_ar)
+                              if(language==4):
+                                  play_story(story_25_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)  
                               eventlet.sleep(1.1)
@@ -4630,6 +4941,8 @@ def serial():
                                   play_story(story_31_en)
                               if(language==3):
                                   play_story(story_31_ar)
+                              if(language==4):
+                                  play_story(story_31_fr)
                                   
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
@@ -4647,6 +4960,8 @@ def serial():
                                   play_story(story_32_en)
                               if(language==3):
                                   play_story(story_32_ar)
+                              if(language==4):
+                                  play_story(story_32_fr)
                               
                               socketio.emit('level', 'safe',to=None)
                               socklist.append('safe')
@@ -4684,6 +4999,8 @@ def serial():
                                   play_story(story_46_en)
                               if(language==3):
                                   play_story(story_46_ar)    
+                              if(language==4):
+                                  play_story(story_46_fr)
                               send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
@@ -4696,6 +5013,8 @@ def serial():
                                   play_story(story_47_en)
                               if(language==3):
                                   play_story(story_47_ar)
+                              if(language==4):
+                                  play_story(story_47_fr)
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
@@ -4707,6 +5026,8 @@ def serial():
                                   play_story(story_48_en)
                               if(language==3):
                                   play_story(story_48_ar)
+                              if(language==4):
+                                  play_story(story_48_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               play_effect(door_top)
@@ -4725,6 +5046,8 @@ def serial():
                                   play_story(story_49_en)
                               if(language==3):
                                   play_story(story_49_ar)
+                              if(language==4):
+                                  play_story(story_49_fr)
                          if flag=="door_basket":
                               send_esp32_command(ESP32_API_TRAIN_URL, "stage_9") 
                               socketio.emit('level', 'cup',to=None)
@@ -4739,6 +5062,8 @@ def serial():
                                   play_story(story_50_en)
                               if(language==3):
                                   play_story(story_50_ar)
+                              if(language==4):
+                                  play_story(story_50_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)    
                               play_effect(lose1)
@@ -4792,6 +5117,8 @@ def serial():
                                   play_story(story_51_en)
                               if(language==3):
                                   play_story(story_51_ar)
+                              if(language==4):
+                                  play_story(story_51_fr)
 
                          if flag=="fire1":
                               #----играем эффект 
@@ -4804,6 +5131,8 @@ def serial():
                                       play_story(story_32_a_en)
                                   if(language==3):
                                       play_story(story_32_a_ar)
+                                  if(language==4):
+                                      play_story(story_32_a_fr)
                          if flag=="fire2":
                               #----играем эффект 
                               play_effect(fire2)
@@ -4815,6 +5144,8 @@ def serial():
                                       play_story(story_32_b_en)
                                   if(language==3):
                                       play_story(story_32_b_ar)
+                                  if(language==4):
+                                      play_story(story_32_b_fr)
                          if flag=="fire3":
                               #----играем эффект 
                               play_effect(fire3)
@@ -4829,6 +5160,8 @@ def serial():
                                       play_story(story_32_c_en)
                                   if(language==3):
                                       play_story(story_32_c_ar)
+                                  if(language==4):
+                                      play_story(story_32_c_fr)
                          # Teper' my lovim lyuboye soobshcheniye, nachinayushcheyesya s "item_find"
                          if flag.startswith("item_find"):
                               # flag (naprimer, "item_find:crystal") uzhe budet v logakh
@@ -4856,6 +5189,8 @@ def serial():
                                   play_story(story_33_en)
                               if(language==3):
                                   play_story(story_33_ar)                    
+                              if(language==4):
+                                  play_story(story_33_fr)
                          if flag=="helmet":
                               #----играем эффект 
                               play_effect(craft_success)
@@ -4869,6 +5204,8 @@ def serial():
                                   play_story(story_34_en)
                               if(language==3):
                                   play_story(story_34_ar)
+                              if(language==4):
+                                  play_story(story_34_fr)
                          if flag=="story_35":
                               socketio.emit('level', 'workshop',to=None)
                               socklist.append('workshop') 
@@ -4880,6 +5217,8 @@ def serial():
                                   play_story(story_35_en)
                               if(language==3):
                                   play_story(story_35_ar)
+                              if(language==4):
+                                  play_story(story_35_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.0)
@@ -4894,6 +5233,8 @@ def serial():
                                   play_story(story_36_en)
                               if(language==3):
                                   play_story(story_36_ar)
+                              if(language==4):
+                                  play_story(story_36_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               serial_write_queue.put('student_open')
@@ -4904,6 +5245,8 @@ def serial():
                                   play_story(story_37_en)
                               if(language==3):
                                   play_story(story_37_ar)
+                              if(language==4):
+                                  play_story(story_37_fr)
 
                          if flag=="h_clock":
                               socketio.emit('level', 'first_clock_2',to=None)
@@ -4928,6 +5271,8 @@ def serial():
                                   play_story(story_38_en)
                               if(language==3):
                                   play_story(story_38_ar)
+                              if(language==4):
+                                  play_story(story_38_fr)
                               socketio.emit('level', 'active_ghost',to=None)
                               socklist.append('active_ghost')         
                          if flag=="story_39":
@@ -4938,6 +5283,8 @@ def serial():
                                   play_story(story_39_en)
                               if(language==3):
                                   play_story(story_39_ar) 
+                              if(language==4):
+                                  play_story(story_39_fr)
                          if flag=="story_40":
                               send_esp32_command(ESP32_API_WOLF_URL, "ghost_game")
                               socketio.emit('level', 'story_40', to=None)
@@ -4948,6 +5295,8 @@ def serial():
                                   play_story(story_40_en)
                               if(language==3):
                                   play_story(story_40_ar)  
+                              if(language==4):
+                                  play_story(story_40_fr)
                          if flag=="story_41":
                               send_esp32_command(ESP32_API_TRAIN_URL, "ghost_game")
                               socketio.emit('level', 'story_41', to=None)
@@ -4958,6 +5307,8 @@ def serial():
                                   play_story(story_41_en)
                               if(language==3):
                                   play_story(story_41_ar)
+                              if(language==4):
+                                  play_story(story_41_fr)
                          if flag=="story_42":
                               socketio.emit('level', 'story_42', to=None)
                               socklist.append('story_42') # Добавляем флаг для UI
@@ -4967,6 +5318,8 @@ def serial():
                                   play_story(story_42_en)
                               if(language==3):
                                   play_story(story_42_ar)
+                              if(language==4):
+                                  play_story(story_42_fr)
                          if flag == "ghost_knock":
                               play_effect(knock_castle, loops=-1)
                          if flag=="punch":
@@ -4982,6 +5335,8 @@ def serial():
                                   play_story(story_43_en)
                               if(language==3):
                                   play_story(story_43_ar) 
+                              if(language==4):
+                                  play_story(story_43_fr)
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               serial_write_queue.put('open_library')
@@ -4996,6 +5351,8 @@ def serial():
                                   play_story(story_44_en)
                               if(language==3):
                                   play_story(story_44_ar) 
+                              if(language==4):
+                                  play_story(story_44_fr)
 
                          if flag=="star_hint":
                               channel3.stop()
@@ -5038,6 +5395,8 @@ def serial():
                                   play_story(story_54_en)
                               if(language==3):
                                   play_story(story_54_ar)
+                              if(language==4):
+                                  play_story(story_54_fr)
                           #-----2 уровень        
                          if flag=="second_level":
                               socketio.emit('level', 'second_level',to=None)
@@ -5052,6 +5411,8 @@ def serial():
                                   play_story(story_53_en)
                               if(language==3):
                                   play_story(story_53_ar)
+                              if(language==4):
+                                  play_story(story_53_fr)
                          #----прошли 1 уровень      
                          if flag=="first_level":
                               socketio.emit('level', 'first_level',to=None)
@@ -5066,6 +5427,8 @@ def serial():
                                   play_story(story_52_en)
                               if(language==3):
                                   play_story(story_52_ar)  
+                              if(language==4):
+                                  play_story(story_52_fr)
                          
 
                          # "boy_in_lesson" (с урока, level 18) -> Запустить интро
@@ -5096,6 +5459,8 @@ def serial():
                                       play_story(story_57_en)
                                   if(language==3):
                                       play_story(story_57_ar)
+                                  if(language==4):
+                                      play_story(story_57_fr)
                                   
                                   # Ждем завершения истории
                                   while channel3.get_busy() == True and go == 1:
@@ -5112,6 +5477,8 @@ def serial():
                                       play_story(story_58_en)
                                   if(language==3):
                                       play_story(story_58_ar)
+                                  if(language==4):
+                                      play_story(story_58_fr)
                                   
                                   while channel3.get_busy() == True and go == 1:
                                       eventlet.sleep(0.1)
@@ -5147,6 +5514,8 @@ def serial():
                                      if(language==1): play_story(story_69_ru)
                                      if(language==2): play_story(story_69_en)
                                      if(language==3): play_story(story_69_ar)
+
+                                     if(language==4): play_story(story_69_fr)
                                  except Exception as e:
                                      logger.error(f"Ошибка звука boy_out_lesson: {e}")
 
@@ -5166,6 +5535,8 @@ def serial():
                                   if(language==1): play_story(story_70_ru)
                                   if(language==2): play_story(story_70_en)
                                   if(language==3): play_story(story_70_ar)
+
+                                  if(language==4): play_story(story_70_fr)
                                   
                                   # Удаляем флаг проигрыша, чтобы пауза снова работала
                                   if 'win_bot' in socklist:
@@ -5194,6 +5565,8 @@ def serial():
                                        if(language==1): play_story(story_69_ru)
                                        if(language==2): play_story(story_69_en)
                                        if(language==3): play_story(story_69_ar)
+
+                                       if(language==4): play_story(story_69_fr)
                                    except Exception as e:
                                        logger.error(f"Ошибка звука: {e}")
 
@@ -5208,6 +5581,8 @@ def serial():
                                   play_story(story_59_en)
                               if(language==3):
                                   play_story(story_59_ar)
+                              if(language==4):
+                                  play_story(story_59_fr)
                          if flag=="story_55":
                               if(language==1):
                                   play_story(story_55_ru)  
@@ -5215,6 +5590,8 @@ def serial():
                                   play_story(story_55_en)
                               if(language==3):
                                   play_story(story_55_ar)
+                              if(language==4):
+                                  play_story(story_55_fr)
                          if flag=="crime_end":
                               socketio.emit('level', 'crime',to=None)
                               socklist.append('crime')
@@ -5228,6 +5605,8 @@ def serial():
                                   play_story(story_56_en)
                               if(language==3):
                                   play_story(story_56_ar)
+                              if(language==4):
+                                  play_story(story_56_fr)
                          if flag=="lesson_goal":
                               # 1. Воспроизводим звук аплодисментов (Эффект, Канал 2)
                               play_effect(applause)
@@ -5240,6 +5619,8 @@ def serial():
                                   play_story(story_61_a_en)
                               if(language==3):
                                   play_story(story_61_a_ar)
+                              if(language==4):
+                                  play_story(story_61_a_fr)
                          if flag=="flying_ball":
                               play_effect(flying_ball)
                               storyBasketFlag = 1
@@ -5264,6 +5645,8 @@ def serial():
                                             play_story(story_60_a_en)
                                        if(language==3):
                                             play_story(story_60_a_ar)
+                                       if(language==4):
+                                            play_story(story_60_a_fr)
                                   if catchCount == 2:
                                        if(language==1):
                                             play_story(story_60_b_ru)  
@@ -5271,6 +5654,8 @@ def serial():
                                             play_story(story_60_b_en)
                                        if(language==3):
                                             play_story(story_60_b_ar)
+                                       if(language==4):
+                                            play_story(story_60_b_fr)
                                   if catchCount == 3:
                                        if(language==1):
                                             play_story(story_60_c_ru)  
@@ -5278,6 +5663,8 @@ def serial():
                                             play_story(story_60_c_en)
                                        if(language==3):
                                             play_story(story_60_c_ar)   
+                                       if(language==4):
+                                            play_story(story_60_c_fr)
                                   if catchCount == 4:
                                        if(language==1):
                                             play_story(story_60_d_ru)  
@@ -5285,6 +5672,8 @@ def serial():
                                             play_story(story_60_d_en)
                                        if(language==3):
                                             play_story(story_60_d_ar)
+                                       if(language==4):
+                                            play_story(story_60_d_fr)
                                   if catchCount == 5:
                                        if(language==1):
                                             play_story(story_60_e_ru)  
@@ -5292,6 +5681,8 @@ def serial():
                                             play_story(story_60_e_en)
                                        if(language==3):
                                             play_story(story_60_e_ar)
+                                       if(language==4):
+                                            play_story(story_60_e_fr)
                                   if catchCount == 6:
                                        if(language==1):
                                             play_story(story_60_f_ru)  
@@ -5299,6 +5690,8 @@ def serial():
                                             play_story(story_60_f_en)
                                        if(language==3):
                                             play_story(story_60_f_ar)
+                                       if(language==4):
+                                            play_story(story_60_f_fr)
                                   if catchCount == 7:
                                        if(language==1):
                                             play_story(story_60_g_ru)  
@@ -5306,6 +5699,8 @@ def serial():
                                             play_story(story_60_g_en)
                                        if(language==3):
                                             play_story(story_60_g_ar)
+                                       if(language==4):
+                                            play_story(story_60_g_fr)
                                   if catchCount == 8:
                                        if(language==1):
                                             play_story(story_60_h_ru)  
@@ -5313,6 +5708,8 @@ def serial():
                                             play_story(story_60_h_en)
                                        if(language==3):
                                             play_story(story_60_h_ar)
+                                       if(language==4):
+                                            play_story(story_60_h_fr)
                                   if catchCount == 9:
                                        if(language==1):
                                             play_story(story_60_i_ru)  
@@ -5320,6 +5717,8 @@ def serial():
                                             play_story(story_60_i_en)
                                        if(language==3):
                                             play_story(story_60_i_ar)
+                                       if(language==4):
+                                            play_story(story_60_i_fr)
                                   if catchCount == 10:
                                        if(language==1):
                                             play_story(story_60_j_ru)  
@@ -5327,6 +5726,8 @@ def serial():
                                             play_story(story_60_j_en)
                                        if(language==3):
                                             play_story(story_60_j_ar)          
+                                       if(language==4):
+                                            play_story(story_60_j_fr)
                                   print(catchCount)
                          if flag=="catch2":
                               play_effect(catch2)
@@ -5349,6 +5750,8 @@ def serial():
                                             play_story(story_60_a_en)
                                        if(language==3):
                                             play_story(story_60_a_ar)
+                                       if(language==4):
+                                            play_story(story_60_a_fr)
                                   if catchCount == 2:
                                        if(language==1):
                                             play_story(story_60_b_ru)  
@@ -5356,6 +5759,8 @@ def serial():
                                             play_story(story_60_b_en)
                                        if(language==3):
                                             play_story(story_60_b_ar)
+                                       if(language==4):
+                                            play_story(story_60_b_fr)
                                   if catchCount == 3:
                                        if(language==1):
                                             play_story(story_60_c_ru)  
@@ -5363,6 +5768,8 @@ def serial():
                                             play_story(story_60_c_en)
                                        if(language==3):
                                             play_story(story_60_c_ar)   
+                                       if(language==4):
+                                            play_story(story_60_c_fr)
                                   if catchCount == 4:
                                        if(language==1):
                                             play_story(story_60_d_ru)  
@@ -5370,6 +5777,8 @@ def serial():
                                             play_story(story_60_d_en)
                                        if(language==3):
                                             play_story(story_60_d_ar)
+                                       if(language==4):
+                                            play_story(story_60_d_fr)
                                   if catchCount == 5:
                                        if(language==1):
                                             play_story(story_60_e_ru)  
@@ -5377,6 +5786,8 @@ def serial():
                                             play_story(story_60_e_en)
                                        if(language==3):
                                             play_story(story_60_e_ar)
+                                       if(language==4):
+                                            play_story(story_60_e_fr)
                                   if catchCount == 6:
                                        if(language==1):
                                             play_story(story_60_f_ru)  
@@ -5384,6 +5795,8 @@ def serial():
                                             play_story(story_60_f_en)
                                        if(language==3):
                                             play_story(story_60_f_ar)
+                                       if(language==4):
+                                            play_story(story_60_f_fr)
                                   if catchCount == 7:
                                        if(language==1):
                                             play_story(story_60_g_ru)  
@@ -5391,6 +5804,8 @@ def serial():
                                             play_story(story_60_g_en)
                                        if(language==3):
                                             play_story(story_60_g_ar)
+                                       if(language==4):
+                                            play_story(story_60_g_fr)
                                   if catchCount == 8:
                                        if(language==1):
                                             play_story(story_60_h_ru)  
@@ -5398,6 +5813,8 @@ def serial():
                                             play_story(story_60_h_en)
                                        if(language==3):
                                             play_story(story_60_h_ar)
+                                       if(language==4):
+                                            play_story(story_60_h_fr)
                                   if catchCount == 9:
                                        if(language==1):
                                             play_story(story_60_i_ru)  
@@ -5405,6 +5822,8 @@ def serial():
                                             play_story(story_60_i_en)
                                        if(language==3):
                                             play_story(story_60_i_ar)
+                                       if(language==4):
+                                            play_story(story_60_i_fr)
                                   if catchCount == 10:
                                        if(language==1):
                                             play_story(story_60_j_ru)  
@@ -5412,6 +5831,8 @@ def serial():
                                             play_story(story_60_j_en)
                                        if(language==3):
                                             play_story(story_60_j_ar)
+                                       if(language==4):
+                                            play_story(story_60_j_fr)
                                   print(catchCount) 
                          if flag=="catch3":
                               play_effect(catch3)
@@ -5434,6 +5855,8 @@ def serial():
                                             play_story(story_60_a_en)
                                        if(language==3):
                                             play_story(story_60_a_ar)
+                                       if(language==4):
+                                            play_story(story_60_a_fr)
                                   if catchCount == 2:
                                        if(language==1):
                                             play_story(story_60_b_ru)  
@@ -5441,6 +5864,8 @@ def serial():
                                             play_story(story_60_b_en)
                                        if(language==3):
                                             play_story(story_60_b_ar)
+                                       if(language==4):
+                                            play_story(story_60_b_fr)
                                   if catchCount == 3:
                                        if(language==1):
                                             play_story(story_60_c_ru)  
@@ -5448,6 +5873,8 @@ def serial():
                                             play_story(story_60_c_en)
                                        if(language==3):
                                             play_story(story_60_c_ar)   
+                                       if(language==4):
+                                            play_story(story_60_c_fr)
                                   if catchCount == 4:
                                        if(language==1):
                                             play_story(story_60_d_ru)  
@@ -5455,6 +5882,8 @@ def serial():
                                             play_story(story_60_d_en)
                                        if(language==3):
                                             play_story(story_60_d_ar)
+                                       if(language==4):
+                                            play_story(story_60_d_fr)
                                   if catchCount == 5:
                                        if(language==1):
                                             play_story(story_60_e_ru)  
@@ -5462,6 +5891,8 @@ def serial():
                                             play_story(story_60_e_en)
                                        if(language==3):
                                             play_story(story_60_e_ar)
+                                       if(language==4):
+                                            play_story(story_60_e_fr)
                                   if catchCount == 6:
                                        if(language==1):
                                             play_story(story_60_f_ru)  
@@ -5469,6 +5900,8 @@ def serial():
                                             play_story(story_60_f_en)
                                        if(language==3):
                                             play_story(story_60_f_ar)
+                                       if(language==4):
+                                            play_story(story_60_f_fr)
                                   if catchCount == 7:
                                        if(language==1):
                                             play_story(story_60_g_ru)  
@@ -5476,6 +5909,8 @@ def serial():
                                             play_story(story_60_g_en)
                                        if(language==3):
                                             play_story(story_60_g_ar)
+                                       if(language==4):
+                                            play_story(story_60_g_fr)
                                   if catchCount == 8:
                                        if(language==1):
                                             play_story(story_60_h_ru)  
@@ -5483,6 +5918,8 @@ def serial():
                                             play_story(story_60_h_en)
                                        if(language==3):
                                             play_story(story_60_h_ar)
+                                       if(language==4):
+                                            play_story(story_60_h_fr)
                                   if catchCount == 9:
                                        if(language==1):
                                             play_story(story_60_i_ru)  
@@ -5490,6 +5927,8 @@ def serial():
                                             play_story(story_60_i_en)
                                        if(language==3):
                                             play_story(story_60_i_ar)
+                                       if(language==4):
+                                            play_story(story_60_i_fr)
                                   if catchCount == 10:
                                        if(language==1):
                                             play_story(story_60_j_ru)  
@@ -5497,6 +5936,8 @@ def serial():
                                             play_story(story_60_j_en)
                                        if(language==3):
                                             play_story(story_60_j_ar)
+                                       if(language==4):
+                                            play_story(story_60_j_fr)
                                   print(catchCount)
                          if flag=="catch4":
                               play_effect(catch4)
@@ -5519,6 +5960,8 @@ def serial():
                                             play_story(story_60_a_en)
                                        if(language==3):
                                             play_story(story_60_a_ar)
+                                       if(language==4):
+                                            play_story(story_60_a_fr)
                                   if catchCount == 2:
                                        if(language==1):
                                             play_story(story_60_b_ru)  
@@ -5526,6 +5969,8 @@ def serial():
                                             play_story(story_60_b_en)
                                        if(language==3):
                                             play_story(story_60_b_ar)
+                                       if(language==4):
+                                            play_story(story_60_b_fr)
                                   if catchCount == 3:
                                        if(language==1):
                                             play_story(story_60_c_ru)  
@@ -5533,6 +5978,8 @@ def serial():
                                             play_story(story_60_c_en)
                                        if(language==3):
                                             play_story(story_60_c_ar)   
+                                       if(language==4):
+                                            play_story(story_60_c_fr)
                                   if catchCount == 4:
                                        if(language==1):
                                             play_story(story_60_d_ru)  
@@ -5540,6 +5987,8 @@ def serial():
                                             play_story(story_60_d_en)
                                        if(language==3):
                                             play_story(story_60_d_ar)
+                                       if(language==4):
+                                            play_story(story_60_d_fr)
                                   if catchCount == 5:
                                        if(language==1):
                                             play_story(story_60_e_ru)  
@@ -5547,6 +5996,8 @@ def serial():
                                             play_story(story_60_e_en)
                                        if(language==3):
                                             play_story(story_60_e_ar)
+                                       if(language==4):
+                                            play_story(story_60_e_fr)
                                   if catchCount == 6:
                                        if(language==1):
                                             play_story(story_60_f_ru)  
@@ -5554,6 +6005,8 @@ def serial():
                                             play_story(story_60_f_en)
                                        if(language==3):
                                             play_story(story_60_f_ar)
+                                       if(language==4):
+                                            play_story(story_60_f_fr)
                                   if catchCount == 7:
                                        if(language==1):
                                             play_story(story_60_g_ru)  
@@ -5561,6 +6014,8 @@ def serial():
                                             play_story(story_60_g_en)
                                        if(language==3):
                                             play_story(story_60_g_ar)
+                                       if(language==4):
+                                            play_story(story_60_g_fr)
                                   if catchCount == 8:
                                        if(language==1):
                                             play_story(story_60_h_ru)  
@@ -5568,6 +6023,8 @@ def serial():
                                             play_story(story_60_h_en)
                                        if(language==3):
                                             play_story(story_60_h_ar)
+                                       if(language==4):
+                                            play_story(story_60_h_fr)
                                   if catchCount == 9:
                                        if(language==1):
                                             play_story(story_60_i_ru)  
@@ -5575,6 +6032,8 @@ def serial():
                                             play_story(story_60_i_en)
                                        if(language==3):
                                             play_story(story_60_i_ar)
+                                       if(language==4):
+                                            play_story(story_60_i_fr)
                                   if catchCount == 10:
                                        if(language==1):
                                             play_story(story_60_j_ru)  
@@ -5582,6 +6041,8 @@ def serial():
                                             play_story(story_60_j_en)
                                        if(language==3):
                                             play_story(story_60_j_ar) 
+                                       if(language==4):
+                                            play_story(story_60_j_fr)
                                   print(catchCount)      
                          # --- Логика голов игрока с счетчиком ---
                          if flag=="goal_1_player" or flag=="goal_2_player" or flag=="goal_3_player" or flag=="goal_4_player":
@@ -5607,6 +6068,8 @@ def serial():
                                   current_story_list = player_goal_stories_en
                               elif language == 3:
                                   current_story_list = player_goal_stories_ar
+                              elif language == 4:
+                                  current_story_list = player_goal_stories_fr
                               
                               # 3. Воспроизвести историю по счетчику (начиная с b, c, d...)
                               if goalCount < len(current_story_list):
@@ -5638,6 +6101,8 @@ def serial():
                                   current_enemy_story_list = enemy_goal_stories_en
                               elif language == 3:
                                   current_enemy_story_list = enemy_goal_stories_ar
+                              elif language == 4:
+                                  current_enemy_story_list = enemy_goal_stories_fr
                               
                               # 3. Воспроизвести историю по счетчику (начиная с a, b, c...)
                               if enemyGoalCount < len(current_enemy_story_list):
@@ -5669,6 +6134,8 @@ def serial():
                                         play_story(story_62_a_en)
                                    if(language==3):
                                         play_story(story_62_a_ar)
+                                   if(language==4):
+                                        play_story(story_62_a_fr)
                               if sintchEnemyCatchCount == 2:
                                    if(language==1):
                                         play_story(story_62_b_ru)  
@@ -5676,6 +6143,8 @@ def serial():
                                         play_story(story_62_b_en)
                                    if(language==3):
                                         play_story(story_62_b_ar)
+                                   if(language==4):
+                                        play_story(story_62_b_fr)
                               if sintchEnemyCatchCount == 3:
                                    if(language==1):
                                         play_story(story_62_c_ru)  
@@ -5683,6 +6152,8 @@ def serial():
                                         play_story(story_62_c_en)
                                    if(language==3):
                                         play_story(story_62_c_ar)   
+                                   if(language==4):
+                                        play_story(story_62_c_fr)
                               if sintchEnemyCatchCount == 4:
                                    if(language==1):
                                         play_story(story_62_d_ru)  
@@ -5690,6 +6161,8 @@ def serial():
                                         play_story(story_62_d_en)
                                    if(language==3):
                                         play_story(story_62_d_ar)
+                                   if(language==4):
+                                        play_story(story_62_d_fr)
                               if sintchEnemyCatchCount == 5:
                                    sintchEnemyCatchCount = 0
                                    if(language==1):
@@ -5698,6 +6171,8 @@ def serial():
                                         play_story(story_62_e_en)
                                    if(language==3):
                                         play_story(story_62_e_ar)    
+                                   if(language==4):
+                                        play_story(story_62_e_fr)
                               print(enemyCatchCount)                
 
                          if flag == "red_ball":
@@ -5716,6 +6191,7 @@ def serial():
                               if language == 1: current_list = red_ball_active_stories_ru
                               elif language == 2: current_list = red_ball_active_stories_en
                               elif language == 3: current_list = red_ball_active_stories_ar
+                              elif language == 4: current_list = red_ball_active_stories_fr
 
                               if current_list:
                                   if redSintchEnemyCatchCount < len(current_list):
@@ -5741,6 +6217,7 @@ def serial():
                               if language == 1: current_list = enemy_catch_stories_ru
                               elif language == 2: current_list = enemy_catch_stories_en
                               elif language == 3: current_list = enemy_catch_stories_ar
+                              elif language == 4: current_list = enemy_catch_stories_fr
 
                               if current_list:
                                   if redClickSintchEnemyCatchCount < len(current_list):
@@ -5767,6 +6244,8 @@ def serial():
                               if(language==1): play_story(story_66_ru)  
                               if(language==2): play_story(story_66_en)
                               if(language==3): play_story(story_66_ar)
+
+                              if(language==4): play_story(story_66_fr)
 
                               # Отправляем команды
                               socketio.emit('level', 'win_player',to=None)
@@ -5814,6 +6293,8 @@ def serial():
                                       play_story(story_67_en)
                                   if(language==3):
                                       play_story(story_67_ar)
+                                  if(language==4):
+                                      play_story(story_67_fr)
                                   # ---------------------------------------------
                         #-------прошли игру с кристалами
                          if flag=="memory_room_end":
@@ -5873,6 +6354,8 @@ def serial():
                                  play_story(hint_2_b_en)
                              if(language==3):
                                  play_story(hint_2_b_ar)
+                             if(language==4):
+                                 play_story(hint_2_b_fr)
                          if flag=="hint_2_c":
                              hintCount+=1
                              if(language==1):
@@ -5881,6 +6364,8 @@ def serial():
                                  play_story(hint_2_c_en)
                              if(language==3):
                                  play_story(hint_2_c_ar)
+                             if(language==4):
+                                 play_story(hint_2_c_fr)
                          if flag=="hint_2_z":
                              hintCount+=1
                              if(language==1):
@@ -5889,6 +6374,8 @@ def serial():
                                  play_story(hint_2_z_en)
                              if(language==3):
                                  play_story(hint_2_z_ar)
+                             if(language==4):
+                                 play_story(hint_2_z_fr)
                          if flag=="hint_3_b":
                              hintCount+=1
                              if(language==1):
@@ -5897,6 +6384,8 @@ def serial():
                                  play_story(hint_3_b_en)
                              if(language==3):
                                  play_story(hint_3_b_ar)
+                             if(language==4):
+                                 play_story(hint_3_b_fr)
                          if flag=="hint_3_c":
                              hintCount+=1
                              if(language==1):
@@ -5905,6 +6394,8 @@ def serial():
                                  play_story(hint_3_c_en)
                              if(language==3):
                                  play_story(hint_3_c_ar)
+                             if(language==4):
+                                 play_story(hint_3_c_fr)
                          if flag=="hint_3_z":
                              hintCount+=1
                              if(language==1):
@@ -5913,6 +6404,8 @@ def serial():
                                  play_story(hint_3_z_en)
                              if(language==3):
                                  play_story(hint_3_z_ar)
+                             if(language==4):
+                                 play_story(hint_3_z_fr)
                          if flag=="hint_5_b":
                              hintCount+=1
                              if(language==1):
@@ -5921,6 +6414,8 @@ def serial():
                                  play_story(hint_5_b_en)
                              if(language==3):
                                  play_story(hint_5_b_ar)
+                             if(language==4):
+                                 play_story(hint_5_b_fr)
                          if flag=="hint_5_c":
                              hintCount+=1
                              if(language==1):
@@ -5929,6 +6424,8 @@ def serial():
                                  play_story(hint_5_c_en)
                              if(language==3):
                                  play_story(hint_5_c_ar)
+                             if(language==4):
+                                 play_story(hint_5_c_fr)
                          if flag=="hint_11_b":
                              hintCount+=1
                              if(language==1):
@@ -5937,6 +6434,8 @@ def serial():
                                  play_story(hint_11_b_en)
                              if(language==3):
                                  play_story(hint_11_b_ar)
+                             if(language==4):
+                                 play_story(hint_11_b_fr)
                          if flag=="hint_11_c":
                              hintCount+=1
                              if(language==1):
@@ -5945,6 +6444,8 @@ def serial():
                                  play_story(hint_11_c_en)
                              if(language==3):
                                  play_story(hint_11_c_ar)
+                             if(language==4):
+                                 play_story(hint_11_c_fr)
                          if flag=="hint_11_z":
                              hintCount+=1
                              if(language==1):
@@ -5953,6 +6454,8 @@ def serial():
                                  play_story(hint_11_z_en)
                              if(language==3):
                                  play_story(hint_11_z_ar)
+                             if(language==4):
+                                 play_story(hint_11_z_fr)
                          if flag=="hint_6_b":
                              hintCount+=1
                              if(language==1):
@@ -5961,6 +6464,8 @@ def serial():
                                  play_story(hint_6_b_en)
                              if(language==3):
                                  play_story(hint_6_b_ar)
+                             if(language==4):
+                                 play_story(hint_6_b_fr)
                          if flag=="hint_6_c":
                              hintCount+=1
                              if(language==1):
@@ -5969,6 +6474,8 @@ def serial():
                                  play_story(hint_6_c_en)
                              if(language==3):
                                  play_story(hint_6_c_ar)
+                             if(language==4):
+                                 play_story(hint_6_c_fr)
                          if flag=="hint_10_b":
                              hintCount+=1
                              if(language==1):
@@ -5977,6 +6484,8 @@ def serial():
                                  play_story(hint_10_b_en)
                              if(language==3):
                                  play_story(hint_10_b_ar)
+                             if(language==4):
+                                 play_story(hint_10_b_fr)
                          if flag=="hint_10_c":
                              hintCount+=1
                              if(language==1):
@@ -5985,6 +6494,8 @@ def serial():
                                  play_story(hint_10_c_en)
                              if(language==3):
                                  play_story(hint_10_c_ar)
+                             if(language==4):
+                                 play_story(hint_10_c_fr)
                          if flag=="hint_14_b":
                              hintCount+=1
                              if(language==1):
@@ -5993,6 +6504,8 @@ def serial():
                                  play_story(hint_14_b_en)
                              if(language==3):
                                  play_story(hint_14_b_ar)
+                             if(language==4):
+                                 play_story(hint_14_b_fr)
                          if flag=="hint_14_c":
                              hintCount+=1
                              if(language==1):
@@ -6001,6 +6514,8 @@ def serial():
                                  play_story(hint_14_c_en)
                              if(language==3):
                                  play_story(hint_14_c_ar)
+                             if(language==4):
+                                 play_story(hint_14_c_fr)
                          if flag=="hint_14_z":
                              hintCount+=1
                              if(language==1):
@@ -6009,6 +6524,8 @@ def serial():
                                  play_story(hint_14_z_en)
                              if(language==3):
                                  play_story(hint_14_z_ar)
+                             if(language==4):
+                                 play_story(hint_14_z_fr)
                          if flag=="hint_17_b":
                              hintCount+=1
                              if(language==1):
@@ -6017,6 +6534,8 @@ def serial():
                                  play_story(hint_17_b_en)
                              if(language==3):
                                  play_story(hint_17_b_ar)
+                             if(language==4):
+                                 play_story(hint_17_b_fr)
                          if flag=="hint_17_c":
                              hintCount+=1
                              if(language==1):
@@ -6025,6 +6544,8 @@ def serial():
                                  play_story(hint_17_c_en)
                              if(language==3):
                                  play_story(hint_17_c_ar)
+                             if(language==4):
+                                 play_story(hint_17_c_fr)
                          if flag=="hint_17_z":
                              hintCount+=1
                              if(language==1):
@@ -6033,6 +6554,8 @@ def serial():
                                  play_story(hint_17_z_en)
                              if(language==3):
                                  play_story(hint_17_z_ar)
+                             if(language==4):
+                                 play_story(hint_17_z_fr)
                          if flag=="hint_19_b":
                              hintCount+=1
                              if(language==1):
@@ -6041,6 +6564,8 @@ def serial():
                                  play_story(hint_19_b_en)
                              if(language==3):
                                  play_story(hint_19_b_ar)
+                             if(language==4):
+                                 play_story(hint_19_b_fr)
                          if flag=="hint_19_c":
                              hintCount+=1
                              if(language==1):
@@ -6049,6 +6574,8 @@ def serial():
                                  play_story(hint_19_c_en)
                              if(language==3):
                                  play_story(hint_19_c_ar)
+                             if(language==4):
+                                 play_story(hint_19_c_fr)
                          if flag=="hint_19_z":
                              hintCount+=1
                              if(language==1):
@@ -6057,6 +6584,8 @@ def serial():
                                  play_story(hint_19_z_en)
                              if(language==3):
                                  play_story(hint_19_z_ar)
+                             if(language==4):
+                                 play_story(hint_19_z_fr)
                          if flag=="hint_23_b":
                              hintCount+=1
                              if(language==1):
@@ -6065,6 +6594,8 @@ def serial():
                                  play_story(hint_23_b_en)
                              if(language==3):
                                  play_story(hint_23_b_ar)
+                             if(language==4):
+                                 play_story(hint_23_b_fr)
                          if flag=="hint_23_c":
                              hintCount+=1
                              if(language==1):
@@ -6073,6 +6604,8 @@ def serial():
                                  play_story(hint_23_c_en)
                              if(language==3):
                                  play_story(hint_23_c_ar)
+                             if(language==4):
+                                 play_story(hint_23_c_fr)
                          if flag=="hint_23_z":
                              hintCount+=1
                              if(language==1):
@@ -6081,6 +6614,8 @@ def serial():
                                  play_story(hint_23_z_en)
                              if(language==3):
                                  play_story(hint_23_z_ar)
+                             if(language==4):
+                                 play_story(hint_23_z_fr)
                          if flag=="hint_26_b":
                              hintCount+=1
                              if(language==1):
@@ -6089,6 +6624,8 @@ def serial():
                                  play_story(hint_26_b_en)
                              if(language==3):
                                  play_story(hint_26_b_ar)
+                             if(language==4):
+                                 play_story(hint_26_b_fr)
                          if flag=="hint_26_c":
                              hintCount+=1
                              if(language==1):
@@ -6097,6 +6634,8 @@ def serial():
                                  play_story(hint_26_c_en)
                              if(language==3):
                                  play_story(hint_26_c_ar)
+                             if(language==4):
+                                 play_story(hint_26_c_fr)
                          if flag=="hint_26_z":
                              hintCount+=1
                              if(language==1):
@@ -6105,6 +6644,8 @@ def serial():
                                  play_story(hint_26_z_en)
                              if(language==3):
                                  play_story(hint_26_z_ar)
+                             if(language==4):
+                                 play_story(hint_26_z_fr)
                          if flag=="hint_32_b":
                              hintCount+=1
                              if(language==1):
@@ -6113,6 +6654,8 @@ def serial():
                                  play_story(hint_32_b_en)
                              if(language==3):
                                  play_story(hint_32_b_ar)
+                             if(language==4):
+                                 play_story(hint_32_b_fr)
                          if flag=="hint_32_c":
                              hintCount+=1
                              if(language==1):
@@ -6121,6 +6664,8 @@ def serial():
                                  play_story(hint_32_c_en)
                              if(language==3):
                                  play_story(hint_32_c_ar)
+                             if(language==4):
+                                 play_story(hint_32_c_fr)
                          if flag=="hint_32_d":
                              hintCount+=1
                              if(language==1):
@@ -6129,6 +6674,8 @@ def serial():
                                  play_story(hint_32_d_en)
                              if(language==3):
                                  play_story(hint_32_d_ar)
+                             if(language==4):
+                                 play_story(hint_32_d_fr)
                          if flag=="hint_32_e":
                              hintCount+=1
                              if(language==1):
@@ -6137,6 +6684,8 @@ def serial():
                                  play_story(hint_32_e_en)
                              if(language==3):
                                  play_story(hint_32_e_ar)
+                             if(language==4):
+                                 play_story(hint_32_e_fr)
                          if flag=="hint_32_z":
                              hintCount+=1
                              if(language==1):
@@ -6145,6 +6694,8 @@ def serial():
                                  play_story(hint_32_z_en)
                              if(language==3):
                                  play_story(hint_32_z_ar)
+                             if(language==4):
+                                 play_story(hint_32_z_fr)
                          if flag=="hint_37_b":
                              hintCount+=1
                              if(language==1):
@@ -6153,6 +6704,8 @@ def serial():
                                  play_story(hint_37_b_en)
                              if(language==3):
                                  play_story(hint_37_b_ar)
+                             if(language==4):
+                                 play_story(hint_37_b_fr)
                          if flag=="hint_37_c":
                              hintCount+=1
                              if(language==1):
@@ -6161,6 +6714,8 @@ def serial():
                                  play_story(hint_37_c_en)
                              if(language==3):
                                  play_story(hint_37_c_ar)
+                             if(language==4):
+                                 play_story(hint_37_c_fr)
                          if flag=="hint_38_b":
                              hintCount+=1
                              while channel3.get_busy()==True and go == 1: 
@@ -6172,6 +6727,8 @@ def serial():
                                  play_story(hint_38_b_en)
                              if(language==3):
                                  play_story(hint_38_b_ar)
+                             if(language==4):
+                                 play_story(hint_38_b_fr)
                          if flag=="hint_44_b":
                              hintCount+=1
                              if(language==1):
@@ -6180,6 +6737,8 @@ def serial():
                                  play_story(hint_44_b_en)
                              if(language==3):
                                  play_story(hint_44_b_ar)
+                             if(language==4):
+                                 play_story(hint_44_b_fr)
                          if flag=="hint_44_c":
                              hintCount+=1
                              if(language==1):
@@ -6188,6 +6747,8 @@ def serial():
                                  play_story(hint_44_c_en)
                              if(language==3):
                                  play_story(hint_44_c_ar)
+                             if(language==4):
+                                 play_story(hint_44_c_fr)
                          if flag=="hint_49_b":
                              hintCount+=1
                              if(language==1):
@@ -6196,6 +6757,8 @@ def serial():
                                  play_story(hint_49_b_en)
                              if(language==3):
                                  play_story(hint_49_b_ar)
+                             if(language==4):
+                                 play_story(hint_49_b_fr)
                          if flag=="hint_49_c":
                              hintCount+=1
                              if(language==1):
@@ -6204,6 +6767,8 @@ def serial():
                                  play_story(hint_49_c_en)
                              if(language==3):
                                  play_story(hint_49_c_ar)
+                             if(language==4):
+                                 play_story(hint_49_c_fr)
                          if flag=="hint_50_b":
                              hintCount+=1
                              if(language==1):
@@ -6212,6 +6777,8 @@ def serial():
                                  play_story(hint_50_b_en)
                              if(language==3):
                                  play_story(hint_50_b_ar)
+                             if(language==4):
+                                 play_story(hint_50_b_fr)
                          if flag=="hint_50_c":
                              hintCount+=1
                              if(language==1):
@@ -6220,6 +6787,8 @@ def serial():
                                  play_story(hint_50_c_en)
                              if(language==3):
                                  play_story(hint_50_c_ar)
+                             if(language==4):
+                                 play_story(hint_50_c_fr)
                          if flag=="hint_51_b":
                              hintCount+=1
                              if(language==1):
@@ -6228,6 +6797,8 @@ def serial():
                                  play_story(hint_51_b_en)
                              if(language==3):
                                  play_story(hint_51_b_ar)
+                             if(language==4):
+                                 play_story(hint_51_b_fr)
                          if flag=="hint_51_c":
                              hintCount+=1
                              if(language==1):
@@ -6236,6 +6807,8 @@ def serial():
                                  play_story(hint_51_c_en)
                              if(language==3):
                                  play_story(hint_51_c_ar)
+                             if(language==4):
+                                 play_story(hint_51_c_fr)
                          if flag=="hint_56_b":
                              hintCount+=1
                              if(language==1):
@@ -6244,6 +6817,8 @@ def serial():
                                  play_story(hint_56_b_en)
                              if(language==3):
                                  play_story(hint_56_b_ar)
+                             if(language==4):
+                                 play_story(hint_56_b_fr)
 
               eventlet.sleep(0.1)
           except Exception as e:
