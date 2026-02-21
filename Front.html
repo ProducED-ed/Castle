@@ -151,7 +151,8 @@
                                             <div class="menu inverted">
                                               <div class="item " id = "russian"><i class="russia flag"></i>Russian</div>
                                               <div class="item" id = "english"><i class="uk flag"></i>English</div>
-                                               <div class="item" id="arabian"><i class="ae flag"></i>Arabian</div>
+                                              <div class="item" id="arabian"><i class="ae flag"></i>Arabian</div>
+											  <div class="item" id="french"><i class="france flag"></i>French</div>
                                             </div>
                                           </div>
                                      </div> 
@@ -387,7 +388,7 @@
                                         <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
                                             <h3 class="ui left floated header" style="margin-right: 10px;">Workshop</h3>
 											<br><br>
-											<button class="ui right floated small inverted button door_check" id="workshop"><i class="icon" id="workshop_indic"></i>Skip</button> 
+											<button class="ui right floated small inverted button door_check" id="workshop"><i class="icon" id="workshop_indic"></i>Skip | Open</button> 
 											<i class="broom large inverted icon" style="float: left; margin-top: 2px;" id="broom_icon"></i>
                                             <i class="glasses large inverted icon" style="float: left; margin-left: 10px; margin-top: 2px;" id="helmet_icon"></i>
                                         </div>
@@ -522,8 +523,25 @@
             </div>
             </div>
                 
+            <div class="ui basic modal" id="shutdownTimerModal">
+              <div class="ui icon header">
+                <i class="power off red icon loading"></i>
+                Shutting down the system...
+              </div>
+              <div class="content" style="text-align: center;">
+                <p style="font-size: 1.2em;">Please wait. The system is safely halting.</p>
+                <p style="font-size: 1.2em; color: #ffeb3b;">DO NOT turn off the power yet!</p>
                 
-        </body>
+                <h1 style="font-size: 4em; margin-top: 20px; color: white;">
+                  <span id="shutdownCountdown">20</span> s
+                </h1>
+                
+                <div class="ui indicating inverted progress" id="shutdownProgressBar" data-percent="0" style="margin-top: 30px;">
+                  <div class="bar"></div>
+                </div>
+              </div>
+            </div>
+            </body>
     
         
         <!--в конце подключаются файлы js в нашем случае библиотека jquery socket alarm и наш файл scripts-->
