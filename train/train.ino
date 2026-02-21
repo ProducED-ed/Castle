@@ -1329,6 +1329,9 @@ if (mapClicksDisabled) { // Восстанавливаем только если
 }
 
 void loop() {
+  if (!INPUTS.digitalRead(1)) { 
+      trainSensorLatched = true; // Запоминаем, что нажатие было
+  }
   ArduinoOTA.handle();
   // обязательная функция отработки. Должна постоянно опрашиваться
   server.handleClient();
@@ -1642,16 +1645,12 @@ void loop() {
           isSendOut = 1;
           trainSensorLatched = false;
 
-          // [FIX] ЦИКЛ ПОВТОРА (RETRY LOOP)
-          bool serverHeardUs = false;
-          for (int k=0; k<5; k++) { // 5 попыток достучаться до сервера
-             // Отправляем синхронно (ждать ответа) или проверяем success
-             // Для упрощения используем твой SendData, но желательно проверить ответ
+          // --- Отправляем команду на сервер (3 раза для надежности) ---
+          for (int k=0; k<3; k++) { 
              SendData("{\"projector\":\"end\"}");
-             // Небольшая пауза между попытками
-             delay(100); 
+             delay(50);
           }
-          SendData("{\"log\":\"Train: Projector commands sent (Retry x5)\"}");
+          SendData("{\"log\":\"Train: Projector commands sent (Force)\"}");
         }
         break;
       case 2:
