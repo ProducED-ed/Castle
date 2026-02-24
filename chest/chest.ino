@@ -305,7 +305,7 @@ void setup() {
   Serial.println("OTA Ready");
   // ---------------------------------------------
 
-  server.on("/", HTTP_FRT, []() {
+  server.on("/", HTTP_GET, []() {
     server.send(200, "text/plain", "ESP32 Server is running");
   });
 
