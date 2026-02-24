@@ -74,7 +74,7 @@ const int TRACK_SUITCASE_END = 2;
 const int TRACK_STORY_8_RU = 10;
 const int TRACK_STORY_8_EN = 17;
 const int TRACK_STORY_8_AR = 24;
-const int TRACK_STORY_8_GE = 4;
+const int TRACK_STORY_8_FR = 31;
 const int TRACK_STORY_8_SP = 4;
 const int TRACK_STORY_8_CH = 4;
 
@@ -82,7 +82,7 @@ const int TRACK_STORY_8_CH = 4;
 const int TRACK_STORY_7_RU = 9;
 const int TRACK_STORY_7_EN = 16;
 const int TRACK_STORY_7_AR = 23;
-const int TRACK_STORY_7_GE = 3;
+const int TRACK_STORY_7_FR = 30;
 const int TRACK_STORY_7_SP = 3;
 const int TRACK_STORY_7_CH = 3;
 
@@ -91,7 +91,7 @@ const int TRACK_STORY_7_CH = 3;
 const int TRACK_HINT_1_RU = 12;
 const int TRACK_HINT_1_EN = 19;
 const int TRACK_HINT_1_AR = 26;
-const int TRACK_HINT_1_GE = 6;
+const int TRACK_HINT_1_FR = 33;
 const int TRACK_HINT_1_SP = 6;
 const int TRACK_HINT_1_CH = 6;
 
@@ -99,7 +99,7 @@ const int TRACK_HINT_1_CH = 6;
 const int TRACK_HINT_2_RU = 13;
 const int TRACK_HINT_2_EN = 20;
 const int TRACK_HINT_2_AR = 27;
-const int TRACK_HINT_2_GE = 7;
+const int TRACK_HINT_2_FR = 34;
 const int TRACK_HINT_2_SP = 7;
 const int TRACK_HINT_2_CH = 7;
 
@@ -107,7 +107,7 @@ const int TRACK_HINT_2_CH = 7;
 const int TRACK_HINT_3_RU = 14;
 const int TRACK_HINT_3_EN = 21;
 const int TRACK_HINT_3_AR = 28;
-const int TRACK_HINT_3_GE = 8;
+const int TRACK_HINT_3_FR = 35;
 const int TRACK_HINT_3_SP = 8;
 const int TRACK_HINT_3_CH = 8;
 
@@ -115,7 +115,7 @@ const int TRACK_HINT_3_CH = 8;
 const int TRACK_HINT_4_RU = 15;
 const int TRACK_HINT_4_EN = 22;
 const int TRACK_HINT_4_AR = 29;
-const int TRACK_HINT_4_GE = 8;
+const int TRACK_HINT_4_FR = 36;
 const int TRACK_HINT_4_SP = 8;
 const int TRACK_HINT_4_CH = 8;
 
@@ -123,7 +123,7 @@ const int TRACK_HINT_4_CH = 8;
 const int TRACK_HINT_0_RU = 11;
 const int TRACK_HINT_0_EN = 18;
 const int TRACK_HINT_0_AR = 25;
-const int TRACK_HINT_0_GE = 5;
+const int TRACK_HINT_0_FR = 32;
 const int TRACK_HINT_0_SP = 5;
 const int TRACK_HINT_0_CH = 5;
 
@@ -184,8 +184,8 @@ void finalizeGame() {
     sendLogToServer("{\"log\":\"Chest: Playing Story 8 (AR)\"}");
   }
   else if(language == 4) {
-    myMP3.playMp3Folder(TRACK_STORY_8_GE);
-    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (GE)\"}");
+    myMP3.playMp3Folder(TRACK_STORY_8_FR);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (FR)\"}");
   }
   else if(language == 5) {
     myMP3.playMp3Folder(TRACK_STORY_8_SP);
@@ -305,7 +305,7 @@ void setup() {
   Serial.println("OTA Ready");
   // ---------------------------------------------
 
-  server.on("/", HTTP_GET, []() {
+  server.on("/", HTTP_FRT, []() {
     server.send(200, "text/plain", "ESP32 Server is running");
   });
 
@@ -516,8 +516,8 @@ void loop() {
         sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (AR)\"}");
       }
       if(language == 4){
-        myMP3.playMp3Folder(TRACK_HINT_0_GE);
-        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (GE)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_0_FR);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (FR)\"}");
       }
       if(language == 5){
         myMP3.playMp3Folder(TRACK_HINT_0_SP);
@@ -547,8 +547,8 @@ void loop() {
             sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (AR)\"}");
           }
           if(language == 4){
-            myMP3.playMp3Folder(TRACK_HINT_1_GE);
-            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (GE)\"}");
+            myMP3.playMp3Folder(TRACK_HINT_1_FR);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (FR)\"}");
           }
           if(language == 5){
             myMP3.playMp3Folder(TRACK_HINT_1_SP);
@@ -573,8 +573,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (AR)\"}");
         }
         if(language == 4){
-          myMP3.playMp3Folder(TRACK_HINT_2_GE);
-          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_2_FR);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (FR)\"}");
         }
         if(language == 5){
           myMP3.playMp3Folder(TRACK_HINT_2_SP);
@@ -599,8 +599,8 @@ void loop() {
           sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (AR)\"}");
         }
         if(language == 4){
-          myMP3.playMp3Folder(TRACK_HINT_3_GE);
-          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (GE)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_3_FR);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (FR)\"}");
         }
         if(language == 5){
           myMP3.playMp3Folder(TRACK_HINT_3_SP);
@@ -631,8 +631,8 @@ void loop() {
         sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (AR)\"}");
       }
       if(language == 4){
-        myMP3.playMp3Folder(TRACK_HINT_4_GE);
-        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (GE)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_4_FR);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (FR)\"}");
       }
       if(language == 5){
         myMP3.playMp3Folder(TRACK_HINT_4_SP);
@@ -976,8 +976,8 @@ void _Button_4() {
         sendLogToServer("{\"log\":\"Chest: Playing Story 7 (AR)\"}");
       }
       if(language == 4) {
-        myMP3.playMp3Folder(TRACK_STORY_7_GE);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (GE)\"}");
+        myMP3.playMp3Folder(TRACK_STORY_7_FR);
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (FR)\"}");
       }
       if(language == 5) {
         myMP3.playMp3Folder(TRACK_STORY_7_SP);
