@@ -21,8 +21,8 @@ const int NUM_TILE_LEDS = 4;    // Количество светодиодов �
 CRGB tileLeds[NUM_TILE_LEDS];  // Массив для хранения цветов светодиодов плиток
 
 // --- Пины для плиток с подсветкой ---
-GButton PIN_HERKON_BOAT(30);    // НОВЫЙ: Геркон "лодка"
-GButton PIN_IR_FLAG(27);        // НОВЫЙ: ИК Датчик "Флаг"
+GButton PIN_HERKON_BOAT(30);    // Галетник "лодка"
+GButton PIN_IR_FLAG(27);        // ИК Датчик "Флаг"
 GButton PIN_HERKON_OWA(29);     // Геркон "сова"
 GButton PIN_HERKON_DWARF(31);   // Геркон "гном"
 GButton PIN_HERKON_TILE1(A4);   // Геркон плитка 1
@@ -238,12 +238,12 @@ void processOwlCommand(String command) {
   }
 
   if (command == "ready") {
+    delay(100);
     if (!hasSentReadyLog) {
       sendLog("Checking initial sensor states.");
       hasSentReadyLog = true;
     }
     resetOwlTower();
-    CheckState();
   }
 
   if (command == "check_state"){
@@ -293,36 +293,40 @@ void handleSerial1Commands() {
 }
 
 void CheckState() {
-  // Проверяем состояние геркона "лодка" (pin 30)
+  // --- 1. Проверяем ЛОДКУ (Pin 30) ---
   if (!digitalRead(30)) { // Если геркон активен (LOW)
-    if (!_restartGalet) {    // И если мы еще не отправляли сообщение
+    if (!_restartGalet) {    
       delay(30);
-      Serial1.println("owls_galet_on");
-      sendLog("Boat sensor activated (owls_galet_on).");
-      _restartGalet = 1;     // Устанавливаем флаг, что сообщение отправлено
+      Serial1.println("galet_on");
+      delay(10);
+      sendLog("Boat sensor activated (galet_on).");
+      _restartGalet = 1;     
     }
   } else {                   // Если геркон неактивен (HIGH)
-    if (_restartGalet) {     // И если мы ранее отправляли сообщение "on"
-      Serial1.println("owls_galet_off");
-      sendLog("Boat sensor deactivated (owls_galet_off).");
-      _restartGalet = 0;    // Сбрасываем флаг
+    if (_restartGalet) {     
+      Serial1.println("galet_off");
+      delay(10);
+      sendLog("Boat sensor deactivated (galet_off).");
+      _restartGalet = 0;    
     }
   }
 
-  // Проверяем состояние ИК датчика "Флаг" (pin 27)
-  // Судя по handleFlagSensorSimple, HIGH - это "on", LOW - "off"
-  if (digitalRead(27)) { // Если флаг на месте (HIGH)
-    if (!_restartFlag) {    // И если мы еще не отправляли сообщение
+  // --- 2. Проверяем ФЛАГ (Pin 27) ---
+  
+  if (digitalRead(27)) { // Если на пине HIGH (Флаг стоит/Датчик не перекрыт?)
+    if (!_restartFlag) {    
       delay(30);
-      Serial1.println("owls_flag4_on");
-      sendLog("Flag sensor activated (owls_flag4_on).");
-      _restartFlag = 1;     // Устанавливаем флаг
+      Serial1.println("flag4_on");
+      delay(10);
+      sendLog("Flag sensor activated (flag4_on).");
+      _restartFlag = 1;     
     }
-  } else {                  // Если флага нет (LOW)
-    if (_restartFlag) {     // И если мы ранее отправляли сообщение "on"
-      Serial1.println("owls_flag4_off");
-      sendLog("Flag sensor deactivated (owls_flag4_off).");
-      _restartFlag = 0;   // Сбрасываем флаг
+  } else {                  // Если на пине LOW
+    if (_restartFlag) {     
+      Serial1.println("flag4_off");
+      delay(10);
+      sendLog("Flag sensor deactivated (flag4_off).");
+      _restartFlag = 0;   
     }
   }
 }
@@ -351,17 +355,6 @@ void handleFlagSensorSimple() {
   if (PIN_IR_FLAG.isRelease()) {
     Serial1.println("flag4_on");
     sendLog("Flag sensor activated (flag4_on).");
-  }
-}
-
-void handleBOATSensorSimple() {
-  if (PIN_HERKON_BOAT.isPress()) {
-    Serial1.println("galet_on");
-    sendLog("Boat sensor activated (galet_on).");
-  }
-  if (PIN_HERKON_BOAT.isRelease()) {
-    Serial1.println("galet_off");
-    sendLog("Boat sensor deactivated (galet_off).");
   }
 }
 
@@ -644,11 +637,8 @@ void loop() {
   FastLED.show();
   handleSerial1Commands();   // Проверяем команды
   checkOwlButton();  
-    handleFlagSensorSimple();  //проверяем флаг
-    handleBOATSensorSimple();  //проверяем лодку
-    HELP();  
-                    //просим подсказку
-  //digitalWrite(PIN_LED_WINDOW, 0);
+  CheckState();  //проверяем флаг
+  HELP();
 }
 
 // Адаптированная функция фейерверка для owls.ino (FastLED)
