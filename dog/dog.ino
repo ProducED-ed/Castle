@@ -375,9 +375,9 @@ void setup() {
   pinMode(END_REED_PIN, INPUT_PULLUP);
   pinMode(CRYSTAL_REED_PIN, INPUT_PULLUP);
 
-  // Nastroyka novyh pinov kak INPUT_PULLUP
-  // pinMode(ROSE_REED_PIN, INPUT_PULLUP);
-  // pinMode(FLAG_IR_SENSOR_PIN, INPUT_PULLUP);
+
+  pinMode(ROSE_REED_PIN, INPUT_PULLUP);
+  pinMode(FLAG_IR_SENSOR_PIN, INPUT_PULLUP);
 
   galetButton.setDebounce(50);       // nastroyka antidrebezga (po umolchaniyu 80 ms)
   galetButton.setTimeout(300);       // nastroyka taymauta na uderzhanie (po umolchaniyu 500 ms)
@@ -428,14 +428,16 @@ void CheckState() {
   // Проверяем состояние геркона "роза" (pin A3)
   if (!digitalRead(A3)) { // Если геркон активен (LOW)
     if (!_restartGalet) {    
-      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
+      delay(30); // Задержка для стабилизации буфера
       Serial.println("galet_on");
+      delay(10);
       sendLog("Rose sensor activated (galet_on).");
       _restartGalet = 1;     
     }
   } else {                   // Если геркон неактивен (HIGH)
     if (_restartGalet) {     
       Serial.println("galet_off");
+      delay(10);
       sendLog("Rose sensor deactivated (galet_off).");
       _restartGalet = 0;    
     }
@@ -444,7 +446,7 @@ void CheckState() {
   // Проверяем состояние ИК-датчика "флаг" (pin 7)
   if (digitalRead(7)) { // Если флаг на месте (HIGH)
     if (!_restartFlag) {    
-      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
+      delay(30); // Задержка для стабилизации буфера
       Serial.println("flag3_on");
       sendLog("Flag sensor activated (flag3_on).");
       _restartFlag = 1;     
@@ -568,6 +570,7 @@ void loop() {
             smoothTurnOffCrystal();
           }
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_READY) == 0) {
+          delay(50);
           if (!hasSentReadyLog) {
             sendLog("Checking initial sensor states.");
             hasSentReadyLog = true;
@@ -581,7 +584,6 @@ void loop() {
           resetQuestState();
           _restartFlag = 0;
           _restartGalet = 0;
-          CheckState(); // <-- ДОБАВЛЕНО: Немедленная проверка состояния
           currentQuestState = STATE_WAITING_FOR_START;
           if (digitalRead(CAPSULE_REED_PIN) == HIGH) {
             Serial.println((__FlashStringHelper *)MSG_DOG_NRD);
@@ -719,11 +721,17 @@ void loop() {
   if (currentQuestState == STATE_IN_PROGRESS || currentQuestState == STATE_GAME_FINISHED) {
     int currentRoseReedState = digitalRead(ROSE_REED_PIN);
     if (lastRoseReedState == HIGH && currentRoseReedState == LOW) {
-      Serial.println((__FlashStringHelper *)MSG_ROSE);
-      sendLog("Rose sensor activated (galet_on).");
+      if (_restartGalet == 0) { // Шлем, только если еще не включено
+        Serial.println((__FlashStringHelper *)MSG_ROSE);
+        sendLog("Rose sensor activated (galet_on).");
+        _restartGalet = 1;
+      }
     } else if (lastRoseReedState == LOW && currentRoseReedState == HIGH) {
-      Serial.println((__FlashStringHelper *)MSG_NROSE);
-      sendLog("Rose sensor deactivated (galet_off).");
+      if (_restartGalet == 1) { // Шлем, только если было включено
+        Serial.println((__FlashStringHelper *)MSG_NROSE);
+        sendLog("Rose sensor deactivated (galet_off).");
+        _restartGalet = 0;
+      }
     }
     lastRoseReedState = currentRoseReedState;
     int currentFlagSensorState = digitalRead(FLAG_IR_SENSOR_PIN);
