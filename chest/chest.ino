@@ -1074,7 +1074,8 @@ void handlePlayerQueries() {
 
       if(finishedTrack == TRACK_HINT_0_RU || finishedTrack == TRACK_HINT_1_RU || finishedTrack == TRACK_HINT_2_RU || finishedTrack == TRACK_HINT_3_RU || finishedTrack == TRACK_HINT_4_RU
       || finishedTrack == TRACK_HINT_0_EN || finishedTrack == TRACK_HINT_1_EN || finishedTrack == TRACK_HINT_2_EN || finishedTrack == TRACK_HINT_3_EN || finishedTrack == TRACK_HINT_4_EN
-      || finishedTrack == TRACK_HINT_0_AR || finishedTrack == TRACK_HINT_1_AR || finishedTrack == TRACK_HINT_2_AR || finishedTrack == TRACK_HINT_3_AR || finishedTrack == TRACK_HINT_4_AR)
+      || finishedTrack == TRACK_HINT_0_AR || finishedTrack == TRACK_HINT_1_AR || finishedTrack == TRACK_HINT_2_AR || finishedTrack == TRACK_HINT_3_AR || finishedTrack == TRACK_HINT_4_AR
+      || finishedTrack == TRACK_HINT_0_FR || finishedTrack == TRACK_HINT_1_FR || finishedTrack == TRACK_HINT_2_FR || finishedTrack == TRACK_HINT_3_FR || finishedTrack == TRACK_HINT_4_FR)
       {
         hintFlag = 1;
         Serial.println("again");
