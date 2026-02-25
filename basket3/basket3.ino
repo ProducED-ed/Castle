@@ -2,7 +2,8 @@
 #include <Adafruit_NeoPixel.h>
 #include "GyverTM1637.h"
 #define IR_TIMEOUT 200
-#define BASKET_IR_PIN A10 
+#define BASKET_IR_PIN A10
+void CheckState(bool force = false);
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(5, 9, NEO_GRB + NEO_KHZ800);
 #define CLK A12
@@ -86,6 +87,7 @@ void setup() {
   metallButton.setDebounce(50); metallButton.setType(HIGH_PULL); metallButton.setDirection(NORM_OPEN);
   galetButton.setDebounce(50); galetButton.setType(HIGH_PULL); galetButton.setDirection(NORM_OPEN);
   flagButton.setDebounce(50); flagButton.setType(LOW_PULL); flagButton.setDirection(NORM_OPEN);
+  sendLog("Basket System Started");
 }
 
 void loop() {
@@ -112,9 +114,14 @@ void loop() {
       break;
     case 1:
       galetButton.tick();
-      if (galetButton.isPress()) Serial1.println("galet_on");
-      if (galetButton.isRelease()) Serial1.println("galet_off");
-      flagButton.tick();
+      if (galetButton.isPress() && _restartGalet == 0) {
+          Serial1.println("galet_on");
+          _restartGalet = 1;
+      }
+      if (galetButton.isRelease() && _restartGalet == 1) {
+          Serial1.println("galet_off");
+          _restartGalet = 0;
+      }
       if (flagButton.isPress()) Serial1.println("flag2_on");
       if (flagButton.isRelease()) Serial1.println("flag2_off");
       StartTrollGame();
@@ -188,13 +195,16 @@ void HandleMessagges(String message) {
       doorFlags = 1; 
       
       state = 0;
-      CheckState();
       
       // Если это ready, ставим флаг, чтобы не спамить логами
       if (message == "ready") hasSentReadyLog = true;
       return;
   }
-  // --- ВАШИ ФИКСЫ (Оставляем) ---
+
+  else if (message == "check_state") {
+      CheckState(true);
+  }
+  
   else if (message == "troll") {
     strip.clear(); strip.show();
     // ИЗМЕНЕНО: Добавлено логирование перед командой
@@ -231,29 +241,41 @@ void HandleMessagges(String message) {
   // if(message == "open_mine_door") OpenLock(SHERIF_EM1); // Дубликат удален
 }
 
-void CheckState() {
-  if (!digitalRead(26)) { // Проверка галетника
-    if (!_restartGalet) { 
-      delay(30); // <--- ДОБАВЛЕНО: Задержка перед отправкой
+void CheckState(bool force = false) {
+  // Проверка галетника (Пин 26)
+  if (!digitalRead(26)) { // Если нажат (ВКЛЮЧЕН)
+    if (!_restartGalet || force) { 
+      delay(30);
       Serial1.println("galet_on"); 
+      delay(10); // Пауза, чтобы не склеилось с логом
+      sendLog("Galet ON sent");
       _restartGalet = 1; 
     }
-  } else { 
-    if (_restartGalet) { 
-      Serial1.println("galet_off"); 
+  } else { // Если отпущен (ВЫКЛЮЧЕН)
+    if (_restartGalet || force) { 
+      delay(30);
+      Serial1.println("galet_off");
+      delay(10);
+      sendLog("Galet OFF sent");
       _restartGalet = 0; 
     }
   }
   
-  if (digitalRead(27)) { // Проверка флага
-    if (!_restartFlag) { 
-      delay(30); // <--- ДОБАВЛЕНО: Задержка перед отправкой
+  // Проверка флага (Пин 27)
+  if (digitalRead(27)) { // Если нажат (ВКЛЮЧЕН)
+    if (!_restartFlag || force) { 
+      delay(30);
       Serial1.println("flag2_on"); 
-      _restartFlag = 1; 
+      delay(10);
+      sendLog("Flag ON sent");
+      _restartFlag = 1;
     }
-  } else { 
-    if (_restartFlag) { 
-      Serial1.println("flag2_off"); 
+  } else { // Если отпущен (ВЫКЛЮЧЕН)
+    if (_restartFlag || force) { 
+      delay(30);
+      Serial1.println("flag2_off");
+      delay(10);
+      sendLog("Flag OFF sent");
       _restartFlag = 0; 
     }
   }
