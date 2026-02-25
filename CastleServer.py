@@ -294,6 +294,13 @@ console_formatter = logging.Formatter('%(message)s')
 
 # Create a rotating file handler for DEBUG messages (Подробный лог в файл)
 file_handler = RotatingFileHandler('logs/castle.log', maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+def custom_namer(default_name):
+    # default_name приходит как 'logs/castle.log.1'
+    # Мы меняем его на 'logs/castle1.log'
+    base, num = default_name.split('.log.')
+    return f"{base}{num}.log"
+
+file_handler.namer = custom_namer
 file_handler.setLevel(logging.DEBUG) # Файл пишет ВСЁ (DEBUG и выше)
 file_handler.setFormatter(file_formatter) # Используем ДЕТАЛЬНЫЙ форматтер
 
@@ -466,6 +473,7 @@ fireplace = pygame.mixer.Sound('fireplace.wav')
 knock_castle = pygame.mixer.Sound('knock_castle.wav')
 kay_in = pygame.mixer.Sound('kay_in.wav')
 kay_out = pygame.mixer.Sound('kay_out.wav')
+on_sound = pygame.mixer.Sound('on.wav')
 
 # --- ОПТИМИЗАЦИЯ: СПИСКИ ЗВУКОВ ---
 player_goal_sounds = [goal2, goal3, goal4, goal5, goal6, goal7]
@@ -588,6 +596,7 @@ try:
         knock_castle: "knock_castle.wav",
         kay_in: "kay_in.wav",
         kay_out: "kay_out.wav",
+        on_sound: "on.wav",
     }
 except NameError:
     _SOUND_NAME_MAP = {}
@@ -704,6 +713,7 @@ def handle_connect():
     if show_improper_shutdown_warning:
         # Отправляем команду на показ модального окна ТОЛЬКО этому клиенту
         socketio.emit('show_shutdown_warning', to=request.sid)
+        show_improper_shutdown_warning = False
         # Мы НЕ сбрасываем флаг. Он останется активным,
         # пока сервер не будет перезапущен ПОСЛЕ корректного выключения.
     current_client_sid = request.sid
@@ -2541,7 +2551,10 @@ def serial():
               if ser.in_waiting > 0:
                    line = ser.readline().decode('utf-8', errors='ignore').rstrip()
                    flag = line
-                   # --------------------------------------------------------
+                   if flag == "QUEST_SYSTEM_READY":
+                       logger.info("SYSTEM CHECK COMPLETE: Playing startup sound.")
+                       play_effect(on_sound)
+
                    flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
                    flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
                    
