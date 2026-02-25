@@ -150,6 +150,7 @@ void checkGameEnd();
 void handleUartCommands();
 void openLock();
 void manageLock();
+void CheckState(bool force = false);
 void setup() {
   Serial1.begin(9600);
   Serial1.setTimeout(10);
@@ -241,13 +242,15 @@ void loop() {
   workbenchButt4.tick();
 
   galetButton.tick();
-  if (galetButton.isPress()) {
+  if (galetButton.isPress() && _restartGalet == 0) {
     Serial1.println("galet_on");
     sendLog("Galet sensor activated (galet_on).");
+    _restartGalet = 1;
   }
-  if (galetButton.isRelease()) {
+  if (galetButton.isRelease() && _restartGalet == 1) {
     Serial1.println("galet_off");
     sendLog("Galet sensor deactivated (galet_off).");
+    _restartGalet = 0;
   }
 
   flagButton.tick();
@@ -655,19 +658,21 @@ void checkGameEnd() {
   }
 }
 
-void CheckState() {
-  sendLog("Checking initial sensor states.");
+void CheckState(bool force = false) {
   // Проверяем состояние галетника (pin 30)
   if (!digitalRead(30)) { // Если галетник активен (LOW)
-    if (!_restartGalet) {    
-      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
+    if (!_restartGalet || force) {    
+      delay(50);
       Serial1.println("galet_on");
+      delay(20); // ВАЖНО: Пауза перед логом
       sendLog("Galet sensor is active (galet_on).");
-      _restartGalet = 1;     
+      _restartGalet = 1;
     }
   } else {                   // Если галетник неактивен (HIGH)
-    if (_restartGalet) {     
+    if (_restartGalet || force) {     
+      delay(50);
       Serial1.println("galet_off");
+      delay(20); // ВАЖНО
       sendLog("Galet sensor is inactive (galet_off).");
       _restartGalet = 0;    
     }
@@ -675,15 +680,18 @@ void CheckState() {
 
   // Проверяем состояние флага (pin 27)
   if (digitalRead(27)) { // Если флаг на месте (HIGH)
-    if (!_restartFlag) {    
-      delay(30); // <--- ДОБАВЛЕНО: Задержка для стабилизации буфера
+    if (!_restartFlag || force) {    
+      delay(50);
       Serial1.println("flag1_on");
+      delay(20); // ВАЖНО
       sendLog("Flag sensor is active (flag1_on).");
       _restartFlag = 1;     
     }
   } else {                  // Если флага нет (LOW)
-    if (_restartFlag) {     
+    if (_restartFlag || force) {     
+      delay(50);
       Serial1.println("flag1_off");
+      delay(20); // ВАЖНО
       sendLog("Flag sensor is inactive (flag1_off).");
       _restartFlag = 0;   
     }
@@ -699,10 +707,8 @@ void handleUartCommands() {
       command.remove(command.length() - 1);
     }
     if (command == "check_state"){
-      _restartGalet = 0;
-      _restartFlag = 0;
-        CheckState();
-      }
+      CheckState(true);     // Принудительная отправка
+    }
 
     if (command == "workshop") {
       openLock();
@@ -743,7 +749,6 @@ void handleUartCommands() {
       isFirstFire0 = true;
       _restartGalet = 0;
       _restartFlag = 0;
-      CheckState(); // Принудительная проверка состояния при "ready"
     } else if (command == "restart") {
       hasSentReadyLog = false;
       fireworkActive = false; // Сбрасываем фейерверк
