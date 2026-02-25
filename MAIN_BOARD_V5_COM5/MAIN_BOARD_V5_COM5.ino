@@ -707,6 +707,56 @@ void setup() {
   boyServo.attach(49);
   boyServo.write(0);
   boyServo.detach();
+  // --- БЛОК ПРОВЕРКИ БАШЕН ---
+  Serial.println("log:main:Checking towers...");
+  
+  // 1. Очищаем буферы от мусора
+  while(Serial1.available()) Serial1.read();
+  while(Serial2.available()) Serial2.read();
+  while(Serial3.available()) Serial3.read();
+  while(mySerial.available()) mySerial.read();
+
+  // 2. Отправляем пинг (команду 'ready' или 'ping', на которую башни реагируют)
+  // Башни обычно отвечают логами или статусом на 'ready'
+  Serial1.println("ready"); 
+  Serial2.println("ready");
+  Serial3.println("ready");
+  mySerial.println("ready");
+
+  // 3. Ждем ответов (Таймаут 2 секунды)
+  unsigned long startCheck = millis();
+  bool t1 = false; // Workshop
+  bool t2 = false; // Basket
+  bool t3 = false; // Dog
+  bool t4 = false; // Owls
+  
+  while(millis() - startCheck < 2000) {
+    if(Serial1.available()) t1 = true;
+    if(Serial2.available()) t2 = true;
+    if(Serial3.available()) t3 = true;
+    if(mySerial.available()) t4 = true;
+    
+    // Если все ответили - выходим досрочно
+    if(t1 && t2 && t3 && t4) break;
+  }
+
+  // 4. Анализ результатов
+  if(t1 && t2 && t3 && t4) {
+     // Все башни на связи + Main загрузился
+     Serial.println("log:main:All towers online.");
+     delay(100);
+     Serial.println("QUEST_SYSTEM_READY"); // Команда для Python играть звук
+  } else {
+     // Кто-то молчит
+     Serial.print("log:warn:Missing towers: ");
+     if(!t1) Serial.print("Workshop ");
+     if(!t2) Serial.print("Basket ");
+     if(!t3) Serial.print("Dog ");
+     if(!t4) Serial.print("Owls ");
+     Serial.println();
+     // Звук НЕ играем, так как условие "все контроллеры дали ответ" не выполнено
+  }
+  // ---------------------------------------
 }
 void loop() {
   MonitorSerialBuffer(); // монитор буферизации
@@ -843,22 +893,57 @@ void loop() {
         ClearSatelliteBuffers();
         String buff = Serial.readStringUntil('\n');
         buff.trim();
+        
+        // --- Обработка Ready в конце игры ---
+        if (buff.indexOf("ready") != -1) {
+           _dataQueue = 0;
+           _towerTimer = 0; _towerCounter = 0; doorEvent = 0;
+           mansardEvent = 0; libraryEvent = 0; galet1Event = 0;
+           galet2Event = 0;
+           galet3Event = 0; galet4Event = 0; galet5Event = 0; sealEvent = 0;
+           sealSpaceEvent = 0;
+           finalEvent = 0; crimeEvent = 0; safeEvent = 0;
+           bugTimerScroll = 0;
+           for (int i = 0; i < DOORS; i++) active[i] = false;
+    
+           Serial1.println("ready"); delay(20);
+           Serial2.println("ready"); delay(20);
+           Serial3.println("ready"); delay(20);
+           mySerial.println("ready"); delay(50);
+           mySerial.println("ready");
+    
+           if (digitalRead(startDoorPin)) Serial.println("open_door");
+           if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
+           if (digitalReadExpander(4, board4)) Serial.println("cristal_up");
+           if (digitalReadExpander(7, board1)) Serial.println("boy_out");
+           if (digitalReadExpander(5, board3)) Serial.println("lib_door");
+           if (digitalReadExpander(1, board2)) Serial.println("crime_open");
+           if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println("safe_open");
+           
+           // Выключаем свет
+           digitalWrite(MansardLight, LOW); digitalWrite(LastTowerTopLight, LOW);
+           digitalWrite(Fireworks, LOW); digitalWrite(BankRoomLight, LOW);
+           digitalWrite(TorchLight, LOW); digitalWrite(HallLight, LOW);
+           digitalWrite(UfHallLight, LOW); digitalWrite(LibraryLight, LOW);
+           for (int s = 0; s < STRIPS; s++) { strips[s]->clear(); strips[s]->show(); }
+          
+           boyStateInitialized = false;
+           readyListenTimer = millis();
+           level = 26; // Переходим в режим прослушивания
+           break; // Выходим из цикла чтения
+        }
+
         if (buff.indexOf("restart") != -1) {
           // Добавляем задержки при рассылке, как в RestOn
-          Serial1.println("restart"); delay(20);
-          Serial2.println("restart"); delay(20);
-          Serial3.println("restart"); delay(20);
-          mySerial.println("restart"); delay(50);
-          mySerial.println("restart");
-          
+          SendRestartToAll();
           OpenAll();
           isRestInitialized = false;
           RestOn();
           level = 25;
-          break; 
+          break;
         }
       }
-      // Если после обработки команд уровень изменился (на 25), 
+      // Если после обработки команд уровень изменился (на 25 или 26), 
       // НЕ ЗАПУСКАЕМ FinalPresentation!
       if (level == 20) {
          FinalPresentation();
@@ -959,10 +1044,7 @@ void PowerOn() {
 
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
-      Serial1.println("restart");
-      Serial2.println("restart");
-      Serial3.println("restart");
-      mySerial.println("restart");
+      SendRestartToAll();
       OpenAll();
       isRestInitialized = false;
       RestOn();
@@ -976,23 +1058,23 @@ void PowerOn() {
        galet3Event = 0; galet4Event = 0; galet5Event = 0; sealEvent = 0;
        sealSpaceEvent = 0; finalEvent = 0; bugTimerScroll = 0;
 
-       Serial1.println("ready"); delay(10);
-       Serial1.println("check_state"); delay(20); // Плотник (SUN)
-
-       Serial2.println("ready"); delay(10);
-       Serial2.println("check_state"); delay(20); // Баскетбол (BASKET)
-
-       Serial3.println("ready"); delay(10);
-       Serial3.println("check_state"); delay(20); // Собака (ROSE)
-
-       mySerial.println("ready"); delay(10);
-       mySerial.println("check_state"); delay(50); // Совы (BOAT)
+       // 1. Сначала шлем всем RESET/READY
+       Serial1.println("ready"); 
+       Serial2.println("ready"); 
+       Serial3.println("ready"); 
+       mySerial.println("ready");
        
-       Serial1.println("ready"); delay(20);
-       Serial2.println("ready"); delay(20);
-       Serial3.println("ready"); delay(20);
-       mySerial.println("ready"); delay(50);
-       mySerial.println("ready"); // Дубль для Сов
+       // 2. Ждем, пока они проплюются логами о загрузке
+       delay(1500); 
+       
+       // 3. Очищаем входящие буферы от мусора (логов загрузки)
+       ClearSatelliteBuffers();
+
+       // 4. Теперь просим прислать ЧИСТЫЙ статус
+       Serial1.println("check_state"); delay(50); // Workshop
+       Serial2.println("check_state"); delay(50); // Basket
+       Serial3.println("check_state"); delay(50); // Dog
+       mySerial.println("check_state"); delay(50); // Owls
 
        if (digitalRead(startDoorPin)) Serial.println("open_door");
        if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
@@ -1613,10 +1695,7 @@ void ClockGame() {
     if (buff.indexOf("restart") != -1) {
       repeat = 0;
       switchMustBeOffFirst = true; // Обязательно сбрасываем защиту при рестарте
-      Serial1.println("restart");
-      Serial2.println("restart");
-      Serial3.println("restart");
-      mySerial.println("restart");
+      SendRestartToAll();
       // --------------------------
       
       lessonSaluteActive = false;
@@ -1696,12 +1775,17 @@ void GaletGame() {
 
   // --- 1. ИНИЦИАЛИЗАЦИЯ ПРИ СТАРТЕ УРОВНЯ ---
   if (!isGameInitialized) {
+    galet1 = false;
+    galet2 = false;
+    galet3 = false;
+    galet4 = false;
+    galet5 = false;
     // Отправляем запрос состояния всем башням, чтобы узнать, 
     // повернуты ли галетники УЖЕ сейчас.
-    Serial1.println("check_state"); // Workshop
-    Serial2.println("check_state"); // Basket
-    Serial3.println("check_state"); // Dog
-    mySerial.println("check_state"); // Owls
+    Serial1.println("check_state"); delay(50); // Workshop
+    Serial2.println("check_state"); delay(50); // Basket
+    Serial3.println("check_state"); delay(50); // Dog
+    mySerial.println("check_state"); delay(50); // Owls
     
     // Сразу проверяем состояние локального галетника (№5)
     // Используем state(), чтобы узнать текущее положение, а не ждать клика
@@ -3224,10 +3308,7 @@ void BasketLesson() {
     // [ИСПРАВЛЕНИЕ] Корректный рестарт на этом уровне
     if (buff.indexOf("restart") != -1) {
       // 1. Рассылаем рестарт ВСЕМ (включая Баскет)
-      Serial1.println("restart");
-      Serial2.println("restart"); 
-      Serial3.println("restart");
-      mySerial.println("restart");
+      SendRestartToAll();
       
       // 2. Открываем дверь СОВ
       delay(50); 
@@ -3396,10 +3477,7 @@ void Basket() {
       mySerial.println("firework");
       level = 20;
     } else if (buff.indexOf("restart") != -1) {
-      Serial1.println("restart");
-      Serial2.println("restart");
-      Serial3.println("restart");
-      mySerial.println("restart");
+      SendRestartToAll();
       // --------------------------
       
       lessonSaluteActive = false;
@@ -6027,12 +6105,7 @@ void RestOn() {
     // КОНЕЦ
 
     if (buff.indexOf("restart") != -1) {
-      Serial1.println("restart"); delay(20);
-      Serial2.println("restart"); delay(20);
-      Serial3.println("restart"); delay(20);
-      mySerial.println("restart"); delay(50); 
-      mySerial.println("restart");
-      
+      SendRestartToAll();
       OpenAll(); 
       
       // [ВАЖНО] Если нажали рестарт, находясь в рестарте - 
@@ -6708,5 +6781,15 @@ void MonitorSerialBuffer() {
       Serial.print("log:warn:BUFFER CLEARED! Removed: ");
       Serial.println(trash); 
     }
+  }
+}
+
+void SendRestartToAll() {
+  // Отправляем команду 3 раза, чтобы "пробиться" через strip.show() на башнях
+  for (int i = 0; i < 3; i++) {
+    Serial1.println("restart"); delay(15); // Workshop
+    Serial2.println("restart"); delay(15); // Basket/Troll
+    Serial3.println("restart"); delay(15); // Dog
+    mySerial.println("restart"); delay(15); // Owls
   }
 }
