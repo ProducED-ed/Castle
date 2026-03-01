@@ -749,6 +749,9 @@ void handleUartCommands() {
       isFirstFire0 = true;
       _restartGalet = 0;
       _restartFlag = 0;
+      if (command == "ready") {
+         Serial1.println("log:workshop:System Ready");
+      }
     } else if (command == "restart") {
       hasSentReadyLog = false;
       fireworkActive = false; // Сбрасываем фейерверк
