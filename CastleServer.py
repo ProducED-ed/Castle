@@ -672,6 +672,19 @@ app.secret_key = 'super_secret_quest_key' # Нужно для работы "За
 ADMIN_PASSWORD = 'questquest' # ПАРОЛЬ ОТ СЕТИ CASTLE
 app.config['SECRET_KEY'] = 'secret!'
 app.static_folder = 'static'
+def text_to_wlan1_reset():
+    """Принудительная перезагрузка интерфейса wlan1"""
+    try:
+        logger.info("WI-FI: Выполняем принудительный сброс wlan1...")
+        # 1. Выключаем интерфейс
+        subprocess.run("sudo ifconfig wlan1 down", shell=True, check=False)
+        # 2. Ждем пару секунд (используем eventlet.sleep, чтобы не блокировать сервер)
+        eventlet.sleep(2)
+        # 3. Включаем обратно
+        subprocess.run("sudo ifconfig wlan1 up", shell=True, check=False)
+        logger.info("WI-FI: Интерфейс wlan1 перезапущен.")
+    except Exception as e:
+        logger.error(f"WI-FI: Ошибка при сбросе wlan1: {e}")
 socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True)
 
 #основной декоратор срабатывает при запросе браузера страницы отправляет наш файл с интерфейсом и все необходимые дополняющие css js icon
@@ -747,17 +760,17 @@ def handle_wifi_connect(data):
     socketio.emit('wifi_status', {'status': 'connecting', 'message': 'Connecting...', 'ssid': ssid})
     
     config_text = f"""ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=RU
+                    update_config=1
+                    country=RU
 
-network={{
-    ssid="{ssid}"
-    psk="{password}"
-    key_mgmt=WPA-PSK
-    priority=1
-    scan_ssid=1
-}}
-"""
+                    network={{
+                        ssid="{ssid}"
+                        psk="{password}"
+                        key_mgmt=WPA-PSK
+                        priority=1
+                        scan_ssid=1
+                    }}
+                    """
     try:
         # 2. Записываем настройки
         with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as f:
@@ -765,7 +778,7 @@ network={{
         
         # 3. Принудительно включаем интерфейс (на случай, если он "уснул" после Disconnect)
         subprocess.run(['sudo', 'ifconfig', 'wlan1', 'up'], check=False)
-        
+        text_to_wlan1_reset()  # Сначала "дергаем" адаптер
         # 4. Применяем настройки
         subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reconfigure'], check=True)
         # Иногда нужен пинок для переподключения
@@ -1957,8 +1970,8 @@ def tmr(res):
                # 2. ОТПРАВЛЯЕМ 'ready' на Arduino.
                serial_write_queue.put('ready')
 
-               # 3. Ждем 4.5 секунды (чуть увеличили время ожидания ответов)
-               eventlet.sleep(4.5) 
+               # 3. Ждем
+               eventlet.sleep(5.5)
                
                # --- ФИНАЛЬНАЯ ПРОВЕРКА (без изменений) ---
                
@@ -3077,16 +3090,14 @@ def serial():
                               #----играем эффект
                               play_effect(steps)
                               while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1) 
-
-                              # ОПТИМИЗИРОВАНО
+                                  eventlet.sleep(0.1)
                               play_localized_audio("story_3_c")
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)         
 
                               serial_write_queue.put('student_hide')
-                              # --- ЗАЩИТА: Проверяем, не активен ли уже 2 этап ---
+                              # --- Проверяем, не активен ли уже 2 этап ---
                               if not train_stage_2_active:
                                   send_esp32_command(ESP32_API_TRAIN_URL, "stage_1")
                               else:
@@ -3096,8 +3107,12 @@ def serial():
                               send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_off")
                               send_esp32_command(ESP32_API_TRAIN_URL, "train_light_on")
                               play_background_music("fon5.mp3", loops=-1)
-                              # ОПТИМИЗИРОВАНО
                               play_localized_audio("story_4")
+                              while channel3.get_busy()==True and go == 1: 
+                                  eventlet.sleep(0.1)
+                              # --- Разрешаем Arduino начать игру ---
+                              serial_write_queue.put('start_galet_logic') 
+                              logger.info("SENT [Main Board]: start_galet_logic (Story 4 finished)")
 
                               #-----изменяем переменную
                          if flag == "kay_repeat":
@@ -3107,14 +3122,14 @@ def serial():
                               
                          # 1. Определяем сигналы (согласно MAIN_BOARD_V5_COM5.ino)
                          galet_signals = {
-                             "central_galet_on": "g1",           # Central (Tree)
+                             "central_galet_on": "g1",   # Central (Tree)
                              "workshop_galet_on": "g2",  # Workshop (Sun)
                              "basket_galet_on": "g3",    # Basket (Moon)
                              "dog_galet_on": "g4",       # Dog (Rose)
                              "owls_galet_on": "g5"       # Owls (Boat)
                          }
                          galet_off_signals = {
-                             "central_galet_off": "g1",          # Central Off
+                             "central_galet_off": "g1",  # Central Off
                              "workshop_galet_off": "g2", # Workshop Off
                              "basket_galet_off": "g3",   # Basket Off
                              "dog_galet_off": "g4",      # Dog Off
@@ -3125,14 +3140,12 @@ def serial():
                       
                          # 2. Проверяем, пришел ли сигнал ВКЛ
                          if flag in galet_signals:
-                             # Добавляем, только если его еще не было
                              if galet_signals[flag] not in mansard_galets:
                                  mansard_galets.add(galet_signals[flag])
                                  changed = True
                       
                          # 3. Проверяем, пришел ли сигнал ВЫКЛ
                          if flag in galet_off_signals:
-                             # Удаляем, только если он там был
                              if galet_off_signals[flag] in mansard_galets:
                                  mansard_galets.discard(galet_off_signals[flag])
                                  changed = True
@@ -3158,16 +3171,14 @@ def serial():
                                  socketio.emit('level', event_name, to=None)
                               
                                  # 4.2. Обновляем историю (socklist)
-                                 # Удаляем старое значение прогресса из истории
-                                 old_percent = last_mansard_count * 20
-                                 old_event_name = f"mansard_progress_{old_percent}"
-                              
-                                 # Используем цикл while, чтобы удалить ВСЕ старые вхождения
-                                 while old_event_name in socklist:
-                                     try:
-                                         socklist.remove(old_event_name)
-                                     except ValueError:
-                                         pass # На случай, если что-то пошло не так
+                                 # Сначала удаляем ВСЕ старые значения прогресса, чтобы избежать конфликтов
+                                 for i in range(0, 120, 20):
+                                     t_name = f"mansard_progress_{i}"
+                                     while t_name in socklist:
+                                         try:
+                                             socklist.remove(t_name)
+                                         except ValueError:
+                                             pass
                                       
                                  socklist.append(event_name)
                               
@@ -3176,12 +3187,12 @@ def serial():
                                  logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
                          # --- Конец Логики Прогресс-бара Mansard Game ---
                          
-                         # НОВЫЙ ОБРАБОТЧИК ПОБЕДЫ (вместо if flag=="galet_on":)
+                         # ОБРАБОТЧИК ПОБЕДЫ
                          if flag == "mansard_finish":
                               # 1. Принудительно ставим 100% на шкале
                               socketio.emit('level', 'mansard_progress_100', to=None)
                               
-                              # Чистим историю от старых процентов (0, 20, 40...)
+                              # Чистим историю от старых процентов
                               for i in range(0, 100, 20):
                                   t_name = f"mansard_progress_{i}"
                                   while t_name in socklist: socklist.remove(t_name)
@@ -3191,26 +3202,24 @@ def serial():
                                   socklist.append('mansard_progress_100')
                               
                               # Фиксируем состояние счетчика на 5, чтобы логика процентов не перерисовала его обратно
+                              mansard_galets.update(['g1', 'g2', 'g3', 'g4', 'g5'])
                               last_mansard_count = 5 
 
-                              # 2. ЗАПУСКАЕМ СЦЕНАРИЙ ПОБЕДЫ (тот же, что был раньше)
+                              # 2. ЗАПУСКАЕМ СЦЕНАРИЙ ПОБЕДЫ
                               train_stage_2_active = True
                               play_background_music("fon6.mp3", loops=-1)
                               
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
                               
-                              # Истории (ОПТИМИЗИРОВАНО)
                               play_localized_audio("story_5")
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               
-                              # Открываем дверь на пульте
                               socketio.emit('level', 'open_mansard_door',to=None)
                               socklist.append('open_mansard_door')
                               
-                              # Открываем физическую дверь (дублируем команду на всякий случай, хотя Мега сама открывает)
                               ser.write(b'open_mansard_door\n')
                               ser.flush()
                               
@@ -4658,6 +4667,10 @@ if __name__ == '__main__':
             logger.debug(f"STARTUP: Не удалось создать '{LATCH_FILE}': {e}")
         # Используем .debug(), чтобы это сообщение попало только в файл логов, а не в консоль.
         logger.debug("STARTUP: Сервер CastleServer.py успешно запущен.")
+        # При старте сразу дергаем адаптер, чтобы он проснулся и увидел сохраненную сеть
+        text_to_wlan1_reset()
+        # Попытка подключиться к уже сохраненной сети
+        subprocess.run("sudo wpa_cli -i wlan1 reconfigure", shell=True, check=False)
         logger.info("Starting background tasks...")
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
