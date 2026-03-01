@@ -104,7 +104,6 @@ void loop() {
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
         if (buff == "ready") {
-          if (!hasSentReadyLog) { sendLog("Ready received."); hasSentReadyLog = true; }
           HandleMessagges("ready");
         }
         else if (buff == "start") { state = 1; hasSentReadyLog = false; }
@@ -114,16 +113,30 @@ void loop() {
       break;
     case 1:
       galetButton.tick();
+      // Синхронизация галетника
       if (galetButton.isPress() && _restartGalet == 0) {
           Serial1.println("galet_on");
+          sendLog("Galet ON (Loop)"); 
           _restartGalet = 1;
       }
       if (galetButton.isRelease() && _restartGalet == 1) {
           Serial1.println("galet_off");
+          sendLog("Galet OFF (Loop)");
           _restartGalet = 0;
       }
-      if (flagButton.isPress()) Serial1.println("flag2_on");
-      if (flagButton.isRelease()) Serial1.println("flag2_off");
+
+      flagButton.tick();
+      if (flagButton.isPress() && _restartFlag == 0) {
+          Serial1.println("flag2_on");
+          sendLog("Flag ON (Loop)"); // Лог поможет понять, видит ли плата нажатие
+          _restartFlag = 1;
+      }
+      if (flagButton.isRelease() && _restartFlag == 1) {
+          Serial1.println("flag2_off");
+          sendLog("Flag OFF (Loop)");
+          _restartFlag = 0;
+      }
+
       StartTrollGame();
       break;
     case 2: OpenDoor(); break;
@@ -195,9 +208,11 @@ void HandleMessagges(String message) {
       doorFlags = 1; 
       
       state = 0;
-      
-      // Если это ready, ставим флаг, чтобы не спамить логами
-      if (message == "ready") hasSentReadyLog = true;
+      // --- Всегда отвечаем на ready ---
+      if (message == "ready") {
+          Serial1.println("log:basket:System Ready");
+          hasSentReadyLog = true;
+      }
       return;
   }
 
@@ -241,41 +256,41 @@ void HandleMessagges(String message) {
   // if(message == "open_mine_door") OpenLock(SHERIF_EM1); // Дубликат удален
 }
 
-void CheckState(bool force = false) {
-  // Проверка галетника (Пин 26)
-  if (!digitalRead(26)) { // Если нажат (ВКЛЮЧЕН)
+void CheckState(bool force) {
+  // Галетник (Пин 26)
+  if (!digitalRead(26)) { // ВКЛЮЧЕН
     if (!_restartGalet || force) { 
       delay(30);
       Serial1.println("galet_on"); 
-      delay(10); // Пауза, чтобы не склеилось с логом
-      sendLog("Galet ON sent");
+      delay(10);
+      sendLog("Galet ON sent (CheckState)");
       _restartGalet = 1; 
     }
-  } else { // Если отпущен (ВЫКЛЮЧЕН)
+  } else { // ВЫКЛЮЧЕН
     if (_restartGalet || force) { 
       delay(30);
       Serial1.println("galet_off");
       delay(10);
-      sendLog("Galet OFF sent");
+      sendLog("Galet OFF sent (CheckState)");
       _restartGalet = 0; 
     }
   }
   
-  // Проверка флага (Пин 27)
-  if (digitalRead(27)) { // Если нажат (ВКЛЮЧЕН)
+  // Флаг (Пин 27)
+  if (digitalRead(27)) { // ВКЛЮЧЕН
     if (!_restartFlag || force) { 
       delay(30);
       Serial1.println("flag2_on"); 
       delay(10);
-      sendLog("Flag ON sent");
+      sendLog("Flag ON sent (CheckState)");
       _restartFlag = 1;
     }
-  } else { // Если отпущен (ВЫКЛЮЧЕН)
+  } else { // ВЫКЛЮЧЕН
     if (_restartFlag || force) { 
       delay(30);
       Serial1.println("flag2_off");
       delay(10);
-      sendLog("Flag OFF sent");
+      sendLog("Flag OFF sent (CheckState)");
       _restartFlag = 0; 
     }
   }
