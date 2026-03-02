@@ -98,6 +98,34 @@ void loop() {
     previousState = state;
   }
 
+  galetButton.tick();
+  // Если нажали галетник и он еще не был обработан
+  if (galetButton.isPress() && _restartGalet == 0) {
+      Serial1.println("galet_on");
+      sendLog("Galet ON (Loop)"); 
+      _restartGalet = 1;
+  }
+  // Если отпустили галетник
+  if (galetButton.isRelease() && _restartGalet == 1) {
+      Serial1.println("galet_off");
+      sendLog("Galet OFF (Loop)");
+      _restartGalet = 0;
+  }
+
+  flagButton.tick();
+  // Если нажали флаг
+  if (flagButton.isPress() && _restartFlag == 0) {
+      Serial1.println("flag2_on");
+      sendLog("Flag ON (Loop)");
+      _restartFlag = 1;
+  }
+  // Если отпустили флаг
+  if (flagButton.isRelease() && _restartFlag == 1) {
+      Serial1.println("flag2_off");
+      sendLog("Flag OFF (Loop)");
+      _restartFlag = 0;
+  }
+
   switch (state) {
     case 0:
       while (Serial1.available()) { 
@@ -257,40 +285,47 @@ void HandleMessagges(String message) {
 }
 
 void CheckState(bool force) {
-  // Галетник (Пин 26)
-  if (!digitalRead(26)) { // ВКЛЮЧЕН
+  // 1. Читаем физику (Галетник=26, Флаг=27)
+  // Галетник (Pin 26): Active LOW.
+  bool g = !digitalRead(26);
+  // Флаг (Pin 27): Active HIGH.
+  bool f = digitalRead(27);
+
+  // 2. Короткий лог + задержка
+  if (force) {
+    Serial1.print("log:basket:G");
+    Serial1.print(g); 
+    Serial1.print("_F");
+    Serial1.println(f);
+    Serial1.flush();
+    delay(150); // Важная задержка для синхронизации с Main Board
+  }
+
+  // 3. Отправка команд Галетника
+  if (g) {
     if (!_restartGalet || force) { 
-      delay(30);
       Serial1.println("galet_on"); 
-      delay(10);
-      sendLog("Galet ON sent (CheckState)");
       _restartGalet = 1; 
     }
-  } else { // ВЫКЛЮЧЕН
+  } else {
     if (_restartGalet || force) { 
-      delay(30);
-      Serial1.println("galet_off");
-      delay(10);
-      sendLog("Galet OFF sent (CheckState)");
+      Serial1.println("galet_off"); 
       _restartGalet = 0; 
     }
   }
   
-  // Флаг (Пин 27)
-  if (digitalRead(27)) { // ВКЛЮЧЕН
+  delay(20);
+
+  // 4. Отправка команд Флага
+  if (f) {
     if (!_restartFlag || force) { 
-      delay(30);
       Serial1.println("flag2_on"); 
-      delay(10);
-      sendLog("Flag ON sent (CheckState)");
+      if(force) { delay(20); Serial1.println("flag2_on"); } // Дублируем
       _restartFlag = 1;
     }
-  } else { // ВЫКЛЮЧЕН
+  } else {
     if (_restartFlag || force) { 
-      delay(30);
-      Serial1.println("flag2_off");
-      delay(10);
-      sendLog("Flag OFF sent (CheckState)");
+      Serial1.println("flag2_off"); 
       _restartFlag = 0; 
     }
   }
