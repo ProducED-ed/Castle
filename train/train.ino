@@ -90,6 +90,9 @@ int hint_counter = 0;
 bool hintFlag = 1;
 bool trainSensorLatched = false; // Запоминание нажатия
 bool isRestartMode = false;
+bool lastColorOk = false;
+bool lastFlickerOk = false;
+bool lastSoundOk = false;
 
 Adafruit_PCF8574 INPUTS;
 Adafruit_PCF8574 OUTPUTS;
@@ -226,14 +229,16 @@ Encoder enc2(35, 32);
 Encoder enc3(39, 34);
 // --- Функции для прерываний ---
 // IRAM_ATTR хранит функцию в оперативной памяти для максимальной скорости
+volatile bool ledsUpdating = false; 
+
 void IRAM_ATTR isrEnc1() {
-  enc1.tick(); 
+  if (!ledsUpdating) enc1.tick(); // Если лента обновляется, пропускаем тик
 }
 void IRAM_ATTR isrEnc2() {
-  enc2.tick(); 
+  if (!ledsUpdating) enc2.tick();
 }
 void IRAM_ATTR isrEnc3() {
-  enc3.tick(); 
+  if (!ledsUpdating) enc3.tick();
 }
 
 DFRobotDFPlayerMini myMP3;
@@ -290,8 +295,6 @@ void ResetTimer() {
   isStartTrain = 0;  
   isSendOut = 0;     
   trainSensorLatched = false;
-  
-  FastLED.show();
 }
 
 
@@ -414,9 +417,7 @@ void HandleLoadingAnimation() {
   if (pos > 8) pos = 1; // Диапазон 0-8
 
   // Рисуем синюю комету только на карте
-  ledMap[pos] = CRGB::Blue; 
-
-  FastLED.show();
+  ledMap[pos] = CRGB::Blue;
 }
 // ------------------------------------------------------------------
 
@@ -537,6 +538,9 @@ void setup() {
         myMP3.playMp3Folder(TRACK_TRAIN);
         SendData("{\"log\":\"Train: Playing Train sound\"}");
         isRestartMode = false;
+        lastColorOk = false;
+        lastFlickerOk = false;
+        lastSoundOk = false;
         currentTrainStage = 0; // Сброс этапа при старте
         // --- Явно гасим все светодиоды ---
         for (int i = 0; i <= 8; i++) {
@@ -556,7 +560,7 @@ void setup() {
         }
         ActiveLeds[4] = 12;
         state = 0;
-        FutureLeds[4] = -1;
+        // FutureLeds[4] = -1;
         hintFlag = 1;
         mapClicksDisabled = false;
         isStartTrain = 0; // На всякий случай сбрасываем и это
@@ -718,6 +722,9 @@ void setup() {
         OUTPUTS.digitalWrite(0, HIGH);
         OUTPUTS.digitalWrite(1, HIGH);
         isRestartMode = true;
+        lastColorOk = false;
+        lastFlickerOk = false;
+        lastSoundOk = false;
 
         // --- Очищаем обе ленты ---
         FastLED.clear(); 
@@ -1328,6 +1335,18 @@ if (mapClicksDisabled) { // Восстанавливаем только если
   // ---------------------------------------------
 }
 
+void pauseEncoders() {
+  detachInterrupt(33); detachInterrupt(25);
+  detachInterrupt(35); detachInterrupt(32);
+  detachInterrupt(39); detachInterrupt(34);
+}
+
+void resumeEncoders() {
+  attachInterrupt(33, isrEnc1, CHANGE); attachInterrupt(25, isrEnc1, CHANGE);
+  attachInterrupt(35, isrEnc2, CHANGE); attachInterrupt(32, isrEnc2, CHANGE);
+  attachInterrupt(39, isrEnc3, CHANGE); attachInterrupt(34, isrEnc3, CHANGE);
+}
+
 void loop() {
   if (!INPUTS.digitalRead(1)) { 
       trainSensorLatched = true; // Запоминаем, что нажатие было
@@ -1686,6 +1705,22 @@ void loop() {
         GhostGame();
         break;
     }
+    // --- ГЛОБАЛЬНОЕ БЕЗОПАСНОЕ ОБНОВЛЕНИЕ СВЕТОДИОДОВ ---
+    static unsigned long mainLedTimer = 0;
+    // Обновляем не чаще раз в 30 мс
+    if (millis() - mainLedTimer > 30) {
+       mainLedTimer = millis();
+       
+       // 1. Поднимаем флаг: "Идет обновление, энкодеры - тишина!"
+       ledsUpdating = true;
+       
+       // 2. Отправляем данные (это занимает 1-2 мс)
+       FastLED.show();
+       
+       // 3. Опускаем флаг: "Можно снова слушать энкодеры"
+       ledsUpdating = false;
+    }
+    // ----------------------------------------------------
   }
 }
 
@@ -1938,8 +1973,6 @@ void MapLeds() {
     uint8_t pulseB = map(fadeValue, 0, 255, 0, 255);
     ledMap[blinkLedNumber] = CRGB(0, pulseG, pulseB);
   }
-
-  FastLED.show();
 }
 
 void TrainGame() {
@@ -1983,9 +2016,7 @@ void TrainGame() {
   if (musicCounter > 200) musicCounter = 0;
   else if (musicCounter < 0) musicCounter = 200;
 
-  //checkGreen();
-
-    // --- НОВЫЙ КОД С ВАШИМ РАСПРЕДЕЛЕНИЕМ ПРОЦЕНТОВ ---
+    // --- КОД РАСПРЕДЕЛЕНИЕМ ПРОЦЕНТОВ ---
   if (musicCounter >= 80 && musicCounter <= 119) {
       // Диапазон 1 (Центр, ~20%): Первый звук двигателя
       if (!musicFlag1) {
@@ -2023,8 +2054,32 @@ void TrainGame() {
     for (int i = 1; i < 4; i++) {
       leds1[i] = CHSV(hue1, 255, currentBrightness);
     }
-    FastLED.show();
   }
+
+  // 1. Проверка текущих условий
+  bool currentColorOk = (hue1 == greenHue);
+  bool currentFlickerOk = (flickerIntensity <= 100);
+  bool currentSoundOk = (musicCounter >= 80 && musicCounter <= 118);
+
+  // 2. Отправка обновлений только при изменении состояния
+  if (currentColorOk != lastColorOk) {
+    lastColorOk = currentColorOk;
+    if (currentColorOk) SendData("{\"train_enc\":\"color_ok\"}");
+    else SendData("{\"train_enc\":\"color_bad\"}");
+  }
+
+  if (currentFlickerOk != lastFlickerOk) {
+    lastFlickerOk = currentFlickerOk;
+    if (currentFlickerOk) SendData("{\"train_enc\":\"flicker_ok\"}");
+    else SendData("{\"train_enc\":\"flicker_bad\"}");
+  }
+
+  if (currentSoundOk != lastSoundOk) {
+    lastSoundOk = currentSoundOk;
+    if (currentSoundOk) SendData("{\"train_enc\":\"sound_ok\"}");
+    else SendData("{\"train_enc\":\"sound_bad\"}");
+  }
+
   Serial.println(hue1 == greenHue);
   if ((hue1 == greenHue) && flickerIntensity <= 100 && musicCounter >= 80 && musicCounter <= 118) {
     if (millis() - checkTrainTimer >= 500) {
@@ -2203,7 +2258,6 @@ void StartTimer() {
         SendData("{\"map\":\"out\"}");
       }
     }
-    FastLED.show();
   }
 }
 void SkinPulsation() {
