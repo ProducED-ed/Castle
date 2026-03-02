@@ -89,11 +89,8 @@ uint32_t palette[] = {
 };
 const int COLORS = sizeof(palette) / sizeof(palette[0]);
 
-
-//--------------------------
 Servo boyServo;
 
-//------------------------------
 //------------герконы кнопки и входы
 GButton startDoor(startDoorPin);  // геркон на стартовой двери
 GButton clock1Button(1);
@@ -194,7 +191,7 @@ bool flagSound = 1;
 bool _trollDoor = 0;
 
 // Глобальные флаги состояния для PowerOn() и RestOn()
-// --- ДОБАВЛЕНО: Таймер для состояния прослушивания ---
+// --- Таймер для состояния прослушивания ---
 unsigned long readyListenTimer = 0;
 const unsigned long READY_LISTEN_DURATION = 3000; // 3 секунды для прослушивания ответов от башен
 // ---
@@ -1759,193 +1756,88 @@ void Clock2Game() {
 }
 
 void GaletGame() {
-  // Статические переменные хранят состояние между вызовами loop()
+  // Статические переменные
   static bool galet1 = false; // Workshop
-  static bool galet2 = false; // Basket (или другая башня)
+  static bool galet2 = false; // Basket
   static bool galet3 = false; // Dog
   static bool galet4 = false; // Owls
   static bool galet5 = false; // Local (Main Board)
   
+  // Флаги инициализации (получили ли мы ответ от башни?)
+  static bool init1 = false; 
+  static bool init2 = false; 
+  static bool init3 = false; 
+  static bool init4 = false; 
+
   static bool startSteps = false;
   static unsigned long stepsTimer = 0;
+  
+  // --- ГЛАВНЫЙ ФЛАГ БЛОКИРОВКИ ---
+  // false = ждем окончания истории (story_4)
+  // true = игра началась, проверяем галетники
+  static bool logicEnabled = false; 
 
-  // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЛОГИКИ "ПРЕДОХРАНИТЕЛЯ" ---
-  static bool isGameInitialized = false; // Флаг: была ли инициализация при входе в уровень
-  static bool gameReadyToWin = false;    // Флаг: можно ли засчитывать победу?
+  static bool isGameInitialized = false; 
+  static bool gameReadyToWin = false;    
+  static bool victorySent = false;       
+  
+  static unsigned long refreshTowerTimer = 0; 
+  static unsigned long globalTimeout = 0; 
 
-  // --- 1. ИНИЦИАЛИЗАЦИЯ ПРИ СТАРТЕ УРОВНЯ ---
-  if (!isGameInitialized) {
-    galet1 = false;
-    galet2 = false;
-    galet3 = false;
-    galet4 = false;
-    galet5 = false;
-    // Отправляем запрос состояния всем башням, чтобы узнать, 
-    // повернуты ли галетники УЖЕ сейчас.
-    Serial1.println("check_state"); delay(50); // Workshop
-    Serial2.println("check_state"); delay(50); // Basket
-    Serial3.println("check_state"); delay(50); // Dog
-    mySerial.println("check_state"); delay(50); // Owls
-    
-    // Сразу проверяем состояние локального галетника (№5)
-    // Используем state(), чтобы узнать текущее положение, а не ждать клика
-    galetSwitches.tick(); 
-    galet5 = galetSwitches.state(); 
-    
-    // Если хотя бы один галетник выключен, мы готовы выигрывать сразу.
-    // Если все 5 включены СРАЗУ, то gameReadyToWin останется false,
-    // пока игрок не выключит хотя бы один.
-    int initialSum = galet1 + galet2 + galet3 + galet4 + galet5;
-    if (initialSum < 5) {
-        gameReadyToWin = true;
-    } else {
-        gameReadyToWin = false; 
-        Serial.println("log:main:All galets ON at start. Waiting for OFF action.");
-    }
-    
-    isGameInitialized = true;
-  }
-
-  // --- 2. ЛОГИКА ТАЙМЕРА ШАГОВ (СТАРАЯ) ---
-  if (!startSteps) {
-    stepsTimer = millis();
-  }
+  // =========================================================
+  // БЛОК 1: ОЖИДАНИЕ (Всегда работает, чтобы запустить steps)
+  // =========================================================
+  
+  // Логика шагов (должна работать ДО начала логики игры)
+  if (!startSteps) stepsTimer = millis();
   if (millis() - stepsTimer >= 6000) {
     if (startSteps) {
-      Serial.println("steps");
+      Serial.println("steps"); // Это запустит story_4 на сервере
       startSteps = 0;
     }
   }
 
-  // --- 3. ЧТЕНИЕ ЛОКАЛЬНОГО ГАЛЕТНИКА (№5) ---
-  galetSwitches.tick();
-  // Используем прямую привязку к состоянию, чтобы не рассинхронизироваться
-  bool currentGalet5State = galetSwitches.state();
-  
-  // Отправляем логи только при изменении состояния
-  if (currentGalet5State != galet5) {
-      galet5 = currentGalet5State;
-      if (galet5) Serial.println("galet1"); // Логика маппинга осталась старой (galet1 в лог = 5-й по факту)
-      else Serial.println("galet1_off");
-  }
-
-  // --- 4. ЧТЕНИЕ УДАЛЕННЫХ ГАЛЕТНИКОВ (1-4) ---
-  
-  // Workshop (Serial1)
-  while (Serial1.available()) {
-    String buf1 = Serial1.readStringUntil('\n');
-    buf1.trim();
-    if (buf1.startsWith("log:")) {
-      Serial.println(buf1);
-    } else if (buf1 == "galet_on") {
-      galet1 = true;
-      Serial.println("galet2");
-    } else if (buf1 == "galet_off") {
-      galet1 = false;
-      Serial.println("galet2_off");
-    }
-  }
-
-  // Basket (Serial2)
-  while (Serial2.available()) {
-    String buf2 = Serial2.readStringUntil('\n');
-    buf2.trim();
-    if (buf2.startsWith("log:")) {
-      Serial.println(buf2);
-    } else if (buf2 == "galet_on") {
-      galet2 = true;
-      Serial.println("galet3");
-    } else if (buf2 == "galet_off") {
-      Serial.println("galet3_off");
-      galet2 = false;
-    }
-  }
-
-  // Dog (Serial3)
-  while (Serial3.available()) {
-    String buf3 = Serial3.readStringUntil('\n');
-    buf3.trim();
-    if (buf3.startsWith("log:")) {
-      Serial.println(buf3);
-    } else if (buf3 == "galet_on") {
-      galet3 = true;
-      Serial.println("galet4");
-    } else if (buf3 == "galet_off") {
-      Serial.println("galet4_off");
-      galet3 = false;
-    }
-  }
-
-  // Owls (mySerial)
-  while (mySerial.available()) {
-    String buf4 = mySerial.readStringUntil('\n');
-    buf4.trim();
-    if (buf4.startsWith("log:")) {
-      Serial.println(buf4);
-    } else if (buf4 == "galet_on" || buf4 == "owls_galet_on") {
-      galet4 = true;
-      Serial.println("galet5");
-    } else if (buf4 == "galet_off" || buf4 == "owls_galet_off") {
-      Serial.println("galet5_off");
-      galet4 = false;
-    }
-  }
-
-  // --- 5. ПРОВЕРКА УСЛОВИЯ ПОБЕДЫ ---
-  int activeGalets = galet1 + galet2 + galet3 + galet4 + galet5;
-
-  // Логика ПРЕДОХРАНИТЕЛЯ:
-  // Если мы еще не готовы выигрывать (потому что все были включены сразу),
-  // мы ждем, пока сумма станет меньше 5 (игрок выключил что-то).
-  if (!gameReadyToWin && activeGalets < 5) {
-      gameReadyToWin = true; // Предохранитель снят, теперь можно выигрывать
-      // Serial.println("log:main:Fuse released. Ready to win.");
-  }
-
-  // Победа: Все 5 включены И предохранитель снят
-  if (activeGalets == 5 && gameReadyToWin) {
-    delay(200);
-    Serial.println("mansard_finish"); // Финальная команда победы
-    
-    // Сброс состояния для следующего раза (или рестарта)
-    galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
-    startSteps = 0;
-    isGameInitialized = false; 
-    gameReadyToWin = false;
-  }
-
-  // --- 6. ОБРАБОТКА КОМАНД СЕРВЕРА ---
-  while (Serial.available()) {
+  // Если логика еще не разрешена сервером - слушаем только команды запуска
+  if (!logicEnabled) {
+      while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
-    if (buff == "after_story_clock2") {
+    
+    // 1. ОТЛАДКА: Показываем серверу, что именно пришло
+    if (buff.length() > 0) {
+       Serial.print("log:debug:GaletGame_RX: ");
+       Serial.println(buff);
+    }
+
+    // 2. ИСПОЛЬЗУЕМ indexOf ВМЕСТО == 
+    // Это позволит поймать команду, даже если начало/конец "побились"
+    // или приклеился soundon
+    
+    if (buff.indexOf("after_story_clock2") != -1) {
       startSteps = 1;
     }
-    if (buff == "student_hide") {
-      boyServo.attach(49);
-      digitalWrite(HallLight, HIGH);
-      digitalWrite(MansardLight, HIGH);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer();
-      }
-      boyServo.detach();
+    
+    if (buff.indexOf("student_hide") != -1) {
+      RunStudentHide(); 
     }
-    if (buff == "open_mansard_door") {
+    
+    if (buff.indexOf("open_mansard_door") != -1) {
       delay(200);
       OpenLock(MansardDoor);
       // Сброс при пропуске
-      galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
+      galet1 = 0; galet2 = 0; galet3 = 0;
+      galet4 = 0; galet5 = 0;
       startSteps = 0;
       isGameInitialized = false;
       gameReadyToWin = false;
       level++;
     }
-    if (buff == "restart") {
+    
+    if (buff.indexOf("restart") != -1) {
       OpenAll();
       // Сброс при рестарте
-      galet1 = 0; galet2 = 0; galet3 = 0; galet4 = 0; galet5 = 0;
+      galet1 = 0; galet2 = 0; galet3 = 0;
+      galet4 = 0; galet5 = 0;
       startSteps = 0;
       isGameInitialized = false;
       gameReadyToWin = false;
@@ -1953,12 +1845,141 @@ void GaletGame() {
       level = 25;
       return;
     }
-    if (buff == "soundon") {
+    
+    if (buff.indexOf("soundon") != -1) {
       flagSound = 0;
     }
-    if (buff == "soundoff") {
+    
+    if (buff.indexOf("soundoff") != -1) {
       flagSound = 1;
     }
+  }
+  }
+
+  // =========================================================
+  // БЛОК 2: АКТИВНАЯ ИГРА (Только после команды сервера)
+  // =========================================================
+
+  // 1. СБРОС И ПЕРВЫЙ ОПРОС
+  if (!isGameInitialized) {
+    galet1 = false; galet2 = false; galet3 = false; galet4 = false; galet5 = false;
+    init1 = false; init2 = false; init3 = false; init4 = false;
+    
+    // Агрессивный опрос при старте
+    Serial1.println("check_state"); delay(20);
+    Serial2.println("check_state"); delay(20);
+    Serial3.println("check_state"); delay(20);
+    mySerial.println("check_state"); delay(20);
+    
+    galetSwitches.tick();
+    galet5 = galetSwitches.state(); 
+    
+    gameReadyToWin = false; 
+    victorySent = false;
+    
+    isGameInitialized = true;
+    refreshTowerTimer = millis();
+    globalTimeout = millis();
+  }
+
+  // 2. ПРОВЕРКА ГОТОВНОСТИ (Ждем ответов от всех или 15 сек)
+  bool allTowersResponded = (init1 && init2 && init3 && init4);
+  bool safetyTimeoutExpired = (millis() - globalTimeout > 15000); 
+  bool systemReady = allTowersResponded || safetyTimeoutExpired;
+
+  // 3. ПЕРИОДИЧЕСКИЙ ОПРОС
+  // systemReady == false -> Частый опрос (6 сек)
+  // systemReady == true  -> Редкий опрос (20 сек)
+  unsigned long refreshInterval = systemReady ? 20000 : 6000;
+  if (!victorySent && (millis() - refreshTowerTimer > refreshInterval)) {
+      refreshTowerTimer = millis();
+      Serial1.println("check_state"); delay(10);
+      Serial2.println("check_state"); delay(10);
+      Serial3.println("check_state"); delay(10);
+      mySerial.println("check_state"); 
+      if (galet5) Serial.println("galet1"); 
+  }
+
+  // 4. ЧТЕНИЕ ЛОКАЛЬНОГО ГАЛЕТНИКА
+  galetSwitches.tick();
+  bool currentGalet5State = galetSwitches.state();
+  if (currentGalet5State != galet5) {
+      galet5 = currentGalet5State;
+      if (galet5) Serial.println("galet1");
+      else Serial.println("galet1_off");
+  }
+
+  // 5. ЧТЕНИЕ УДАЛЕННЫХ БАШЕН
+  while (Serial1.available()) { // Workshop
+    String buf1 = Serial1.readStringUntil('\n'); buf1.trim();
+    if (buf1.startsWith("log:")) { Serial.println(buf1); } 
+    else if (buf1 == "galet_on") { galet1 = true; init1 = true; Serial.println("galet2"); } 
+    else if (buf1 == "galet_off") { galet1 = false; init1 = true; Serial.println("galet2_off"); }
+  }
+  while (Serial2.available()) { // Basket
+    String buf2 = Serial2.readStringUntil('\n'); buf2.trim();
+    if (buf2.startsWith("log:")) { Serial.println(buf2); } 
+    else if (buf2 == "galet_on") { galet2 = true; init2 = true; Serial.println("galet3"); } 
+    else if (buf2 == "galet_off") { galet2 = false; init2 = true; Serial.println("galet3_off"); }
+  }
+  while (Serial3.available()) { // Dog
+    String buf3 = Serial3.readStringUntil('\n'); buf3.trim();
+    if (buf3.startsWith("log:")) { Serial.println(buf3); } 
+    else if (buf3 == "galet_on") { galet3 = true; init3 = true; Serial.println("galet4"); } 
+    else if (buf3 == "galet_off") { galet3 = false; init3 = true; Serial.println("galet4_off"); }
+  }
+  while (mySerial.available()) { // Owls
+    String buf4 = mySerial.readStringUntil('\n'); buf4.trim();
+    if (buf4.startsWith("log:")) { Serial.println(buf4); } 
+    else if (buf4 == "galet_on" || buf4 == "owls_galet_on") { galet4 = true; init4 = true; Serial.println("galet5"); } 
+    else if (buf4 == "galet_off" || buf4 == "owls_galet_off") { galet4 = false; init4 = true; Serial.println("galet5_off"); }
+  }
+
+  // 6. ЛОГИКА ПОБЕДЫ (Работает только если systemReady)
+  if (systemReady) {
+      int activeGalets = galet1 + galet2 + galet3 + galet4 + galet5;
+
+      // ПРЕДОХРАНИТЕЛЬ: Снимаем только если игрок держит < 5 галетников
+      if (!gameReadyToWin && activeGalets < 5) {
+          gameReadyToWin = true; 
+      }
+
+      // ПОБЕДА: Только если 5 галетников И предохранитель снят
+      if (activeGalets == 5 && gameReadyToWin && !victorySent) {
+        delay(200);
+        Serial.println("mansard_finish");
+        victorySent = true; 
+      }
+  }
+
+  // 7. КОМАНДЫ (В активной фазе)
+  while (Serial.available()) {
+    String buff = Serial.readStringUntil('\n'); buff.trim();
+    // (startSteps здесь уже не нужен, но оставляем для совместимости)
+    if (buff == "after_story_clock2") { startSteps = 1; } 
+    
+    if (buff == "student_hide") {
+      RunStudentHide();
+    }
+    if (buff == "open_mansard_door") {
+      delay(200); OpenLock(MansardDoor);
+      // Сброс
+      galet1=0; galet2=0; galet3=0; galet4=0; galet5=0;
+      init1=0; init2=0; init3=0; init4=0;
+      startSteps=0; isGameInitialized=false; gameReadyToWin=false; victorySent=false;
+      logicEnabled = false; // Сброс флага
+      level++;
+    }
+    if (buff == "restart") {
+      OpenAll();
+      galet1=0; galet2=0; galet3=0; galet4=0; galet5=0;
+      init1=0; init2=0; init3=0; init4=0;
+      startSteps=0; isGameInitialized=false; gameReadyToWin=false; victorySent=false;
+      logicEnabled = false; // Сброс флага
+      RestOn(); level = 25; return;
+    }
+    if (buff == "soundon") flagSound = 0;
+    if (buff == "soundoff") flagSound = 1;
   }
 }
 
@@ -1977,15 +1998,7 @@ void ThreeGame() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "student_hide") {
-      boyServo.attach(49);
-      digitalWrite(HallLight, HIGH);
-      digitalWrite(MansardLight, HIGH);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentHide();
     }
     if (buff == "suitcase_end") {
       suitcaseFlag = 1;
@@ -2081,15 +2094,7 @@ void Flags() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "student_hide") {
-      boyServo.attach(49);
-      digitalWrite(HallLight, HIGH);
-      digitalWrite(MansardLight, HIGH);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentHide();
     }
     if (buff == "m2lck") {
       Serial.println("flagsendmr");
@@ -2362,15 +2367,7 @@ void MapGame() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "student_hide") {
-      boyServo.attach(49);
-      digitalWrite(HallLight, HIGH);
-      digitalWrite(MansardLight, HIGH);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentHide();
     }
     if (buff == "key") {
       game = "key";
@@ -3600,15 +3597,7 @@ void Library() {
       level++;
     }
     if (buff == "student_open") {
-      Serial1.println("servo");
-      delay(1000);
-      boyServo.attach(49);
-      boyServo.write(130);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentOpen();
     }
     if (buff == "ghost") {
       //поезд
@@ -3659,13 +3648,7 @@ void LibraryGame() {
       Serial.println("star_hint");
     }
     if (buff == "student_hide") {
-      boyServo.attach(49);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentHide();
     }
     if (buff == "restart") {
       OpenAll();
@@ -3754,13 +3737,7 @@ void CentralTowerGame() {
       // поэтому мерцание начнется с ВКЛючения.
     }
     if (buff == "student_hide") {
-      boyServo.attach(49);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentHide();
     }
 
     if (buff == "door_top") {
@@ -4012,15 +3989,7 @@ void OpenBank() {
       helpsBankTimerWaiting = false; // Снимаем флаг ожидания
     }
     else if (buff == "student_hide") {
-      boyServo.attach(49);
-      digitalWrite(HallLight, HIGH);
-      digitalWrite(MansardLight, HIGH);
-      boyServo.write(0);
-      unsigned long sTime = millis();
-      while(millis() - sTime < 1000) {
-         MonitorSerialBuffer(); // Просто читаем, чтобы буфер не лопнул
-      }
-      boyServo.detach();
+      RunStudentHide();
     }
     else if (buff == "open_bank_door") {
       CandleStrip.setPixelColor(0, CandleStrip.Color(0, 0, 0));
@@ -6045,6 +6014,12 @@ void RestOn() {
     CandleStrip.show(); CauldronStrip.show(); CauldronRoomStrip.show();
     memory_Led.show(); GoldStrip.show(); strip1.show(); strip2.show();
 
+    // Мы отправляем команду еще раз ЗДЕСЬ, потому что с момента первого вызова 
+    // прошло около 5 секунд (пока работала функция OpenAll).
+    // Если башни пропустили первую команду, эту они точно получат.
+    delay(100); // Небольшая пауза после обновления лент
+    SendRestartToAll();
+
     // 5. Сброс переменных игровой логики
     _presentTimer; _stages = 0; _present = 0;
     discoBallsActive = false;    // Выключаем флаг диско-шаров/зеленой волны
@@ -6792,4 +6767,40 @@ void SendRestartToAll() {
     Serial3.println("restart"); delay(15); // Dog
     mySerial.println("restart"); delay(15); // Owls
   }
+}
+
+// --- ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ СЕРВОПРИВОДОМ С ПОДТВЕРЖДЕНИЕМ ---
+
+void RunStudentHide() {
+  Serial.println("log:confirm:student_hide_start"); // Лог начала
+  boyServo.attach(49);
+  digitalWrite(HallLight, HIGH);
+  digitalWrite(MansardLight, HIGH);
+  boyServo.write(0); // Поворот (прячется)
+  
+  // Безопасная задержка
+  unsigned long sTime = millis();
+  while(millis() - sTime < 1000) {
+     MonitorSerialBuffer(); 
+  }
+  
+  boyServo.detach();
+  Serial.println("log:confirm:student_hide_success"); // Ответ серверу
+}
+
+void RunStudentOpen() {
+  Serial1.println("servo"); // Команда башне (если нужно)
+  delay(1000);
+  
+  Serial.println("log:confirm:student_open_start");
+  boyServo.attach(49);
+  boyServo.write(130); // Поворот (открывается)
+  
+  unsigned long sTime = millis();
+  while(millis() - sTime < 1000) {
+     MonitorSerialBuffer();
+  }
+  
+  boyServo.detach();
+  Serial.println("log:confirm:student_open_success"); // ВАЖНО: Ответ серверу
 }
