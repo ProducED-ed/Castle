@@ -1655,9 +1655,13 @@ def log_event():
 @app.route('/api', methods=['GET', 'POST'])
 def handle_data():
     global mapClickHints
-    global mapClickOut 
+    global mapClickOut
     if request.method == 'POST':
         data = request.get_json()
+        if 'train_enc' in data:
+            socketio.emit('level', data['train_enc'], to=None)
+            logging.info(f"TRAIN ENCODER STATUS: {data['train_enc']}")
+            return jsonify({"status": "success"})
         # Добавляем обработку простых логов от ESP32
         if 'log' in data:
              # Это сообщение попадет и в файл, и в консоль (если уровень INFO)
@@ -1756,15 +1760,8 @@ def handle_data():
 
         if 'map' in data and data['map'] == 'train':
           logger.debug("'map: train' logic triggered.")
-          
-          
-          # --- ИСПРАВЛЕНИЕ: Убираем отправку команды 'train' на Main Board ---
-          # Эта команда заставляла Main Board думать, что игра пройдена (Skip),
-          # и блокировала работу проектора.
-          # serial_write_queue.put('train') 
-          # -------------------------------------------------------------------
-          #while effects_are_busy() and go == 1: 
-          #     eventlet.sleep(0.1) 
+          eventlet.sleep(0.5)
+          play_effect(map_click)
           if mapClickHints == 0:
                mapClickHints = 1
                play_localized_audio("story_12_a")
@@ -2447,7 +2444,49 @@ def handle_basket_timeout():
     serial_write_queue.put('start_game_basket')
     logging.info("BASKETBALL: Player timeout (story_62 triggered)")
 
-#здесь уже обрабатываем все сообщения приходящие из меги и отображаем на пульте        
+def send_command_with_confirmation(command, success_log_part, max_retries=3):
+    """
+    Отправляет команду и ждет подтверждения в логах от Arduino.
+    Если подтверждения нет 1.5 секунды, пробует снова.
+    """
+    logging.info(f"HANDSHAKE: Starting sequence for '{command}'...")
+    
+    for attempt in range(max_retries):
+        # 1. Отправляем команду
+        serial_write_queue.put(command)
+        process_serial_queue() # Принудительно выталкиваем из очереди сразу
+        
+        # 2. Ждем подтверждения (блокируем чтение на короткое время)
+        start_wait = time.time()
+        # Ждем 1.5 секунды
+        while time.time() - start_wait < 1.5:
+            # Читаем порт напрямую, перехватывая ответ
+            if ser.in_waiting > 0:
+                try:
+                    line = ser.readline().decode('utf-8', errors='ignore').rstrip()
+                    
+                    # Если это наше подтверждение
+                    if success_log_part in line:
+                        logging.info(f"HANDSHAKE SUCCESS: Arduino confirmed '{command}' (Log: {line})")
+                        return True
+                    
+                    # Если это что-то другое, просто логируем, чтобы не потерять
+                    # (В этот момент критические игровые события маловероятны, так как идет серво-анимация)
+                    logging.info(f"RECEIVED [During Wait]: {line}")
+                    
+                except Exception as e:
+                    logging.error(f"Serial read error: {e}")
+            
+            # Не забываем выталкивать очередь отправки, если там что-то накопилось
+            process_serial_queue() 
+            eventlet.sleep(0.05) # Короткая пауза для разгрузки CPU
+            
+        logging.warning(f"HANDSHAKE TIMEOUT: No confirmation for '{command}' (Attempt {attempt+1}/{max_retries})")
+    
+    logging.error(f"HANDSHAKE FAILED: '{command}' was sent {max_retries} times but not confirmed.")
+    return False
+
+#здесь уже обрабатываем все сообщения приходящие из меги и отображаем на пульте
 def serial():
      global flag
      global mus
@@ -3092,11 +3131,10 @@ def serial():
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_3_c")
-
                               while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)         
-
-                              serial_write_queue.put('student_hide')
+                                  eventlet.sleep(0.1)
+                              # Ждем лог "student_hide_success" от Arduino
+                              send_command_with_confirmation('student_hide', 'student_hide_success')
                               # --- Проверяем, не активен ли уже 2 этап ---
                               if not train_stage_2_active:
                                   send_esp32_command(ESP32_API_TRAIN_URL, "stage_1")
@@ -3946,8 +3984,8 @@ def serial():
 
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
-                              serial_write_queue.put('student_open')
-                              eventlet.sleep(1.0)     
+                              send_command_with_confirmation('student_open', 'student_open_success')
+                              eventlet.sleep(1.0)
                               play_localized_audio("story_37")
 
                          if flag=="h_clock":
