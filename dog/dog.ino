@@ -425,40 +425,51 @@ void setup() {
 
 
 void CheckState() { 
-  // Проверяем состояние геркона "роза" (pin A3)
-  if (!digitalRead(A3)) { // Если геркон активен (LOW)
+  // 1. Читаем физику
+  // Роза (A3): Active LOW
+  bool rose = !digitalRead(A3);
+  // Флаг (7): Active HIGH
+  bool f = digitalRead(7);
+
+  // --- Проверяем РОЗУ ---
+  if (rose) { 
     if (!_restartGalet) {    
-      delay(30); // Задержка для стабилизации буфера
       Serial.println("galet_on");
-      delay(10);
       sendLog("Rose sensor activated (galet_on).");
-      _restartGalet = 1;     
+      Serial.flush();
+      delay(150); // Важная задержка
+      _restartGalet = 1;
     }
-  } else {                   // Если геркон неактивен (HIGH)
+  } else {                   
     if (_restartGalet) {     
       Serial.println("galet_off");
-      delay(10);
       sendLog("Rose sensor deactivated (galet_off).");
+      Serial.flush();
+      delay(150);
       _restartGalet = 0;    
     }
   }
 
-  // Проверяем состояние ИК-датчика "флаг" (pin 7)
-  if (digitalRead(7)) { // Если флаг на месте (HIGH)
+  // --- Проверяем ФЛАГ ---
+  if (f) { 
     if (!_restartFlag) {    
-      delay(30); // Задержка для стабилизации буфера
       Serial.println("flag3_on");
       sendLog("Flag sensor activated (flag3_on).");
-      _restartFlag = 1;     
+      Serial.flush();
+      delay(150);
+      _restartFlag = 1;
     }
-  } else {                  // Если флага нет (LOW)
+  } else {                  
     if (_restartFlag) {     
       Serial.println("flag3_off");
       sendLog("Flag sensor deactivated (flag3_off).");
+      Serial.flush();
+      delay(150);
       _restartFlag = 0;   
     }
   }
 }
+
 void loop() {
   static QuestState previousState = STATE_RESTARTING;
   if (currentQuestState != previousState) {
@@ -576,7 +587,7 @@ void loop() {
             hasSentReadyLog = true;
           }
           // ---------------------------------------------------------------------------------
-          // ИЗМЕНЕНО: Добавлена принудительная проверка состояния при команде "ready".
+          // Добавлена принудительная проверка состояния при команде "ready".
           // ПРИЧИНА: Чтобы башня сообщала о уже активных датчиках (например,
           // оставленном флаге) сразу после перезапуска сервера, а не только при
           // изменении их состояния.
