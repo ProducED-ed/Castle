@@ -714,8 +714,8 @@ $('.ui.dropdown')
                 $('#mansard_progress').progress({ percent: 100 });
             }
 			
-           //тут у нас обрабатываются сообщения об октвации игр
-           if (inp === 'active_first_clock') {
+            //тут у нас обрабатываются сообщения об октвации игр
+            if (inp === 'active_first_clock') {
                 $('#first_clock').removeClass('disabled');
             } 
             if (inp === 'active_second_clock') {
@@ -742,6 +742,39 @@ $('.ui.dropdown')
             }
             if (inp === 'active_open_mansard_stash') {
                 $('#open_mansard_stash').removeClass('disabled');
+            }
+			// Цвет (Энкодер 1)
+			if (inp == 'color_ok') {
+				$('#train_color_icon').removeClass('grey').addClass('green');
+			}
+			if (inp == 'color_bad') {
+				$('#train_color_icon').removeClass('green').addClass('grey');
+			}
+
+			// Мерцание (Энкодер 2)
+			if (inp == 'flicker_ok') {
+				$('#train_flicker_icon').removeClass('grey').addClass('green');
+			}
+			if (inp == 'flicker_bad') {
+				$('#train_flicker_icon').removeClass('green').addClass('grey');
+			}
+
+			// Звук (Энкодер 3)
+			if (inp == 'sound_ok') {
+				$('#train_sound_icon').removeClass('grey').addClass('green');
+			}
+			if (inp == 'sound_bad') {
+				$('#train_sound_icon').removeClass('green').addClass('grey');
+			}
+
+			// Сброс иконок при рестарте или старте новой игры
+			if (inp == 'start_game' || inp == 'rest') {
+				$('#train_color_icon, #train_flicker_icon, #train_sound_icon').removeClass('green').addClass('grey');
+			}
+			if (inp == 'train') {
+                $('#train_color_icon').removeClass('grey').addClass('green');
+                $('#train_flicker_icon').removeClass('grey').addClass('green');
+                $('#train_sound_icon').removeClass('grey').addClass('green');
             }
             if (inp === 'active_pedlock') {
                 $('#pedlock').removeClass('disabled');
@@ -785,7 +818,7 @@ $('.ui.dropdown')
             if (inp === 'active_ghost') {
             // Активируем первую кнопку призрака
             $('#ghost_step_1').removeClass('disabled');
-        }
+			}
             if (inp === 'active_crime') {
                 $('#crime').removeClass('disabled');
             }
