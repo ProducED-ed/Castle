@@ -293,39 +293,47 @@ void handleSerial1Commands() {
 }
 
 void CheckState() {
-  // --- 1. Проверяем ЛОДКУ (Pin 30) ---
-  if (!digitalRead(30)) { // Если геркон активен (LOW)
+  // 1. Читаем физику
+  // Лодка (Pin 30): Active LOW (0 = нажата)
+  bool boat = !digitalRead(30);
+  // Флаг (Pin 27): Active HIGH (1 = нажат)
+  bool f = digitalRead(27);
+
+  // --- 1. Проверяем ЛОДКУ ---
+  if (boat) { 
     if (!_restartGalet) {    
-      delay(30);
       Serial1.println("galet_on");
-      delay(10);
+      // ОТЛАДКА + ЗАДЕРЖКА
       sendLog("Boat sensor activated (galet_on).");
+      Serial1.flush();
+      delay(150); // Важная задержка
       _restartGalet = 1;     
     }
-  } else {                   // Если геркон неактивен (HIGH)
+  } else {                   
     if (_restartGalet) {     
       Serial1.println("galet_off");
-      delay(10);
       sendLog("Boat sensor deactivated (galet_off).");
+      Serial1.flush();
+      delay(150);
       _restartGalet = 0;    
     }
   }
 
-  // --- 2. Проверяем ФЛАГ (Pin 27) ---
-  
-  if (digitalRead(27)) { // Если на пине HIGH (Флаг стоит/Датчик не перекрыт?)
+  // --- 2. Проверяем ФЛАГ ---
+  if (f) { 
     if (!_restartFlag) {    
-      delay(30);
       Serial1.println("flag4_on");
-      delay(10);
       sendLog("Flag sensor activated (flag4_on).");
+      Serial1.flush();
+      delay(150);
       _restartFlag = 1;     
     }
-  } else {                  // Если на пине LOW
+  } else {                  
     if (_restartFlag) {     
       Serial1.println("flag4_off");
-      delay(10);
       sendLog("Flag sensor deactivated (flag4_off).");
+      Serial1.flush();
+      delay(150);
       _restartFlag = 0;   
     }
   }
