@@ -406,7 +406,7 @@ void MagicEffect() {
   static uint16_t timeCounter = 0;
 
   unsigned long now = millis();
-  if (now - lastUpdate < 15) return;  // скорость анимации
+  if (now - lastUpdate < 30) return;  // скорость анимации
   lastUpdate = now;
 
   timeCounter++;
@@ -2316,8 +2316,8 @@ void MapGame() {
         Serial.println("dog_lock");
         isDogEnd = 1;
       }
-      if (buff.indexOf("door_dog") != -1) {
-        Serial.println("door_dog");
+      if (buff.indexOf("door_dog") != -1 || buff.indexOf("Padlock opened") != -1) {
+        Serial.println("door_dog"); // Принудительно шлем команду серверу
         isDogDoorOpened = true;
       }
       continue;
@@ -4721,6 +4721,10 @@ float middle_of_3(float a, float b, float c) {
 }
 // окрашиваем кристаллы в красный если они не убраны приглашаем в игру
 void giftGame() {
+  // --- Троттлинг 30 мс ---
+  static unsigned long lastUpdate = 0;
+  if (millis() - lastUpdate < 30) return; 
+  lastUpdate = millis();
   if (!digitalRead(firstCrystal)) {
     for (int i = 0; i <= 3; i++) {
       memory_Led.setPixelColor(i, memory_Led.Color(250, 0, 0));
@@ -4771,7 +4775,10 @@ void giftGame() {
 }
 // что бы начать игру нужно убрать все кристалы
 void startGame() {
-
+  // --- Троттлинг 30 мс ---
+  static unsigned long lastUpdate = 0;
+  if (millis() - lastUpdate < 30) return; 
+  lastUpdate = millis();
   for (int i = 0; i <= 15; i++) {
     memory_Led.setPixelColor(i, memory_Led.Color(250, 250, 250));
   }
@@ -6617,7 +6624,7 @@ void CatchSnitch() {
 
 void handleRainbow() {
   if (!isRainbowActive) return;
-  if (millis() - rainbowTimer >= 20) {
+  if (millis() - rainbowTimer >= 30) {
     rainbowTimer = millis();
     for (int i = 0; i < CauldronStrip.numPixels(); i++) {
       int pixelHue = rainbowHue + (i * 65536L / CauldronStrip.numPixels());
