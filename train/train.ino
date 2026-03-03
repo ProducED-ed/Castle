@@ -689,6 +689,9 @@ void setup() {
       }
       if (body == "\"skip\"") {
         state = 3;
+        myMP3.stop();
+        delay(50);
+        myMP3.disableLoop();
         if (language == 1) {
           myMP3.playMp3Folder(TRACK_STORY_16_RU);
           SendData("{\"log\":\"Train: Playing Story 16 (RU)\"}");
@@ -1711,14 +1714,14 @@ void loop() {
     if (millis() - mainLedTimer > 30) {
        mainLedTimer = millis();
        
-       // 1. Поднимаем флаг: "Идет обновление, энкодеры - тишина!"
-       ledsUpdating = true;
+       // 1. АППАРАТНО отключаем прерывания энкодеров, чтобы не было прыжков процессора
+       pauseEncoders(); 
        
-       // 2. Отправляем данные (это занимает 1-2 мс)
+       // 2. Отправляем данные на ленту (никто нас не прервет)
        FastLED.show();
        
-       // 3. Опускаем флаг: "Можно снова слушать энкодеры"
-       ledsUpdating = false;
+       // 3. Возвращаем прерывания на место
+       resumeEncoders(); 
     }
     // ----------------------------------------------------
   }
@@ -2085,6 +2088,9 @@ void TrainGame() {
     if (millis() - checkTrainTimer >= 500) {
       state++;
       SendData("{\"train\":\"end\"}");
+      myMP3.stop();
+      delay(50);
+      myMP3.disableLoop();
       if (language == 1) {
         myMP3.playMp3Folder(TRACK_STORY_16_RU);
         SendData("{\"log\":\"Train: Playing Story 16 (RU)\"}");
@@ -2174,6 +2180,8 @@ void handlePlayerQueries() {
           (finishedTrack == TRACK_STORY_15_FR) || (finishedTrack == TRACK_STORY_15_SP) || (finishedTrack == TRACK_STORY_15_CH)) {
         state = 2;
         Serial.println("state");
+        isStartTimer = false; // Останавливаем таймер карты, чтобы он не сбросил игру
+        ResetTimer();         // Сбрасываем визуализацию таймера
       }
 
       if ((finishedTrack == TRACK_STORY_16_RU) || (finishedTrack == TRACK_STORY_16_EN) || (finishedTrack == TRACK_STORY_16_AR) || 
