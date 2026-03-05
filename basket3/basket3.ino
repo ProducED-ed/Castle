@@ -41,6 +41,8 @@ unsigned long basketTimer;
 bool _restartFlag;
 bool _restartGalet;
 bool isTrollFixed;
+int activeTrollButton = -1;       // Какой геркон сейчас зажег диод
+unsigned long activeTrollLedTimer = 0; // Таймер для 5 секунд
 bool isLoose;
 bool hasSentReadyLog = false;
 bool lessonIsStarted = false;
@@ -74,6 +76,11 @@ void setup() {
 
   disp.clear(); disp.brightness(7); 
   strip.begin(); strip.setBrightness(255); strip.show();
+
+  // Устанавливаем ВСЕ пины кнопок в режим входа
+  for (int i = 30; i <= 46; i++) {
+    pinMode(i, INPUT_PULLUP); // Это создаст базовую стабильность
+  }
   
   butt1.setDebounce(50); butt1.setType(HIGH_PULL); butt1.setDirection(NORM_OPEN);
   butt2.setDebounce(50); butt2.setType(HIGH_PULL); butt2.setDirection(NORM_OPEN);
@@ -87,10 +94,14 @@ void setup() {
   metallButton.setDebounce(50); metallButton.setType(HIGH_PULL); metallButton.setDirection(NORM_OPEN);
   galetButton.setDebounce(50); galetButton.setType(HIGH_PULL); galetButton.setDirection(NORM_OPEN);
   flagButton.setDebounce(50); flagButton.setType(LOW_PULL); flagButton.setDirection(NORM_OPEN);
-  sendLog("Basket System Started");
+  sendLog("Bask: SYS START");
 }
 
 void loop() {
+  // ОПРОС ВСЕХ КНОПОК В КАЖДОМ ЦИКЛЕ (КРИТИЧНО!)
+  butt1.tick(); butt2.tick(); butt3.tick(); butt4.tick();
+  butt5.tick(); butt6.tick(); butt7.tick(); butt8.tick();
+  galetButton.tick(); flagButton.tick();
   static int previousState = -1;
   if (state != previousState) {
     String logMsg = "State changed to " + String(state);
@@ -251,7 +262,7 @@ void HandleMessagges(String message) {
   else if (message == "troll") {
     strip.clear(); strip.show();
     // ИЗМЕНЕНО: Добавлено логирование перед командой
-    sendLog("Troll game SKIPPED. Sending cave_end command. troll_complete");
+    sendLog("Troll: SKIPPED");
     delay(10);
     // КОНЕЦ
     Serial1.println("cave_end"); 
@@ -281,7 +292,6 @@ void HandleMessagges(String message) {
   }
   if(message == "open_door") OpenLock(SHERIF_EM2);
   if(message == "opent_basket") OpenLock(SHERIF_EM2);
-  // if(message == "open_mine_door") OpenLock(SHERIF_EM1); // Дубликат удален
 }
 
 void CheckState(bool force) {
@@ -346,16 +356,55 @@ void WorkShopGame(){
 
 void StartTrollGame(){
   while (Serial1.available()) {
-    String buff = Serial1.readStringUntil('\n'); buff.trim();
-    if (buff == "start_troll") state++;
-    else if (buff == "light_on") digitalWrite(owlLed,HIGH);
-    else if (buff == "light_off") digitalWrite(owlLed,LOW);
-    else HandleMessagges(buff);
+    String buff = Serial1.readStringUntil('\n'); 
+    buff.trim();
+    
+    if (buff == "start_troll") {
+        state = 2; // ЯВНО фиксируем состояние 2
+        butt5.tick(); butt6.tick(); butt7.tick(); butt8.tick();
+        sendLog("Troll: State 2");
+        return;    // Мгновенный выход, чтобы не прочитать вторую команду за раз
+    }
+    else if (buff == "light_on") {
+        digitalWrite(owlLed, HIGH);
+    }
+    else if (buff == "light_off") {
+        digitalWrite(owlLed, LOW);
+    }
+    else {
+        HandleMessagges(buff);
+    }
   }
 }
 
 void TrollGame(){
   digitalWrite(trollLed, HIGH);
+
+  // 1. Обязательно опрашиваем ВСЕ герконы каждый цикл
+  butt5.tick(); butt6.tick(); butt7.tick(); butt8.tick();
+
+  // 2. Очистка от ложных помех
+  if (trollSequence != 0) butt7.isPress();
+  if (trollSequence != 1) butt5.isPress();
+  if (trollSequence != 2) butt8.isPress();
+  if (trollSequence != 3) butt6.isPress();
+
+  // 3. УМНОЕ ГАШЕНИЕ СВЕТОДИОДА
+  if (activeTrollButton != -1) {
+      bool isMagnetPresent = false;
+      if (activeTrollButton == 7) isMagnetPresent = butt7.state();
+      else if (activeTrollButton == 5) isMagnetPresent = butt5.state();
+      else if (activeTrollButton == 8) isMagnetPresent = butt8.state();
+      
+      // Если магнита нет И прошло больше 5 секунд с момента включения
+      if (!isMagnetPresent && (millis() - activeTrollLedTimer > 5000)) {
+          strip.clear();
+          strip.show();
+          activeTrollButton = -1; // Сбрасываем слежение
+      }
+  }
+
+  // 4. Запуск нужного этапа
   switch (trollSequence) {
       case 0: _Troll_1(); break;
       case 1: _Troll_2(); break;
@@ -366,9 +415,32 @@ void TrollGame(){
       String buff = Serial1.readStringUntil('\n'); buff.trim();
       if (buff == "light_on") digitalWrite(owlLed,HIGH);
       else if (buff == "light_off") digitalWrite(owlLed,LOW);
-      else if (buff == "cave_search1") { trollSequence=1; isTrollFixed = 0; }
-      else if (buff == "cave_search2") { trollSequence=2; isTrollFixed = 0; }
-      else if (buff == "cave_search3") { trollSequence=3; isTrollFixed = 0; }
+      
+      // Проверяем, что подтверждение пришло именно для ТЕКУЩЕГО шага.
+      // Это предотвращает "фидбек-петлю", когда шум на пинах заставляет плату 
+      // бесконечно спамить командами aluminium/bronze/copper.
+      
+      else if (buff == "cave_search1") { 
+          if (trollSequence == 0) { // Переходим к предмету 2, только если мы еще на 1-м
+              trollSequence = 1; 
+              isTrollFixed = 0;      // Разрешаем поиск следующего предмета
+              sendLog("Troll: Item 1 OK");
+          }
+      }
+      else if (buff == "cave_search2") { 
+          if (trollSequence == 1) { // Переходим к предмету 3, только если мы на 2-м
+              trollSequence = 2; 
+              isTrollFixed = 0; 
+              sendLog("Troll: Item 2 OK");
+          }
+      }
+      else if (buff == "cave_search3") { 
+          if (trollSequence == 2) { // Переходим к финальному предмету
+              trollSequence = 3; 
+              isTrollFixed = 0; 
+              sendLog("Troll: Item 3 OK");
+          }
+      }
       else if (buff == "troll"){
           strip.clear(); strip.show();
           Serial1.println("cave_end");
@@ -396,6 +468,8 @@ void OpenDoor(){
           OpenLock(SHERIF_EM1);
           digitalWrite(trollLed, HIGH);
           Serial1.println("door_cave");
+          // ОЧИСТКА ПАМЯТИ КНОПОК
+          butt7.isPress(); butt5.isPress(); butt8.isPress(); butt6.isPress();
           state++;
       }
       else HandleMessagges(buff);
@@ -403,39 +477,44 @@ void OpenDoor(){
 }
 
 void _Troll_1() {
-  butt7.tick();
   if (butt7.isPress() && !isTrollFixed) {
     strip.clear(); strip.setPixelColor(1, strip.Color(0, 0, 255)); strip.show();
-    Serial1.println("aluminium"); isTrollFixed=1;
+    Serial1.println("aluminium"); 
+    isTrollFixed = 1;
+    activeTrollButton = 7;
+    activeTrollLedTimer = millis();
   }
 }
+
 void _Troll_2() {
-  butt5.tick(); butt7.tick();
-  if (butt7.isRelease()){ strip.clear(); strip.show(); }
   if (butt5.isPress() && !isTrollFixed) {
     strip.clear(); strip.setPixelColor(3, strip.Color(0, 0, 255)); strip.show();
-    Serial1.println("bronze"); isTrollFixed=1;
+    Serial1.println("bronze"); 
+    isTrollFixed = 1;
+    activeTrollButton = 5;
+    activeTrollLedTimer = millis();
   }
 }
+
 void _Troll_3() {
-  butt8.tick(); butt5.tick();
-  if (butt5.isRelease()){ strip.clear(); strip.show(); }
   if (butt8.isPress() && !isTrollFixed) {
-    strip.clear(); isTrollFixed=1; strip.setPixelColor(0, strip.Color(0, 0, 255)); strip.show();
+    strip.clear(); strip.setPixelColor(0, strip.Color(0, 0, 255)); strip.show();
     Serial1.println("copper");
+    isTrollFixed = 1;
+    activeTrollButton = 8;
+    activeTrollLedTimer = millis();
   }
 }
+
 void _Troll_4() {
-  butt6.tick(); butt8.tick();
-  if (butt8.isRelease()){ strip.clear(); strip.show(); }
   if (butt6.isPress()) {
-    trollSequence++; strip.clear(); strip.show();
-    // ИЗМЕНЕНО: Добавлено логирование перед командой
-    sendLog("Troll game finished. Sending cave_end command. troll_complete");
-    delay(10);
-    // КОНЕЦ
-    Serial1.println("cave_end");
+    trollSequence++; 
+    strip.clear(); 
     strip.setPixelColor(2, strip.Color(0, 0, 255)); strip.show();
+    sendLog("Troll: FINISHED");
+    delay(10);
+    Serial1.println("cave_end");
+    activeTrollButton = -1; // Финальный диод не гасим!
     state++;
   }
 }
@@ -453,20 +532,22 @@ void MetallBlink(int number){
 }
 
 void _Button_1() {
-  if (butt1.isPress()) { buttonSequence = 1; Serial1.println("cave_click"); delay(100); }
+  if (butt1.isPress()) { buttonSequence = 1; Serial1.println("cave_click"); sendLog("Door Troll: Butt1 pressed"); delay(100); }
   if (butt3.isPress() || butt2.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 void _Button_2() {
-  if (butt4.isPress() || butt2.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
-  if (butt3.isPress()) { buttonSequence = 2; Serial1.println("cave_click"); delay(100); }
+  if (butt4.isPress() || butt2.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
+  if (butt3.isPress()) { buttonSequence = 2; Serial1.println("cave_click"); sendLog("Door Troll: Butt2 pressed"); delay(100); }
+  // Ничего не сбрасываем, просто издаем звук "клик", без шкалы.
+  if (butt1.isPress()) { Serial1.println("cave_repeat"); delay(100); }
 }
 void _Button_3() {
-  if (butt4.isPress()) { buttonSequence = 3; Serial1.println("cave_click"); delay(100); }
+  if (butt4.isPress()) { buttonSequence = 3; Serial1.println("cave_click"); sendLog("Door Troll: Butt3 pressed"); delay(100); }
   if (butt2.isPress() || butt3.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 void _Button_4() {
   if (butt1.isPress() || butt3.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
-  if (butt2.isPress()) { buttonSequence = 4; Serial1.println("cave_click"); delay(100); }
+  if (butt2.isPress()) { buttonSequence = 4; Serial1.println("cave_click"); sendLog("Door Troll: Butt4 pressed"); delay(100); }
 }
 void _Button_5() {
   if (butt3.isPress()) {
@@ -593,7 +674,7 @@ void Basket(){
       Serial1.println("fr8nmr"); delay(50);
       Serial1.println("fr8nmr");
       
-      sendLog("Basket: Player WON (3 goals). Ignoring sensor vibration.");
+      sendLog("Bask: Player WON (3 goals)");
       isLoose=0; 
       state++; // Переходим на следующий уровень
       return;  // Выходим, не проверяя датчик
@@ -613,7 +694,7 @@ void Basket(){
           // Если игра была на паузе - ВОЗОБНОВЛЯЕМ
           gameIsActive = true;
           Serial1.println("boy_in_game");
-          sendLog("Basket: Boy returned (Game Resumed).");
+          sendLog("Bask: Boy IN");
           
           // Восстанавливаем состояние (но не сбрасываем счет!)
           if(isLoose){ 
@@ -636,7 +717,7 @@ void Basket(){
           debounceActive = false; // Таймер сработал
           
           Serial1.println("boy_out_game");
-          sendLog("Basket: Boy removed confirmed > 500ms (Game Paused).");
+          sendLog("Bask: Boy OUT");
           digitalWrite(basketLed, LOW);
       }
   }
