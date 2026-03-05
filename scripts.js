@@ -1509,6 +1509,9 @@ $('.ui.dropdown')
 
     ///////////////////////remote
     //нажали пропустить тумблер
+	$('#first_door').click(function(){
+        socket.emit('Remote','skip_start_door')
+    });
     $('#first_clock').click(function(){
         socket.emit('Remote','first_clock')//отправляем данные на сервер в декоратор remote строку tumbler
     });
@@ -1654,6 +1657,9 @@ $('.ui.dropdown')
     });
     $('#ghost_step_5').click(function(){
         socket.emit('Remote','ghost_step_5') // Это новая кнопка 'star_hint'
+    });
+	$('#door_puzzle').click(function(){
+        socket.emit('Remote','skip_lib_door')
     });
     $('#cup').click(function(){
         socket.emit('Remote','cup')
