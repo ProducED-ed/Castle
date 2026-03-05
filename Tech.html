@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Technical Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="/static/semantic.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { background-color: #191919; color: white; padding: 20px; }
+        .main-terminal {
+            background-color: #0c0c0c; border: 2px solid #333; color: #a8ff60; 
+            padding: 15px; height: 350px; overflow-y: scroll; 
+            font-family: 'Courier New', Courier, monospace; font-size: 14px; 
+            white-space: pre-wrap; border-radius: 8px; margin-bottom: 20px;
+            box-shadow: inset 0 0 10px #000;
+        }
+        .path-link { color: #88c0d0; font-family: monospace; user-select: all; font-size: 13px; margin-bottom: 5px;}
+        .date-info { font-size: 12px; color: #aaa; }
+        .success-badge { color: #2ecc71; font-weight: bold; display: none; margin-left: 5px;}
+		.error-badge { color: #e74c3c; font-weight: bold; display: none; margin-left: 5px;}
+        .board-type { color: #888; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <div class="ui container">
+        <h2 class="ui center aligned inverted header" style="margin-bottom: 30px;">
+            <i class="cogs icon"></i>
+            <div class="content">Technical Firmware Dashboard</div>
+        </h2>
+
+        <div class="ui two column grid" style="margin-bottom: 10px;">
+            <div class="column">
+                <button class="ui orange fluid button" id="btn-logs" onclick="toggleLogs()">
+                    <i class="terminal icon"></i> Читать логи сервера
+                </button>
+            </div>
+            <div class="column">
+                <button class="ui red fluid button" onclick="restartServer()">
+                    <i class="redo icon"></i> Перезапустить сервер
+                </button>
+            </div>
+        </div>
+
+        <div id="main-terminal" class="main-terminal">=== Терминал инициализирован. Ожидание команд ===
+</div>
+        
+        <table class="ui celled inverted table">
+            <thead>
+                <tr>
+                    <th class="four wide">Башня (Плата)</th>
+                    <th class="three wide">Действие</th>
+                    <th class="nine wide">Сетевой путь и Даты</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><h4>Главная Плата</h4><span class="board-type">Mega (USB)</span></td>
+                    <td><button class="ui red fluid button" onclick="flash('main', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\MAIN_BOARD_V5_COM5</div>
+                        <div class="date-info">Изменен: <span id="mtime-main">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-main">загрузка...</span><span class="success-badge" id="badge-main"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Башня Цербер</h4><span class="board-type">Nano (USB)</span></td>
+                    <td><button class="ui primary fluid button" onclick="flash('dog', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\dog</div>
+                        <div class="date-info">Изменен: <span id="mtime-dog">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-dog">загрузка...</span><span class="success-badge" id="badge-dog"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Башня Совы</h4><span class="board-type">Mega (USB)</span></td>
+                    <td><button class="ui primary fluid button" onclick="flash('owls', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\owls</div>
+                        <div class="date-info">Изменен: <span id="mtime-owls">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-owls">загрузка...</span><span class="success-badge" id="badge-owls"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Башня Баскетбол</h4><span class="board-type">Mega (USB)</span></td>
+                    <td><button class="ui primary fluid button" onclick="flash('basket', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\basket3</div>
+                        <div class="date-info">Изменен: <span id="mtime-basket">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-basket">загрузка...</span><span class="success-badge" id="badge-basket"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Башня Мастер</h4><span class="board-type">Mega (USB)</span></td>
+                    <td><button class="ui primary fluid button" onclick="flash('workshop', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\workshop</div>
+                        <div class="date-info">Изменен: <span id="mtime-workshop">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-workshop">загрузка...</span><span class="success-badge" id="badge-workshop"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Поезд</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><button class="ui teal fluid button" onclick="flash('train', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\train</div>
+                        <div class="date-info">Изменен: <span id="mtime-train">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-train">загрузка...</span><span class="success-badge" id="badge-train"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Чемоданы</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><button class="ui teal fluid button" onclick="flash('chest', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\chest</div>
+                        <div class="date-info">Изменен: <span id="mtime-chest">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-chest">загрузка...</span><span class="success-badge" id="badge-chest"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Сейф</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><button class="ui teal fluid button" onclick="flash('safe', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\safe</div>
+                        <div class="date-info">Изменен: <span id="mtime-safe">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-safe">загрузка...</span><span class="success-badge" id="badge-safe"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><h4>Волк</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><button class="ui teal fluid button" onclick="flash('wolf', this)">Прошить</button></td>
+                    <td>
+                        <div class="path-link">\\Castle.local\New\Sketches\wolf</div>
+                        <div class="date-info">Изменен: <span id="mtime-wolf">загрузка...</span></div>
+                        <div class="date-info">Прошит: <span id="last-wolf">загрузка...</span><span class="success-badge" id="badge-wolf"> ✓ Успешно</span></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <a href="/" class="ui inverted basic button" style="margin-top: 20px;"><i class="arrow left icon"></i> Вернуться к пульту</a>
+    </div>
+
+    <script src="/static/jQuery.js"></script>
+    <script src="/static/semantic.min.js"></script>
+    <script src="/static/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        const terminal = document.getElementById('main-terminal');
+
+        // Функция добавления текста в терминал
+        function appendToTerminal(text, color = '#a8ff60') {
+            const lineElem = document.createElement('div'); // Изменили span на div
+            lineElem.style.color = color;
+            
+            // Очищаем перенос строки (\n) на самом конце текста, 
+            // так как блочный элемент <div> автоматически перенесет следующую строку.
+            // При этом внутренние переносы (например, внутри лога avrdude) сохранятся.
+            lineElem.textContent = text.replace(/\n$/, ''); 
+            
+            terminal.appendChild(lineElem);
+            terminal.scrollTop = terminal.scrollHeight; // Автоскролл
+        }
+
+        socket.on('connect', function() {
+            socket.emit('get_board_stats');
+        });
+
+        socket.on('board_stats_data', function(stats) {
+            for (const [board, data] of Object.entries(stats)) {
+                $('#mtime-' + board).text(data.mtime);
+                $('#last-' + board).text(data.last_flash);
+            }
+        });
+
+        // --- ПРОШИВКА ---
+        function flash(boardId, btnElement) {
+            if(!confirm("Запустить прошивку: " + boardId.toUpperCase() + "?")) return;
+            
+            $('#badge-' + boardId).hide();
+            $(btnElement).addClass('loading disabled');
+            
+            appendToTerminal(`\n\n[SYSTEM] === ЗАПУСК ПРОШИВКИ: ${boardId.toUpperCase()} ===\n`, '#f1c40f');
+            socket.emit('start_flash', boardId);
+        }
+
+        // Логи прошивки
+        socket.on('flash_log', function(data) {
+            // Проверяем, есть ли сигнал полного завершения от сервера
+            if(data.msg.includes("[END]")) {
+                let cleanMsg = data.msg.replace("[END]", "");
+                
+                if (cleanMsg.trim() !== "") {
+                    let color = cleanMsg.includes("ОШИБКА") ? '#e74c3c' : '#a8ff60';
+                    appendToTerminal(cleanMsg, color);
+                }
+                
+                // Разблокируем кнопку и печатаем ФИНАЛ
+                $("button[onclick*=\"'" + data.board + "'\"]").removeClass('loading disabled');
+                appendToTerminal(`\n[SYSTEM] === ПРОЦЕСС ЗАВЕРШЕН ===\n\n`, '#3498db'); // Синий цвет
+                
+            } else {
+                // Обычный лог (Красим системные и ошибочные сообщения в нужные цвета)
+                let color = '#a8ff60'; // Зеленый по умолчанию
+                if (data.msg.includes("ОШИБКА") || data.msg.includes("ВНИМАНИЕ!")) {
+                    color = '#e74c3c'; // Красный
+                } else if (data.msg.includes("[SYSTEM]")) {
+                    color = '#f1c40f'; // Желтый
+                }
+                appendToTerminal(data.msg, color);
+            }
+        });
+
+        // Плашка успешной прошивки
+        socket.on('flash_success', function(data) {
+            $('#last-' + data.board).text(data.time);
+            
+            // Показываем зеленую галочку НАВСЕГДА (пока не запустят новую прошивку)
+            $('#badge-' + data.board)
+                .removeClass('error-badge').addClass('success-badge')
+                .html(' <i class="check icon"></i> Успешно')
+                .show();
+        });
+
+        // Плашка проваленной прошивки
+        socket.on('flash_failed', function(data) {
+            // Показываем красный крестик НАВСЕГДА
+            $('#badge-' + data.board)
+                .removeClass('success-badge').addClass('error-badge')
+                .html(' <i class="times red icon"></i> Ошибка прошивки')
+                .show(); 
+        });
+
+        // --- ЛОГИ СЕРВЕРА ---
+        let logsActive = false;
+        function toggleLogs() {
+            let btn = $('#btn-logs');
+            if (!logsActive) {
+                btn.removeClass('orange').addClass('grey').html('<i class="stop icon"></i> Остановить логи сервера');
+                appendToTerminal(`\n[SYSTEM] === ПОДКЛЮЧЕНИЕ К ЛОГАМ СЕРВЕРА ===\n`, '#3498db');
+                socket.emit('start_live_logs');
+                logsActive = true;
+            } else {
+                btn.removeClass('grey').addClass('orange').html('<i class="terminal icon"></i> Читать логи сервера');
+                appendToTerminal(`\n[SYSTEM] === ОТКЛЮЧЕНО ОТ ЛОГОВ ===\n`, '#3498db');
+                socket.emit('stop_live_logs');
+                logsActive = false;
+            }
+        }
+
+        socket.on('live_log_data', function(line) {
+            // Логи делаем чуть более тусклыми, чтобы они отличались от прошивки
+            appendToTerminal(line, '#bdc3c7');
+        });
+
+        // --- ПЕРЕЗАПУСК СЕРВЕРА ---
+        function restartServer() {
+            if(confirm("Сервер будет перезапущен (сработает скрипт и звук запуска). Продолжить?")) {
+                socket.emit('tech_restart_server');
+                document.body.innerHTML = '<h1 style="text-align:center; margin-top:20%; color:orange;">Перезапуск сервера... Пожалуйста, подождите.</h1>';
+                setTimeout(() => { location.reload(); }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
