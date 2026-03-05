@@ -334,6 +334,7 @@ ESP32_API_WOLF_URL = f"http://{ESP32_IP_WOLF}/data"
 ESP32_API_TRAIN_URL = f"http://{ESP32_IP_TRAIN}/data"
 ESP32_API_SUITCASE_URL = f"http://{ESP32_IP_SUITCASE}/data"
 ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
+is_system_flashing = False
 rating = 0
 star = 0
 socklist = [50]
@@ -692,6 +693,203 @@ socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True)
 @app.route('/')
 def index():
      return send_file('templates/Front.html')
+
+import subprocess
+import json
+import os
+from datetime import datetime
+
+# Файл, куда будем сохранять даты успешных прошивок
+FLASH_STATS_FILE = 'flash_stats.json'
+
+# Пути к скетчам для проверки даты их изменения
+HEX_PATHS = {
+    'dog': '/home/pi/New/Sketches/dog/dog.ino.hex',
+    'main': '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex',
+    'owls': '/home/pi/New/Sketches/owls/owls.ino.hex',
+    'basket': '/home/pi/New/Sketches/basket3/basket3.ino.hex',
+    'workshop': '/home/pi/New/Sketches/workshop/workshop.ino.hex',
+    # --- ПУТИ К .bin ДЛЯ ESP32 ---
+    'train': '/home/pi/New/Sketches/train/train.ino.bin',
+    'chest': '/home/pi/New/Sketches/chest/chest.ino.bin',
+    'safe': '/home/pi/New/Sketches/safe/safe.ino.bin',
+    'wolf': '/home/pi/New/Sketches/wolf/wolf.ino.bin'
+}
+
+@app.route('/tech')
+def tech_panel():
+    return send_file('templates/Tech.html')
+
+# --- ЗАПРОС СТАТИСТИКИ (Даты изменения и последних прошивок) ---
+@socketio.on('get_board_stats')
+def handle_get_stats():
+    stats = {}
+    # Читаем сохраненные даты успешных прошивок
+    last_flashes = {}
+    if os.path.exists(FLASH_STATS_FILE):
+        try:
+            with open(FLASH_STATS_FILE, 'r') as f:
+                last_flashes = json.load(f)
+        except: pass
+
+    # Собираем данные по каждой плате
+    for board, path in HEX_PATHS.items():
+        mtime_str = "Файл не найден"
+        if os.path.exists(path):
+            mtime = os.path.getmtime(path)
+            mtime_str = datetime.fromtimestamp(mtime).strftime('%d.%m.%Y:%H:%M')
+        
+        stats[board] = {
+            'mtime': mtime_str,
+            'last_flash': last_flashes.get(board, "Никогда")
+        }
+    socketio.emit('board_stats_data', stats)
+
+# --- ПРОШИВКА ---
+@socketio.on('start_flash')
+def handle_flash(board_id):
+    global is_system_flashing
+    global ser
+    
+    commands = {
+        'dog': 'sudo avrdude -v -p atmega328p -c arduino -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/dog/dog.ino.hex:i',
+        'main': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN -b 115200 -D -U flash:w:/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex:i',
+        'owls': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
+        'basket': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
+        'workshop': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
+        'train': 'cd /home/pi/New && python3 espota.py -i 192.168.4.202 -p 3232 -f /home/pi/New/Sketches/train/train.ino.bin',
+        'chest': 'cd /home/pi/New && python3 espota.py -i 192.168.4.203 -p 3232 -f /home/pi/New/Sketches/chest/chest.ino.bin',
+        'safe': 'cd /home/pi/New && python3 espota.py -i 192.168.4.204 -p 3232 -f /home/pi/New/Sketches/safe/safe.ino.bin',
+        'wolf': 'cd /home/pi/New && python3 espota.py -i 192.168.4.201 -p 3232 -f /home/pi/New/Sketches/wolf/wolf.ino.bin'
+    }
+
+    if board_id not in commands: return
+    cmd = commands[board_id]
+
+    try:
+        # 1. Освобождение портов
+        if board_id == 'dog':
+            socketio.emit('flash_log', {'board': board_id, 'msg': 'Отправка команды release_serial3 на Главную плату...\n'})
+            serial_write_queue.put('release_serial3')
+            eventlet.sleep(1.5)
+        elif board_id == 'main':
+            is_system_flashing = True
+            eventlet.sleep(1)
+            try: ser.close()
+            except: pass
+
+        socketio.emit('flash_log', {'board': board_id, 'msg': 'Запуск прошивки (это может занять около минуты)...\n'})
+        
+        # 2. Выполнение консольной команды
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        out_msg = result.stdout + '\n' + result.stderr
+        
+        # Печатаем лог в терминал
+        socketio.emit('flash_log', {'board': board_id, 'msg': out_msg})
+        
+        # 3. ИДЕАЛЬНАЯ ПРОВЕРКА НА УСПЕХ
+        lower_out = out_msg.lower()
+        is_success = False
+        
+        # Если avrdude дошел до верификации памяти ИЛИ espota написал success - это 100% победа
+        if "bytes of flash verified" in lower_out or "result: ok" in lower_out or "success" in lower_out:
+            is_success = True
+
+        # 4. Обработка результатов
+        if is_success:
+            now_str = datetime.now().strftime('%d.%m.%Y %H:%M')
+            flashes = {}
+            if os.path.exists(FLASH_STATS_FILE):
+                with open(FLASH_STATS_FILE, 'r') as f: flashes = json.load(f)
+            flashes[board_id] = now_str
+            with open(FLASH_STATS_FILE, 'w') as f: json.dump(flashes, f)
+            
+            socketio.emit('flash_success', {'board': board_id, 'time': now_str})
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\n[SYSTEM] ОШИБОК НЕ ОБНАРУЖЕНО. Прошивка успешна!\n'})
+        else:
+            socketio.emit('flash_failed', {'board': board_id})
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\n[SYSTEM] ВНИМАНИЕ! Обнаружена ошибка. Плата НЕ прошилась!\n'})
+
+        # 5. Восстановление портов
+        if board_id == 'dog':
+            socketio.emit('flash_log', {'board': board_id, 'msg': 'Восстановление связи (restore_serial3)...'})
+            serial_write_queue.put('restore_serial3')
+            eventlet.sleep(0.5)
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\nСвязь успешно восстановлена! [END]'})
+        elif board_id == 'main':
+            try: ser.open()
+            except: pass
+            is_system_flashing = False
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\nСервер возобновил работу. [END]'})
+        else:
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\n[END]'})
+
+    except Exception as e:
+        socketio.emit('flash_failed', {'board': board_id})
+        socketio.emit('flash_log', {'board': board_id, 'msg': f'\n[SYSTEM] КРИТИЧЕСКАЯ ОШИБКА: {str(e)} [END]'})
+        is_system_flashing = False
+        try: ser.open()
+        except: pass
+
+# --- ЧТЕНИЕ ЛОГОВ (Эмулятор tail -f на чистом Python) ---
+live_log_active = False
+
+@socketio.on('start_live_logs')
+def start_live_logs():
+    global live_log_active
+    if live_log_active: 
+        return
+    live_log_active = True
+    
+    def log_reader():
+        # Путь к файлу (относительный, такой же, как при создании логгера)
+        log_path = 'logs/castle.log' 
+        
+        # 1. Сначала выводим последние 30 строк для контекста
+        try:
+            with open(log_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                last_lines = lines[-30:] if len(lines) > 30 else lines
+                for line in last_lines:
+                    socketio.emit('live_log_data', line)
+        except Exception as e:
+            socketio.emit('live_log_data', f"[Ошибка чтения истории логов: {e}]\n")
+
+        # 2. Теперь начинаем следить за концом файла в реальном времени
+        try:
+            with open(log_path, 'r', encoding='utf-8') as f:
+                f.seek(0, 2) # Прыгаем в самый конец файла
+                while live_log_active:
+                    line = f.readline()
+                    if not line:
+                        # Если новых строк нет, ждем полсекунды и проверяем снова
+                        eventlet.sleep(0.5) 
+                        continue
+                    # Если появилась новая строка, сразу отправляем в браузер
+                    socketio.emit('live_log_data', line)
+        except Exception as e:
+            if live_log_active:
+                socketio.emit('live_log_data', f"\n[Ошибка мониторинга файла: {e}]\n")
+                
+    # Запускаем чтение в фоновом потоке, чтобы не тормозить сервер
+    socketio.start_background_task(target=log_reader)
+
+@socketio.on('stop_live_logs')
+def stop_live_logs():
+    global live_log_active
+    live_log_active = False
+
+# --- ПЕРЕЗАПУСК СЕРВЕРА ---
+@socketio.on('tech_restart_server')
+def tech_restart_server():
+    def restart():
+        eventlet.sleep(1) # Даем секунду, чтобы кнопка в браузере успела отжаться
+        import sys
+        # Идеальный перезапуск скрипта в той же среде
+        os.chdir('/home/pi/New')
+        os.execv(sys.executable, ['python3', 'CastleServer.py'])
+        
+    socketio.start_background_task(target=restart)
 
 #декоратор работы socket отвечает за настройки wifi
 @socketio.on('WLAN')
@@ -1159,7 +1357,8 @@ def Remote(check):
      #есть отдельная кнопка которая открывает все тайники на меге обрабатывается и отправляет башням
      # -------если пришло сообщение startgo в serial игра начинается и мы можем управлять квесто
      if starts == 1:
-          #------нажали на пропуск игры с тумблером
+        if check == 'skip_start_door':
+             serial_write_queue.put('skip_start_door')
         if check == 'first_clock':
              #----отправли на клиента
              socketio.emit('level', 'first_clock',to=None)
@@ -1173,7 +1372,7 @@ def Remote(check):
              socklist.append('active_second_clock') 
              #----изменяем переменную для повторения
              name = "story_1"  
-        #----нажали пропустить игру с галетниками     
+
         if check=='second_clock':
              #-----отправка клиенту 
              socketio.emit('level', 'second_clock',to=None)
@@ -1522,6 +1721,8 @@ def Remote(check):
              # Мгновенно обновляем UI
              socketio.emit('level', 'set_time', to=None)
              socklist.append('set_time')
+        if check == 'skip_lib_door':
+             serial_write_queue.put('skip_lib_door')
         if check == 'cup':
              #-----отправка клиенту 
              socketio.emit('level', 'cup',to=None)
@@ -2544,6 +2745,11 @@ def serial():
      #если нужно быстрее или медленне измени значения sleep
      while True:
           try:
+              # Если идет прошивка Главной платы, ставим цикл на паузу
+              if is_system_flashing:
+                  eventlet.sleep(1)
+                  continue
+                  
               check_story_and_fade_up() # Проверяем, не закончила ли история играть
               process_serial_queue()
               # Добавляем блок для отправки сообщений из очереди
@@ -3568,12 +3774,13 @@ def serial():
                               socklist.append('active_dog')
 
                          if flag=="dog_sleep":
+                              dog_growl.stop()
                               #----играем эффект 
                               play_effect(dog_sleep)
 
                          if flag=="dog_growl":
                               #----играем эффект 
-                              play_effect(dog_growl) 
+                              play_effect(dog_growl, loops=-1)
                          if flag=="dog_lock":
                               # Защита от двойного срабатывания
                               if 'dog_end_processed' in socklist:
@@ -3644,6 +3851,9 @@ def serial():
                               socketio.emit('level', 'cave_click', to=None)
                               if 'cave_click' not in socklist: # (Опционально)
                                   socklist.append('cave_click')
+                         if flag == "cave_repeat":
+                              # Просто играем звук клика, никаких команд на пульт (UI) не отправляем!
+                              play_effect(cave_click)
                          if flag=="cave_reset":
                               play_effect(cave_click)
                               socketio.emit('level', 'cave_reset', to=None)
@@ -4719,3 +4929,4 @@ if __name__ == '__main__':
         logger.critical("HINT: The port 3000 might be in use by another application.")
     except Exception as e:
         logger.critical(f"An unexpected error occurred: {e}")
+        
