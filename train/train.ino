@@ -525,7 +525,7 @@ void setup() {
   server.on("/data", HTTP_POST, []() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
-      sendLogToServer("Received command: " + body);
+      sendLogToServer("RX:" + body);
       // Добавляем обработку подтверждения от сервера
       if (body == "\"confirm_train_end\"") {
         trainEndConfirmed = true; // Получили подтверждение, прекращаем отправку
@@ -717,6 +717,9 @@ void setup() {
           SendData("{\"log\":\"Train: Playing Story 16 (CH)\"}");
         }
         ActiveLeds[13] = 22; // активируем тролля
+        // Зажигаем кожу (зеленым) сразу после поезда ---
+        leds1[0] = CRGB(0, 128, 0);
+        FastLED.show();
       }
 
       if (body == "\"restart\"") {
@@ -1003,7 +1006,7 @@ void setup() {
       // --- ИЗМЕНЕНИЕ: Добавляем обработчик train_end, приходящий ИЗВНЕ ---
       // (Этот обработчик мог отсутствовать или быть неполным)
       if (body == "\"train_end\"") {
-        Serial.println("DEBUG: Received external train_end command.");
+        Serial.println("log:tr:ext_end");
         DisableLeds[0] = 9;  // Гасим проектор
         ActiveLeds[0] = -1;
         ClickLeds[0] = -1;
@@ -1014,11 +1017,14 @@ void setup() {
 
         digitalWrite(TUNNEL_LED, HIGH); // Включаем свет туннеля
         state = 3; // Переходим в состояние завершения поезда
+        // Зажигаем кожу (зеленым) ---
+        leds1[0] = CRGB(0, 128, 0);
+        FastLED.show();
         trainEndSendTimer = millis(); // Начинаем отправку подтверждения, если нужно
       }
       // --- КОНЕЦ ИЗМЕНЕНИЯ ---
       if (body == "\"troll_finish\"") {
-        Serial.println("DEBUG: Processing troll_finish command.");
+        Serial.println("log:tr:troll_fin");
         DisableLeds[13] = 22; // Индекс 13 -> LED 22
         ActiveLeds[13] = -1;  // Убираем его из активных
         ClickLeds[13] = -1;   // Убираем его из кликабельных
@@ -1246,7 +1252,7 @@ void setup() {
 
 // --- НАЧАЛО ИЗМЕНЕНИЙ: Обработчики новых команд ---
       if (body == "\"map_disable_clicks\"") {
-        Serial.println("Disabling map clicks...");
+        Serial.println("log:tr:dis_click");
 if (!mapClicksDisabled) { // Предотвращаем повторное выполнение
           for (int i = 0; i < 22; i++) {
             if (ClickLeds[i] != -1) {
@@ -1273,7 +1279,7 @@ ResetTimer(); // Гасим светодиоды таймера и сбрасы�
         }
       }
       else if (body == "\"map_enable_clicks\"") {
-        Serial.println("Enabling map clicks...");
+        Serial.println("log:tr:en_click");
 if (mapClicksDisabled) { // Восстанавливаем только если были отключены
             
             for (int i = 0; i < 22; i++){
@@ -1630,27 +1636,20 @@ void loop() {
       case 1:
         // --- ДИАГНОСТИКА ПОБЕДЫ ---
         if (!INPUTS.digitalRead(1)) {
-            Serial.print("DEBUG WIN CHECK: ");
-            
-            // 1. Проверяем физический контакт
-            Serial.print("Pin1=LOW(OK) | ");
-            
-            // 2. Проверяем состояние карты
-            Serial.print("mapState=");
+            Serial.print("log:tr:chk: ");
+            Serial.print("P1=0|");
+            Serial.print("map=");
             Serial.print(mapState);
-            // [FIX] Исправлена опечатка: добавлены скобки ("...")
-            if (mapState == "train") Serial.print("(OK) | "); 
-            else Serial.print("(FAIL: Must be 'train') | ");
+            if (mapState == "train") Serial.print("(OK)|");
+            else Serial.print("(FL)|");
             
-            // 3. Проверяем флаг блокировки
-            Serial.print("isStartTrain=");
+            Serial.print("STr=");
             Serial.print(isStartTrain);
             if (isStartTrain == 0) Serial.print("(OK)"); 
-            else Serial.print("(FAIL: Must be 0)");
+            else Serial.print("(FL)");
             
             Serial.println();
-            
-            delay(200); 
+            delay(200);
         }
         // -------------------------------------
 
@@ -1744,7 +1743,7 @@ void MapGerkon() {
         return; // Выходим из функции
     }
     if (!INPUTS.digitalRead(1)) {
-      Serial.println("DEBUG: TRAIN SENSOR (Pin 1) PRESSED");
+      Serial.println("log:tr:pin1_press");
     }
 
   bool keyLedActive = false;
@@ -2197,7 +2196,7 @@ void handlePlayerQueries() {
 
 void SendData(String payload) {
   if (WiFi.status() == WL_CONNECTED) {
-    sendLogToServer("Sending data: " + payload);
+    sendLogToServer("TX:" + payload);
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
@@ -2207,7 +2206,7 @@ void SendData(String payload) {
     // --- ИЗМЕНЕНИЕ: Обрабатываем train:end ЛОКАЛЬНО ---
     // Это предотвращает отправку команды самой себе и последующую активацию LED тролля
     if (payload == "{\"train\":\"end\"}") {
-        Serial.println("DEBUG: Processing train:end LOCALLY after skip.");
+        Serial.println("log:tr:loc_end_skip");
         DisableLeds[0] = 9; // Гасим проектор
         ActiveLeds[0] = -1;
         ClickLeds[0] = -1;
@@ -2217,6 +2216,8 @@ void SendData(String payload) {
         ClickLeds[13] = -1;  // Не кликабельный
 
         digitalWrite(TUNNEL_LED, HIGH);
+        // Зажигаем кожу (зеленым) ---
+        leds1[0] = CRGB(0, 128, 0);
         for (int i = 1; i < 4; i++) {
           leds1[i] = CHSV(initialHue + (i * 7), 255, 255);
         }
