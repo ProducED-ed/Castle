@@ -1502,6 +1502,17 @@ $('.ui.dropdown')
                     $('#output').css('color', 'white');
                 }
             }
+			// --- (Управление доступностью Bluetooth) ---
+            if (inp === 'rest') {
+                // Режим Restart: Делаем кнопку активной (кликабельной)
+                $('#bt-toggle-container').removeClass('disabled');
+            } 
+            else if (inp === 'start_game' || inp === 'ready' || inp === 'ready_processing') {
+                // Игра началась или проверка: Блокируем кнопку и снимаем галочку
+                $('#bt-toggle-container').addClass('disabled');
+                $('#bt-toggle-container').checkbox('set unchecked');
+            }
+            // --------------------------------------------------------------
         }
     });
 
@@ -1979,7 +1990,26 @@ $('.ui.dropdown')
 				clearInterval(timerIntervalDownSafe);
 			});
 			
- // --- WI-FI LOGIC (FIXED) ---
+			// --- (Инициализация Bluetooth) ---
+			// Инициализация чекбокса Semantic UI
+			$('#bt-toggle-container').checkbox({
+				onChange: function() {
+					let isChecked = $('#bt-checkbox').is(':checked');
+					socket.emit('toggle_bluetooth', isChecked);
+				}
+			});
+
+			// Слушаем реальный статус от сервера (чтобы переключатель не "залипал")
+			socket.on('bt_state', function(state) {
+				if (state) {
+					$('#bt-toggle-container').checkbox('set checked');
+				} else {
+					$('#bt-toggle-container').checkbox('set unchecked');
+				}
+			});
+			// ----------------------------------------------------
+			
+ // --- WI-FI LOGIC ---
     
     // 1. Открыть/Закрыть меню + ПРОВЕРКА СТАТУСА
     $('#toggle_wifi').click(function(e){
