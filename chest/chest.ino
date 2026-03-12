@@ -1043,7 +1043,7 @@ void handlePlayerQueries() {
   }
   if (myMP3.available()) {
     uint8_t type = myMP3.readType();
-    if (type == 5) {
+    if (type == 11) {
       int finishedTrack = myMP3.read();
       Serial.print("Завершился трек: ");
       Serial.println(finishedTrack);
