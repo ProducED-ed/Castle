@@ -2366,6 +2366,7 @@ def play_story(audio_source, loops=0, volume_file='3.txt'):
             sound_object = pygame.mixer.Sound(audio_source)
         except Exception as e:
             logging.error(f"Ошибка загрузки файла истории {audio_source}: {e}")
+            serial_write_queue.put('soundoff')
             return
     elif isinstance(audio_source, pygame.mixer.Sound):
         # Если это уже объект (для совместимости), используем как есть
@@ -2737,6 +2738,7 @@ def serial():
      global mansard_galets, last_mansard_count
      global socklist 
      global devices
+     global ser
 
      train_stage_2_active = False
      flag = "0"
@@ -4775,6 +4777,22 @@ def serial():
               eventlet.sleep(0.1)
           except Exception as e:
               logger.error(f"CRASH IN SERIAL LOOP: {e}")
+              # Пытаемся закрыть сломанный порт
+              try:
+                  ser.close()
+              except:
+                  pass
+              
+              logger.info("Попытка переподключения к Arduino через 2 секунды...")
+              eventlet.sleep(2) # Даем системе время заново определить USB
+              
+              # Пытаемся открыть порт заново
+              try:
+                  ser = serial.Serial('/dev/ttyUSB_MAIN', 115200, timeout=1)
+                  logger.info("УСПЕХ: Связь с Arduino восстановлена!")
+              except Exception as reconn_e:
+                  logger.error(f"ОШИБКА: Не удалось переподключиться. Проверьте USB кабель! ({reconn_e})")
+              
               eventlet.sleep(1)
    
 #----метод таймера можно не трогать               
@@ -4971,11 +4989,17 @@ if __name__ == '__main__':
             logger.debug(f"STARTUP: Не удалось создать '{LATCH_FILE}': {e}")
         # Используем .debug(), чтобы это сообщение попало только в файл логов, а не в консоль.
         logger.debug("STARTUP: Сервер CastleServer.py успешно запущен.")
-        # При старте сразу дергаем адаптер, чтобы он проснулся и увидел сохраненную сеть
-        text_to_wlan1_reset()
-        # Попытка подключиться к уже сохраненной сети
-        subprocess.run("sudo wpa_cli -i wlan1 reconfigure", shell=True, check=False)
+        
+        # Фоновая функция для подключения к Wi-Fi без торможения квеста
+        def startup_wifi_routine():
+            logger.info("WI-FI: Ожидание инициализации USB-адаптера (12 сек)...")
+            eventlet.sleep(12) # Ждем, пока свисток проснется после включения в розетку
+            text_to_wlan1_reset() # Включаем адаптер
+            subprocess.run("sudo wpa_cli -i wlan1 reconfigure", shell=True, check=False)
+            logger.info("WI-FI: Команда на автоподключение отправлена.")
+
         logger.info("Starting background tasks...")
+        socketio.start_background_task(target=startup_wifi_routine) # Запускаем Wi-Fi в фоне
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
