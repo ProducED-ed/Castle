@@ -268,7 +268,7 @@ $('.ui.dropdown')
         //приводим строку в число 
         lev3 = Number(v)
         //приходит в десятичном ввиде округляем и умножаем на 100
-        lev13 = lev3.toFixed(2) * 100
+        lev13 = lev3.toFixed(2) * 20
         //выводим значение еще раз округлив на всякий
         console.log(Math.floor(lev13))
         $('#voiceCount').text(Math.floor(lev13));
@@ -314,7 +314,7 @@ $('.ui.dropdown')
     socket.on('volume1', function (v) {
 
         lev2 = Number(v)
-        lev12 = lev2.toFixed(2) * 100
+        lev12 = lev2.toFixed(2) * 20
         console.log(Math.floor(lev12))
         $('#effectCount').text(Math.floor(lev12));
 
@@ -322,7 +322,7 @@ $('.ui.dropdown')
     //канал для работы с фоном логика одна и та же
     socket.on('volume', function (z) {
         lev1 = Number(z)
-        lev11 = lev1.toFixed(2) * 100;
+        lev11 = lev1.toFixed(2) * 20;
         console.log(Math.floor(lev11))
         $('#phoneCount').text(Math.floor(lev11));
     });
@@ -1743,7 +1743,7 @@ $('.ui.dropdown')
 			buttonUpEffect.addEventListener(start, function() {
 				timerIntervalUpEffect = setInterval(function(){
 					var newValue = lev12 + 1;
-					if(newValue <= 100){
+					if(newValue <= 20){
 						socket.emit('Effects', newValue);
 					} else {
 						clearInterval(timerIntervalUpEffect); // Останавливаем, если достигли максимума
@@ -1754,7 +1754,7 @@ $('.ui.dropdown')
 			buttonUpEffect.addEventListener(stop, function() { clearInterval(timerIntervalUpEffect); });
 			$('#effectUp').click(function(){
 				var newValue = lev12 + 1;
-				if(newValue <= 100){ socket.emit('Effects', newValue); }
+				if(newValue <= 20){ socket.emit('Effects', newValue); }
 			});
 			
 			buttonDownEffect.addEventListener(start, function() {
@@ -1778,7 +1778,7 @@ $('.ui.dropdown')
 			buttonUpPhone.addEventListener(start, function() {
 				timerIntervalUpPhone = setInterval(function(){
 					var newValue = lev11 + 1;
-					if(newValue <= 100){
+					if(newValue <= 20){
 						socket.emit('Phone', newValue);
 					} else {
 						clearInterval(timerIntervalUpPhone);
@@ -1789,7 +1789,7 @@ $('.ui.dropdown')
 			buttonUpPhone.addEventListener(stop, function() { clearInterval(timerIntervalUpPhone); });
 			$('#phoneUp').click(function(){
 				var newValue = lev11 + 1;
-				if(newValue <= 100){ socket.emit('Phone', newValue); }
+				if(newValue <= 20){ socket.emit('Phone', newValue); }
 			});
 
 			buttonDownPhone.addEventListener(start, function() {
@@ -1813,7 +1813,7 @@ $('.ui.dropdown')
 			buttonUpVoice.addEventListener(start, function() {
 				timerIntervalUpVoice = setInterval(function(){
 					var newValue = lev13 + 1;
-					if(newValue <= 100){
+					if(newValue <= 20){
 						socket.emit('Voice', newValue);
 					} else {
 						clearInterval(timerIntervalUpVoice);
@@ -1824,7 +1824,7 @@ $('.ui.dropdown')
 			buttonUpVoice.addEventListener(stop, function() { clearInterval(timerIntervalUpVoice); });
 			$('#voiceUp').click(function(){
 				var newValue = lev13 + 1;
-				if(newValue <= 100){ socket.emit('Voice', newValue); }
+				if(newValue <= 20){ socket.emit('Voice', newValue); }
 			});
 
 			buttonDownVoice.addEventListener(start, function() {
@@ -1849,7 +1849,7 @@ $('.ui.dropdown')
 			buttonUpWolf.addEventListener(start, function() {
 				timerIntervalUpWolf = setInterval(function(){
 					var newValue = lev14 + 1;
-					if(newValue <= 30){
+					if(newValue <= 20){
 						socket.emit('WolfUp', newValue);
 					} else {
 						clearInterval(timerIntervalUpWolf);
@@ -1860,7 +1860,7 @@ $('.ui.dropdown')
 			buttonUpWolf.addEventListener(stop, function() { clearInterval(timerIntervalUpWolf); });
 			$('#wolfUp').click(function(){
 				var newValue = lev14 + 1;
-				if(newValue <= 30){ socket.emit('WolfUp', newValue); }
+				if(newValue <= 20){ socket.emit('WolfUp', newValue); }
 			});
 			
 			buttonDownWolf.addEventListener(start, function() {
@@ -1884,7 +1884,7 @@ $('.ui.dropdown')
 			buttonUpPlatform.addEventListener(start, function() {
 				timerIntervalUpPlatform = setInterval(function(){
 					var newValue = lev15 + 1;
-					if(newValue <= 30){
+					if(newValue <= 20){
 						socket.emit('PlatformUp', newValue);
 					} else {
 						clearInterval(timerIntervalUpPlatform);
@@ -1895,7 +1895,7 @@ $('.ui.dropdown')
 			buttonUpPlatform.addEventListener(stop, function() { clearInterval(timerIntervalUpPlatform); });
 			$('#platformUp').click(function(){
 				var newValue = lev15 + 1;
-				if(newValue <= 30){ socket.emit('PlatformUp', newValue); }
+				if(newValue <= 20){ socket.emit('PlatformUp', newValue); }
 			});
 
 			buttonDownPlatform.addEventListener(start, function() {
@@ -1919,7 +1919,7 @@ $('.ui.dropdown')
 			buttonUpSuitcases.addEventListener(start, function() {
 				timerIntervalUpSuitcases = setInterval(function(){
 					var newValue = lev16 + 1;
-					if(newValue <= 30){
+					if(newValue <= 20){
 						socket.emit('SuitcasesUp', newValue);
 					} else {
 						clearInterval(timerIntervalUpSuitcases);
@@ -1930,7 +1930,7 @@ $('.ui.dropdown')
 			buttonUpSuitcases.addEventListener(stop, function() { clearInterval(timerIntervalUpSuitcases); });
 			$('#suitcasesUp').click(function(){
 				var newValue = lev16 + 1;
-				if(newValue <= 30){ socket.emit('SuitcasesUp', newValue); }
+				if(newValue <= 20){ socket.emit('SuitcasesUp', newValue); }
 			});
 
 			buttonDownSuitcases.addEventListener(start, function() {
@@ -1954,7 +1954,7 @@ $('.ui.dropdown')
 			buttonUpSafe.addEventListener(start, function() {
 				timerIntervalUpSafe = setInterval(function(){
 					var newValue = lev17 + 1;
-					if(newValue <= 30){
+					if(newValue <= 20){
 						socket.emit('SafeUp', newValue);
 					} else {
 						clearInterval(timerIntervalUpSafe);
@@ -1965,7 +1965,7 @@ $('.ui.dropdown')
 			buttonUpSafe.addEventListener(stop, function() { clearInterval(timerIntervalUpSafe); });
 			$('#safeUp').click(function(){
 				var newValue = lev17 + 1;
-				if(newValue <= 30){ socket.emit('SafeUp', newValue); }
+				if(newValue <= 20){ socket.emit('SafeUp', newValue); }
 			});
 
 			buttonDownSafe.addEventListener(start, function() {
@@ -1990,6 +1990,22 @@ $('.ui.dropdown')
 				clearInterval(timerIntervalDownSafe);
 			});
 			
+			// --- (Инициализация музыки в Ready) ---
+			$('#ready-music-toggle-container').checkbox({
+				onChange: function() {
+					let isChecked = $('#ready-music-checkbox').is(':checked');
+					socket.emit('toggle_ready_music', isChecked);
+				}
+			});
+
+			socket.on('ready_music_state', function(state) {
+				if (state) {
+					$('#ready-music-toggle-container').checkbox('set checked');
+				} else {
+					$('#ready-music-toggle-container').checkbox('set unchecked');
+				}
+			});
+			
 			// --- (Инициализация Bluetooth) ---
 			// Инициализация чекбокса Semantic UI
 			$('#bt-toggle-container').checkbox({
@@ -2005,6 +2021,23 @@ $('.ui.dropdown')
 					$('#bt-toggle-container').checkbox('set checked');
 				} else {
 					$('#bt-toggle-container').checkbox('set unchecked');
+				}
+			});
+			// ----------------------------------------------------
+			
+			// --- Инициализация переключателя музыки Ready ---
+			$('#ready-music-toggle-container').checkbox({
+				onChange: function() {
+					let isChecked = $('#ready-music-checkbox').is(':checked');
+					socket.emit('toggle_ready_music', isChecked);
+				}
+			});
+
+			socket.on('ready_music_state', function(state) {
+				if (state) {
+					$('#ready-music-toggle-container').checkbox('set checked');
+				} else {
+					$('#ready-music-toggle-container').checkbox('set unchecked');
 				}
 			});
 			// ----------------------------------------------------
