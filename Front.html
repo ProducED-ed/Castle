@@ -45,10 +45,18 @@
                         
                         <br>
                         <!--боковое меню добавить какую нибудь вкладку довольно легко используй класс segment смотри по образу внизу -->
-                        <div class="ui sidebar inverted vertical menu">
-                            <!-- вот смотри <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid ; border-radius: 10px;"> берем от этого тега до закрывающего 
-                                его </div> и заполняем необходимым нам -->
-                            <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+                        <div class="ui sidebar inverted vertical menu" style="overflow: hidden !important;">
+    
+							<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow-y: auto !important; -webkit-overflow-scrolling: touch; padding-bottom: 400px;">
+								
+								<div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid; border-radius: 10px;">
+									<div class="ui toggle checkbox" id="ready-music-toggle-container" style="margin-top: 15px;">
+										<input type="checkbox" id="ready-music-checkbox">
+										<div class="ui tiny header" style="color: white;">Ready Mode Music</div>
+									</div>
+								</div>
+								
+								<div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
                                 <!--- <input type="range" min="0" max="1"  step="any" id="phone"> -->
                                 <!--делаем группу кнопок расположенных справа -->
                                 <div class="ui right  inverted floated buttons">
@@ -62,7 +70,7 @@
                                       <!--надпись, класс tiny относиться к размерам -->
                                          <div class="ui tiny header">Background Sound</div>
                                   </div>
-                        </div>
+							</div>
                  <div class="ui clearing inverted segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
                                 <!--- <input type="range" min="0" max="1"  step="0.01" id="effects"> -->
                                 <div class="ui right  inverted floated buttons">
@@ -168,9 +176,9 @@
 									 <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
 										 <div class="ui toggle checkbox disabled" id="bt-toggle-container" style="margin-top: 15px;">
 											 <input type="checkbox" id="bt-checkbox">
-											 <div class="ui tiny header "style="color: white;">Bluetooth (Restart -> pass: 12348888)</div>
+											 <div class="ui tiny header "style="color: white;">Bluetooth <br>Android only<br>(Restart -> pass: 12348888)</div>
 										 </div>
-                                     </div> 
+                                     </div>
 									 
 									 <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid; border-radius: 10px;">
     <button class="ui inverted labeled icon button" style="width: 100%;" id="toggle_wifi">
@@ -200,13 +208,7 @@
         </div>
     </div>
 </div>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-                          </div>
+                          </div> </div> 
                            <!--основной класс pusher здесь находятся наши блоки с содержимым из уровней и игр-->
                           <div class="pusher">
                         <div class="ui four column stackable grid  container " id="game">
