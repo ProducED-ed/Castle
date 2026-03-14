@@ -194,6 +194,10 @@ LANG_SUFFIXES = {
     4: 'fr'
 }
 
+def scale_vol(ui_vol):
+    """Переводит шкалу пульта 0-20 в физическую шкалу DFPlayer 0-30"""
+    return int((float(ui_vol) / 20.0) * 30)
+
 def play_localized_audio(base_name, loops=0):
     """
     Автоматически формирует имя файла на основе текущего языка и воспроизводит его.
@@ -672,6 +676,17 @@ a4=f4.read(4)
 language=int(a4)
 f4.close() 
 
+# --- Читаем настройку музыки для Ready (НАДЕЖНЫЙ ПУТЬ) ---
+READY_MUSIC_FILE = '/home/pi/New/ready_music.txt'
+play_ready_music = True
+try:
+    if os.path.exists(READY_MUSIC_FILE):
+        with open(READY_MUSIC_FILE, 'r') as f:
+            play_ready_music = (f.read().strip() == "1")
+except Exception:
+    pass
+# ---------------------------------------------------------
+
 channel1.set_volume(float(a1),float(a1))
 channel2.set_volume(float(a2),float(a2))
 channel3.set_volume(float(a3),float(a3))
@@ -978,7 +993,7 @@ def handle_connect():
     socketio.emit('platform', str(trainLevel))
     socketio.emit('suitcases', str(suitcaseLevel))
     socketio.emit('safe', str(safeLevel))
-    
+    socketio.emit('ready_music_state', play_ready_music, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
@@ -1162,7 +1177,7 @@ def Phone(phone):
      #что бы громкость звука нельзя было изменить в то время когда работает алгоритм плавного нарастания и убывания звука
      if fs==0:
           # обязательно округляем данные флоат здесь он хранит не точные значения
-          ph = round(phone/100,2)
+          ph = round(phone/20,2)
           #записываем в файл измененные настройки здесь блок кода для записи
           f1 = open('1.txt','w')
           f1.write(str(ph))
@@ -1180,7 +1195,7 @@ def Phone(phone):
 @socketio.on('Voice')
 def Voice(voice):
      global voiceLevel
-     voi = round(voice/100,2)
+     voi = round(voice/20,2)
      f1 = open('3.txt','w')
      f1.write(str(voi))
      f1.close()   
@@ -1190,7 +1205,7 @@ def Voice(voice):
 @socketio.on('Effects')
 def Effects(effects):
      global effectLevel
-     eff = round(effects/100,2)
+     eff = round(effects/20,2)
      f1 = open('2.txt','w')
      f1.write(str(eff))
      f1.close()   
@@ -1209,7 +1224,7 @@ def WolfSound(wolfsound):
      f1 = open('5.txt','w')
      f1.write(str(wolfsound))
      f1.close()   
-     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{wolfsound}", debounce=True)
+     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(wolfsound)}", debounce=True)
      wolfLevel = int(wolfsound)
      socketio.emit('wolf', wolfLevel, to=None, include_self=False)
 
@@ -1219,7 +1234,7 @@ def WolfSound(wolfsound):
      f1 = open('5.txt','w')
      f1.write(str(wolfsound))
      f1.close()   
-     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{wolfsound}", debounce=True)
+     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(wolfsound)}", debounce=True)
      wolfLevel = int(wolfsound)
      socketio.emit('wolf', wolfLevel, to=None, include_self=False) 
 
@@ -1229,7 +1244,7 @@ def TrainSound(platformsound):
      f1 = open('6.txt','w')
      f1.write(str(platformsound))
      f1.close()   
-     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{platformsound}", debounce=True)
+     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(platformsound)}", debounce=True)
      trainLevel = int(platformsound)
      socketio.emit('platform', trainLevel, to=None, include_self=False)
 
@@ -1239,7 +1254,7 @@ def TrainSound(platformsound):
      f1 = open('6.txt','w')
      f1.write(str(platformsound))
      f1.close()   
-     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{platformsound}", debounce=True)
+     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(platformsound)}", debounce=True)
      trainLevel = int(platformsound)
      socketio.emit('platform', trainLevel, to=None, include_self=False)
 
@@ -1249,7 +1264,7 @@ def SuitcasesSound(suitcasessound):
      f1 = open('7.txt','w')
      f1.write(str(suitcasessound))
      f1.close()   
-     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{suitcasessound}", debounce=True)
+     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(suitcasessound)}", debounce=True)
      suitcaseLevel = int(suitcasessound)
      socketio.emit('suitcases', suitcaseLevel, to=None, include_self=False)
 
@@ -1259,7 +1274,7 @@ def SuitcasesSound(suitcasessound):
      f1 = open('7.txt','w')
      f1.write(str(suitcasessound))
      f1.close()   
-     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{suitcasessound}", debounce=True)
+     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(suitcasessound)}", debounce=True)
      suitcaseLevel = int(suitcasessound)
      socketio.emit('suitcases', suitcaseLevel, to=None, include_self=False)     
 
@@ -1269,7 +1284,7 @@ def SafeSound(safesound):
      f1 = open('8.txt','w')
      f1.write(str(safesound))
      f1.close()   
-     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{safesound}", debounce=True)
+     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(safesound)}", debounce=True)
      safeLevel = int(safesound)
      socketio.emit('safe', safeLevel, to=None, include_self=False)
 
@@ -1279,7 +1294,7 @@ def SafeSound(safesound):
      f1 = open('8.txt','w')
      f1.write(str(safesound))
      f1.close()   
-     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{safesound}", debounce=True)
+     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(safesound)}", debounce=True)
      safeLevel = int(safesound)
      socketio.emit('safe', safeLevel, to=None, include_self=False)  
 
@@ -2139,10 +2154,10 @@ def tmr(res):
         #----если была в рестарте       
         if go == 3 and starts==3:
              socklist.clear()
-             send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{wolfLevel}")
-             send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{trainLevel}")
-             send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{suitcaseLevel}")
-             send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{safeLevel}")
+             send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(wolfLevel)}")
+             send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(trainLevel)}")
+             send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(suitcaseLevel)}")
+             send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(safeLevel)}")
              logger.info("Start command received")
              #----очищаем историю 
              socklist.clear() 
@@ -2271,7 +2286,20 @@ def tmr(res):
                     channel3.stop() 
                     stop_all_effects()
                     pygame.mixer.music.stop()
-                    play_background_music("fon1.mp3", loops=-1)
+                    global play_ready_music
+                    if play_ready_music:
+                        play_background_music("fon1.mp3", loops=-1)
+                    # Читаем файл прямо в момент нажатия Ready
+                    play_r_music = True
+                    try:
+                        if os.path.exists('ready_music.txt'):
+                            with open('ready_music.txt', 'r') as f:
+                                play_r_music = (f.read().strip() == "1")
+                    except:
+                        pass
+                    
+                    if play_r_music:
+                        play_background_music("fon1.mp3", loops=-1)
                     logger.debug("State changed: System is ready for game start.")
                else:
                     # --- НАЙДЕНЫ ОШИБКИ ---
@@ -3084,7 +3112,7 @@ def serial():
                              f6.close()
                              # 3. Восстанавливаем громкость через небольшую паузу
                              eventlet.sleep(0.5) 
-                             send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{real_train_vol}")
+                             send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(real_train_vol)}")
                              logging.info(f"Train volume restored to {real_train_vol} after reset.")
                          except Exception as e:
                              logging.error(f"Error restoring train volume: {e}")
@@ -4884,6 +4912,32 @@ def handle_bluetooth_toggle(is_checked):
     else:
         # Во всех остальных случаях (или если сняли галочку) - выключаем
         set_bluetooth_state(False)
+# ---------------------------------------------------------------
+
+# --- Обработчик переключателя музыки Ready с пульта ---
+@socketio.on('toggle_ready_music')
+def handle_ready_music_toggle(is_checked):
+    global go, play_ready_music
+    
+    # Гарантированно превращаем сигнал от пульта в True/False
+    if isinstance(is_checked, str):
+        play_ready_music = (is_checked.lower() == 'true')
+    else:
+        play_ready_music = bool(is_checked)
+        
+    # Надежно сохраняем выбор в файл по абсолютному пути
+    try:
+        with open('/home/pi/New/ready_music.txt', 'w') as f:
+            f.write("1" if play_ready_music else "0")
+    except Exception as e:
+        logger.error(f"Error saving ready music state: {e}")
+        
+    # Включаем/выключаем на лету, если мы сейчас в режиме Ready (go == 3)
+    if go == 3:
+        if play_ready_music:
+            play_background_music("fon1.mp3", loops=-1)
+        else:
+            pygame.mixer.music.stop()
 # ---------------------------------------------------------------
 
 # === СИСТЕМА АВТОРИЗАЦИИ (LOGIN) ===
