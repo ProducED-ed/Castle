@@ -209,7 +209,6 @@ void putWheelToSleep() {
   // Proveryaem, deystvitelno li chto-to aktivno, prezhde chem "usyplyat"
   if (isFastSpinning || wasFastSpinningActive || digitalRead(VIBRO_MOTOR_PIN) == HIGH || digitalRead(LED_STRIP_PIN) == HIGH || periodicStorySoundActive || periodicFastSpinSoundActive) {
     Serial.println((__FlashStringHelper *)MSG_SLEEP);
-    sendLog("Wheel sleep");
     isFastSpinning = false;
     wasFastSpinningActive = false;
     periodicFastSpinSoundActive = false;
@@ -228,7 +227,6 @@ void putWheelToSleep() {
 }
 
 void resetQuestState() {
-  sendLog("Tower reset");
   isActive = false;
   isPadlockActivated = false;
   isDoorOpened = false;
@@ -292,7 +290,6 @@ void resetQuestState() {
 }
 
 void activateEndStage() {
-  sendLog("DBG: endStage");
   
   if (currentQuestState == STATE_IN_PROGRESS) {
     
@@ -300,22 +297,10 @@ void activateEndStage() {
     bool failSkippedSensor = !hasSeenCageSensor;
     bool failDoorOpen = (digitalRead(CAPSULE_REED_PIN) == HIGH);
 
-    // Логирование для отладки
-    sendLog("DBG: endStage:");
-    sendLog("DBG: Fast: " + String(isFastSpinning));
-    sendLog("DBG: Cage: " + String(hasSeenCageSensor));
-    sendLog("DBG: Door: " + String(digitalRead(CAPSULE_REED_PIN) == HIGH ? "OPEN" : "CLOSED"));
-    sendLog("DBG: f_Fast: " + String(failFastSpin));
-    sendLog("DBG: f_Skip: " + String(failSkippedSensor));
-    sendLog("DBG: f_Door: " + String(failDoorOpen));
-
     // ВРЕМЕННО: Убираем проверку на hasSeenCageSensor и failDoorOpen для теста
     // if (failFastSpin || failSkippedSensor || failDoorOpen) {
     if (failFastSpin) {  // Проверяем только быстрое вращение
         // FAIL логика
-        if (failSkippedSensor) sendLog("FAIL: No Sens");
-        else if (failDoorOpen) sendLog("FAIL: Door Open");
-        else if (failFastSpin) sendLog("FAIL: Too fast!");
         
         digitalWrite(CAGE_LOCK_PIN, HIGH);
         cageLockEndOpenTime = millis();
@@ -323,7 +308,6 @@ void activateEndStage() {
         endReedTriggeredWithFastSpin = true;
     } else {
         // SUCCESS логика - даже если датчик не сработал или дверь открыта
-        sendLog("WIN: Slow");
         
         Serial.println((__FlashStringHelper *)MSG_LOCK_CLICK);
         delay(50);
@@ -422,6 +406,7 @@ void setup() {
   // Inicializaciya sostoyaniy novyh datchikov
   lastRoseReedState = digitalRead(ROSE_REED_PIN);
   lastFlagSensorState = digitalRead(FLAG_IR_SENSOR_PIN);
+  sendLog("SYS START");
 }
 
 
@@ -436,7 +421,6 @@ void CheckState() {
   if (rose) { 
     if (!_restartGalet) {    
       Serial.println("galet_on");
-      sendLog("Rose sensor activated (galet_on).");
       Serial.flush();
       delay(150); // Важная задержка
       _restartGalet = 1;
@@ -444,7 +428,6 @@ void CheckState() {
   } else {                   
     if (_restartGalet) {     
       Serial.println("galet_off");
-      sendLog("Rose sensor deactivated (galet_off).");
       Serial.flush();
       delay(150);
       _restartGalet = 0;    
@@ -455,7 +438,6 @@ void CheckState() {
   if (f) { 
     if (!_restartFlag) {    
       Serial.println("flag3_on");
-      sendLog("Flag sensor activated (flag3_on).");
       Serial.flush();
       delay(150);
       _restartFlag = 1;
@@ -463,7 +445,6 @@ void CheckState() {
   } else {                  
     if (_restartFlag) {     
       Serial.println("flag3_off");
-      sendLog("Flag sensor deactivated (flag3_off).");
       Serial.flush();
       delay(150);
       _restartFlag = 0;   
@@ -479,7 +460,11 @@ void loop() {
     else if (currentQuestState == STATE_IN_PROGRESS) stateName = "PROGRESS";
     else if (currentQuestState == STATE_GAME_FINISHED) stateName = "FINISHED";
     else if (currentQuestState == STATE_RESTARTING) stateName = "RESTART";
-    sendLog("State changed to " + stateName);
+    
+    // RESTART mariyu WAITING logs ni block chestunnamu
+    if (currentQuestState != STATE_RESTARTING && currentQuestState != STATE_WAITING_FOR_START) {
+        sendLog("State changed to " + stateName);
+    }
     previousState = currentQuestState;
   }
 
@@ -493,7 +478,6 @@ void loop() {
       currentQuestState = STATE_IN_PROGRESS;
       if (digitalRead(CAPSULE_REED_PIN) == HIGH) {
         Serial.println((__FlashStringHelper *)MSG_DOG_NRD);
-        sendLog("Door NOT RDY");
         lightingBlinkActive = true;
         currentLightingBlinkState = true;
         analogWrite(LIGHTING_LED_PIN, 255);
@@ -520,7 +504,6 @@ void loop() {
     } else if (inChar == '\n') {
       if (receivedUartMessageIndex > 0) {
         receivedUartMessageBuffer[receivedUartMessageIndex] = '\0';
-        sendLog("Rx CMD: " + String(receivedUartMessageBuffer));
         // --- NACHALO BLOKA OBRABOTKI KOMAND ---
         if (strcmp_P(receivedUartMessageBuffer, MSG_MAP_DOG) == 0) {
           isActive = 1;
@@ -587,7 +570,7 @@ void loop() {
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_READY) == 0) {
           delay(50);
           if (!hasSentReadyLog) {
-            sendLog("Check sens");
+            sendLog("System Ready");
             hasSentReadyLog = true;
           }
           // Отщелкиваем замки двери и клетки (платформы)
@@ -745,13 +728,11 @@ void loop() {
     if (lastRoseReedState == HIGH && currentRoseReedState == LOW) {
       if (_restartGalet == 0) { // Шлем, только если еще не включено
         Serial.println((__FlashStringHelper *)MSG_ROSE);
-        sendLog("Rose: ON");
         _restartGalet = 1;
       }
     } else if (lastRoseReedState == LOW && currentRoseReedState == HIGH) {
       if (_restartGalet == 1) { // Шлем, только если было включено
         Serial.println((__FlashStringHelper *)MSG_NROSE);
-        sendLog("Rose: OFF");
         _restartGalet = 0;
       }
     }
@@ -759,10 +740,8 @@ void loop() {
     int currentFlagSensorState = digitalRead(FLAG_IR_SENSOR_PIN);
     if (lastFlagSensorState == LOW && currentFlagSensorState == HIGH) {
       Serial.println((__FlashStringHelper *)MSG_NFLAG2);
-      sendLog("Flag3: ON");
     } else if (lastFlagSensorState == HIGH && currentFlagSensorState == LOW) {
       Serial.println((__FlashStringHelper *)MSG_FLAG2);
-      sendLog("Flag3: OFF");
     }
     lastFlagSensorState = currentFlagSensorState;
   }
@@ -831,7 +810,6 @@ void loop() {
   int currentKnightReedState = digitalRead(KNIGHT_REED_PIN);
   if (lastKnightReedState == HIGH && currentKnightReedState == LOW) {
     Serial.println((__FlashStringHelper *)MSG_DOBBY);
-    sendLog("Knight act");
   }
   lastKnightReedState = currentKnightReedState;
   int currentCageReedState = digitalRead(CAGE_REED_PIN);
@@ -854,7 +832,6 @@ void loop() {
             periodicFastSpinSoundActive = true;
             lastFastSpinStorySoundTime = currentMillis;
             Serial.println((__FlashStringHelper *)MSG_GROWL);
-            sendLog("Fast spin");
             int firstRandomIndex = random(NUM_STORY_SOUNDS);
             char firstBuffer[MAX_UART_MESSAGE_LENGTH];
             strcpy_P(firstBuffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[firstRandomIndex])));
@@ -982,7 +959,6 @@ void loop() {
     int currentCrystalReedState = digitalRead(CRYSTAL_REED_PIN);
     if (lastCrystalReedState == HIGH && currentCrystalReedState == LOW) {
       Serial.println((__FlashStringHelper *)MSG_CRYSTAL);
-      sendLog("Crystal act");
       isCrystalPulsating = true;
       //Serial.println((__FlashStringHelper *)MSG_ITEM_FIND); // Otpravlyaem soobshchenie pri starte pulsacii
     }
