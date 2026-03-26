@@ -730,12 +730,15 @@ def text_to_wlan1_reset():
     """Принудительная перезагрузка интерфейса wlan1"""
     try:
         logger.info("WI-FI: Выполняем принудительный сброс wlan1...")
-        # 1. Выключаем интерфейс
-        subprocess.run("sudo ifconfig wlan1 down", shell=True, check=False)
-        # 2. Ждем пару секунд (используем eventlet.sleep, чтобы не блокировать сервер)
+        
+        # 1. Снимаем системную блокировку Wi-Fi
+        subprocess.run("sudo rfkill unblock wifi", shell=True, check=False)
+        
+        # 2. Мягко опускаем и поднимаем интерфейс через ip link (это надежнее ifconfig)
+        subprocess.run("sudo ip link set wlan1 down", shell=True, check=False)
         eventlet.sleep(2)
-        # 3. Включаем обратно
-        subprocess.run("sudo ifconfig wlan1 up", shell=True, check=False)
+        subprocess.run("sudo ip link set wlan1 up", shell=True, check=False)
+        
         logger.info("WI-FI: Интерфейс wlan1 перезапущен.")
     except Exception as e:
         logger.error(f"WI-FI: Ошибка при сбросе wlan1: {e}")
@@ -1013,25 +1016,31 @@ def tech_jump_basket():
 #декоратор работы socket отвечает за настройки wifi
 @socketio.on('WLAN')
 def WLAN(ssid):
-     s = ssid # здесь будет записана строка на которую хотим заменить значение мы задаем ее на клиенте
-     pos = 2 #строка которую поменяем
-     #открытие файла для чтения в этом файле хранятся настройки для работы с wifi
-     f = open('/etc/hostapd/hostapd.conf', 'r')
-     L = f.readlines()
-     if (pos >= 0) and (pos < len(L)):
-         if (pos==len(L)-1):
-             L[pos] = s
-         else:
-             L[pos] = s + '\n'
-     f.close()
-     # обязательно после чтения закрыть файл освободить ресурсы
-     f = open('/etc/hostapd/hostapd.conf', 'w')
-     #запись в файл нового значения
-     for line in L:
-         f.write(line)
-     f.close()  
-     #перезагружаемся после всего
-     os.system("sudo reboot")
+     s = ssid
+     pos = 2
+     try:
+         with open('/etc/hostapd/hostapd.conf', 'r') as f:
+             L = f.readlines()
+             
+         if (pos >= 0) and (pos < len(L)):
+             if (pos==len(L)-1):
+                 L[pos] = s
+             else:
+                 L[pos] = s + '\n'
+                 
+         # Записываем во временный файл
+         with open('/tmp/hostapd.conf', 'w') as f:
+             for line in L:
+                 f.write(line)
+                 
+         # Переносим с правами root
+         subprocess.run(['sudo', 'mv', '/tmp/hostapd.conf', '/etc/hostapd/hostapd.conf'], check=True)
+         subprocess.run(['sudo', 'chown', 'root:root', '/etc/hostapd/hostapd.conf'], check=False)
+         
+         # Перезагружаемся после всего
+         os.system("sudo reboot")
+     except Exception as e:
+         print(f"WLAN change error: {e}")
 
 
 @socketio.on('connect')
@@ -1077,29 +1086,33 @@ def handle_wifi_connect(data):
     socketio.emit('wifi_status', {'status': 'connecting', 'message': 'Connecting...', 'ssid': ssid})
     
     config_text = f"""ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-                    update_config=1
-                    country=RU
+update_config=1
+country=RU
 
-                    network={{
-                        ssid="{ssid}"
-                        psk="{password}"
-                        key_mgmt=WPA-PSK
-                        priority=1
-                        scan_ssid=1
-                    }}
-                    """
+network={{
+    ssid="{ssid}"
+    psk="{password}"
+    key_mgmt=WPA-PSK
+    priority=1
+    scan_ssid=1
+}}
+"""
     try:
         # 2. Записываем настройки
-        with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as f:
+        with open('/tmp/wpa_supplicant.conf', 'w') as f:
             f.write(config_text)
+            
+        subprocess.run(['sudo', 'mv', '/tmp/wpa_supplicant.conf', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=True)
+        subprocess.run(['sudo', 'chown', 'root:root', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=False)
         
-        # 3. Принудительно включаем интерфейс (на случай, если он "уснул" после Disconnect)
-        subprocess.run(['sudo', 'ifconfig', 'wlan1', 'up'], check=False)
-        text_to_wlan1_reset()  # Сначала "дергаем" адаптер
-        # 4. Применяем настройки
-        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reconfigure'], check=True)
-        # Иногда нужен пинок для переподключения
-        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reassociate'], check=False)
+        # 3. Перезапускаем интерфейс
+        text_to_wlan1_reset()
+        
+        # 4. Перезапускаем демона dhcpcd (он управляет wpa_supplicant на Raspberry)
+        subprocess.run(['sudo', 'systemctl', 'restart', 'dhcpcd'], check=False)
+        
+        # ДАЕМ ПАУЗУ, чтобы служба поднялась и инициализировала адаптер
+        eventlet.sleep(5)
         
         # 5. ЦИКЛ ОЖИДАНИЯ (ждем до 15 секунд, проверяя соединение)
         connected = False
@@ -1110,7 +1123,7 @@ def handle_wifi_connect(data):
                 ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
                 current_ssid = ssid_bytes.decode('utf-8').strip()
                 
-                if current_ssid:
+                if current_ssid == ssid:
                     # Если подключились, пытаемся узнать IP
                     ip_addr = "Wait IP..."
                     try:
@@ -1139,7 +1152,7 @@ def handle_wifi_connect(data):
         
     except Exception as e:
         print(f"Wi-Fi Connect Error: {e}")
-        socketio.emit('wifi_status', {'status': 'error', 'message': 'Error', 'ssid': ''})
+        socketio.emit('wifi_status', {'status': 'error', 'message': f'Error: {e}', 'ssid': ''})
 
 @socketio.on('disconnect_wifi')
 def handle_wifi_disconnect():
@@ -1152,8 +1165,12 @@ def handle_wifi_disconnect():
 update_config=1
 country=RU
 """
-        with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as f:
+        # Обход прав через временный файл и sudo mv
+        with open('/tmp/wpa_supplicant.conf', 'w') as f:
             f.write(empty_conf)
+            
+        subprocess.run(['sudo', 'mv', '/tmp/wpa_supplicant.conf', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=True)
+        subprocess.run(['sudo', 'chown', 'root:root', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=False)
             
         # Применяем пустоту (это отключит текущую сеть)
         subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reconfigure'], check=True)
@@ -5156,6 +5173,7 @@ if __name__ == '__main__':
             logger.info("WI-FI: Ожидание инициализации USB-адаптера (12 сек)...")
             eventlet.sleep(12) # Ждем, пока свисток проснется после включения в розетку
             text_to_wlan1_reset() # Включаем адаптер
+            eventlet.sleep(3) # Даем wpa_supplicant время подхватить интерфейс
             subprocess.run("sudo wpa_cli -i wlan1 reconfigure", shell=True, check=False)
             logger.info("WI-FI: Команда на автоподключение отправлена.")
 
