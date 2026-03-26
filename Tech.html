@@ -25,17 +25,25 @@
         <h2 class="ui center aligned inverted header" style="margin-bottom: 30px;">
             <i class="cogs icon"></i>
             <div class="content">Technical Firmware Dashboard</div>
+            <div class="sub header" id="connection-status" style="margin-top: 10px; color: #e74c3c; font-weight: bold; transition: color 0.3s;">
+                <i class="circle icon"></i> Ожидание подключения...
+            </div>
         </h2>
 
-        <div class="ui two column grid" style="margin-bottom: 10px;">
+        <div class="ui three column stackable grid" style="margin-bottom: 10px;">
             <div class="column">
                 <button class="ui orange fluid button" id="btn-logs" onclick="toggleLogs()">
-                    <i class="terminal icon"></i> Читать логи сервера
+                    <i class="terminal icon"></i> Логи сервера
                 </button>
             </div>
             <div class="column">
                 <button class="ui red fluid button" onclick="restartServer()">
-                    <i class="redo icon"></i> Перезапустить сервер
+                    <i class="redo icon"></i> Перезапуск
+                </button>
+            </div>
+            <div class="column">
+                <button class="ui purple fluid button" onclick="jumpToBasket()">
+                    <i class="forward icon"></i> Тест: Баскетбол
                 </button>
             </div>
         </div>
@@ -160,8 +168,24 @@
             terminal.scrollTop = terminal.scrollHeight; // Автоскролл
         }
 
+        const statusElem = document.getElementById('connection-status');
+
+        // При успешном подключении к серверу
         socket.on('connect', function() {
+            statusElem.style.color = '#2ecc71'; // Зеленый цвет
+            statusElem.innerHTML = '<i class="circle icon"></i> Сервер подключен';
+            
+            // Запрашиваем даты при подключении
             socket.emit('get_board_stats');
+        });
+
+        // При обрыве связи (сервер выключен, пропал Wi-Fi, перезагрузка)
+        socket.on('disconnect', function() {
+            statusElem.style.color = '#e74c3c'; // Красный цвет
+            statusElem.innerHTML = '<i class="circle notch icon"></i> Связь с сервером потеряна...';
+            
+            // Запускаем пульсацию, как на игровом пульте (используем Semantic UI)
+            $('#connection-status').transition('pulse');
         });
 
         socket.on('board_stats_data', function(stats) {
@@ -257,6 +281,14 @@
                 socket.emit('tech_restart_server');
                 document.body.innerHTML = '<h1 style="text-align:center; margin-top:20%; color:orange;">Перезапуск сервера... Пожалуйста, подождите.</h1>';
                 setTimeout(() => { location.reload(); }, 5000);
+            }
+        }
+		
+		// --- ТЕСТОВЫЙ ПРЫЖОК ---
+        function jumpToBasket() {
+            if(confirm("Внимание! Квест будет переведен сразу на этап Баскетбола (до установки фигурки). Сначала снимите фигурку, если она установлена. Продолжить?")) {
+                socket.emit('tech_jump_basket');
+                appendToTerminal(`\n[SYSTEM] === ПРЫЖОК К ЭТАПУ БАСКЕТБОЛА (Уровень 18) ===\n`, '#9b59b6');
             }
         }
     </script>
