@@ -84,7 +84,6 @@ void handleSkipCommand() {
       }
       FastLED.show();
       Serial1.println("owl_end");
-      sendLog("Game finished by skip command.");
     }
 
     // Запускаем радужную анимацию
@@ -145,11 +144,13 @@ void controlLocker() {
 
 void processOwlCommand(String command) {
   // Вся логика из handleSerial1Commands [cite: 37-65]
-  sendLog("Received command: " + command);
   // Удаляем \r здесь, т.к. trim() уже был вызван
   // if (command.endsWith("\r")) {
   //   command.remove(command.length() - 1);
   // }
+  if (command != "restart") {
+    sendLog("Received command: " + command);
+  }
 
   if (command == "day_on") {
     for (int i = 0; i < NUM_TILE_LEDS; i++) {
@@ -240,7 +241,7 @@ void processOwlCommand(String command) {
   if (command == "ready") {
     delay(100);
     if (!hasSentReadyLog) {
-      sendLog("Checking initial sensor states.");
+      sendLog("System Ready");
       hasSentReadyLog = true;
     }
     resetOwlTower();
@@ -304,7 +305,6 @@ void CheckState() {
     if (!_restartGalet) {    
       Serial1.println("galet_on");
       // ОТЛАДКА + ЗАДЕРЖКА
-      sendLog("Boat sensor activated (galet_on).");
       Serial1.flush();
       delay(150); // Важная задержка
       _restartGalet = 1;     
@@ -312,7 +312,6 @@ void CheckState() {
   } else {                   
     if (_restartGalet) {     
       Serial1.println("galet_off");
-      sendLog("Boat sensor deactivated (galet_off).");
       Serial1.flush();
       delay(150);
       _restartGalet = 0;    
@@ -323,7 +322,6 @@ void CheckState() {
   if (f) { 
     if (!_restartFlag) {    
       Serial1.println("flag4_on");
-      sendLog("Flag sensor activated (flag4_on).");
       Serial1.flush();
       delay(150);
       _restartFlag = 1;     
@@ -331,7 +329,6 @@ void CheckState() {
   } else {                  
     if (_restartFlag) {     
       Serial1.println("flag4_off");
-      sendLog("Flag sensor deactivated (flag4_off).");
       Serial1.flush();
       delay(150);
       _restartFlag = 0;   
@@ -358,11 +355,9 @@ void checkOwlButton() {
 void handleFlagSensorSimple() {
   if (PIN_IR_FLAG.isPress()) {
     Serial1.println("flag4_off");
-    sendLog("Flag sensor deactivated (flag4_off).");
   }
   if (PIN_IR_FLAG.isRelease()) {
     Serial1.println("flag4_on");
-    sendLog("Flag sensor activated (flag4_on).");
   }
 }
 
@@ -406,7 +401,6 @@ void handleTileLeds() {
 
     if (owl < 4) {
       Serial1.println("owl_flew");
-      sendLog("Tile 1 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -420,7 +414,6 @@ void handleTileLeds() {
 
     if (owl < 4) {
       Serial1.println("owl_flew");
-      sendLog("Tile 2 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -434,7 +427,6 @@ void handleTileLeds() {
 
     if (owl < 4) {
       Serial1.println("owl_flew");
-      sendLog("Tile 3 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -447,7 +439,6 @@ void handleTileLeds() {
     //digitalWrite(PIN_LED_WINDOW, 0);
     if (owl < 4) {
       Serial1.println("owl_flew");
-      sendLog("Tile 4 solved. Owl flew away.");
     }
     delay(10);
   }
@@ -460,7 +451,6 @@ void handleTileLeds() {
     delay(10);
     // КОНЕЦ
     Serial1.println("owl_end");
-    sendLog("All tiles solved (owl_end).");
     owl++;
     owlEndTime = millis();
   }
@@ -610,14 +600,13 @@ void setup() {
   setbutton(PIN_DIAL_RIGHT_POS2);
   setbutton(PIN_DIAL_RIGHT_POS3);
   setbutton(PIN_DIAL_RIGHT_POS4);
+  sendLog("SYS START");
 }
 
 
 void loop() {
   static int previousState = -1;
   if (state != previousState) {
-    String logMsg = "State changed to " + String(state);
-    sendLog(logMsg);
     previousState = state;
   }
 
@@ -750,7 +739,6 @@ void handleFirework() {
 // Функция для полного сброса башни ---
 // Она объединяет логику 'start' и 'restart' и исправляет пропуски.
 void resetOwlTower() {
-  sendLog("Resetting tower to initial state.");
   // Сброс всех флагов состояния
   skipCommand = false;
   fireworkActive = false;
