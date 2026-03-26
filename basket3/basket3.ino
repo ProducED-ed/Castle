@@ -50,11 +50,21 @@ unsigned long robotScoreTimer = 0; // Таймер для паузы после 
 bool waitingForRobotScore = false; // Флаг: ждем ли мы эти 2 секунды?
 
 int SCORE_ROBOT = 0;
-int SCORE_MAN = 0; 
+int SCORE_MAN = 0;
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ МАЛЬЧИКА ---
+bool lesson_lastBoyState = HIGH;
+unsigned long lesson_lastDebounceTime = 0;
+bool lesson_currentBoyState = HIGH;
+
+bool game_gameIsActive = true;
+unsigned long game_debounceTimer = 0;          
+bool game_debounceActive = false;
+// ------------------------------------------
 int state = 0;
 
 void sendLog(String message) {
-  Serial1.println("log:basket:" + message);
+  Serial1.print("log:basket:");
+  Serial1.println(message);
 }
 
 void setup() {
@@ -113,13 +123,11 @@ void loop() {
   // Если нажали галетник и он еще не был обработан
   if (galetButton.isPress() && _restartGalet == 0) {
       Serial1.println("galet_on");
-      sendLog("Galet ON (Loop)"); 
       _restartGalet = 1;
   }
   // Если отпустили галетник
   if (galetButton.isRelease() && _restartGalet == 1) {
       Serial1.println("galet_off");
-      sendLog("Galet OFF (Loop)");
       _restartGalet = 0;
   }
 
@@ -127,13 +135,11 @@ void loop() {
   // Если нажали флаг
   if (flagButton.isPress() && _restartFlag == 0) {
       Serial1.println("flag2_on");
-      sendLog("Flag ON (Loop)");
       _restartFlag = 1;
   }
   // Если отпустили флаг
   if (flagButton.isRelease() && _restartFlag == 1) {
       Serial1.println("flag2_off");
-      sendLog("Flag OFF (Loop)");
       _restartFlag = 0;
   }
 
@@ -155,24 +161,20 @@ void loop() {
       // Синхронизация галетника
       if (galetButton.isPress() && _restartGalet == 0) {
           Serial1.println("galet_on");
-          sendLog("Galet ON (Loop)"); 
           _restartGalet = 1;
       }
       if (galetButton.isRelease() && _restartGalet == 1) {
           Serial1.println("galet_off");
-          sendLog("Galet OFF (Loop)");
           _restartGalet = 0;
       }
 
       flagButton.tick();
       if (flagButton.isPress() && _restartFlag == 0) {
           Serial1.println("flag2_on");
-          sendLog("Flag ON (Loop)"); // Лог поможет понять, видит ли плата нажатие
           _restartFlag = 1;
       }
       if (flagButton.isRelease() && _restartFlag == 1) {
           Serial1.println("flag2_off");
-          sendLog("Flag OFF (Loop)");
           _restartFlag = 0;
       }
 
@@ -244,7 +246,15 @@ void HandleMessagges(String message) {
       
       doorDef = millis(); 
       doorTimer = millis();
-      doorFlags = 1; 
+      doorFlags = 1;
+
+      bool boyPhysical = digitalRead(28);
+      lesson_lastBoyState = boyPhysical;
+      lesson_currentBoyState = boyPhysical;
+      game_gameIsActive = (boyPhysical == LOW); // LOW означает, что он стоит
+      game_debounceActive = false;
+      game_debounceTimer = 0;
+      lesson_lastDebounceTime = millis();
       
       state = 0;
       // --- Всегда отвечаем на ready ---
@@ -275,7 +285,6 @@ void HandleMessagges(String message) {
     OpenLock(SHERIF_EM1);
     digitalWrite(trollLed, HIGH);
     Serial1.println("door_cave");
-    sendLog("Opening Mine Door");
     if (state < 3) state = 3;
   }
   else if (message == "start_troll") {
@@ -424,21 +433,18 @@ void TrollGame(){
           if (trollSequence == 0) { // Переходим к предмету 2, только если мы еще на 1-м
               trollSequence = 1; 
               isTrollFixed = 0;      // Разрешаем поиск следующего предмета
-              sendLog("Troll: Item 1 OK");
           }
       }
       else if (buff == "cave_search2") { 
           if (trollSequence == 1) { // Переходим к предмету 3, только если мы на 2-м
               trollSequence = 2; 
-              isTrollFixed = 0; 
-              sendLog("Troll: Item 2 OK");
+              isTrollFixed = 0;
           }
       }
       else if (buff == "cave_search3") { 
           if (trollSequence == 2) { // Переходим к финальному предмету
               trollSequence = 3; 
               isTrollFixed = 0; 
-              sendLog("Troll: Item 3 OK");
           }
       }
       else if (buff == "troll"){
@@ -511,7 +517,6 @@ void _Troll_4() {
     trollSequence++; 
     strip.clear(); 
     strip.setPixelColor(2, strip.Color(0, 0, 255)); strip.show();
-    sendLog("Troll: FINISHED");
     delay(10);
     Serial1.println("cave_end");
     activeTrollButton = -1; // Финальный диод не гасим!
@@ -532,22 +537,22 @@ void MetallBlink(int number){
 }
 
 void _Button_1() {
-  if (butt1.isPress()) { buttonSequence = 1; Serial1.println("cave_click"); sendLog("Door Troll: Butt1 pressed"); delay(100); }
+  if (butt1.isPress()) { buttonSequence = 1; Serial1.println("cave_click"); delay(100); }
   if (butt3.isPress() || butt2.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 void _Button_2() {
   if (butt4.isPress() || butt2.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
-  if (butt3.isPress()) { buttonSequence = 2; Serial1.println("cave_click"); sendLog("Door Troll: Butt2 pressed"); delay(100); }
+  if (butt3.isPress()) { buttonSequence = 2; Serial1.println("cave_click"); delay(100); }
   // Ничего не сбрасываем, просто издаем звук "клик", без шкалы.
   if (butt1.isPress()) { Serial1.println("cave_repeat"); delay(100); }
 }
 void _Button_3() {
-  if (butt4.isPress()) { buttonSequence = 3; Serial1.println("cave_click"); sendLog("Door Troll: Butt3 pressed"); delay(100); }
+  if (butt4.isPress()) { buttonSequence = 3; Serial1.println("cave_click"); delay(100); }
   if (butt2.isPress() || butt3.isPress() || butt1.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
 }
 void _Button_4() {
   if (butt1.isPress() || butt3.isPress() || butt4.isPress()) { buttonSequence = 0; Serial1.println("cave_reset"); delay(100); }
-  if (butt2.isPress()) { buttonSequence = 4; Serial1.println("cave_click"); sendLog("Door Troll: Butt4 pressed"); delay(100); }
+  if (butt2.isPress()) { buttonSequence = 4; Serial1.println("cave_click"); delay(100); }
 }
 void _Button_5() {
   if (butt3.isPress()) {
@@ -557,88 +562,86 @@ void _Button_5() {
 }
 
 // --- BasketLesson: Прямое чтение кнопки + Логи ---
-void BasketLesson(){
-  static bool lastBoyState = HIGH; 
-  static unsigned long lastDebounceTime = 0;
+void BasketLesson() {
   bool reading = digitalRead(28); 
 
-  if (reading != lastBoyState) { lastDebounceTime = millis(); }
+  if (reading != lesson_lastBoyState) { lesson_lastDebounceTime = millis(); }
 
-  if ((millis() - lastDebounceTime) > 50) {
-     static bool currentBoyState = HIGH;
-     if (reading != currentBoyState) {
-       currentBoyState = reading;
-       if (currentBoyState == LOW) { // PRESSED
-          sendLog("BoyButton PRESSED");
-          
-          
-             delay(50); // Пауза перед отправкой команды
-             Serial1.println("boy_in_lesson");
-             
-             delay(50); // Пауза перед отправкой лога
-             sendLog("Sent boy_in_lesson");
-             
-             delay(100);
-          
+  if ((millis() - lesson_lastDebounceTime) > 50) {
+     if (reading != lesson_currentBoyState) {
+       lesson_currentBoyState = reading;
+       
+       if (lesson_currentBoyState == LOW) { 
+             game_gameIsActive = true; // <--- СИНХРОНИЗАЦИЯ С 19 УРОВНЕМ!
+             delay(50);
+             Serial1.println("I"); // ШИФР: boy_in_lesson
+             delay(50);
        }
-       if (currentBoyState == HIGH) { // RELEASED
+       if (lesson_currentBoyState == HIGH) { 
+             game_gameIsActive = false; // <--- СИНХРОНИЗАЦИЯ С 19 УРОВНЕМ!
           if (!lessonIsStarted) {
-             Serial1.println("boy_out_lesson");
-             // ИЗМЕНЕНО: Добавлен текст "Boy removed" для срабатывания страховки
-             sendLog("Lesson: Boy removed.");
-             delay(100);
+             Serial1.println("O"); // ШИФР: boy_out_lesson
+             delay(50);
           }
        }
      }
   }
-  lastBoyState = reading;
+  lesson_lastBoyState = reading;
 
-  if(lessonIsStarted){
+  if (lessonIsStarted) {
     bool btnState = digitalRead(BASKET_IR_PIN);
-    if(btnState && !basket_ir_read_F){
-      state++; digitalWrite(basketLed, LOW);
-      Serial1.println("lesson_goal"); sendLog("Lesson Goal");
-      delay(5000);
-      Serial1.println("lesson_basket_done"); sendLog("Lesson Done");
+    if (btnState && !basket_ir_read_F) {
+      digitalWrite(basketLed, LOW);
+      Serial1.println("G"); // ШИФР: lesson_goal
+      
+      delay(5000); 
+      Serial1.println("D"); // ШИФР: lesson_basket_done
+      
+      delay(50);
+      state++; // Смена статуса
+      
       basket_ir_read_F = 1; _startBasket = 0;
     }
-    if (!btnState && basket_ir_read_F) { delay(IR_TIMEOUT); basket_ir_read_F = 0; }
+    if (!btnState && basket_ir_read_F) { 
+      delay(IR_TIMEOUT);
+      basket_ir_read_F = 0; 
+    }
   }
   
   while (Serial1.available()) {
     String buff = Serial1.readStringUntil('\n'); buff.trim();
-    if (buff == "start_basket"){ digitalWrite(basketLed, HIGH); lessonIsStarted = 1; sendLog("Start Basket"); }
-    else if (buff == "start_lesson") { lessonIsStarted = 1; sendLog("Start Lesson (Arm)");
-    if (digitalRead(28) == LOW) { // Если мальчик уже стоит
-           Serial1.println("boy_in_lesson");
-           sendLog("Force sent: boy_in_lesson");
-           delay(50);
-       }
-       }
+    if (buff == "start_basket"){ 
+        digitalWrite(basketLed, HIGH); lessonIsStarted = 1; 
+        Serial1.println("C"); // ШИФР: confirm_start
+    }
+    else if (buff == "start_lesson") { 
+        if (!lessonIsStarted) { // <--- ЗАЩИТА ОТ ДВОЙНОЙ ОТПРАВКИ С СЕРВЕРА
+            lessonIsStarted = 1; 
+            if (digitalRead(28) == LOW) {
+               Serial1.println("I"); // ШИФР: boy_in_lesson
+               delay(50);
+            }
+        }
+    }
     else if (buff == "restart") { HandleMessagges("restart"); }
     else if (buff == "win"){
       SCORE_MAN=3; OUTPUT_TO_DISPLAY(); delay(2000); PRINT_SCORE_ROBOT(); delay(1000); PRINT_SCORE_MAN();
-      Serial1.println("fr8nmr"); state+=2; lessonIsStarted = 0;
+      Serial1.println("3"); // ШИФР: fr8nmr (win)
+      state+=2; lessonIsStarted = 0;
     }
     else { HandleMessagges(buff); }
   }
 }
 
-void Basket(){
-  // --- 1. Читаем команды от сервера ---
+void Basket() {
   while (Serial1.available()) {
-      String buff = Serial1.readStringUntil('\n');
-      buff.trim();
+      String buff = Serial1.readStringUntil('\n'); buff.trim();
       
       if (buff == "start_basket"){
         basketTimer = millis();
         digitalWrite(basketLed, HIGH);
         _startBasket = 1;
-        
-        // Рукопожатие: Подтверждаем получение старта
-        Serial1.println("confirm_start"); 
-        
-        sendLog("Basket: Round started.");
+        Serial1.println("C"); // ШИФР: confirm_start
       }
       else if (buff == "start_basket_robot"){
         if (!isLoose && SCORE_ROBOT < 3) {
@@ -649,10 +652,9 @@ void Basket(){
         }
       }
       else if (buff == "win"){
-        // Принудительная победа от сервера
-        SCORE_MAN=3;
-        OUTPUT_TO_DISPLAY(); delay(2000); PRINT_SCORE_ROBOT(); delay(1000);
-        PRINT_SCORE_MAN(); delay(1000); Serial1.println("fr8nmr"); isLoose = 0; state++;
+        SCORE_MAN=3; OUTPUT_TO_DISPLAY(); delay(2000); PRINT_SCORE_ROBOT(); delay(1000);
+        PRINT_SCORE_MAN(); delay(1000); Serial1.println("3"); // ШИФР: fr8nmr (win)
+        isLoose = 0; state++;
       }
       else if (buff == "restart") { HandleMessagges("restart"); }
       else { HandleMessagges(buff); }
@@ -665,105 +667,65 @@ void Basket(){
       }
   }
 
-  // --- 2. ЛОГИКА ПОБЕДЫ (ПРИОРИТЕТ №1) ---
-  // Проверяем ДО проверки датчика. Если выиграли - вибрации нам не страшны.
   if (SCORE_MAN >= 3) {
-      OUTPUT_TO_DISPLAY(); 
-      // Шлем команду победы несколько раз для надежности
-      Serial1.println("fr8nmr"); delay(50);
-      Serial1.println("fr8nmr"); delay(50);
-      Serial1.println("fr8nmr");
-      
-      sendLog("Bask: Player WON (3 goals)");
+      OUTPUT_TO_DISPLAY();
+      Serial1.println("3"); // ШИФР: fr8nmr (win)
+      delay(50);
       isLoose=0; 
-      state++; // Переходим на следующий уровень
-      return;  // Выходим, не проверяя датчик
+      state++; 
+      return;
   }
 
-  // --- 3. УМНЫЙ ДАТЧИК МАЛЬЧИКА (Anti-Vibration) ---
-  bool physicalReading = (digitalRead(28) == LOW); // LOW = Мальчик стоит
-  static bool gameIsActive = true;                 // Текущий статус игры
-  static unsigned long debounceTimer = 0;          // Таймер вибрации
-  static bool debounceActive = false;              // Флаг, что мы "подозреваем" снятие
+  bool physicalReading = (digitalRead(28) == LOW);
 
-  // А) Мальчик физически СТОИТ
   if (physicalReading) {
-      debounceActive = false; // Сбрасываем подозрения, контакт есть
-      
-      if (!gameIsActive) {
-          // Если игра была на паузе - ВОЗОБНОВЛЯЕМ
-          gameIsActive = true;
-          Serial1.println("boy_in_game");
-          sendLog("Bask: Boy IN");
-          
-          // Восстанавливаем состояние (но не сбрасываем счет!)
-          if(isLoose){ 
-             SCORE_ROBOT = 0; SCORE_MAN = 0; isLoose=0; _startBasket=0; basket_ir_read_F=0;
-          }
+      game_debounceActive = false;
+      if (!game_gameIsActive) {
+          game_gameIsActive = true;
+          Serial1.println("I"); // ШИФР: boy_in_game
+          if(isLoose){ SCORE_ROBOT = 0; SCORE_MAN = 0; isLoose=0; _startBasket=0; basket_ir_read_F=0; }
           if (_startBasket) digitalWrite(basketLed, HIGH);
       }
-  }
-  // Б) Мальчик физически ОТСУТСТВУЕТ (или геркон дребезжит)
-  else {
-      // Если мы еще не запустили таймер проверки - запускаем
-      if (!debounceActive && gameIsActive) {
-          debounceTimer = millis();
-          debounceActive = true;
+  } else {
+      if (!game_debounceActive && game_gameIsActive) {
+          game_debounceTimer = millis();
+          game_debounceActive = true;
       }
-      
-      // Если таймер тикает уже больше 500 мс - значит это НЕ вибрация
-      if (debounceActive && (millis() - debounceTimer > 500)) {
-          gameIsActive = false; // Ставим игру на паузу
-          debounceActive = false; // Таймер сработал
-          
-          Serial1.println("boy_out_game");
-          sendLog("Bask: Boy OUT");
+      // Оставили 500 мс антидребезг (этого более чем достаточно, если память очищена!)
+      if (game_debounceActive && (millis() - game_debounceTimer > 500)) {
+          game_gameIsActive = false;
+          game_debounceActive = false;
+          Serial1.println("O"); // ШИФР: boy_out_game
           digitalWrite(basketLed, LOW);
       }
   }
 
-  // --- 4. ИГРОВОЙ ПРОЦЕСС ---
-  // Игра идет, только если gameIsActive == true (Мальчик стоит стабильно)
-  if (gameIsActive && !isLoose) {
+  if (game_gameIsActive && !isLoose) {
       OUTPUT_TO_DISPLAY();
-      
       if(_startBasket){
           if(millis() - basketTimer <= 15000){ // 15 секунд на бросок
               bool btnState = digitalRead(BASKET_IR_PIN);
-              
-              // Гол игрока
               if(btnState && !basket_ir_read_F){
                   SCORE_MAN++;
                   OUTPUT_TO_DISPLAY();
-                  
-                  // Эффект гола
-                  digitalWrite(basketLed, LOW); 
-                  Serial1.println(SCORE_MAN == 1 ? "fr61nmr" : "fr62nmr"); // Сразу шлем код
-                  
-                  basket_ir_read_F = 1;
-                  _startBasket = 0; // Гол забит, ждем следующего запуска
-                  sendLog("Basket: Goal scored!");
-                  
-                  delay(300); 
-                  if (gameIsActive) digitalWrite(basketLed, HIGH);
+                  digitalWrite(basketLed, LOW);
+                  if (SCORE_MAN < 3) {
+                      Serial1.println(SCORE_MAN == 1 ? "1" : "2"); // ШИФР: fr61nmr / fr62nmr
+                  }
+                  basket_ir_read_F = 1; _startBasket = 0;
+                  delay(300);
+                  if (game_gameIsActive) digitalWrite(basketLed, HIGH);
               }
               if (!btnState && basket_ir_read_F) { delay(IR_TIMEOUT); basket_ir_read_F = 0; }
-          }
-          else{ 
-              // Время вышло (Тайм-аут)
+          } else { 
               _startBasket = 0;
               digitalWrite(basketLed, LOW);
               delay(1000);
-              Serial1.println("start_snitch"); 
-              sendLog("Basket: Time out. Snitch started.");
+              Serial1.println("S"); // ШИФР: start_snitch
           }
       }
-
-      // Проигрыш (Робот забил 3)
       if (SCORE_ROBOT == 3) {
-          Serial1.println("fr9nmr"); delay(50);
-          Serial1.println("fr9nmr");
-          sendLog("Basket: Robot won.");
+          Serial1.println("6"); // ШИФР: fr9nmr (lose)
           isLoose = 1; 
           _startBasket = 0; 
           delay(3000); 
@@ -773,11 +735,12 @@ void Basket(){
 }
 
 void PRINT_SCORE_MAN() {
-  switch (SCORE_MAN) { case 1: Serial1.println("fr61nmr"); break; case 2: Serial1.println("fr62nmr"); break; } delay(50);
+  switch (SCORE_MAN) { case 1: Serial1.println("1"); break; case 2: Serial1.println("2"); break; } delay(50);
 }
 void PRINT_SCORE_ROBOT() {
-  switch (SCORE_ROBOT) { case 1: Serial1.println("fr71nmr"); break; case 2: Serial1.println("fr72nmr"); break; } delay(50);
+  
 }
+
 void OUTPUT_TO_DISPLAY() {
   disp.point(1);
   if (SCORE_MAN < 10) { disp.display(2, 0); disp.display(3, SCORE_MAN); } else if (SCORE_MAN == 10) { disp.display(2, 1); disp.display(3, 0); }
