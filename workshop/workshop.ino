@@ -229,8 +229,6 @@ void setup() {
 void loop() {
   static int previousState = -1;
   if (state != previousState) {
-    String logMsg = "State changed to " + String(state);
-    sendLog(logMsg);
     previousState = state;
   }
 
@@ -244,28 +242,23 @@ void loop() {
   galetButton.tick();
   if (galetButton.isPress() && _restartGalet == 0) {
     Serial1.println("galet_on");
-    sendLog("Galet sensor activated (galet_on).");
     _restartGalet = 1;
   }
   if (galetButton.isRelease() && _restartGalet == 1) {
     Serial1.println("galet_off");
-    sendLog("Galet sensor deactivated (galet_off).");
     _restartGalet = 0;
   }
 
   flagButton.tick();
   if (flagButton.isPress()) {
     Serial1.println("flag1_on");
-    sendLog("Flag sensor activated (flag1_on).");
   }
   if (flagButton.isRelease()) {
     Serial1.println("flag1_off");
-    sendLog("Flag sensor deactivated (flag1_off).");
   }
 
   if (hintButt.isPress()) {
     Serial1.println("help");
-    sendLog("Hint button pressed.");
   }
 
   // Проверяем команды В НАЧАЛЕ, чтобы установить/сбросить флаг
@@ -310,7 +303,6 @@ void handleFireLogic() {
       if (fireStage == 1) {
         if (isFirstFire1) {
           Serial1.println("fire1");
-          sendLog("Fire stage 1 reached.");
           isFirstFire1 = false;
           isFirstFire0 = true;
         }
@@ -322,7 +314,6 @@ void handleFireLogic() {
       } else if (fireStage == 2) {
         if (isFirstFire2) {
           Serial1.println("fire2");
-          sendLog("Fire stage 2 reached.");
           isFirstFire2 = false;
         }
         if (oldFireStage < 2) {
@@ -334,7 +325,6 @@ void handleFireLogic() {
         }
       } else if (fireStage == 3) {
         Serial1.println("fire3");
-        sendLog("Fire stage 3 reached.");
       }
 
       ignitingLedIndex = NUM_LEDS_FIRE - fireStage;
@@ -363,7 +353,6 @@ void handleFireLogic() {
       if (prevFireStage == 3 && fireStage == 2) {
         if (!isFirstFire2) {
           Serial1.println("fire2");
-          sendLog("Fire stage decreased to 2.");
           isFirstFire2 = true;
         }
         if (fireStage < prevFireStage) {
@@ -376,7 +365,6 @@ void handleFireLogic() {
       } else if (prevFireStage == 2 && fireStage == 1) {
         if (!isFirstFire1) {
           Serial1.println("fire1");
-          sendLog("Fire stage decreased to 1.");
           isFirstFire1 = true;
         }
         workbenchLedsInitialized = false;
@@ -391,7 +379,6 @@ void handleFireLogic() {
         heat = 0.0;
         if (isFirstFire0) {
           Serial1.println("fire0");
-          sendLog("Fire extinguished.");
           isFirstFire0 = false;
           isFirstFire1 = true;
           isFirstFire2 = true;
@@ -507,7 +494,6 @@ void setWorkbenchLedColor(int ledIndex, uint32_t color) {
     workbenchStrip.show();
     workbenchLedStates[ledIndex] = 2;
     Serial1.println("item_add");
-    sendLog("Item added to workbench.");
   }
 }
 
@@ -597,7 +583,6 @@ void activateHelmetServo() {
     digitalWrite(HELMET_SERVO_PIN, HIGH);
     helmetServoActivated = true;
     Serial1.println("helmet");
-    sendLog("Helmet LED activated.");
   }
 }
 
@@ -612,7 +597,6 @@ void activateBroomServo() {
     digitalWrite(BROOM_SERVO_PIN, HIGH);
     broomServoActivated = true;
     Serial1.println("broom");
-    sendLog("Broom LED activated.");
   }
 }
 
@@ -653,7 +637,6 @@ void checkGameEnd() {
     delay(10);
     // КОНЕЦ
     Serial1.println("story_35");
-    sendLog("Game finished (story_35).");
     gameEnded = true;
   }
 }
@@ -702,7 +685,11 @@ void handleUartCommands() {
   if (Serial1.available()) {
     String command = Serial1.readStringUntil('\n');
     command.trim();
-    sendLog("Received command: " + command);
+    
+    // Блокируем эхо только для команды restart
+    if (command != "restart") {
+      sendLog("Received command: " + command);
+    }
     if (command.endsWith("\r")) {
       command.remove(command.length() - 1);
     }
@@ -727,7 +714,6 @@ void handleUartCommands() {
       }
       if (command == "ready") {
         if (!hasSentReadyLog) {
-          sendLog("Checking initial sensor states.");
           hasSentReadyLog = true;
           digitalWrite(LED_FLOOR2_PIN, LOW);
         }
