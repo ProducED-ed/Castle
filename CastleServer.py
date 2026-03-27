@@ -3603,40 +3603,42 @@ def serial():
 
                          # 4. Если состояние изменилось, обновляем UI
                          if changed:
-                             current_count = len(mansard_galets)
-                          
-                             # Проверяем, отличается ли новое значение от старого (чтобы не спамить)
-                             if current_count != last_mansard_count:
-                                 raw_percent = current_count * 20
+                             # Блокируем любые пересчеты шкалы, если квест уже пройден на 100%
+                             if 'mansard_progress_100' not in socklist:
                                  
-                                 # ОГРАНИЧЕНИЕ: Не показываем 100% автоматически.
-                                 # Максимум 80%, пока не придет команда 'mansard_finish'.
-                                 if raw_percent >= 100:
-                                     percent = 80
-                                 else:
-                                     percent = raw_percent
+                                 current_count = len(mansard_galets)
+                              
+                                 # Проверяем, отличается ли новое значение от старого (чтобы не спамить)
+                                 if current_count != last_mansard_count:
+                                     raw_percent = current_count * 20
                                      
-                                 event_name = f"mansard_progress_{percent}"
-                              
-                                 # 4.1. Отправляем в SocketIO
-                                 socketio.emit('level', event_name, to=None)
-                              
-                                 # 4.2. Обновляем историю (socklist)
-                                 # Сначала удаляем ВСЕ старые значения прогресса, чтобы избежать конфликтов
-                                 for i in range(0, 120, 20):
-                                     t_name = f"mansard_progress_{i}"
-                                     while t_name in socklist:
-                                         try:
-                                             socklist.remove(t_name)
-                                         except ValueError:
-                                             pass
-                                      
-                                 socklist.append(event_name)
-                              
-                                 # 4.3. Обновляем последнее известное значение
-                                 last_mansard_count = current_count
-                                 logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
-                         # --- Конец Логики Прогресс-бара Mansard Game ---
+                                     # ОГРАНИЧЕНИЕ: Не показываем 100% автоматически.
+                                     # Максимум 80%, пока не придет команда 'mansard_finish'.
+                                     if raw_percent >= 100:
+                                         percent = 80
+                                     else:
+                                         percent = raw_percent
+                                         
+                                     event_name = f"mansard_progress_{percent}"
+                                  
+                                     # 4.1. Отправляем в SocketIO
+                                     socketio.emit('level', event_name, to=None)
+                                  
+                                     # 4.2. Обновляем историю (socklist)
+                                     # Сначала удаляем ВСЕ старые значения прогресса, чтобы избежать конфликтов
+                                     for i in range(0, 120, 20):
+                                         t_name = f"mansard_progress_{i}"
+                                         while t_name in socklist:
+                                             try:
+                                                 socklist.remove(t_name)
+                                             except ValueError:
+                                                 pass
+                                          
+                                     socklist.append(event_name)
+                                  
+                                     # 4.3. Обновляем последнее известное значение
+                                     last_mansard_count = current_count
+                                     logger.debug(f"Mansard progress updated: {current_count} galets ({percent}%)")
                          
                          # ОБРАБОТЧИК ПОБЕДЫ
                          if flag == "mansard_finish":
@@ -4923,6 +4925,11 @@ def serial():
                          # ОПТИМИЗИРОВАННАЯ ОБРАБОТКА ПОДСКАЗОК (HINTS)
                          # Мы просто берем имя флага (например, hint_2_b) и играем соответствующий файл
                          if flag.startswith("hint_"):
+                             # Если канал историй (голос) сейчас занят, просто игнорируем подсказку
+                             if channel3.get_busy():
+                                 logger.debug(f"Игнорируем подсказку {flag}, так как звучит другая история/подсказка.")
+                                 continue # Пропускаем дальнейшую обработку, в очередь не встает
+                                 
                              hintCount += 1
                              play_localized_audio(flag)
 
