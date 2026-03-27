@@ -2555,11 +2555,13 @@ void MapGame() {
 
     // 2. Финал игры Сов
     if (buff.indexOf("owl_end") != -1) {
-      Serial.println("owl_end");
-      Serial1.println("light_off");
-      Serial2.println("light_off");
-      Serial3.println("light_off");
-      isOwlEnd = 1;
+      if (!isOwlEnd) {
+        Serial.println("owl_end");
+        Serial1.println("light_off");
+        Serial2.println("light_off");
+        Serial3.println("light_off");
+        isOwlEnd = 1;
+      }
     }
 
     // 3. Промежуточный этап (сова улетела)
@@ -4928,8 +4930,8 @@ void handleLocks() {
           digitalWrite(doors[i], LOW);  // выключаем после 500мс
         }
       }
-      // Если замк выключен и прошло 5 секунд
-      else if (now - lastOpen[i] >= 5000) {
+      // Если замк выключен и прошло 5 секунд. Каждый следующий замок ждет на 150 мс дольше своего "соседа"
+      else if (now - lastOpen[i] >= (5000 + (i * 150))) {
         digitalWrite(doors[i], HIGH);
         lastOpen[i] = now;  // обновляем время при включении
       }
@@ -4945,9 +4947,9 @@ void OpenAll() {
 
   for (int i = 0; i < DOORS; i++) {
     digitalWrite(doors[i], HIGH);  // Включаем
-    smartDelay(500);
+    delay(500);
     digitalWrite(doors[i], LOW);  // Выключаем
-    smartDelay(100);
+    delay(100);
   }
   // ФИНАЛЬНАЯ СТРАХОВКА: Еще раз принудительно выключаем всё
   for (int i = 0; i < DOORS; i++) {
