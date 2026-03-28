@@ -103,24 +103,24 @@ const int TRACK_STORY_15_RU = 13;
 const int TRACK_STORY_15_EN = 23;
 const int TRACK_STORY_15_AR = 33;
 const int TRACK_STORY_15_FR = 66;
-const int TRACK_STORY_15_SP = 7;
-const int TRACK_STORY_15_CH = 7;
+const int TRACK_STORY_15_UK = 77;
+const int TRACK_STORY_15_PL = 98;
 
 // Блок Story 16
 const int TRACK_STORY_16_RU = 14;
 const int TRACK_STORY_16_EN = 24;
 const int TRACK_STORY_16_AR = 34;
 const int TRACK_STORY_16_FR = 67;
-const int TRACK_STORY_16_SP = 8;
-const int TRACK_STORY_16_CH = 8;
+const int TRACK_STORY_16_UK = 78;
+const int TRACK_STORY_16_PL = 88;
 
 // Блок Story 45
 const int TRACK_STORY_45_RU = 45;
 const int TRACK_STORY_45_EN = 55;
 const int TRACK_STORY_45_AR = 65;
 const int TRACK_STORY_45_FR = 68;
-const int TRACK_STORY_45_SP = 12;
-const int TRACK_STORY_45_CH = 12;
+const int TRACK_STORY_45_UK = 79;
+const int TRACK_STORY_45_PL = 89;
 
 // --- Подсказки (9-42) ---
 // Блок Hint 0
@@ -128,64 +128,64 @@ const int TRACK_HINT_0_RU = 15;
 const int TRACK_HINT_0_EN = 25;
 const int TRACK_HINT_0_AR = 35;
 const int TRACK_HINT_0_FR = 69;
-const int TRACK_HINT_0_SP = 9;
-const int TRACK_HINT_0_CH = 9;
+const int TRACK_HINT_0_UK = 80;
+const int TRACK_HINT_0_PL = 90;
 
 // Блок Hint 1
 const int TRACK_HINT_1_RU = 16;
 const int TRACK_HINT_1_EN = 26;
 const int TRACK_HINT_1_AR = 36;
 const int TRACK_HINT_1_FR = 70;
-const int TRACK_HINT_1_SP = 10;
-const int TRACK_HINT_1_CH = 10;
+const int TRACK_HINT_1_UK = 81;
+const int TRACK_HINT_1_PL = 91;
 
 // Блок Hint 2
 const int TRACK_HINT_2_RU = 17;
 const int TRACK_HINT_2_EN = 27;
 const int TRACK_HINT_2_AR = 37;
 const int TRACK_HINT_2_FR = 71;
-const int TRACK_HINT_2_SP = 11;
-const int TRACK_HINT_2_CH = 11;
+const int TRACK_HINT_2_UK = 82;
+const int TRACK_HINT_2_PL = 92;
 
 // Блок Hint 3
 const int TRACK_HINT_3_RU = 18;
 const int TRACK_HINT_3_EN = 28;
 const int TRACK_HINT_3_AR = 38;
 const int TRACK_HINT_3_FR = 72;
-const int TRACK_HINT_3_SP = 12;
-const int TRACK_HINT_3_CH = 12;
+const int TRACK_HINT_3_UK = 83;
+const int TRACK_HINT_3_PL = 93;
 
 // Блок Hint 4
 const int TRACK_HINT_4_RU = 19;
 const int TRACK_HINT_4_EN = 29;
 const int TRACK_HINT_4_AR = 39;
 const int TRACK_HINT_4_FR = 73;
-const int TRACK_HINT_4_SP = 12;
-const int TRACK_HINT_4_CH = 12;
+const int TRACK_HINT_4_UK = 84;
+const int TRACK_HINT_4_PL = 94;
 
 // Блок Hint 5
 const int TRACK_HINT_5_RU = 20;
 const int TRACK_HINT_5_EN = 30;
 const int TRACK_HINT_5_AR = 40;
 const int TRACK_HINT_5_FR = 74;
-const int TRACK_HINT_5_SP = 12;
-const int TRACK_HINT_5_CH = 12;
+const int TRACK_HINT_5_UK = 85;
+const int TRACK_HINT_5_PL = 95;
 
 // Блок Hint 6
 const int TRACK_HINT_6_RU = 21;
 const int TRACK_HINT_6_EN = 31;
 const int TRACK_HINT_6_AR = 41;
 const int TRACK_HINT_6_FR = 75;
-const int TRACK_HINT_6_SP = 12;
-const int TRACK_HINT_6_CH = 12;
+const int TRACK_HINT_6_UK = 86;
+const int TRACK_HINT_6_PL = 96;
 
 // Блок Hint 7
 const int TRACK_HINT_7_RU = 22;
 const int TRACK_HINT_7_EN = 32;
 const int TRACK_HINT_7_AR = 42;
 const int TRACK_HINT_7_FR = 76;
-const int TRACK_HINT_7_SP = 12;
-const int TRACK_HINT_7_CH = 12;
+const int TRACK_HINT_7_UK = 87;
+const int TRACK_HINT_7_PL = 97;
 
 // --- Системные треки (1-6) ---
 const int TRACK_TRAIN_ON = 1;
@@ -709,12 +709,12 @@ void setup() {
           SendData("{\"log\":\"Train: Playing Story 16 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_STORY_16_SP);
-          SendData("{\"log\":\"Train: Playing Story 16 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_16_UK);
+          SendData("{\"log\":\"Train: Playing Story 16 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_STORY_16_CH);
-          SendData("{\"log\":\"Train: Playing Story 16 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_16_PL);
+          SendData("{\"log\":\"Train: Playing Story 16 (PL)\"}");
         }
         ActiveLeds[13] = 22; // активируем тролля
         // Зажигаем кожу (зеленым) сразу после поезда ---
@@ -1204,12 +1204,12 @@ void setup() {
           SendData("{\"log\":\"Train: Playing Story 45 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_STORY_45_SP);
-          SendData("{\"log\":\"Train: Playing Story 45 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_45_UK);
+          SendData("{\"log\":\"Train: Playing Story 45 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_STORY_45_CH);
-          SendData("{\"log\":\"Train: Playing Story 45 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_45_PL);
+          SendData("{\"log\":\"Train: Playing Story 45 (PL)\"}");
         }
         // --- КОНЕЦ ДОБАВЛЕНИЯ ---
       }
@@ -1412,12 +1412,12 @@ void loop() {
         SendData("{\"log\":\"Train: Playing Hint 0 (FR)\"}");
       }
       if (language == 5) {
-        myMP3.playMp3Folder(TRACK_HINT_0_SP);
-        SendData("{\"log\":\"Train: Playing Hint 0 (SP)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_0_UK);
+        SendData("{\"log\":\"Train: Playing Hint 0 (UK)\"}");
       }
       if (language == 6) {
-        myMP3.playMp3Folder(TRACK_HINT_0_CH);
-        SendData("{\"log\":\"Train: Playing Hint 0 (CH)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_0_PL);
+        SendData("{\"log\":\"Train: Playing Hint 0 (PL)\"}");
       }
       hintFlag = 0;
     }
@@ -1444,12 +1444,12 @@ void loop() {
           SendData("{\"log\":\"Train: Playing Hint 1 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_HINT_1_SP);
-          SendData("{\"log\":\"Train: Playing Hint 1 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_1_UK);
+          SendData("{\"log\":\"Train: Playing Hint 1 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_HINT_1_CH);
-          SendData("{\"log\":\"Train: Playing Hint 1 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_1_PL);
+          SendData("{\"log\":\"Train: Playing Hint 1 (PL)\"}");
         }
       }
       if (hint_counter == 1) {
@@ -1470,12 +1470,12 @@ void loop() {
           SendData("{\"log\":\"Train: Playing Hint 2 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_HINT_2_SP);
-          SendData("{\"log\":\"Train: Playing Hint 2 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_2_UK);
+          SendData("{\"log\":\"Train: Playing Hint 2 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_HINT_2_CH);
-          SendData("{\"log\":\"Train: Playing Hint 2 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_2_PL);
+          SendData("{\"log\":\"Train: Playing Hint 2 (PL)\"}");
         }
       }
       if (hint_counter == 2) {
@@ -1496,12 +1496,12 @@ void loop() {
           SendData("{\"log\":\"Train: Playing Hint 3 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_HINT_3_SP);
-          SendData("{\"log\":\"Train: Playing Hint 3 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_3_UK);
+          SendData("{\"log\":\"Train: Playing Hint 3 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_HINT_3_CH);
-          SendData("{\"log\":\"Train: Playing Hint 3 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_3_PL);
+          SendData("{\"log\":\"Train: Playing Hint 3 (PL)\"}");
         }
       }
       if (hint_counter == 3) {
@@ -1522,12 +1522,12 @@ void loop() {
           SendData("{\"log\":\"Train: Playing Hint 4 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_HINT_4_SP);
-          SendData("{\"log\":\"Train: Playing Hint 4 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_4_UK);
+          SendData("{\"log\":\"Train: Playing Hint 4 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_HINT_4_CH);
-          SendData("{\"log\":\"Train: Playing Hint 4 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_4_PL);
+          SendData("{\"log\":\"Train: Playing Hint 4 (PL)\"}");
         }
       }
       hintFlag = 0;
@@ -1554,12 +1554,12 @@ void loop() {
         SendData("{\"log\":\"Train: Playing Hint 7 (FR)\"}");
       }
       if (language == 5) {
-        myMP3.playMp3Folder(TRACK_HINT_7_SP);
-        SendData("{\"log\":\"Train: Playing Hint 7 (SP)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_7_UK);
+        SendData("{\"log\":\"Train: Playing Hint 7 (UK)\"}");
       }
       if (language == 6) {
-        myMP3.playMp3Folder(TRACK_HINT_7_CH);
-        SendData("{\"log\":\"Train: Playing Hint 7 (CH)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_7_PL);
+        SendData("{\"log\":\"Train: Playing Hint 7 (PL)\"}");
       }
       hintFlag = 0;
     }
@@ -1582,12 +1582,12 @@ void loop() {
           SendData("{\"log\":\"Train: Playing Hint 5 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_HINT_5_SP);
-          SendData("{\"log\":\"Train: Playing Hint 5 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_5_UK);
+          SendData("{\"log\":\"Train: Playing Hint 5 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_HINT_5_CH);
-          SendData("{\"log\":\"Train: Playing Hint 5 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_5_PL);
+          SendData("{\"log\":\"Train: Playing Hint 5 (PL)\"}");
         }
       }
       if (hint_counter == 1) {
@@ -1608,12 +1608,12 @@ void loop() {
           SendData("{\"log\":\"Train: Playing Hint 6 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_HINT_6_SP);
-          SendData("{\"log\":\"Train: Playing Hint 6 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_6_UK);
+          SendData("{\"log\":\"Train: Playing Hint 6 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_HINT_6_CH);
-          SendData("{\"log\":\"Train: Playing Hint 6 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_6_PL);
+          SendData("{\"log\":\"Train: Playing Hint 6 (PL)\"}");
         }
       }
       hintFlag = 0;
@@ -2107,12 +2107,12 @@ void TrainGame() {
         SendData("{\"log\":\"Train: Playing Story 16 (FR)\"}");
       }
       if (language == 5) {
-        myMP3.playMp3Folder(TRACK_STORY_16_SP);
-        SendData("{\"log\":\"Train: Playing Story 16 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_16_UK);
+          SendData("{\"log\":\"Train: Playing Story 16 (UK)\"}");
       }
       if (language == 6) {
-        myMP3.playMp3Folder(TRACK_STORY_16_CH);
-        SendData("{\"log\":\"Train: Playing Story 16 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_16_PL);
+          SendData("{\"log\":\"Train: Playing Story 16 (PL)\"}");
       }
     }
   } else {
@@ -2164,19 +2164,19 @@ void handlePlayerQueries() {
           SendData("{\"log\":\"Train: Playing Story 15 (FR)\"}");
         }
         if (language == 5) {
-          myMP3.playMp3Folder(TRACK_STORY_15_SP);
-          SendData("{\"log\":\"Train: Playing Story 15 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_15_UK);
+          SendData("{\"log\":\"Train: Playing Story 15 (UK)\"}");
         }
         if (language == 6) {
-          myMP3.playMp3Folder(TRACK_STORY_15_CH);
-          SendData("{\"log\":\"Train: Playing Story 15 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_STORY_15_PL);
+          SendData("{\"log\":\"Train: Playing Story 15 (PL)\"}");
         }
         trackTimer = millis();
         flagTrack = 1;
         hintFlag = 0;
       }
       if ((finishedTrack == TRACK_STORY_15_RU) || (finishedTrack == TRACK_STORY_15_EN) || (finishedTrack == TRACK_STORY_15_AR) || 
-          (finishedTrack == TRACK_STORY_15_FR) || (finishedTrack == TRACK_STORY_15_SP) || (finishedTrack == TRACK_STORY_15_CH)) {
+          (finishedTrack == TRACK_STORY_15_FR) || (finishedTrack == TRACK_STORY_15_UK) || (finishedTrack == TRACK_STORY_15_PL)) {
         state = 2;
         Serial.println("state");
         isStartTimer = false; // Останавливаем таймер карты, чтобы он не сбросил игру
@@ -2184,7 +2184,7 @@ void handlePlayerQueries() {
       }
 
       if ((finishedTrack == TRACK_STORY_16_RU) || (finishedTrack == TRACK_STORY_16_EN) || (finishedTrack == TRACK_STORY_16_AR) || 
-          (finishedTrack == TRACK_STORY_16_FR) || (finishedTrack == TRACK_STORY_16_SP) || (finishedTrack == TRACK_STORY_16_CH)) {
+          (finishedTrack == TRACK_STORY_16_FR) || (finishedTrack == TRACK_STORY_16_UK) || (finishedTrack == TRACK_STORY_16_PL)) {
         trackTimer = millis();
         flagTrack = 1;
         isTrainEnd = 1;
