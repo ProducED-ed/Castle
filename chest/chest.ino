@@ -75,16 +75,16 @@ const int TRACK_STORY_8_RU = 10;
 const int TRACK_STORY_8_EN = 17;
 const int TRACK_STORY_8_AR = 24;
 const int TRACK_STORY_8_FR = 31;
-const int TRACK_STORY_8_SP = 4;
-const int TRACK_STORY_8_CH = 4;
+const int TRACK_STORY_8_UK = 38;
+const int TRACK_STORY_8_PL = 45;
 
 // Блок Story 7
 const int TRACK_STORY_7_RU = 9;
 const int TRACK_STORY_7_EN = 16;
 const int TRACK_STORY_7_AR = 23;
 const int TRACK_STORY_7_FR = 30;
-const int TRACK_STORY_7_SP = 3;
-const int TRACK_STORY_7_CH = 3;
+const int TRACK_STORY_7_UK = 37;
+const int TRACK_STORY_7_PL = 44;
 
 // --- Подсказки (5-29) ---
 // Блок Hint 1
@@ -92,40 +92,40 @@ const int TRACK_HINT_1_RU = 12;
 const int TRACK_HINT_1_EN = 19;
 const int TRACK_HINT_1_AR = 26;
 const int TRACK_HINT_1_FR = 33;
-const int TRACK_HINT_1_SP = 6;
-const int TRACK_HINT_1_CH = 6;
+const int TRACK_HINT_1_UK = 40;
+const int TRACK_HINT_1_PL = 47;
 
 // Блок Hint 2
 const int TRACK_HINT_2_RU = 13;
 const int TRACK_HINT_2_EN = 20;
 const int TRACK_HINT_2_AR = 27;
 const int TRACK_HINT_2_FR = 34;
-const int TRACK_HINT_2_SP = 7;
-const int TRACK_HINT_2_CH = 7;
+const int TRACK_HINT_2_UK = 41;
+const int TRACK_HINT_2_PL = 48;
 
 // Блок Hint 3
 const int TRACK_HINT_3_RU = 14;
 const int TRACK_HINT_3_EN = 21;
 const int TRACK_HINT_3_AR = 28;
 const int TRACK_HINT_3_FR = 35;
-const int TRACK_HINT_3_SP = 8;
-const int TRACK_HINT_3_CH = 8;
+const int TRACK_HINT_3_UK = 42;
+const int TRACK_HINT_3_PL = 49;
 
 // Блок Hint 4
 const int TRACK_HINT_4_RU = 15;
 const int TRACK_HINT_4_EN = 22;
 const int TRACK_HINT_4_AR = 29;
 const int TRACK_HINT_4_FR = 36;
-const int TRACK_HINT_4_SP = 8;
-const int TRACK_HINT_4_CH = 8;
+const int TRACK_HINT_4_UK = 43;
+const int TRACK_HINT_4_PL = 50;
 
 // Блок Hint 0
 const int TRACK_HINT_0_RU = 11;
 const int TRACK_HINT_0_EN = 18;
 const int TRACK_HINT_0_AR = 25;
 const int TRACK_HINT_0_FR = 32;
-const int TRACK_HINT_0_SP = 5;
-const int TRACK_HINT_0_CH = 5;
+const int TRACK_HINT_0_UK = 39;
+const int TRACK_HINT_0_PL = 46;
 
 int hint_counter = 0;
 int value = 30;
@@ -188,12 +188,12 @@ void finalizeGame() {
     sendLogToServer("{\"log\":\"Chest: Playing Story 8 (FR)\"}");
   }
   else if(language == 5) {
-    myMP3.playMp3Folder(TRACK_STORY_8_SP);
-    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (SP)\"}");
+    myMP3.playMp3Folder(TRACK_STORY_8_UK);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (UK)\"}");
   }
   else if(language == 6) {
-    myMP3.playMp3Folder(TRACK_STORY_8_CH);
-    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (CH)\"}");
+    myMP3.playMp3Folder(TRACK_STORY_8_PL);
+    sendLogToServer("{\"log\":\"Chest: Playing Story 8 (PL)\"}");
   }
   
   trackTimer = millis();
@@ -520,12 +520,12 @@ void loop() {
         sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (FR)\"}");
       }
       if(language == 5){
-        myMP3.playMp3Folder(TRACK_HINT_0_SP);
-        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (SP)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_0_UK);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (UK)\"}");
       }
       if(language == 6){
-        myMP3.playMp3Folder(TRACK_HINT_0_CH);
-        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (CH)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_0_PL);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 0 (PL)\"}");
       }
       hintFlag = 0;
     }
@@ -551,12 +551,12 @@ void loop() {
             sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (FR)\"}");
           }
           if(language == 5){
-            myMP3.playMp3Folder(TRACK_HINT_1_SP);
-            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (SP)\"}");
+            myMP3.playMp3Folder(TRACK_HINT_1_UK);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (UK)\"}");
           }
           if(language == 6){
-            myMP3.playMp3Folder(TRACK_HINT_1_CH);
-            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (CH)\"}");
+            myMP3.playMp3Folder(TRACK_HINT_1_PL);
+            sendLogToServer("{\"log\":\"Chest: Playing Hint 1 (PL)\"}");
           }
       }
       if(hint_counter == 1) {
@@ -577,12 +577,12 @@ void loop() {
           sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (FR)\"}");
         }
         if(language == 5){
-          myMP3.playMp3Folder(TRACK_HINT_2_SP);
-          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_2_UK);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (UK)\"}");
         }
         if(language == 6){
-          myMP3.playMp3Folder(TRACK_HINT_2_CH);
-          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_2_PL);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 2 (PL)\"}");
         }
       }
       if(hint_counter == 2) {
@@ -603,12 +603,12 @@ void loop() {
           sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (FR)\"}");
         }
         if(language == 5){
-          myMP3.playMp3Folder(TRACK_HINT_3_SP);
-          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (SP)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_3_UK);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (UK)\"}");
         }
         if(language == 6){
-          myMP3.playMp3Folder(TRACK_HINT_3_CH);
-          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (CH)\"}");
+          myMP3.playMp3Folder(TRACK_HINT_3_PL);
+          sendLogToServer("{\"log\":\"Chest: Playing Hint 3 (PL)\"}");
         }
       }
       hintFlag = 0;
@@ -635,12 +635,12 @@ void loop() {
         sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (FR)\"}");
       }
       if(language == 5){
-        myMP3.playMp3Folder(TRACK_HINT_4_SP);
-        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (SP)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_4_UK);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (UK)\"}");
       }
       if(language == 6){
-        myMP3.playMp3Folder(TRACK_HINT_4_CH);
-        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (CH)\"}");
+        myMP3.playMp3Folder(TRACK_HINT_4_PL);
+        sendLogToServer("{\"log\":\"Chest: Playing Hint 4 (PL)\"}");
       }
       hintFlag = 0;
     }
@@ -980,12 +980,12 @@ void _Button_4() {
         sendLogToServer("{\"log\":\"Chest: Playing Story 7 (FR)\"}");
       }
       if(language == 5) {
-        myMP3.playMp3Folder(TRACK_STORY_7_SP);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (SP)\"}");
+        myMP3.playMp3Folder(TRACK_STORY_7_UK);
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (UK)\"}");
       }
       if(language == 6) {
-        myMP3.playMp3Folder(TRACK_STORY_7_CH);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (CH)\"}");
+        myMP3.playMp3Folder(TRACK_STORY_7_PL);
+        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (PL)\"}");
       }
       storyFlag = 1;
     }
@@ -1075,7 +1075,9 @@ void handlePlayerQueries() {
       if(finishedTrack == TRACK_HINT_0_RU || finishedTrack == TRACK_HINT_1_RU || finishedTrack == TRACK_HINT_2_RU || finishedTrack == TRACK_HINT_3_RU || finishedTrack == TRACK_HINT_4_RU
       || finishedTrack == TRACK_HINT_0_EN || finishedTrack == TRACK_HINT_1_EN || finishedTrack == TRACK_HINT_2_EN || finishedTrack == TRACK_HINT_3_EN || finishedTrack == TRACK_HINT_4_EN
       || finishedTrack == TRACK_HINT_0_AR || finishedTrack == TRACK_HINT_1_AR || finishedTrack == TRACK_HINT_2_AR || finishedTrack == TRACK_HINT_3_AR || finishedTrack == TRACK_HINT_4_AR
-      || finishedTrack == TRACK_HINT_0_FR || finishedTrack == TRACK_HINT_1_FR || finishedTrack == TRACK_HINT_2_FR || finishedTrack == TRACK_HINT_3_FR || finishedTrack == TRACK_HINT_4_FR)
+      || finishedTrack == TRACK_HINT_0_FR || finishedTrack == TRACK_HINT_1_FR || finishedTrack == TRACK_HINT_2_FR || finishedTrack == TRACK_HINT_3_FR || finishedTrack == TRACK_HINT_4_FR
+      || finishedTrack == TRACK_HINT_0_UK || finishedTrack == TRACK_HINT_1_UK || finishedTrack == TRACK_HINT_2_UK || finishedTrack == TRACK_HINT_3_UK || finishedTrack == TRACK_HINT_4_UK
+      || finishedTrack == TRACK_HINT_0_PL || finishedTrack == TRACK_HINT_1_PL || finishedTrack == TRACK_HINT_2_PL || finishedTrack == TRACK_HINT_3_PL || finishedTrack == TRACK_HINT_4_PL)
       {
         hintFlag = 1;
         Serial.println("again");
