@@ -191,7 +191,9 @@ LANG_SUFFIXES = {
     1: 'ru',
     2: 'en',
     3: 'ar',
-    4: 'fr'
+    4: 'fr',
+    5: 'uk',
+    6: 'pl'
 }
 
 def scale_vol(ui_vol):
@@ -1442,6 +1444,28 @@ def Remote(check):
        send_esp32_command(ESP32_API_SUITCASE_URL, "language_4")
        send_esp32_command(ESP32_API_SAFE_URL, "language_4")
 
+     if check == 'ukrainian':
+       f4 = open('4.txt','w')
+       f4.write('5')
+       f4.close() 
+       language = 5
+       logger.info("Language switched to Ukrainian (ID: 5)")
+       send_esp32_command(ESP32_API_WOLF_URL, "language_5")
+       send_esp32_command(ESP32_API_TRAIN_URL, "language_5")
+       send_esp32_command(ESP32_API_SUITCASE_URL, "language_5")
+       send_esp32_command(ESP32_API_SAFE_URL, "language_5")
+
+     if check == 'polish':
+       f4 = open('4.txt','w')
+       f4.write('6')
+       f4.close() 
+       language = 6
+       logger.info("Language switched to Polish (ID: 6)")
+       send_esp32_command(ESP32_API_WOLF_URL, "language_6")
+       send_esp32_command(ESP32_API_TRAIN_URL, "language_6")
+       send_esp32_command(ESP32_API_SUITCASE_URL, "language_6")
+       send_esp32_command(ESP32_API_SAFE_URL, "language_6")
+
     #----нажали выключить
      if check == 'off':
              # Добавлено удаление файла-метки и остановка музыки ---
@@ -2192,6 +2216,10 @@ def tmr(res):
          socketio.emit('lang', 'arabian', to=None) 
      if language==4: 
          socketio.emit('lang', 'french', to=None) 
+     if language==5: 
+         socketio.emit('lang', 'ukrainian', to=None) 
+     if language==6: 
+         socketio.emit('lang', 'polish', to=None) 
     
      #----если пришло сообщение о паузе проверяем что бы игра находилась в режиме старта
      if res =='pause':
