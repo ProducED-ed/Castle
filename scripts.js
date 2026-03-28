@@ -1249,6 +1249,12 @@ $('.ui.dropdown')
             if(inp === 'french') {
                 $('#language').text('French');
             }
+            if(inp === 'ukrainian') {
+                $('#language').text('Ukrainian');
+            }
+            if(inp === 'polish') {
+                $('#language').text('Polish');
+            }
                 
             
             if(inp === 'HIGH') {
@@ -1703,6 +1709,12 @@ $('.ui.dropdown')
     });
 	$('#french').click(function(){
         socket.emit('Remote','french')
+    });
+    $('#ukrainian').click(function(){
+        socket.emit('Remote','ukrainian')
+    }); 
+    $('#polish').click(function(){
+        socket.emit('Remote','polish')
     });
 
     $('#Castle1').click(function () {
