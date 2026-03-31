@@ -4227,11 +4227,12 @@ def serial():
                                   
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
-                              serial_write_queue.put('open_workshop')
-                              eventlet.sleep(0.5) 
-                              serial_write_queue.put('open_workshop')
-                              eventlet.sleep(1.1)
                               play_effect(door_workshop)
+                              serial_write_queue.put('open_workshop')
+                              process_serial_queue()
+                              eventlet.sleep(0.5)
+                              serial_write_queue.put('open_workshop')
+                              process_serial_queue()
                               play_background_music("fon9.mp3", loops=-1)
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)

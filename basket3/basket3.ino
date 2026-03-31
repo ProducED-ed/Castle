@@ -393,9 +393,9 @@ void TrollGame(){
   butt5.tick(); butt6.tick(); butt7.tick(); butt8.tick();
 
   // 2. Очистка от ложных помех
-  if (trollSequence != 0) butt8.isPress();
+  if (trollSequence != 0) butt7.isPress(); // шаг 0 использует butt7 — отбрасываем на других шагах
   if (trollSequence != 1) butt5.isPress();
-  if (trollSequence != 2) butt7.isPress();
+  if (trollSequence != 2) butt8.isPress(); // шаг 2 использует butt8 — отбрасываем на других шагах
   if (trollSequence != 3) butt6.isPress();
 
   // 3. УМНОЕ ГАШЕНИЕ СВЕТОДИОДА
@@ -487,7 +487,7 @@ void _Troll_1() {
     strip.clear(); strip.setPixelColor(1, strip.Color(0, 0, 255)); strip.show();
     Serial1.println("aluminium"); 
     isTrollFixed = 1;
-    activeTrollButton = 8;
+    activeTrollButton = 7; // butt7 сработал — следим за butt7
     activeTrollLedTimer = millis();
   }
 }
@@ -507,7 +507,7 @@ void _Troll_3() {
     strip.clear(); strip.setPixelColor(0, strip.Color(0, 0, 255)); strip.show();
     Serial1.println("copper");
     isTrollFixed = 1;
-    activeTrollButton = 7;
+    activeTrollButton = 8; // butt8 сработал — следим за butt8
     activeTrollLedTimer = millis();
   }
 }

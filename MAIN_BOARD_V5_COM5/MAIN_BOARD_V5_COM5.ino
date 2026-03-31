@@ -2925,6 +2925,19 @@ void PotionPulsation() {
 ////функция с печкой
 void Oven() {
   goldButton.tick();
+
+  // --- Чтение собаки (Serial3) для кристалл-геркона на уровне мастерской ---
+  while (Serial3.available()) {
+    String buff = Serial3.readStringUntil('\n');
+    buff.trim();
+    if (buff.startsWith("log:")) { Serial.println(buff); continue; }
+    if (buff == "crystal") {
+      Serial.println("item_find:crystal");
+      Serial1.println("crystal");
+      Serial2.println("item_find");
+      mySerial.println("item_find");
+    }
+  }
   //digitalWrite(pinA, 0);
   //digitalWrite(pinB, 0);
   //digitalWrite(pinC, 1);

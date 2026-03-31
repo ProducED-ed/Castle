@@ -558,10 +558,10 @@ $('.ui.dropdown')
 
             // 1. Workshop (Иконки)
             if (inp === 'helmet') {
-                $('#helmet_icon').addClass('green');
+                $('#helmet_icon').removeClass('grey').addClass('green');
             }
             if (inp === 'broom') {
-                $('#broom_icon').addClass('green');
+                $('#broom_icon').removeClass('grey').addClass('green');
             }
 
             // 2. Safe (Прогресс-бар)
@@ -1315,8 +1315,8 @@ $('.ui.dropdown')
                 $('.icon').removeClass('check');
 				
 				// Сброс иконок и прогресс-баров ---
-                $('#helmet_icon').removeClass('green');
-                $('#broom_icon').removeClass('green');
+                $('#helmet_icon').removeClass('green').addClass('grey');
+                $('#broom_icon').removeClass('green').addClass('grey');
 				// Добавляем сброс флагов и прогресс-бара Сейфа
                 safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
                 $('#safe_progress').progress({ percent: 0 });
