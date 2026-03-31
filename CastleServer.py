@@ -5208,10 +5208,41 @@ if __name__ == '__main__':
         def startup_wifi_routine():
             logger.info("WI-FI: Ожидание инициализации USB-адаптера (12 сек)...")
             eventlet.sleep(12) # Ждем, пока свисток проснется после включения в розетку
+
+            # Проверяем, был ли Wi-Fi включен в прошлый раз
+            if not os.path.exists('/home/pi/wifi_enabled'):
+                logger.info("WI-FI: Флаг wifi_enabled не найден — пропускаем автоподключение.")
+                return
+
             text_to_wlan1_reset() # Включаем адаптер
-            eventlet.sleep(3) # Даем wpa_supplicant время подхватить интерфейс
-            subprocess.run("sudo wpa_cli -i wlan1 reconfigure", shell=True, check=False)
-            logger.info("WI-FI: Команда на автоподключение отправлена.")
+            eventlet.sleep(3) # Даем время подхватить интерфейс
+
+            # Перезапускаем dhcpcd — он управляет wpa_supplicant на Raspberry Pi
+            subprocess.run("sudo systemctl restart dhcpcd", shell=True, check=False)
+            logger.info("WI-FI: dhcpcd перезапущен, ждем подключения...")
+
+            eventlet.sleep(5) # Даем dhcpcd время поднять wpa_supplicant
+
+            # Проверяем подключение (до 15 секунд)
+            for i in range(15):
+                eventlet.sleep(1)
+                try:
+                    ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
+                    current_ssid = ssid_bytes.decode('utf-8').strip()
+                    if current_ssid:
+                        ip_addr = "no IP"
+                        try:
+                            ip_cmd = "ip -4 addr show wlan1 | grep -oP '(?<=inet\\s)\\d+(\\.\\d+){3}'"
+                            ip_bytes = subprocess.check_output(ip_cmd, shell=True)
+                            ip_addr = ip_bytes.decode('utf-8').strip()
+                        except:
+                            pass
+                        logger.info(f"WI-FI: Автоподключение успешно: {current_ssid} ({ip_addr})")
+                        return
+                except:
+                    pass
+
+            logger.warning("WI-FI: Автоподключение не удалось (таймаут 15 сек).")
 
         logger.info("Starting background tasks...")
         socketio.start_background_task(target=startup_wifi_routine) # Запускаем Wi-Fi в фоне

@@ -112,6 +112,22 @@ $('.ui.sidebar')
 $('.ui.dropdown')
 .dropdown()
 ;
+// Восстанавливаем выбранный язык из localStorage
+(function() {
+    var savedLang = localStorage.getItem('selectedLang');
+    var langMap = {
+        'russian':   {flag: 'russia', name: 'Russian'},
+        'english':   {flag: 'uk',     name: 'English'},
+        'arabian':   {flag: 'ae',     name: 'Arabian'},
+        'french':    {flag: 'france', name: 'French'},
+        'ukrainian': {flag: 'ua',     name: 'Ukrainian'},
+        'polish':    {flag: 'pl',     name: 'Polish'}
+    };
+    if(savedLang && langMap[savedLang]) {
+        var l = langMap[savedLang];
+        $('#language').html('<i class="' + l.flag + ' flag"></i>' + l.name);
+    }
+})();
   $('.ui.sticky')
 .sticky({
   context: '.page'
@@ -1236,24 +1252,19 @@ $('.ui.dropdown')
             }
 
             
-// выбор языка
-            if(inp === 'russian') {
-                $('#language').text('Russian');
-            }
-            if(inp === 'english') {
-                $('#language').text('English');
-            }
-            if(inp === 'arabian') {
-                $('#language').text('Arabian');
-            }
-            if(inp === 'french') {
-                $('#language').text('French');
-            }
-            if(inp === 'ukrainian') {
-                $('#language').text('Ukrainian');
-            }
-            if(inp === 'polish') {
-                $('#language').text('Polish');
+// выбор языка — карта: id → флаг + название
+            var langMap = {
+                'russian':   {flag: 'russia', name: 'Russian'},
+                'english':   {flag: 'uk',     name: 'English'},
+                'arabian':   {flag: 'ae',     name: 'Arabian'},
+                'french':    {flag: 'france', name: 'French'},
+                'ukrainian': {flag: 'ua',     name: 'Ukrainian'},
+                'polish':    {flag: 'pl',     name: 'Polish'}
+            };
+            if(langMap[inp]) {
+                var l = langMap[inp];
+                $('#language').html('<i class="' + l.flag + ' flag"></i>' + l.name);
+                localStorage.setItem('selectedLang', inp);
             }
                 
             
