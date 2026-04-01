@@ -1072,6 +1072,10 @@ def handle_connect():
     # logger.debug(f"New client connected ({request.sid}). Sending full state history ({len(socklist)} items).")
     for i in socklist:
         socketio.emit('level', i, to=request.sid)
+    # Отправляем текущий язык новому клиенту, чтобы пульт показал выбранный язык
+    lang_map = {1: 'russian', 2: 'english', 3: 'arabian', 4: 'french', 5: 'ukrainian', 6: 'polish'}
+    if language in lang_map:
+        socketio.emit('level', lang_map[language], to=request.sid)
 
 # --- WI-FI LOGIC ---
 # --- WI-FI LOGIC (PERSISTENT) ---

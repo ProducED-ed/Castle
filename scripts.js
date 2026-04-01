@@ -1248,7 +1248,6 @@ $('.ui.dropdown')
             if(langMap[inp]) {
                 var l = langMap[inp];
                 $('#language').html('<i class="' + l.flag + ' flag"></i>' + l.name);
-                localStorage.setItem('selectedLang', inp);
             }
                 
             
@@ -1711,23 +1710,6 @@ $('.ui.dropdown')
     $('#polish').click(function(){
         socket.emit('Remote','polish')
     });
-
-    // Восстанавливаем выбранный язык из localStorage после загрузки DOM
-    setTimeout(function() {
-        var savedLang = localStorage.getItem('selectedLang');
-        var langMap = {
-            'russian':   {flag: 'russia', name: 'Russian'},
-            'english':   {flag: 'uk',     name: 'English'},
-            'arabian':   {flag: 'ae',     name: 'Arabian'},
-            'french':    {flag: 'france', name: 'French'},
-            'ukrainian': {flag: 'ua',     name: 'Ukrainian'},
-            'polish':    {flag: 'pl',     name: 'Polish'}
-        };
-        if(savedLang && langMap[savedLang]) {
-            var l = langMap[savedLang];
-            $('#language').html('<i class="' + l.flag + ' flag"></i>' + l.name);
-        }
-    }, 100);
 
     $('#Castle1').click(function () {
         socket.emit('WLAN', 'ssid=Castle1')
