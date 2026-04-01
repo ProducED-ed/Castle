@@ -2576,11 +2576,13 @@ def play_story(audio_source, loops=0, volume_file='3.txt'):
     
     # 3. Воспроизводим
     if sound_object:
-        # Устанавливаем громкость ДО play(), чтобы не было вспышки на полной громкости
+        # Устанавливаем громкость на самом Sound-объекте, а не на канале.
+        # channel.set_volume() сбрасывается pygame при вызове play(),
+        # а sound.set_volume() — нет, поэтому только такой вариант работает без вспышки.
         try:
             with open(volume_file, 'r') as f:
                 volume = float(f.read(4))
-                channel3.set_volume(volume, volume)
+                sound_object.set_volume(volume)
         except Exception as e:
             logger.error(f"Ошибка установки громкости истории: {e}")
         channel3.play(sound_object, loops=loops)
@@ -2619,16 +2621,16 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
         current_effect_index = (current_effect_index + 1) % len(effects_pool)
         logging.debug(f"Все каналы эффектов заняты. Принудительно используем канал {current_effect_index}")
 
-    # 3. Устанавливаем громкость ДО play(), чтобы не было вспышки на полной громкости
+    # 3. Воспроизводим, затем сразу (без sleep) ставим громкость.
+    # Для Channel pygame сбрасывает громкость при play(), поэтому set_volume — после.
+    # Без eventlet.sleep между ними переключения корутин не происходит → flash = 0.
+    selected_channel.play(audio_file, loops=loops)
     try:
         with open(volume_file, 'r') as f:
             volume = float(f.read(4))
             selected_channel.set_volume(volume, volume)
     except Exception as e:
         logger.error(f"Ошибка установки громкости эффекта: {e}")
-
-    # 4. Воспроизводим
-    selected_channel.play(audio_file, loops=loops)
         
 def stop_all_effects():
     """Останавливает звук на всех каналах эффектов"""
