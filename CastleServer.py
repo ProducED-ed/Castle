@@ -2576,16 +2576,14 @@ def play_story(audio_source, loops=0, volume_file='3.txt'):
     
     # 3. Воспроизводим
     if sound_object:
-        channel3.play(sound_object, loops=loops)
-        eventlet.sleep(0.1)
-        
-        # Устанавливаем громкость истории
+        # Устанавливаем громкость ДО play(), чтобы не было вспышки на полной громкости
         try:
             with open(volume_file, 'r') as f:
                 volume = float(f.read(4))
                 channel3.set_volume(volume, volume)
         except Exception as e:
             logger.error(f"Ошибка установки громкости истории: {e}")
+        channel3.play(sound_object, loops=loops)
             
 def effects_are_busy():
     """Возвращает True, если играет ЛЮБОЙ из каналов эффектов"""
@@ -2621,16 +2619,16 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
         current_effect_index = (current_effect_index + 1) % len(effects_pool)
         logging.debug(f"Все каналы эффектов заняты. Принудительно используем канал {current_effect_index}")
 
-    # 3. Воспроизводим
-    selected_channel.play(audio_file, loops=loops)
-    
-    # 4. Устанавливаем громкость (нужно прочитать файл и применить к выбранному каналу)
+    # 3. Устанавливаем громкость ДО play(), чтобы не было вспышки на полной громкости
     try:
         with open(volume_file, 'r') as f:
             volume = float(f.read(4))
             selected_channel.set_volume(volume, volume)
     except Exception as e:
         logger.error(f"Ошибка установки громкости эффекта: {e}")
+
+    # 4. Воспроизводим
+    selected_channel.play(audio_file, loops=loops)
         
 def stop_all_effects():
     """Останавливает звук на всех каналах эффектов"""
@@ -2779,14 +2777,12 @@ def play_background_music(music_file, volume_file='1.txt', loops=-1):
     # --- ИЗМЕНЕНО: Улучшено логирование фоновой музыки ---
     try:
         logging.info(f"PLAY [Фон]: {music_file}")
-        # Загружаем и воспроизводим музыку
+        # Загружаем, устанавливаем громкость ДО play(), чтобы не было вспышки
         pygame.mixer.music.load(music_file)
-        pygame.mixer.music.play(loops)
-        
-        # Устанавливаем громкость из файла
         with open(volume_file, 'r') as f:
             volume = float(f.read(4))
             pygame.mixer.music.set_volume(volume)
+        pygame.mixer.music.play(loops)
             
     except FileNotFoundError:
         logger.error(f"Ошибка: файл {music_file} или {volume_file} не найден")
