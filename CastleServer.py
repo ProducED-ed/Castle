@@ -720,6 +720,135 @@ except serial.SerialException as e:
     logger.critical("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
     exit() # Завершаем работу, если не удалось подключиться
 
+# --- SERIAL BUFFER ACCUMULATOR ---
+# Вместо ser.readline() (который может вернуть неполную строку при таймауте),
+# мы накапливаем байты в буфере и обрабатываем только полные строки (по \n).
+serial_buffer = ""
+
+def serial_read_lines():
+    """Читает доступные байты из serial, добавляет в буфер, возвращает список полных строк."""
+    global serial_buffer
+    lines = []
+    try:
+        if ser.in_waiting > 0:
+            raw = ser.read(ser.in_waiting)
+            serial_buffer += raw.decode('utf-8', errors='ignore')
+            
+            # Разбиваем буфер на строки
+            while '\n' in serial_buffer:
+                line, serial_buffer = serial_buffer.split('\n', 1)
+                line = line.rstrip('\r').strip()
+                if line:  # Игнорируем пустые строки
+                    lines.append(line)
+            
+            # Защита от переполнения буфера (если \n так и не пришел)
+            if len(serial_buffer) > 500:
+                logger.warning(f"Serial buffer overflow ({len(serial_buffer)} chars), flushing: {serial_buffer[:80]}...")
+                serial_buffer = ""
+    except Exception as e:
+        logger.error(f"Serial read error: {e}")
+    return lines
+
+# --- ТАБЛИЦА ВОССТАНОВЛЕНИЯ ПОВРЕЖДЕННЫХ КОМАНД ---
+# Критические игровые команды, которые НЕ ДОЛЖНЫ быть потеряны из-за corruption.
+# Формат: (минимальный_префикс, полная_команда, минимальная_длина_для_совпадения)
+CRITICAL_COMMANDS_RECOVERY = [
+    # Двери и ключевые переходы
+    ("door_owl",       "door_owl"),
+    ("door_dog",       "door_dog"),
+    ("door_cave",      "door_cave"),
+    ("door_witch",     "door_witch"),
+    ("open_bank",      "open_bank"),
+    ("open_door",      "open_door"),
+    ("dog_lock",       "dog_lock"),
+    ("dog_sleep",      "dog_sleep"),
+    ("dog_growl",      "dog_growl"),
+    ("owl_end",        "owl_end"),
+    ("owl_flew",       "owl_flew"),
+    ("cave_click",     "cave_click"),
+    ("cave_end",       "cave_end"),
+    ("cave_search1",   "cave_search1"),
+    ("cave_search2",   "cave_search2"),
+    ("cave_search3",   "cave_search3"),
+    ("safe_end",       "safe_end"),
+    ("safe_turn",      "safe_turn"),
+    ("safe_close",     "safe_close"),
+    ("safe_open",      "safe_open"),
+    ("miror",          "miror"),
+    ("mansard_finish", "mansard_finish"),
+    ("flagsendmr",     "flagsendmr"),
+    ("four_bottle",    "four_bottle"),
+    ("first_bottle",   "first_bottle"),
+    ("second_bottle",  "second_bottle"),
+    ("third_bottle",   "third_bottle"),
+    ("material_end",   "material_end"),
+    ("three_game_end", "three_game_end"),
+    ("startgo",        "startgo"),
+    ("clock1",         "clock1"),
+    ("clock2",         "clock2"),
+    ("steps",          "steps"),
+]
+
+def try_recover_corrupted_command(corrupted_line):
+    """
+    Пытается восстановить поврежденную команду, сравнивая с таблицей критических команд.
+    Используется расстояние Левенштейна (макс. 2 символа отличия) для коротких команд
+    и prefix matching для длинных.
+    Возвращает восстановленную команду или None.
+    """
+    # Не пытаемся восстановить логи (они начинаются с "log:")
+    if corrupted_line.startswith("log:"):
+        return None
+    # Не пытаемся восстановить уже известные команды (level_, flag_, hint_, story_, galet)
+    if corrupted_line.startswith(("level_", "flag", "hint_", "story_", "galet", "soundon", "soundoff", "light", "dark", "help", "kay")):
+        return None
+        
+    best_match = None
+    best_distance = 999
+    
+    for prefix, full_command in CRITICAL_COMMANDS_RECOVERY:
+        # 1. Точное совпадение (быстрый путь)
+        if corrupted_line == full_command:
+            return None  # Не нужно восстановление
+        
+        # 2. Prefix match: corrupted содержит начало команды (мин. 70% длины)
+        min_len = max(3, int(len(prefix) * 0.7))
+        if len(corrupted_line) >= min_len and prefix.startswith(corrupted_line[:min_len]):
+            # corrupted_line — это обрезанная версия команды
+            dist = len(prefix) - len(corrupted_line)
+            if 0 < dist <= 3 and dist < best_distance:
+                best_distance = dist
+                best_match = full_command
+                continue
+        
+        # 3. Расстояние Левенштейна (для коротких команд, макс. 2 ошибки)
+        if abs(len(corrupted_line) - len(prefix)) <= 2:
+            d = _levenshtein(corrupted_line, prefix)
+            if 0 < d <= 2 and d < best_distance:
+                best_distance = d
+                best_match = full_command
+    
+    if best_match:
+        logger.warning(f"SERIAL RECOVERY: '{corrupted_line}' → '{best_match}' (distance={best_distance})")
+    return best_match
+
+def _levenshtein(s1, s2):
+    """Простой расчет расстояния Левенштейна."""
+    if len(s1) < len(s2):
+        return _levenshtein(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        curr_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = prev_row[j + 1] + 1
+            deletions = curr_row[j] + 1
+            substitutions = prev_row[j] + (c1 != c2)
+            curr_row.append(min(insertions, deletions, substitutions))
+        prev_row = curr_row
+    return prev_row[-1]
+
 #---конфиг сервера
 Payload.max_decode_packets = 200
 #async_mode = None  
@@ -777,6 +906,163 @@ HEX_PATHS = {
 @app.route('/tech')
 def tech_panel():
     return send_file('templates/Tech.html')
+
+# --- ПРОВЕРКА АУДИОФАЙЛОВ (с прогрессом через WebSocket) ---
+@socketio.on('start_audio_check')
+def handle_audio_check():
+    def run_check():
+        import re
+        import wave as wave_module
+
+        all_suffixes = ['ru', 'en', 'ar', 'fr', 'uk', 'pl']
+
+        # --- 1. СКАНИРУЕМ СЕРВЕР (CastleServer.py) ---
+        try:
+            server_file = os.path.abspath(__file__)
+            with open(server_file, 'r', encoding='utf-8') as f:
+                code = f.read()
+        except Exception as e:
+            socketio.emit('audio_check_done', {'error': f'Не удалось прочитать файл сервера: {e}'})
+            return
+
+        # Убираем docstrings и комментарии, чтобы не подхватить примеры
+        code_clean = re.sub(r'""".*?"""', '', code, flags=re.DOTALL)
+        code_clean = re.sub(r"'''.*?'''", '', code_clean, flags=re.DOTALL)
+        code_clean = re.sub(r'#[^\n]*', '', code_clean)
+
+        # Прямые вызовы play_localized_audio("story_X")
+        localized_from_calls = set(re.findall(
+            r'play_localized_audio\s*\(\s*["\']([^"\']+)["\']\s*[\),]', code_clean
+        ))
+        # Строки вида "story_X" в списках (_stories_base = [...])
+        localized_from_lists = set(re.findall(
+            r'["\']([^"\']*story_[^"\']+)["\']\s*[,\]]', code_clean
+        ))
+        # Эффекты: pygame.mixer.Sound('file.wav')
+        effect_files = sorted(set(re.findall(
+            r'pygame\.mixer\.Sound\s*\(\s*["\']([^"\']+\.wav)["\']\s*\)', code_clean
+        )))
+
+        # --- 2. СКАНИРУЕМ .INO ФАЙЛЫ для hint_* команд ---
+        # hint_X приходят с Arduino как Serial-команды и обрабатываются через
+        # play_localized_audio(flag) — где flag переменная, регулярки её не видят.
+        ino_paths = [
+            '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino',
+            '/home/pi/New/Sketches/basket3/basket3.ino',
+            '/home/pi/New/Sketches/workshop/workshop.ino',
+            '/home/pi/New/Sketches/owls/owls.ino',
+            '/home/pi/New/Sketches/dog/dog.ino',
+        ]
+        hint_bases_from_ino = set()
+        for ino_path in ino_paths:
+            try:
+                with open(ino_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    ino_code = f.read()
+                # Ищем все "hint_X" строки — это то что Arduino отправляет по Serial
+                found = re.findall(r'"(hint_[^"]+)"', ino_code)
+                hint_bases_from_ino.update(found)
+            except Exception:
+                pass  # Файл не найден — пропускаем молча
+
+        # --- 3. ОБЪЕДИНЯЕМ ВСЕ БАЗОВЫЕ ИМЕНА ---
+        localized_story_bases = sorted(
+            localized_from_calls | localized_from_lists | hint_bases_from_ino
+        )
+
+        # --- 4. ФУНКЦИЯ ПРОВЕРКИ ФАЙЛА ---
+        def check_wav_file(filename):
+            size = os.path.getsize(filename)
+            if size < 44:
+                return False, f"Файл слишком мал: {size} байт"
+
+            # Проверка 1: raw-заголовок на audioFormat.
+            # pygame воспроизводит ТОЛЬКО PCM (audioFormat=1).
+            # wave.open() иногда открывает non-PCM без ошибки, но pygame падает.
+            # Именно так ломался hint_6_b_pl.wav — заголовок валидный, pygame не мог открыть.
+            try:
+                with open(filename, 'rb') as f:
+                    raw = f.read(36)
+                if len(raw) >= 22:
+                    audio_format = int.from_bytes(raw[20:22], 'little')
+                    if audio_format != 1:
+                        return False, f"Не-PCM формат: audioFormat={audio_format:#06x} (pygame воспроизводит только PCM=1)"
+            except Exception as e:
+                return False, f"Ошибка чтения заголовка: {e}"
+
+            # Проверка 2: открываем через wave и читаем реальные данные.
+            # Ловит файлы с валидным заголовком но повреждёнными данными внутри.
+            try:
+                with wave_module.open(filename, 'rb') as wf:
+                    channels = wf.getnchannels()
+                    framerate = wf.getframerate()
+                    sampwidth = wf.getsampwidth()
+                    nframes = wf.getnframes()
+                    if channels < 1 or channels > 2:
+                        return False, f"Неверное число каналов: {channels}"
+                    if framerate < 8000 or framerate > 192000:
+                        return False, f"Неверная частота: {framerate} Hz"
+                    if sampwidth not in (1, 2, 3, 4):
+                        return False, f"Неверная битность: {sampwidth * 8} бит"
+                    if nframes == 0:
+                        return False, "Нет аудиоданных (0 фреймов)"
+                    # Читаем первые реальные сэмплы — ловит обрезанные/повреждённые файлы
+                    data = wf.readframes(min(nframes, 4096))
+                    if len(data) == 0:
+                        return False, "Не удалось прочитать аудиоданные"
+                return True, ""
+            except wave_module.Error as e:
+                return False, f"Ошибка WAV: {e}"
+            except Exception as e:
+                return False, str(e)
+
+        # --- 5. СОБИРАЕМ ПОЛНЫЙ СПИСОК ФАЙЛОВ ---
+        all_files = []
+        for base in localized_story_bases:
+            for suffix in all_suffixes:
+                all_files.append((f"{base}_{suffix}.wav", "localized"))
+        for fn in effect_files:
+            all_files.append((fn, "effect"))
+
+        total = len(all_files)
+        ok_count = 0
+        missing = []
+        broken = []
+
+        socketio.emit('audio_check_start', {'total': total})
+
+        for i, (filename, ftype) in enumerate(all_files):
+            if not os.path.exists(filename):
+                missing.append(filename)
+                socketio.emit('audio_check_progress', {
+                    'current': i + 1, 'total': total,
+                    'file': filename, 'status': 'missing'
+                })
+            else:
+                ok, err = check_wav_file(filename)
+                if ok:
+                    ok_count += 1
+                    socketio.emit('audio_check_progress', {
+                        'current': i + 1, 'total': total,
+                        'file': filename, 'status': 'ok'
+                    })
+                else:
+                    broken.append({'file': filename, 'error': err})
+                    socketio.emit('audio_check_progress', {
+                        'current': i + 1, 'total': total,
+                        'file': filename, 'status': 'broken', 'error': err
+                    })
+            eventlet.sleep(0)
+
+        socketio.emit('audio_check_done', {
+            'total': total,
+            'ok': ok_count,
+            'missing': len(missing),
+            'broken': len(broken),
+            'missing_files': missing,
+            'broken_files': broken
+        })
+
+    socketio.start_background_task(target=run_check)
 
 # --- ЗАПРОС СТАТИСТИКИ (Даты изменения и последних прошивок) ---
 @socketio.on('get_board_stats')
@@ -1675,12 +1961,20 @@ def Remote(check):
              socketio.emit('level', 'active_dog',to=None)
              socklist.append('active_dog')
         if check == 'dog':
+             # FIX: Останавливаем зацикленный dog_growl при скипе
+             dog_growl.stop()
+             # FIX: Ставим метку, чтобы dog_lock от Arduino не дублировал действия
+             socklist.append('dog_end_processed')
              #-----отправка клиенту 
              socketio.emit('level', 'dog',to=None)
              #-----добавить в историю
              socklist.append('dog')
              #----отправить на мегу
              serial_write_queue.put('dog')
+             # FIX: Воспроизводим key_finish и story_21 как при обычном прохождении
+             send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
+             play_effect(dog_lock)
+             play_localized_audio("story_21")
              eventlet.sleep(1) 
              name = "story_2"
         if check == 'cat':
@@ -1718,14 +2012,29 @@ def Remote(check):
              socketio.emit('level', 'owl',to=None)
              #-----добавить в историю
              socklist.append('owl')
-             #send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
+             # FIX: Отправляем owl_open на карту, чтобы LED совы стал жёлтым
+             send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
+             send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
              #----отправить на мегу
              serial_write_queue.put('owl_door')
-             name = "story_2"     
-             eventlet.sleep(1) 
+             # FIX: Воспроизводим эффекты и истории как при обычном door_owl
+             play_effect(door_owl)
+             eventlet.sleep(2.0)
+             if story13Flag == 0:
+                 story13Flag = 1
+                 play_localized_audio("story_13")
+                 while channel3.get_busy()==True and go == 1:
+                     eventlet.sleep(0.1)
+             play_localized_audio("story_14_a")
+             def _after_owl_skip_story():
+                 while channel3.get_busy() and go == 1:
+                     eventlet.sleep(0.1)
+                 send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
+             socketio.start_background_task(_after_owl_skip_story)
              #-----активируем блок
              socketio.emit('level', 'active_owls',to=None)
              socklist.append('active_owls')
+             name = "story_2"
         if check == 'owls':
              #-----отправка клиенту 
              socketio.emit('level', 'owls',to=None)
@@ -1739,6 +2048,8 @@ def Remote(check):
              serial_write_queue.put('owl_skip')
              #----отправить на ESP32 карты
              play_effect(owl_flew)
+             # FIX: Сначала owl_open (очищает ClickLeds радугу), потом owl_finish (гасит ActiveLeds)
+             send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
              send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
              # ОПТИМИЗИРОВАНО
              play_localized_audio("story_14_b")
@@ -1930,9 +2241,22 @@ def Remote(check):
              socklist.append('first_level')
              socketio.emit('level', 'memory_room_end',to=None)
              #-----добавить в историю
-             socklist.append('memory_room_end')
-             #----отправить на мегу
-             serial_write_queue.put('memory_room_end')
+             if 'memory_room_end' not in socklist:
+                 socklist.append('memory_room_end')
+             # FIX: Добавляем действия, которые при обычном прохождении выполняет serial-обработчик memory_room_end
+             play_effect(brain_end)
+             socketio.emit('level', 'active_crime',to=None)
+             socklist.append('active_crime')
+             # Отправляем на Arduino чтобы он тоже завершил (радуга, свет, дверь)
+             # memory_room_skip_done будет поставлен serial-обработчиком когда Arduino ответит echo
+             def _send_memory_skip():
+                 for attempt in range(4):
+                     if 'memory_room_skip_done' in socklist:
+                         break
+                     serial_write_queue.put('memory_room_end')
+                     logger.info(f"SENT [Main Board]: Комната воспоминаний пройдена (скип попытка {attempt+1}/4) (RAW: memory_room_end)")
+                     eventlet.sleep(1.5)
+             socketio.start_background_task(_send_memory_skip)
         if check == 'crime':
              #-----отправка клиенту 
              socketio.emit('level', 'crime',to=None)
@@ -2359,7 +2683,18 @@ def tmr(res):
 
                # 1. Проверяем ESP 
                test_esp32()
-               
+
+               # --- СИНХРОНИЗАЦИЯ ЯЗЫКА на ESP32 ---
+               # ESP32 после перезагрузки сервера стартуют с языком по умолчанию (Русский).
+               # Отправляем текущий язык из файла 4.txt на все устройства каждый раз при Ready.
+               lang_cmd = f"language_{language}"
+               send_esp32_command(ESP32_API_WOLF_URL, lang_cmd)
+               send_esp32_command(ESP32_API_TRAIN_URL, lang_cmd)
+               send_esp32_command(ESP32_API_SUITCASE_URL, lang_cmd)
+               send_esp32_command(ESP32_API_SAFE_URL, lang_cmd)
+               logger.info(f"Language synced to ESP32 on Ready: {lang_cmd}")
+               # ------------------------------------
+
                # 2. ОТПРАВЛЯЕМ 'ready' на Arduino.
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
@@ -2576,16 +2911,20 @@ def play_story(audio_source, loops=0, volume_file='3.txt'):
     
     # 3. Воспроизводим
     if sound_object:
-        # Устанавливаем громкость на самом Sound-объекте, а не на канале.
-        # channel.set_volume() сбрасывается pygame при вызове play(),
-        # а sound.set_volume() — нет, поэтому только такой вариант работает без вспышки.
+        # ИСПРАВЛЕНИЕ: Читаем громкость из файла и применяем ТОЛЬКО через канал.
+        # Раньше громкость ставилась и на sound_object, и на channel3 (через Voice handler),
+        # что приводило к двойному умножению: эффективная громкость = sound.vol × channel.vol.
+        # Теперь sound.volume всегда 1.0, а channel3.set_volume() ставится сразу после play().
         try:
             with open(volume_file, 'r') as f:
                 volume = float(f.read(4))
-                sound_object.set_volume(volume)
         except Exception as e:
-            logger.error(f"Ошибка установки громкости истории: {e}")
+            logger.error(f"Ошибка чтения файла громкости {volume_file} (в play_story): {e}")
+            volume = 0.5  # Безопасное значение по умолчанию
+        
+        sound_object.set_volume(1.0)  # Нейтральная громкость на объекте
         channel3.play(sound_object, loops=loops)
+        channel3.set_volume(volume, volume)  # Громкость только через канал
             
 def effects_are_busy():
     """Возвращает True, если играет ЛЮБОЙ из каналов эффектов"""
@@ -2622,15 +2961,19 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
         logging.debug(f"Все каналы эффектов заняты. Принудительно используем канал {current_effect_index}")
 
     # 3. Воспроизводим, затем сразу (без sleep) ставим громкость.
-    # Для Channel pygame сбрасывает громкость при play(), поэтому set_volume — после.
-    # Без eventlet.sleep между ними переключения корутин не происходит → flash = 0.
-    selected_channel.play(audio_file, loops=loops)
+    # ИСПРАВЛЕНИЕ: Сначала нейтрализуем громкость на Sound-объекте (1.0),
+    # чтобы эффективная громкость = 1.0 × channel.volume, без двойного умножения.
+    # Читаем громкость из файла ДО play(), чтобы минимизировать задержку между play и set_volume.
     try:
         with open(volume_file, 'r') as f:
             volume = float(f.read(4))
-            selected_channel.set_volume(volume, volume)
     except Exception as e:
-        logger.error(f"Ошибка установки громкости эффекта: {e}")
+        logger.error(f"Ошибка чтения файла громкости эффекта: {e}")
+        volume = 0.5  # Безопасное значение по умолчанию
+    
+    audio_file.set_volume(1.0)  # Нейтральная громкость на объекте
+    selected_channel.play(audio_file, loops=loops)
+    selected_channel.set_volume(volume, volume)  # Громкость только через канал
         
 def stop_all_effects():
     """Останавливает звук на всех каналах эффектов"""
@@ -2868,39 +3211,37 @@ def handle_basket_timeout():
 def send_command_with_confirmation(command, success_log_part, max_retries=3):
     """
     Отправляет команду и ждет подтверждения в логах от Arduino.
-    Если подтверждения нет 1.5 секунды, пробует снова.
+    Если подтверждения нет — пробует снова (max_retries раз).
+    ФИКС багJ: добавлена проверка go==1 чтобы при pause/restart не зависать.
+    Таймаут уменьшен с 3.5 до 2.0 сек — достаточно для Arduino при нормальной работе.
     """
     logging.info(f"HANDSHAKE: Starting sequence for '{command}'...")
     
     for attempt in range(max_retries):
+        if go != 1:
+            logging.info(f"HANDSHAKE ABORTED: game stopped (go={go})")
+            return False
+
         # 1. Отправляем команду
         serial_write_queue.put(command)
-        process_serial_queue() # Принудительно выталкиваем из очереди сразу
+        process_serial_queue()
         
-        # 2. Ждем подтверждения (блокируем чтение на короткое время)
+        # 2. Ждем подтверждения
         start_wait = time.time()
-        # Ждем 3.5 секунды
-        while time.time() - start_wait < 3.5:
-            # Читаем порт напрямую, перехватывая ответ
-            if ser.in_waiting > 0:
-                try:
-                    line = ser.readline().decode('utf-8', errors='ignore').rstrip()
-                    
-                    # Если это наше подтверждение
-                    if success_log_part in line:
-                        logging.info(f"HANDSHAKE SUCCESS: Arduino confirmed '{command}' (Log: {line})")
-                        return True
-                    
-                    # Если это что-то другое, просто логируем, чтобы не потерять
-                    # (В этот момент критические игровые события маловероятны, так как идет серво-анимация)
-                    logging.info(f"RECEIVED [During Wait]: {line}")
-                    
-                except Exception as e:
-                    logging.error(f"Serial read error: {e}")
+        while time.time() - start_wait < 2.0:
+            if go != 1:
+                logging.info(f"HANDSHAKE ABORTED mid-wait: game stopped (go={go})")
+                return False
+
+            lines = serial_read_lines()
+            for line in lines:
+                if success_log_part in line:
+                    logging.info(f"HANDSHAKE SUCCESS: Arduino confirmed '{command}' (Log: {line})")
+                    return True
+                logging.info(f"RECEIVED [During Wait]: {line}")
             
-            # Не забываем выталкивать очередь отправки, если там что-то накопилось
             process_serial_queue() 
-            eventlet.sleep(0.05) # Короткая пауза для разгрузки CPU
+            eventlet.sleep(0.05)
             
         logging.warning(f"HANDSHAKE TIMEOUT: No confirmation for '{command}' (Attempt {attempt+1}/{max_retries})")
     
@@ -3032,10 +3373,19 @@ def serial():
                    flagS = 0   # Сбрасываем флаг, чтобы 'soundoff' не отправился
                    a20 = phoneLevel # Сбрасываем громкость
 
-              # аналог serial.available() rsstrip игнорирует всякие переходы на другую строку и перевод каретки     
-              if ser.in_waiting > 0:
-                   line = ser.readline().decode('utf-8', errors='ignore').rstrip()
+              # --- БУФЕРИЗИРОВАННОЕ ЧТЕНИЕ SERIAL (ЗАЩИТА ОТ ОБРЕЗКИ И ПОВРЕЖДЕНИЯ) ---
+              # Вместо ser.readline() (который может вернуть неполную строку),
+              # читаем все доступные байты и обрабатываем только полные строки.
+              serial_lines = serial_read_lines()
+              for line in serial_lines:
                    flag = line
+                   
+                   # --- ВОССТАНОВЛЕНИЕ ПОВРЕЖДЕННЫХ КОМАНД ---
+                   # Проверяем, не повреждена ли команда (1-2 символа отличия от критической)
+                   recovered = try_recover_corrupted_command(flag)
+                   if recovered:
+                       flag = recovered
+                   
                    if flag == "QUEST_SYSTEM_READY":
                        pending_ready = False
                        logger.info("SYSTEM CHECK COMPLETE: Playing startup sound.")
@@ -3127,6 +3477,8 @@ def serial():
                        # play_effect(timeout) 
                    # -----------------------------------
                    logger.debug(f"Raw serial data received: {line}")
+                   if recovered:
+                       logger.debug(f"Recovered from corruption: '{line}' → '{flag}'")
                    eventlet.sleep(0.1)
                    # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
                    description = EVENT_DESCRIPTIONS.get(flag, '-')
@@ -3672,60 +4024,65 @@ def serial():
                          
                          # ОБРАБОТЧИК ПОБЕДЫ
                          if flag == "mansard_finish":
-                              # 1. Принудительно ставим 100% на шкале
-                              socketio.emit('level', 'mansard_progress_100', to=None)
-                              
-                              # Чистим историю от старых процентов
-                              for i in range(0, 100, 20):
-                                  t_name = f"mansard_progress_{i}"
-                                  while t_name in socklist: socklist.remove(t_name)
-                              
-                              # Записываем 100% в историю
-                              if 'mansard_progress_100' not in socklist:
-                                  socklist.append('mansard_progress_100')
-                              
-                              # Фиксируем состояние счетчика на 5, чтобы логика процентов не перерисовала его обратно
-                              mansard_galets.update(['g1', 'g2', 'g3', 'g4', 'g5'])
-                              last_mansard_count = 5 
+                              if 'mansard_finish' in socklist:
+                                  logger.debug("Игнорируем повторный mansard_finish")
+                              else:
+                                  socklist.append('mansard_finish')
+                                  # 1. Принудительно ставим 100% на шкале
+                                  socketio.emit('level', 'mansard_progress_100', to=None)
+                                  
+                                  # Чистим историю от старых процентов
+                                  for i in range(0, 100, 20):
+                                      t_name = f"mansard_progress_{i}"
+                                      while t_name in socklist: socklist.remove(t_name)
+                                  
+                                  # Записываем 100% в историю
+                                  if 'mansard_progress_100' not in socklist:
+                                      socklist.append('mansard_progress_100')
+                                  
+                                  # Фиксируем состояние счетчика на 5
+                                  mansard_galets.update(['g1', 'g2', 'g3', 'g4', 'g5'])
+                                  last_mansard_count = 5 
 
-                              # 2. ЗАПУСКАЕМ СЦЕНАРИЙ ПОБЕДЫ
-                              train_stage_2_active = True
-                              play_background_music("fon6.mp3", loops=-1)
-                              
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-                              
-                              play_localized_audio("story_5")
+                                  # 2. ЗАПУСКАЕМ СЦЕНАРИЙ ПОБЕДЫ
+                                  train_stage_2_active = True
+                                  play_background_music("fon6.mp3", loops=-1)
+                                  
+                                  while effects_are_busy() and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  
+                                  play_localized_audio("story_5")
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              
-                              socketio.emit('level', 'open_mansard_door',to=None)
-                              socklist.append('open_mansard_door')
-                              
-                              ser.write(b'open_mansard_door\n')
-                              ser.flush()
-                              
-                              play_effect(door_attic)
-                              
-                              play_localized_audio("story_6")
+                                  while channel3.get_busy()==True and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  
+                                  socketio.emit('level', 'open_mansard_door',to=None)
+                                  socklist.append('open_mansard_door')
+                                  
+                                  ser.write(b'open_mansard_door\n')
+                                  ser.flush()
+                                  
+                                  play_effect(door_attic)
+                                  
+                                  play_localized_audio("story_6")
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              
-                              # Активируем следующие этапы
-                              send_esp32_command(ESP32_API_WOLF_URL, "game")
-                              send_esp32_command(ESP32_API_SUITCASE_URL, "game")
-                              send_esp32_command(ESP32_API_SAFE_URL, "game")
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
+                                  while channel3.get_busy()==True and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  
+                                  # Активируем следующие этапы
+                                  send_esp32_command(ESP32_API_WOLF_URL, "game")
+                                  send_esp32_command(ESP32_API_SUITCASE_URL, "game")
+                                  send_esp32_command(ESP32_API_SAFE_URL, "game")
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "stage_2")
 
                          if flag=="three_game_end":
-                              send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
-                              socketio.emit('level', 'active_open_mansard_stash',to=None)
-                              socklist.append('active_open_mansard_stash')
-                              #channel3.stop() 
-                              #channel2.stop() 
-                              #pygame.mixer.music.stop()
+                              if 'three_game_end' in socklist:
+                                  logger.debug("Игнорируем повторный three_game_end")
+                              else:
+                                  socklist.append('three_game_end')
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "flag_on")
+                                  socketio.emit('level', 'active_open_mansard_stash',to=None)
+                                  socklist.append('active_open_mansard_stash')
                                  
                         #---если пришло сообщение что поставили красный флаг проверяем не было ли в истории сообщения что флаг сняли если было удаляем из истории
                          if "flag1_on" in flag:
@@ -3796,18 +4153,22 @@ def serial():
                               if 'flag4_off' not in socklist: socklist.append('flag4_off')
                         #-------закончили игру с флагами
                          if flag=="flagsendmr":
-                              #----играем эффект 
-                              pygame.mixer.music.stop()
-                              play_effect(flags)
-                              send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-                              play_background_music("fon7.mp3", loops=0) 
-                              # ОПТИМИЗИРОВАНО
-                              play_localized_audio("story_10")
+                              if 'flagsendmr' in socklist:
+                                  logger.debug("Игнорируем повторный flagsendmr")
+                              else:
+                                  socklist.append('flagsendmr')
+                                  #----играем эффект 
+                                  pygame.mixer.music.stop()
+                                  play_effect(flags)
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
+                                  while effects_are_busy() and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  play_background_music("fon7.mp3", loops=0) 
+                                  # ОПТИМИЗИРОВАНО
+                                  play_localized_audio("story_10")
 
-                              nextTrack = 1
+                                  nextTrack = 1
                               
 
                          if "door_owl" in flag:
@@ -3838,11 +4199,15 @@ def serial():
                                        
                                   play_localized_audio("story_14_a")
 
-                                  while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_14_a
-                                  send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
-                                  #----активируем игру с совами
-                                  socketio.emit('level', 'active_owls',to=None)
-                                  socklist.append('active_owls')
+                                  # ФИКС: фоновый поток — Serial не блокируется пока играет story.
+                                  # Бутылки и другие события обрабатываются мгновенно.
+                                  def _after_story_14a():
+                                      while channel3.get_busy() and go == 1:
+                                          eventlet.sleep(0.1)
+                                      send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
+                                      socketio.emit('level', 'active_owls', to=None)
+                                      socklist.append('active_owls')
+                                  socketio.start_background_task(_after_story_14a)
 
                          if flag=="owl_flew":
                               # [FIX] Защита от дребезга звука (0.5 сек)
@@ -3859,16 +4224,19 @@ def serial():
                                   #----активируем игру с совами
 
                          if flag=="owl_end":
-                              #----играем эффект 
-                              play_effect(owl_flew)
-                              socketio.emit('level', 'owls',to=None)
-                              #-----добавили в историю
-                              socklist.append('owls')
-                              owlFlewCount = 4 # Гарантируем 100%
-                              socketio.emit('level', 'owl_flew_4', to=None)
-                              socklist.append(f'owl_flew_4')
-                              send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
-                              play_localized_audio("story_14_b")
+                              if 'owls' in socklist:
+                                  logger.debug("Игнорируем повторный owl_end")
+                              else:
+                                  #----играем эффект 
+                                  play_effect(owl_flew)
+                                  socketio.emit('level', 'owls',to=None)
+                                  #-----добавили в историю
+                                  socklist.append('owls')
+                                  owlFlewCount = 4 # Гарантируем 100%
+                                  socketio.emit('level', 'owl_flew_4', to=None)
+                                  socklist.append(f'owl_flew_4')
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
+                                  play_localized_audio("story_14_b")
 
                          if flag=="door_witch":
                               #----играем эффект 
@@ -3955,14 +4323,15 @@ def serial():
                               #-----играем эффект другой
                               play_effect(bottle_end)
 
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-
-                              #------играем голос    
-                              play_localized_audio("story_18")
-
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)    
+                              # FIX: Выносим ожидание в фоновый поток, чтобы не блокировать serial-цикл
+                              def _after_four_bottle():
+                                  while effects_are_busy() and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  #------играем голос    
+                                  play_localized_audio("story_18")
+                                  while channel3.get_busy()==True and go == 1: 
+                                      eventlet.sleep(0.1)    
+                              socketio.start_background_task(_after_four_bottle)
                               #----активируем игру с метлой
                          #------сделали ошибку с бутылкой     
                          if flag=="mistake_bottle":
@@ -4006,11 +4375,15 @@ def serial():
 
                               play_localized_audio("story_19")
 
-                              while channel3.get_busy()==True and go == 1: eventlet.sleep(0.1) # Ждем завершения story_19
-                              send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
-                              #----активируем игру с собакой
-                              socketio.emit('level', 'active_dog',to=None)
-                              socklist.append('active_dog')
+                              # ФИКС: фоновый поток — Serial не блокируется пока играет story.
+                              # Бутылки и другие события обрабатываются мгновенно.
+                              def _after_story_19():
+                                  while channel3.get_busy() and go == 1:
+                                      eventlet.sleep(0.1)
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
+                                  socketio.emit('level', 'active_dog', to=None)
+                                  socklist.append('active_dog')
+                              socketio.start_background_task(_after_story_19)
 
                          if flag=="dog_sleep":
                               dog_growl.stop()
@@ -4026,6 +4399,8 @@ def serial():
                                   logger.debug("Игнорируем повторный dog_lock")
                               else:
                                   socklist.append('dog_end_processed') # Ставим метку
+                                  # FIX: Останавливаем зацикленный dog_growl перед эффектом победы
+                                  dog_growl.stop()
                                   #----играем эффект 
                                   socketio.emit('level', 'dog',to=None)
                                   #-----добавили в историю
@@ -4100,6 +4475,10 @@ def serial():
                               #----играем эффект 
                               play_effect(door_cave)
                               socketio.emit('level', 'door_cave', to=None)
+                              # ИСПРАВЛЕНИЕ: Добавляем door_cave в socklist,
+                              # чтобы при переподключении UI шкала Mine Door показывала 100%.
+                              if 'door_cave' not in socklist:
+                                  socklist.append('door_cave')
                               socketio.emit('level', 'active_troll',to=None)
                               socklist.append('active_troll')
                               socketio.emit('level', 'mine',to=None)
@@ -4111,8 +4490,12 @@ def serial():
                               eventlet.sleep(2.0)
                               play_localized_audio("story_26")
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)    
+                              # ФИКС: фоновый поток — Serial не блокируется.
+                              # Бутылки и другие события обрабатываются мгновенно.
+                              def _after_story_26():
+                                  while channel3.get_busy() and go == 1:
+                                      eventlet.sleep(0.1)
+                              socketio.start_background_task(_after_story_26)
                          if flag=="cave_search1":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -4122,10 +4505,8 @@ def serial():
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_27_a")
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              eventlet.sleep(1.1)        
-                              # serial_write_queue.put('cave_search1')    
+                              # ФИКС: убрана блокировка Serial во время story_27_a
+                              eventlet.sleep(0.1)
                          if flag=="cave_search2":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -4135,12 +4516,8 @@ def serial():
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_27_b")
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              eventlet.sleep(1.1)         
-                              # serial_write_queue.put('cave_search2')        
+                              # ФИКС: убрана блокировка Serial во время story_27_b
+                              eventlet.sleep(0.1)
                          if flag=="cave_search3":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -4150,21 +4527,23 @@ def serial():
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_27_c")
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              eventlet.sleep(1.1)        
-                              # serial_write_queue.put('cave_search3')                          
+                              # ФИКС: убрана блокировка Serial во время story_27_c
+                              eventlet.sleep(0.1)
                          if flag=="cave_end":
-                              #----играем эффект 
-                              socketio.emit('level', 'troll',to=None)
-                              socklist.append('troll')
-                              socketio.emit('level', 'cave_end', to=None)
-                              socklist.append('cave_end')
-                              play_effect(cave_end)
-                              send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-                              play_localized_audio("story_30")
+                              if 'cave_end' in socklist:
+                                  logger.debug("Игнорируем повторный cave_end")
+                              else:
+                                  #----играем эффект 
+                                  socketio.emit('level', 'troll',to=None)
+                                  socklist.append('troll')
+                                  socketio.emit('level', 'cave_end', to=None)
+                                  socklist.append('cave_end')
+                                  play_effect(cave_end)
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
+                                  while effects_are_busy() and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  play_localized_audio("story_30")
+                                  # ФИКС: убрана блокировка — story_30 играет параллельно с Serial
 
                          if flag=="material_end":
                               #----играем эффект 
@@ -4301,17 +4680,20 @@ def serial():
                               play_localized_audio("story_49")
 
                          if flag=="door_basket":
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_9") 
-                              socketio.emit('level', 'cup',to=None)
-                              socklist.append('cup')
-                              #----играем эффект 
-                              play_effect(door_basket)
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-                              play_localized_audio("story_50")
-                              play_effect(lose1)
-                              socketio.emit('level', 'active_spell',to=None)
-                              socklist.append('active_spell')
+                              if 'cup' in socklist:
+                                  logger.debug("Игнорируем повторный door_basket")
+                              else:
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "stage_9") 
+                                  socketio.emit('level', 'cup',to=None)
+                                  socklist.append('cup')
+                                  #----играем эффект 
+                                  play_effect(door_basket)
+                                  while effects_are_busy() and go == 1: 
+                                      eventlet.sleep(0.1)
+                                  play_localized_audio("story_50")
+                                  play_effect(lose1)
+                                  socketio.emit('level', 'active_spell',to=None)
+                                  socklist.append('active_spell')
                               
                          if flag == "swipe_r":
                               play_effect(swipe_r)
@@ -4757,9 +5139,11 @@ def serial():
                               chosen_goal_sound = random.choice(player_goal_sounds)
                               
                               # --- ТОЧНАЯ СИНХРОНИЗАЦИЯ С ЛЕНТОЙ ---
-                              # Узнаем точную длину файла в секундах и ставим таймер
+                              # ФИКС багF: threading.Timer несовместим с eventlet — может вызвать
+                              # задержку или блокировку при записи в очередь из обычного треда.
+                              # Заменено на eventlet.spawn_after — нативный eventlet-таймер.
                               effect_duration = chosen_goal_sound.get_length()
-                              threading.Timer(effect_duration, lambda: serial_write_queue.put('goal_effect_end')).start()
+                              eventlet.spawn_after(effect_duration, lambda: serial_write_queue.put('goal_effect_end'))
                               # ---------------------------------------------
                               
                               play_effect(chosen_goal_sound)
@@ -4904,18 +5288,25 @@ def serial():
                                   # ---------------------------------------------
                         #-------прошли игру с кристалами
                          if flag=="memory_room_end":
-                             #----отправили на клиента
-                             send_esp32_command(ESP32_API_TRAIN_URL, "stage_0") 
-                             socketio.emit('level', 'memory_room_end',to=None)
-                             #----добавили в историю
-                             socklist.append('memory_room_end')
-                             #------играем эффект
-                             play_effect(brain_end)
-                             #-----активируем последнюю игру
-                             #socketio.emit('level', 'active_basket',to=None)
-                             #socklist.append('active_basket') 
-                             socketio.emit('level', 'active_crime',to=None)
-                             socklist.append('active_crime') 
+                             if 'memory_room_end' in socklist:
+                                 logger.debug("Игнорируем повторный memory_room_end")
+                                 # Подтверждаем Arduino — останавливаем повторные отправки скипа
+                                 if 'memory_room_skip_done' not in socklist:
+                                     socklist.append('memory_room_skip_done')
+                             else:
+                                 # Arduino подтвердил — останавливаем повторные отправки скипа
+                                 if 'memory_room_skip_done' not in socklist:
+                                     socklist.append('memory_room_skip_done')
+                                 #----отправили на клиента
+                                 send_esp32_command(ESP32_API_TRAIN_URL, "stage_0") 
+                                 socketio.emit('level', 'memory_room_end',to=None)
+                                 #----добавили в историю
+                                 socklist.append('memory_room_end')
+                                 #------играем эффект
+                                 play_effect(brain_end)
+                                 #-----активируем последнюю игру
+                                 socketio.emit('level', 'active_crime',to=None)
+                                 socklist.append('active_crime')
                              
                                  
                             
