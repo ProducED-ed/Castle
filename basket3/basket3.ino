@@ -41,9 +41,12 @@ unsigned long basketTimer;
 bool _restartFlag;
 bool _restartGalet;
 bool isTrollFixed;
-int activeTrollButton = -1;       // Какой геркон сейчас зажег диод
-unsigned long activeTrollLedTimer = 0; // Таймер для 5 секунд
+int activeTrollButton = -1;
+unsigned long activeTrollLedTimer = 0;
 bool isLoose;
+// ФИКС баг2: DoorDefender открывал SHERIF_EM2 при state>=6 сразу после item_end.
+// Дверь баскетбола должна открываться только после явной команды 'opent_basket'.
+bool basketDoorAllowed = false;
 bool hasSentReadyLog = false;
 bool lessonIsStarted = false;
 unsigned long robotScoreTimer = 0; // Таймер для паузы после гола робота
@@ -243,6 +246,7 @@ void HandleMessagges(String message) {
       _restartGalet = 0;
       _restartFlag = 0;
       lessonIsStarted = false;
+      basketDoorAllowed = false; // ФИКС: сброс при restart/ready
       
       doorDef = millis(); 
       doorTimer = millis();
@@ -300,7 +304,7 @@ void HandleMessagges(String message) {
     sendLog("trollLed OFF");
   }
   if(message == "open_door") OpenLock(SHERIF_EM2);
-  if(message == "opent_basket") OpenLock(SHERIF_EM2);
+  if(message == "opent_basket") { basketDoorAllowed = true; OpenLock(SHERIF_EM2); }
 }
 
 void CheckState(bool force) {
@@ -762,13 +766,15 @@ void DoorDefender() {
   if (millis() - doorDef >= 3000) {
     if (doorFlags) {
       if (state >= 3 && state <= 7) digitalWrite(SHERIF_EM1, HIGH);
-      if (state >= 6 && state <= 7) digitalWrite(SHERIF_EM2, HIGH);
+      // ФИКС баг2: SHERIF_EM2 (дверь баскетбола) открывается только после
+      // явной команды 'opent_basket' — не раньше, даже если state>=6
+      if (basketDoorAllowed && state >= 6 && state <= 7) digitalWrite(SHERIF_EM2, HIGH);
       doorTimer = millis(); doorFlags = 0;
     }
   }
   if (!doorFlags && (millis() - doorTimer >= 50)) {
       if (state >= 3 && state <= 7) digitalWrite(SHERIF_EM1, LOW);
-      if (state >= 6 && state <= 7) digitalWrite(SHERIF_EM2, LOW);
+      if (basketDoorAllowed && state >= 6 && state <= 7) digitalWrite(SHERIF_EM2, LOW);
       doorDef = millis(); doorFlags = 1;
   }
 }
