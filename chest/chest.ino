@@ -8,6 +8,8 @@
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 // -------------------------
 HardwareSerial mySerial(1); 
 
@@ -202,6 +204,10 @@ void finalizeGame() {
 // ------------------------------------------------------------------
 
 void setup() {
+  // Отключаем встроенный Brown-Out Detector — фикс cold-boot WiFi fails
+  // на слабом/шумном БП. См. [[clc-safe-esp32-power-issue]] в памяти.
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
   delay(2000);
   Serial.begin(115200);
   mySerial.begin(9600, SERIAL_8N1, 16, 17);
@@ -266,9 +272,17 @@ void setup() {
   Serial.println("STA Failed to configure");
   }
 
+  WiFi.persistent(true);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(ssid, password);
 
+  unsigned long wifiStart = millis();
   while (WiFi.status() != WL_CONNECTED) {
+    if (millis() - wifiStart > 15000UL) {
+      Serial.println("WiFi connect timeout — restarting ESP32");
+      delay(500);
+      ESP.restart();
+    }
     delay(1000);
     Serial.println("Connecting to WiFi...");
   }
