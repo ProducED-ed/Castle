@@ -556,8 +556,55 @@ def gather_system_status():
     }
 
 
+# Предыдущее состояние устройств — для логирования только изменений (state changes).
+# Хранятся как dict { name: bool|None }. None означает "ещё не проверяли".
+_prev_status_state = {
+    'esp32_wolf': None, 'esp32_platform': None, 'esp32_suitcases': None, 'esp32_safe': None,
+    'tower_main': None, 'tower_owls': None, 'tower_basket': None, 'tower_workshop': None, 'tower_dog': None,
+    'network_castle_ap': None, 'network_client_wifi': None, 'network_tailscale': None, 'network_internet': None,
+    'usb_audio': None, 'usb_wifi_dongle': None, 'usb_hub': None, 'usb_mega_main': None,
+}
+
+# Имена для логов: показываем понятные русские/английские лейблы вместо ключей.
+_status_labels = {
+    'esp32_wolf': 'ESP32 Wolf', 'esp32_platform': 'ESP32 Platform', 'esp32_suitcases': 'ESP32 Suitcases', 'esp32_safe': 'ESP32 Safe',
+    'tower_main': 'Main Board', 'tower_owls': 'Tower Owls', 'tower_basket': 'Tower Basket', 'tower_workshop': 'Tower Workshop', 'tower_dog': 'Tower Dog',
+    'network_castle_ap': 'Castle AP', 'network_client_wifi': 'Client WiFi', 'network_tailscale': 'Tailscale', 'network_internet': 'Internet',
+    'usb_audio': 'USB Audio', 'usb_wifi_dongle': 'USB WiFi-dongle', 'usb_hub': 'USB Hub', 'usb_mega_main': 'USB Mega-main',
+}
+
+
+def _log_status_changes(status):
+    """Сравнивает текущий статус с предыдущим и пишет ALERT/OK в лог
+    только при изменении. Это убирает спам и оставляет только важные события."""
+    flat = {}
+    for k, v in status.get('esp32', {}).items():     flat[f'esp32_{k}'] = bool(v)
+    for k, v in status.get('towers', {}).items():    flat[f'tower_{k}'] = bool(v)
+    for k, v in status.get('networks', {}).items():  flat[f'network_{k}'] = bool(v)
+    for k, v in status.get('usb', {}).items():       flat[f'usb_{k}'] = bool(v)
+
+    for key, current in flat.items():
+        prev = _prev_status_state.get(key)
+        if prev is None:
+            # Первое наблюдение — фиксируем без alert (это начальное состояние)
+            _prev_status_state[key] = current
+            continue
+        if prev != current:
+            label = _status_labels.get(key, key)
+            if current:
+                logger.info(f'STATUS OK: {label} restored to ONLINE')
+            else:
+                logger.warning(f'STATUS ALERT: {label} went OFFLINE')
+            _prev_status_state[key] = current
+
+
+# Время последнего ответа от Mega (для детектора "Mega silent")
+_last_mega_response = 0.0
+
+
 def system_status_loop():
     """Раз в 5 секунд эмитит system_status для технического пульта."""
+    global _last_mega_response
     while True:
         try:
             # Запросить у Mega текущий статус башен (она ответит "tower_status:..." -
@@ -569,6 +616,18 @@ def system_status_loop():
                 pass
             status = gather_system_status()
             socketio.emit('system_status', status, to=None)
+            _log_status_changes(status)
+            # Mega-silence detector: если tower_status snapshot устарел > 30 сек
+            # (т.е. Mega не отвечает на наши check_towers) — алерт.
+            import time as _time
+            if _tower_status_updated_at:
+                silent_for = _time.time() - _tower_status_updated_at
+                if silent_for > 30 and not getattr(system_status_loop, '_mega_silent_logged', False):
+                    logger.warning(f'STATUS ALERT: Main Board silent for {int(silent_for)}s (no heartbeat response)')
+                    system_status_loop._mega_silent_logged = True
+                elif silent_for < 15 and getattr(system_status_loop, '_mega_silent_logged', False):
+                    logger.info(f'STATUS OK: Main Board heartbeat resumed')
+                    system_status_loop._mega_silent_logged = False
         except Exception as e:
             logger.error(f"system_status_loop error: {e}")
         eventlet.sleep(5)
@@ -3565,9 +3624,11 @@ def serial():
                                if tower in parts:
                                    _tower_status_snapshot[tower] = (parts[tower].strip() == '1')
                            globals()['_tower_status_updated_at'] = time.time()
-                           # Логируем только если что-то изменилось (не спамим)
+                           # Логируем raw snapshot на DEBUG (детальная диагностика);
+                           # пользовательские ALERT'ы о состоянии каждой башни уже
+                           # эмитятся в _log_status_changes() с понятными лейблами.
                            if prev != _tower_status_snapshot:
-                               logger.info(f"TOWERS: {_tower_status_snapshot}")
+                               logger.debug(f"TOWERS: {_tower_status_snapshot}")
                        except Exception as _e:
                            logger.debug(f"Failed to parse tower_status '{flag}': {_e}")
                        # Это служебное сообщение — не пропускаем дальше в общую логику
@@ -3665,7 +3726,11 @@ def serial():
                    # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
                    description = EVENT_DESCRIPTIONS.get(flag, '-')
                    tag = get_device_tag(flag)
-                   logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
+                   # Периодический heartbeat-диагностика — на DEBUG, не INFO.
+                   if isinstance(flag, str) and flag.startswith('log:main:HB '):
+                       logging.debug(f'RECEIVED {tag}: {description} (RAW: {flag})')
+                   else:
+                       logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
                    # Логирование смены уровня ---
                    if flag.startswith("level_"):
                        try:
@@ -5630,7 +5695,11 @@ def process_serial_queue():
         message_to_send = serial_write_queue.get_nowait()
         description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
         tag = get_device_tag(message_to_send)
-        logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
+        # Периодический heartbeat-запрос — на DEBUG, чтобы не засорял INFO-лог.
+        if message_to_send == 'check_towers':
+            logging.debug(f'SENT {tag}: {description} (RAW: {message_to_send})')
+        else:
+            logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
         ser.write(str.encode(message_to_send + '\n'))
         eventlet.sleep(0.05)
     except eventlet.queue.Empty:

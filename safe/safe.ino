@@ -8,6 +8,8 @@
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 // -------------------------
 
 // --- ПИНИ ---
@@ -130,24 +132,54 @@ void openLocker();
 void startGameWonSequence(); 
 
 void setup() {
+  // Отключаем встроенный Brown-Out Detector — он может валить ESP32
+  // в reset-loop при power-on с просаженным БП до того как успеет
+  // запуститься основной код. Без этого cold-boot часто фейлится.
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
   Serial.begin(115200);
   Serial.println("Инициализация сейфа...");
 
-  dfplayerSerial.begin(9600, SERIAL_8N1, DFPLAYER_TX_PIN, DFPLAYER_RX_PIN);
-
+  // GPIO setup
   pinMode(LOCKER_PIN, OUTPUT);
   pinMode(LED_PIN_1, OUTPUT);
   pinMode(LED_PIN_2, OUTPUT);
-  
-  // ВНИМАНИЕ: Для пина 36 используем INPUT.
-  // Схема подключения геркона должна обеспечивать HIGH при размыкании.
   pinMode(REED_SWITCH_1_PIN, INPUT);
-  
   pinMode(REED_SWITCH_2_PIN, INPUT_PULLUP);
   pinMode(BALL_SENSOR_PIN, INPUT);
-
   digitalWrite(LOCKER_PIN, LOW);
   ledOff();
+
+  // WiFi — ДО DFPlayer (DFPlayer.begin может зависать на 1-2 сек
+  // если плеер не отвечает; WiFi требует быстрого старта на cold boot
+  // пока БП не просел от audio peripheral)
+  currentState = IDLE;
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("STA Failed to configure");
+  }
+  WiFi.persistent(true);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(ssid, password);
+  unsigned long wifiStart = millis();
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+    // Cold-boot rescue: если за 15 сек не подключились — сами себя ребутаем.
+    // На cold boot от слабого/шумного БП ESP32 может зависнуть на WiFi init
+    // (BOD или race) — warm reset через ESP.restart() решает.
+    if (millis() - wifiStart > 15000UL) {
+      Serial.println("WiFi connect timeout — restarting ESP32");
+      delay(500);
+      ESP.restart();
+    }
+  }
+
+  Serial.println("\nWiFi connected");
+  Serial.println("IP address: " + WiFi.localIP().toString());
+  sendLogToServer("{\"log\":\"ESP32 Safe is ready. IP: " + WiFi.localIP().toString() + "\"}");
+
+  // DFPlayer — после WiFi (WiFi уже стабилен, peak audio не валит boot)
+  dfplayerSerial.begin(9600, SERIAL_8N1, DFPLAYER_TX_PIN, DFPLAYER_RX_PIN);
   if (!myDFPlayer.begin(dfplayerSerial, true, true)) {
     Serial.println(F("!!! ВНИМАНИЕ: Не удалось найти DFPlayer Mini. Проверьте подключение. !!!"));
   } else {
@@ -155,22 +187,7 @@ void setup() {
     myDFPlayer.volume(value);
     myDFPlayer.stop();
   }
-
-  currentState = IDLE;
   Serial.println("Состояние: IDLE");
-  if (!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("STA Failed to configure");
-  }
-
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-
-  Serial.println("\nWiFi connected");
-  Serial.println("IP address: " + WiFi.localIP().toString());
-  sendLogToServer("{\"log\":\"ESP32 Safe is ready. IP: " + WiFi.localIP().toString() + "\"}");
 
   // --- НАСТРОЙКА OTA  ---
   ArduinoOTA.setHostname("Safe-ESP32"); // Имя устройства в сети
@@ -339,9 +356,23 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   server.handleClient();
+  // WiFi watchdog: non-blocking, restart только после 60 сек непрерывной потери
+  static unsigned long lastReconnectAttempt = 0;
+  static unsigned long wifiDownSince = 0;
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-    delay(2000);
+    if (wifiDownSince == 0) wifiDownSince = millis();
+    if (millis() - lastReconnectAttempt > 10000UL) {
+      lastReconnectAttempt = millis();
+      Serial.println("WiFi lost — reconnecting");
+      WiFi.reconnect();
+    }
+    if (millis() - wifiDownSince > 60000UL) {
+      Serial.println("WiFi down >60s — restarting ESP32");
+      delay(500);
+      ESP.restart();
+    }
+  } else {
+    wifiDownSince = 0;  // соединение в порядке
   }
   handleSerialCommands();
   handlePlayerQueries();
