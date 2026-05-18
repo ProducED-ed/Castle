@@ -1,0 +1,29 @@
+# Arduino build artifacts
+*.eep
+*.elf
+*.hex
+*.with_bootloader.bin
+*.with_bootloader.hex
+build/
+*/build/
+*/*/build/
+
+# Прошивочные бэкапы Mega/башен (от ручных flash'ей)
+*.hex.bak-*
+
+# Архивы и приватные экспорты чатов
+*.rar
+*.zip
+chat-*.md
+
+# Папка с фотками плат и PCB-файлами (158 MB, разберёмся позже)
+Платы/
+
+# Системные/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
