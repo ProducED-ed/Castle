@@ -686,12 +686,19 @@ void handleUartCommands() {
     String command = Serial1.readStringUntil('\n');
     command.trim();
     
+    if (command.endsWith("\r")) {
+      command.remove(command.length() - 1);
+    }
+
+    // Безопасный heartbeat от Main: отвечаем "pong" без побочек и без лога CMD.
+    if (command == "ping_main") {
+      Serial1.println("pong");
+      return;
+    }
+
     // Блокируем эхо только для команды restart
     if (command != "restart") {
       sendLog("Received command: " + command);
-    }
-    if (command.endsWith("\r")) {
-      command.remove(command.length() - 1);
     }
     if (command == "check_state"){
       CheckState(true);     // Принудительная отправка

@@ -207,6 +207,12 @@ void loop() {
 }
 
 void HandleMessagges(String message) {
+  // Безопасный heartbeat от Main: только отвечаем "pong" без побочек и без лога CMD.
+  if (message == "ping_main") {
+    Serial1.println("pong");
+    return;
+  }
+
   if (message.length() > 0 && message != "restart" && message != "ready") sendLog("CMD: " + message);
 
   // 1. ЛОГИКА ЗАМКОВ (ТОЛЬКО ПРИ RESTART)

@@ -519,6 +519,10 @@ void loop() {
           _restartGalet = 0;
           CheckState();
         }
+        else if (strcmp_P(receivedUartMessageBuffer, PSTR("ping_main")) == 0) {
+          // Безопасный heartbeat от Main: только отвечаем "pong", без побочек и логов.
+          Serial.println(F("pong"));
+        }
         else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
           hasSentReadyLog = false;
           currentQuestState = STATE_RESTARTING;

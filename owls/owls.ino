@@ -238,6 +238,12 @@ void processOwlCommand(String command) {
     FastLED.show();
   }
 
+  // Безопасный heartbeat от Main: только отвечаем "pong" без побочек.
+  if (command == "ping_main") {
+    Serial1.println("pong");
+    return;
+  }
+
   if (command == "ready") {
     delay(100);
     if (!hasSentReadyLog) {

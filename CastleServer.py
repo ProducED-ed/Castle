@@ -326,6 +326,8 @@ logger.addHandler(stream_handler)
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 logging.getLogger('engineio').setLevel(logging.ERROR)
 logging.getLogger('socketio').setLevel(logging.ERROR)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('requests').setLevel(logging.WARNING)
 
 serial_write_queue = eventlet.queue.Queue()
 pending_commands = {} # Словарь для хранения последних команд
@@ -409,6 +411,167 @@ def set_bluetooth_state(state):
         socketio.emit('bt_state', bluetooth_active, to=None)
     except Exception as e:
         logger.error(f"BLUETOOTH ERROR: {e}")
+# -------------------------------
+
+# --- Периодическая проверка системного статуса для Tech Dashboard ---
+# Snapshot статуса башен — обновляется парсером входящих логов от Mega при ответе
+# на команду 'check_towers' (см. ниже в serial-reader). None = ещё ни разу не отвечала.
+# Также храним timestamp последнего обновления: если значение старше TTL — сбрасываем в None
+# (Mega перестала отвечать = не доверяем устаревшим данным).
+_tower_status_snapshot = {'workshop': None, 'basket': None, 'dog': None, 'owls': None}
+_tower_status_updated_at = 0.0  # time.time() последнего обновления snapshot
+_TOWER_SNAPSHOT_TTL = 15.0       # сек: дольше — считаем что Mega молчит, snapshot устарел
+
+def _read_text(path):
+    try:
+        with open(path) as _f:
+            return _f.read().strip()
+    except Exception:
+        return ''
+
+def _iface_state(iface):
+    """Возвращает (up: bool, ipv4: str | '') — читает из /sys и /proc без subprocess."""
+    operstate = _read_text(f'/sys/class/net/{iface}/operstate')
+    if not operstate:
+        return False, ''
+    # tailscale0 в /sys обычно 'unknown' но фактически активен
+    up = operstate in ('up', 'unknown')
+    if not up:
+        return False, ''
+    # Читаем IPv4 из /proc/net/fib_trie (универсально, без subprocess)
+    # Проще: вызовем internal call через ctypes-free путь — через netlink сложно.
+    # Используем /proc/net/route + читать адрес через socket ioctl SIOCGIFADDR.
+    ipv4 = ''
+    try:
+        import socket as _sock, fcntl as _fcntl, struct as _struct
+        s = _sock.socket(_sock.AF_INET, _sock.SOCK_DGRAM)
+        try:
+            packed = _fcntl.ioctl(s.fileno(), 0x8915,  # SIOCGIFADDR
+                                  _struct.pack('256s', iface.encode()[:15]))
+            ipv4 = _sock.inet_ntoa(packed[20:24])
+        finally:
+            s.close()
+    except Exception:
+        pass
+    return up, ipv4
+
+def _check_tcp(host, port, timeout=1.5):
+    """Eventlet-aware TCP-connect — для проверки интернета и ESP32."""
+    try:
+        import socket as _sock
+        with _sock.create_connection((host, port), timeout=timeout):
+            return True
+    except Exception:
+        return False
+
+def _check_esp32(ip):
+    """HTTP POST 'hc' на ESP32 с коротким таймаутом."""
+    try:
+        r = requests.post(f'http://{ip}/data', json='hc', timeout=1.5)
+        return r.ok
+    except Exception:
+        return False
+
+def gather_system_status():
+    """Собирает текущий статус устройств и сетей для технического пульта."""
+    import os
+
+    # ESP32 — живой опрос (не полагаемся на старый глобал `devices`)
+    esp32 = {
+        'wolf':      _check_esp32('192.168.4.201'),
+        'platform':  _check_esp32('192.168.4.202'),
+        'suitcases': _check_esp32('192.168.4.203'),
+        'safe':      _check_esp32('192.168.4.204'),
+    }
+
+    # Башни: main = по /dev/ttyUSB_MAIN. Остальные — из snapshot который
+    # обновляется когда Mega отвечает на 'check_towers' (heartbeat).
+    # Если snapshot устарел (> TTL сек) — Mega молчит, snapshot не доверяем →
+    # возвращаемся к fallback (main_ok). Это охватывает и случай когда сервер
+    # только что стартовал и snapshot пустой.
+    import time as _time
+    main_ok = os.path.exists('/dev/ttyUSB_MAIN')
+    snap = _tower_status_snapshot
+    fresh = (_time.time() - _tower_status_updated_at) < _TOWER_SNAPSHOT_TTL if _tower_status_updated_at else False
+    def _tower(name):
+        v = snap[name]
+        if not fresh or v is None:   # snapshot устарел или не было ответа — fallback
+            return main_ok
+        return bool(v)
+    towers = {
+        'main':     main_ok,
+        'owls':     _tower('owls'),
+        'basket':   _tower('basket'),
+        'workshop': _tower('workshop'),
+        'dog':      _tower('dog'),
+    }
+
+    # Сети — через /sys и SIOCGIFADDR (без subprocess)
+    networks = {'castle_ap': False, 'client_wifi': False, 'tailscale': False, 'internet': False}
+
+    # wlan0 — Castle AP. Должен быть UP и иметь 192.168.4.1
+    up0, ip0 = _iface_state('wlan0')
+    networks['castle_ap'] = up0 and ip0 == '192.168.4.1'
+
+    # wlan1 — клиент любой Wi-Fi сети. UP + IP не link-local
+    up1, ip1 = _iface_state('wlan1')
+    networks['client_wifi'] = up1 and bool(ip1) and not ip1.startswith('169.254.')
+
+    # tailscale0 — VPN-канал. UP + IP в 100.64.0.0/10 (CGNAT диапазон Tailscale)
+    upt, ipt = _iface_state('tailscale0')
+    networks['tailscale'] = upt and ipt.startswith('100.')
+
+    # Интернет — TCP-connect к 1.1.1.1:53 (быстро, eventlet-aware)
+    networks['internet'] = _check_tcp('1.1.1.1', 53, timeout=1.5)
+
+    # USB устройства (по VID:PID в /sys/bus/usb/devices/)
+    usb_targets = {
+        'audio':       ('0c76', '1676'),   # JMTek USB PnP Audio Device
+        'wifi_dongle': ('2357', '0111'),   # TP-Link USB-WiFi
+        'hub':         ('214b', '7250'),   # Huasheng USB-hub (башни)
+        'mega_main':   ('1a86', '7523'),   # CH340 (Mega главная)
+    }
+    usb = {k: False for k in usb_targets}
+    try:
+        for dev in os.listdir('/sys/bus/usb/devices'):
+            if not dev or not dev[0].isdigit():
+                continue
+            vid = _read_text(f'/sys/bus/usb/devices/{dev}/idVendor')
+            pid = _read_text(f'/sys/bus/usb/devices/{dev}/idProduct')
+            if not vid or not pid:
+                continue
+            for name, (tvid, tpid) in usb_targets.items():
+                if vid == tvid and pid == tpid:
+                    usb[name] = True
+                    break
+    except Exception:
+        pass
+
+    return {
+        'esp32':     esp32,
+        'towers':    towers,
+        'networks':  networks,
+        'usb':       usb,
+        'bluetooth': bluetooth_active,
+    }
+
+
+def system_status_loop():
+    """Раз в 5 секунд эмитит system_status для технического пульта."""
+    while True:
+        try:
+            # Запросить у Mega текущий статус башен (она ответит "tower_status:..." -
+            # его поймает парсер в serial() и обновит _tower_status_snapshot).
+            try:
+                serial_write_queue.put('check_towers')
+                process_serial_queue()  # принудительно вытолкнуть команду на Mega сразу
+            except Exception:
+                pass
+            status = gather_system_status()
+            socketio.emit('system_status', status, to=None)
+        except Exception as e:
+            logger.error(f"system_status_loop error: {e}")
+        eventlet.sleep(5)
 # -------------------------------
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -1406,9 +1569,9 @@ network={{
         # ДАЕМ ПАУЗУ, чтобы служба поднялась и инициализировала адаптер
         eventlet.sleep(5)
         
-        # 5. ЦИКЛ ОЖИДАНИЯ (ждем до 15 секунд, проверяя соединение)
+        # 5. ЦИКЛ ОЖИДАНИЯ (ждем до 30 секунд, проверяя соединение)
         connected = False
-        for i in range(15):
+        for i in range(30):
             eventlet.sleep(1)
             try:
                 # Проверяем SSID
@@ -3390,6 +3553,25 @@ def serial():
                        pending_ready = False
                        logger.info("SYSTEM CHECK COMPLETE: Playing startup sound.")
                        play_effect(on_sound)
+
+                   # --- Heartbeat башен (ответ Mega на check_towers) ---
+                   # Формат: "tower_status:workshop=1,basket=0,dog=1,owls=1"
+                   if isinstance(flag, str) and flag.startswith("tower_status:"):
+                       try:
+                           body = flag[len("tower_status:"):]
+                           parts = dict(kv.split('=', 1) for kv in body.split(',') if '=' in kv)
+                           prev = dict(_tower_status_snapshot)
+                           for tower in ('workshop', 'basket', 'dog', 'owls'):
+                               if tower in parts:
+                                   _tower_status_snapshot[tower] = (parts[tower].strip() == '1')
+                           globals()['_tower_status_updated_at'] = time.time()
+                           # Логируем только если что-то изменилось (не спамим)
+                           if prev != _tower_status_snapshot:
+                               logger.info(f"TOWERS: {_tower_status_snapshot}")
+                       except Exception as _e:
+                           logger.debug(f"Failed to parse tower_status '{flag}': {_e}")
+                       # Это служебное сообщение — не пропускаем дальше в общую логику
+                       continue
 
                    flag_on_commands = ["workshop_flag1_on", "dog_flag3_on", "owls_flag4_on"]
                    flag_off_commands = ["workshop_flag1_off", "dog_flag3_off", "owls_flag4_off"]
@@ -5616,8 +5798,8 @@ if __name__ == '__main__':
 
             eventlet.sleep(5) # Даем dhcpcd время поднять wpa_supplicant
 
-            # Проверяем подключение (до 15 секунд)
-            for i in range(15):
+            # Проверяем подключение (до 30 секунд)
+            for i in range(30):
                 eventlet.sleep(1)
                 try:
                     ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
@@ -5641,6 +5823,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=startup_wifi_routine) # Запускаем Wi-Fi в фоне
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
+        socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:
