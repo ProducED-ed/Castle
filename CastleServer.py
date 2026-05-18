@@ -306,7 +306,9 @@ def custom_namer(default_name):
     return f"{base}{num}.log"
 
 file_handler.namer = custom_namer
-file_handler.setLevel(logging.DEBUG) # Файл пишет ВСЁ (DEBUG и выше)
+# Файл пишет INFO+ для тех-поддержки (без DEBUG-шума периодических poll'ов).
+# Если нужна глубокая диагностика — временно понизить до logging.DEBUG.
+file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(file_formatter) # Используем ДЕТАЛЬНЫЙ форматтер
 
 # Create a stream handler for INFO messages (Короткий лог в консоль)
