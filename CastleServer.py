@@ -920,6 +920,59 @@ except Exception:
     pass
 # ---------------------------------------------------------
 
+# --- Internet sharing (NAT wlan0 → wlan1) ---
+INTERNET_SHARE_FILE = '/home/pi/New/internet_share.txt'
+internet_sharing = False
+try:
+    if os.path.exists(INTERNET_SHARE_FILE):
+        with open(INTERNET_SHARE_FILE, 'r') as f:
+            internet_sharing = (f.read().strip() == "1")
+except Exception:
+    pass
+
+
+def apply_internet_sharing(enable):
+    """Управляет раздачей интернета С Castle AP (wlan0) НА wlan1.
+    НЕ трогает ip_forward и NAT MASQUERADE — они нужны Tailscale для своих
+    функций (subnet routing, exit-node). Также не задевает собственный
+    интернет Pi и Tailscale-соединение.
+
+    Принцип: вставляет DROP-правило в начало FORWARD-цепочки строго для
+    пути wlan0→wlan1 (Castle clients → outside). Pi-local трафик и
+    tailscale0-трафик идут другими маршрутами и не задеваются.
+
+    Когда ON: убираем DROP, default ACCEPT policy пропускает.
+    Когда OFF: вставляем DROP перед всем остальным.
+    Идемпотентно."""
+    import subprocess
+    drop_rule = ['FORWARD', '-i', 'wlan0', '-o', 'wlan1', '-j', 'DROP']
+    try:
+        check = subprocess.run(['sudo', 'iptables', '-C'] + drop_rule,
+                               capture_output=True, timeout=3)
+        exists = (check.returncode == 0)
+        if enable:
+            # ON: интернет разрешён — снимаем DROP, если он есть
+            while exists:
+                subprocess.run(['sudo', 'iptables', '-D'] + drop_rule,
+                               check=False, capture_output=True, timeout=3)
+                check = subprocess.run(['sudo', 'iptables', '-C'] + drop_rule,
+                                       capture_output=True, timeout=3)
+                exists = (check.returncode == 0)
+        else:
+            # OFF: блокируем — вставляем DROP в начало цепочки если ещё нет
+            if not exists:
+                subprocess.run(['sudo', 'iptables', '-I'] + drop_rule,
+                               check=False, capture_output=True, timeout=3)
+    except Exception as _e:
+        logger.error(f"apply_internet_sharing error: {_e}")
+
+# Применяем восстановленное состояние при старте
+try:
+    apply_internet_sharing(internet_sharing)
+except Exception:
+    pass
+# ---------------------------------------------------------
+
 channel1.set_volume(float(a1),float(a1))
 channel2.set_volume(float(a2),float(a2))
 channel3.set_volume(float(a3),float(a3))
@@ -1576,6 +1629,7 @@ def handle_connect():
     socketio.emit('suitcases', str(suitcaseLevel))
     socketio.emit('safe', str(safeLevel))
     socketio.emit('ready_music_state', play_ready_music, to=request.sid)
+    socketio.emit('internet_state', internet_sharing, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
@@ -5795,6 +5849,24 @@ def handle_ready_music_toggle(is_checked):
             play_background_music("fon1.mp3", loops=-1)
         else:
             pygame.mixer.music.stop()
+# ---------------------------------------------------------------
+
+# --- Обработчик переключателя Internet sharing с пульта ---
+@socketio.on('toggle_internet_sharing')
+def handle_internet_toggle(is_checked):
+    global internet_sharing
+    if isinstance(is_checked, str):
+        internet_sharing = (is_checked.lower() == 'true')
+    else:
+        internet_sharing = bool(is_checked)
+    try:
+        with open(INTERNET_SHARE_FILE, 'w') as f:
+            f.write("1" if internet_sharing else "0")
+    except Exception as e:
+        logger.error(f"Error saving internet sharing state: {e}")
+    apply_internet_sharing(internet_sharing)
+    logger.info(f"Internet sharing: {'ENABLED' if internet_sharing else 'DISABLED'}")
+    socketio.emit('internet_state', internet_sharing, to=None)
 # ---------------------------------------------------------------
 
 # === СИСТЕМА АВТОРИЗАЦИИ (LOGIN) ===

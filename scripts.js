@@ -1908,7 +1908,23 @@ $('.ui.dropdown')
 					$('#ready-music-toggle-container').checkbox('set unchecked');
 				}
 			});
-			
+
+			// --- Internet sharing toggle (раздача интернета через Pi-AP wlan0 → wlan1) ---
+			$('#internet-toggle-container').checkbox({
+				onChange: function() {
+					let isChecked = $('#internet-checkbox').is(':checked');
+					socket.emit('toggle_internet_sharing', isChecked);
+				}
+			});
+
+			socket.on('internet_state', function(state) {
+				if (state) {
+					$('#internet-toggle-container').checkbox('set checked');
+				} else {
+					$('#internet-toggle-container').checkbox('set unchecked');
+				}
+			});
+
 			// --- (Инициализация Bluetooth) ---
 			// Инициализация чекбокса Semantic UI
 			$('#bt-toggle-container').checkbox({
@@ -1944,7 +1960,23 @@ $('.ui.dropdown')
 				}
 			});
 			// ----------------------------------------------------
-			
+
+			// --- Internet sharing toggle (NAT wlan0 → wlan1) ---
+			$('#internet-toggle-container').checkbox({
+				onChange: function() {
+					let isChecked = $('#internet-checkbox').is(':checked');
+					socket.emit('toggle_internet_sharing', isChecked);
+				}
+			});
+
+			socket.on('internet_state', function(state) {
+				if (state) {
+					$('#internet-toggle-container').checkbox('set checked');
+				} else {
+					$('#internet-toggle-container').checkbox('set unchecked');
+				}
+			});
+
  // --- WI-FI LOGIC ---
     
     // 1. Открыть/Закрыть меню + ПРОВЕРКА СТАТУСА
