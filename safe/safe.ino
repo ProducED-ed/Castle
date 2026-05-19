@@ -23,7 +23,10 @@ const int DFPLAYER_TX_PIN = 16;
 const int DFPLAYER_RX_PIN = 17;
 
 // --- НАСТРОЙКИ DFPLAYER ---
-HardwareSerial dfplayerSerial(1);
+// Serial2 (не Serial1) — Serial1 на ESP32 имеет нестабильный RX из-за
+// конфликта default-пинов с QSPI flash (pins 9/10). Serial2 default RX=16/TX=17
+// что точно соответствует нашей разводке к DFPlayer.
+HardwareSerial dfplayerSerial(2);
 DFRobotDFPlayerMini myDFPlayer;
 
 // --- АУДИОФАЙЛЫ ---
@@ -102,6 +105,7 @@ bool hintFlag=1;
 int value = 30;
 
 bool safeEndConfirmed = false;      // Флаг подтверждения от сервера
+unsigned long stepEnteredAt = 0;    // Момент входа в текущий gameWonSequenceStep (для time-based fallback если DFPlayer не шлёт events)
 unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
 
 // Настройки статического IP
@@ -150,9 +154,19 @@ void setup() {
   digitalWrite(LOCKER_PIN, LOW);
   ledOff();
 
-  // WiFi — ДО DFPlayer (DFPlayer.begin может зависать на 1-2 сек
-  // если плеер не отвечает; WiFi требует быстрого старта на cold boot
-  // пока БП не просел от audio peripheral)
+  // DFPlayer init ДО WiFi — иначе DFPlayer не шлёт track-finished events
+  // в handlePlayerQueries (видимо WiFi stack захватывает что-то нужное
+  // DFPlayer Serial-у при init). BOD disable в первой строке защищает
+  // от brown-out при peak ток audio peripheral на cold boot.
+  dfplayerSerial.begin(9600, SERIAL_8N1, DFPLAYER_TX_PIN, DFPLAYER_RX_PIN);
+  if (!myDFPlayer.begin(dfplayerSerial, true, true)) {
+    Serial.println(F("!!! ВНИМАНИЕ: Не удалось найти DFPlayer Mini. Проверьте подключение. !!!"));
+  } else {
+    Serial.println(F("DFPlayer Mini инициализирован."));
+    myDFPlayer.volume(value);
+    myDFPlayer.stop();
+  }
+
   currentState = IDLE;
   if (!WiFi.config(local_IP, gateway, subnet)) {
     Serial.println("STA Failed to configure");
@@ -177,16 +191,6 @@ void setup() {
   Serial.println("\nWiFi connected");
   Serial.println("IP address: " + WiFi.localIP().toString());
   sendLogToServer("{\"log\":\"ESP32 Safe is ready. IP: " + WiFi.localIP().toString() + "\"}");
-
-  // DFPlayer — после WiFi (WiFi уже стабилен, peak audio не валит boot)
-  dfplayerSerial.begin(9600, SERIAL_8N1, DFPLAYER_TX_PIN, DFPLAYER_RX_PIN);
-  if (!myDFPlayer.begin(dfplayerSerial, true, true)) {
-    Serial.println(F("!!! ВНИМАНИЕ: Не удалось найти DFPlayer Mini. Проверьте подключение. !!!"));
-  } else {
-    Serial.println(F("DFPlayer Mini инициализирован."));
-    myDFPlayer.volume(value);
-    myDFPlayer.stop();
-  }
   Serial.println("Состояние: IDLE");
 
   // --- НАСТРОЙКА OTA  ---
@@ -524,6 +528,36 @@ void loop() {
           safeEndSendTimer = millis();
         }
       }
+
+      // Time-based fallback на случай если DFPlayer не шлёт track-finished
+      // events (hardware: RX-провод от DFPlayer к ESP32 не работает).
+      // Принудительно двигаем sequence по таймеру 30 сек на шаг.
+      if (gameWonSequenceStep == 1 && (millis() - stepEnteredAt > 30000UL)) {
+        Serial.println("FALLBACK: 29A timeout — переход к SAFE_END");
+        sendLogToServer("{\"log\":\"Safe FALLBACK step1→2 by timer (DFPlayer event missing)\"}");
+        gameWonSequenceStep = 2;
+        stepEnteredAt = millis();
+        myDFPlayer.playMp3Folder(TRACK_SAFE_END);
+      }
+      else if (gameWonSequenceStep == 2 && (millis() - stepEnteredAt > 30000UL)) {
+        Serial.println("FALLBACK: SAFE_END timeout — открываем дверь + 29B");
+        sendLogToServer("{\"log\":\"Safe FALLBACK step2→3 by timer (open door + 29B)\"}");
+        gameWonSequenceStep = 3;
+        stepEnteredAt = millis();
+        openLocker();
+        if(language == 1) myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU);
+        else if(language == 2) myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN);
+        else if(language == 3) myDFPlayer.playMp3Folder(TRACK_STORY_29B_AR);
+        else if(language == 4) myDFPlayer.playMp3Folder(TRACK_STORY_29B_FR);
+        else if(language == 5) myDFPlayer.playMp3Folder(TRACK_STORY_29B_UK);
+        else if(language == 6) myDFPlayer.playMp3Folder(TRACK_STORY_29B_PL);
+        hintFlag = 0;
+      }
+      else if (gameWonSequenceStep == 3 && (millis() - stepEnteredAt > 30000UL)) {
+        Serial.println("FALLBACK: 29B timeout — сцена завершена");
+        sendLogToServer("{\"log\":\"Safe FALLBACK step3→4 by timer (sequence done)\"}");
+        gameWonSequenceStep = 4;
+      }
       if (digitalRead(REED_SWITCH_2_PIN) == LOW && gameWonSequenceStep >= 4 && (millis() - lastDebounceTime_2) > debounceDelay) {
         if (hintFlag){
           if(language == 1){
@@ -611,11 +645,85 @@ void handlePlayerQueries() {
   if(millis()- trackTimer >= 2000){
     flagTrack = 0;
   }
+
+  // RAW DFPlayer frame parser — обходим библиотеку DFRobotDFPlayerMini
+  // (она по неизвестной причине не парсит event-frames, хотя сигнал на RX
+  // пине 16 ESP32 подтверждён осциллографом). DFPlayer Mini protocol:
+  // 10 байт: 0x7E 0xFF 0x06 [CMD] [ACK] [HI] [LO] [CK_HI] [CK_LO] 0xEF
+  // CMD=0x3D — «трек на SD card завершился».
+  static uint8_t rawBuf[10];
+  static int rawPos = 0;
+  while (dfplayerSerial.available()) {
+    uint8_t b = dfplayerSerial.read();
+    if (rawPos == 0 && b != 0x7E) continue;  // ждём начало frame
+    rawBuf[rawPos++] = b;
+    if (rawPos >= 10) {
+      rawPos = 0;
+      if (rawBuf[9] == 0xEF && rawBuf[1] == 0xFF && rawBuf[2] == 0x06) {
+        uint8_t cmd = rawBuf[3];
+        int trackNum = (rawBuf[5] << 8) | rawBuf[6];
+        sendLogToServer("{\"log\":\"Safe DFPlayer RAW: cmd=0x" + String(cmd, HEX) + " track=" + String(trackNum) + " state=" + String(currentState) + " step=" + String(gameWonSequenceStep) + "\"}");
+        // CMD 0x3D = трек завершён (SD card)
+        if (cmd == 0x3D) {
+          int finishedTrack = trackNum;
+          Serial.print("[RAW] Завершился трек: ");
+          Serial.println(finishedTrack);
+          hintFlag = 1;
+          if (currentState == GAME_ACTIVE && finishedTrack != TRACK_FON_SAFE) {
+            if(!flagTrack){
+              myDFPlayer.playMp3Folder(TRACK_FON_SAFE);
+              trackTimer = millis();
+              flagTrack = 1;
+            }
+          }
+          if (currentState == GAME_WON) {
+            bool isTrack29A = (finishedTrack == TRACK_STORY_29A_RU || finishedTrack == TRACK_STORY_29A_AR || finishedTrack == TRACK_STORY_29A_FR
+                            || finishedTrack == TRACK_STORY_29A_EN || finishedTrack == TRACK_STORY_29A_UK || finishedTrack == TRACK_STORY_29A_PL);
+            if (isTrack29A && gameWonSequenceStep == 1) {
+              gameWonSequenceStep = 2;
+              stepEnteredAt = millis();
+              myDFPlayer.playMp3Folder(TRACK_SAFE_END);
+              sendLogToServer("{\"log\":\"Safe: 29A done by EVENT → SAFE_END\"}");
+            }
+            else if (finishedTrack == TRACK_SAFE_END && gameWonSequenceStep == 2) {
+              gameWonSequenceStep = 3;
+              stepEnteredAt = millis();
+              openLocker();
+              sendLogToServer("{\"log\":\"Safe: SAFE_END done by EVENT → open door + 29B\"}");
+              if(language == 1) myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU);
+              else if(language == 2) myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN);
+              else if(language == 3) myDFPlayer.playMp3Folder(TRACK_STORY_29B_AR);
+              else if(language == 4) myDFPlayer.playMp3Folder(TRACK_STORY_29B_FR);
+              else if(language == 5) myDFPlayer.playMp3Folder(TRACK_STORY_29B_UK);
+              else if(language == 6) myDFPlayer.playMp3Folder(TRACK_STORY_29B_PL);
+              hintFlag = 0;
+            }
+            else if (gameWonSequenceStep == 3) {
+              bool isTrack29B = (finishedTrack == TRACK_STORY_29B_RU || finishedTrack == TRACK_STORY_29B_AR || finishedTrack == TRACK_STORY_29B_FR
+                              || finishedTrack == TRACK_STORY_29B_EN || finishedTrack == TRACK_STORY_29B_UK || finishedTrack == TRACK_STORY_29B_PL);
+              if (isTrack29B) {
+                gameWonSequenceStep = 4;
+                stepEnteredAt = millis();
+                sendLogToServer("{\"log\":\"Safe: 29B done by EVENT → sequence complete\"}");
+              }
+            }
+          }
+        }
+      }
+      // если не валидный frame — сдвигаемся и продолжаем искать 0x7E
+    }
+  }
+
   if (myDFPlayer.available()) {
     uint8_t type = myDFPlayer.readType();
-    Serial.println(type);
+    int value = myDFPlayer.read();
+    Serial.print("DFPlayer event type=");
+    Serial.print(type);
+    Serial.print(" value=");
+    Serial.println(value);
+    sendLogToServer("{\"log\":\"Safe DFPlayer LIB event: type=" + String(type) + " value=" + String(value) + " state=" + String(currentState) + " step=" + String(gameWonSequenceStep) + "\"}");
     if (type == 11) {
-      int finishedTrack = myDFPlayer.read();
+      int finishedTrack = value;
       Serial.print("Завершился трек: ");
       Serial.println(finishedTrack);
       hintFlag = 1;
@@ -636,12 +744,14 @@ void handlePlayerQueries() {
         
         if (isTrack29A && gameWonSequenceStep == 1) {
           gameWonSequenceStep = 2;
+          stepEnteredAt = millis();
           myDFPlayer.playMp3Folder(TRACK_SAFE_END);
           sendLogToServer("{\"log\":\"Safe: Playing Safe End sound\"}");
         } 
         // Шаг 2 -> 3: Завершился TRACK_SAFE_END, открываем замок и запускаем TRACK_STORY_29B
         else if (finishedTrack == TRACK_SAFE_END && gameWonSequenceStep == 2) {
           gameWonSequenceStep = 3;
+          stepEnteredAt = millis();
           openLocker();
           if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (RU)\"}"); }
           if(language == 2){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (EN)\"}"); }
@@ -657,6 +767,7 @@ void handlePlayerQueries() {
                         || finishedTrack == TRACK_STORY_29B_EN || finishedTrack == TRACK_STORY_29B_UK || finishedTrack == TRACK_STORY_29B_PL);
           if (isTrack29B) {
             gameWonSequenceStep = 4;
+            stepEnteredAt = millis();
             Serial.println("Сцена победы полностью завершена.");
           }
         }
@@ -671,6 +782,7 @@ void startGameWonSequence() {
 
   currentState = GAME_WON;
   gameWonSequenceStep = 1;
+  stepEnteredAt = millis();
   myDFPlayer.stop();
   // Начинаем процесс отправки данных
   safeEndSendTimer = millis(); // Устанавливаем таймер для немедленной первой отправки

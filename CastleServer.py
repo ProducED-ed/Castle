@@ -2575,10 +2575,16 @@ def handle_data():
             socketio.emit('level', data['train_enc'], to=None)
             logging.info(f"TRAIN ENCODER STATUS: {data['train_enc']}")
             return jsonify({"status": "success"})
-        # Добавляем обработку простых логов от ESP32
+        # Добавляем обработку простых логов от ESP32.
+        # Уровень: INFO для важных событий (FALLBACK, ERROR, ALERT, ВНИМАНИЕ),
+        # DEBUG для всех остальных (рутинные ready/playing-сообщения, не для скан-листа).
         if 'log' in data:
-             # Это сообщение попадет и в файл, и в консоль (если уровень INFO)
-             logging.debug(f"RECEIVED [ESP32 Log]: {data['log']}")
+             msg = str(data.get('log', ''))
+             important = any(kw in msg for kw in ('FALLBACK', 'ERROR', 'ALERT', 'ВНИМАНИЕ', 'Error', 'fail', 'Fail'))
+             if important:
+                 logging.info(f"RECEIVED [ESP32 Log]: {msg}")
+             else:
+                 logging.debug(f"RECEIVED [ESP32 Log]: {msg}")
              # Возвращаем успех, чтобы ESP32 не висела
              return jsonify({"status": "success"})
         # Улучшенное логирование входящих сообщений от ESP32
@@ -2722,12 +2728,13 @@ def handle_data():
             serial_write_queue.put('ghost')
                  
 
-        # Можно отправить данные на ESP32
-        try:
-            #response = requests.post(ESP32_API_URL, json=data, timeout=3)
-            return jsonify({"status": "success", "esp32_response": response.json()})
-        except Exception as e:
-            return jsonify({"status": "error", "message": str(e)}), 500
+        # Обработка POST завершена — возвращаем успех.
+        # (Раньше тут была закомментированная строка с requests.post(ESP32_API_URL...)
+        # и попытка прочитать `response.json()` от несуществующей переменной —
+        # это валило ВСЕ ESP32 POST в HTTP 500 → их HTTPClient блокировал loop
+        # пытаясь повторять до получения 200. Симптом: Safe в GAME_WON флапает
+        # WiFi каждые 30-60 сек, "зависает игра".)
+        return jsonify({"status": "success"})
             
     return jsonify({"status": "ready", "message": "Send POST request with data"})
                      
