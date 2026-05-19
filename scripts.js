@@ -1851,149 +1851,46 @@ $('.ui.dropdown')
 			});
 
 
-			// --- Wolf Sound ---
-			buttonUpWolf.addEventListener(start, function() {
-				timerIntervalUpWolf = setInterval(function(){
-					var newValue = lev14 + 1;
-					if(newValue <= 20){
-						socket.emit('WolfUp', newValue);
-					} else {
-						clearInterval(timerIntervalUpWolf);
-					}
-			  }, 100);
-			});
-			buttonUpWolf.addEventListener(leave, function() { clearInterval(timerIntervalUpWolf); });
-			buttonUpWolf.addEventListener(stop, function() { clearInterval(timerIntervalUpWolf); });
+			// --- Wolf/Platform/Suitcases/Safe volume controls ---
+			// Только click-handler'ы (без setInterval/repeat). Раньше каждая кнопка
+			// держала setInterval, который при потере mouseup/mouseleave (alt-tab,
+			// быстрое движение мыши) продолжал бесконечно эмитить *Up/*Down события
+			// в фоне. Это создавало stuck-handler'ы которые рушили UX volume.
+
 			$('#wolfUp').click(function(){
 				var newValue = lev14 + 1;
 				if(newValue <= 20){ socket.emit('WolfUp', newValue); }
 			});
-			
-			buttonDownWolf.addEventListener(start, function() {
-				timerIntervalDownWolf = setInterval(function(){
-					var newValue = lev14 - 1;
-					if(newValue >= 0){
-						socket.emit('WolfDown', newValue);
-					} else {
-						clearInterval(timerIntervalDownWolf);
-					}
-				}, 100);
-			});
-			buttonDownWolf.addEventListener(leave, function() { clearInterval(timerIntervalDownWolf); });
-			buttonDownWolf.addEventListener(stop, function() { clearInterval(timerIntervalDownWolf); });
 			$('#wolfDown').click(function(){
 				var newValue = lev14 - 1;
 				if(newValue >= 0){ socket.emit('WolfDown', newValue); }
 			});
 
-			// --- Platform Sound ---
-			buttonUpPlatform.addEventListener(start, function() {
-				timerIntervalUpPlatform = setInterval(function(){
-					var newValue = lev15 + 1;
-					if(newValue <= 20){
-						socket.emit('PlatformUp', newValue);
-					} else {
-						clearInterval(timerIntervalUpPlatform);
-					}
-			  }, 100);
-			});
-			buttonUpPlatform.addEventListener(leave, function() { clearInterval(timerIntervalUpPlatform); });
-			buttonUpPlatform.addEventListener(stop, function() { clearInterval(timerIntervalUpPlatform); });
 			$('#platformUp').click(function(){
 				var newValue = lev15 + 1;
 				if(newValue <= 20){ socket.emit('PlatformUp', newValue); }
 			});
-
-			buttonDownPlatform.addEventListener(start, function() {
-				timerIntervalDownPlatform = setInterval(function(){
-					var newValue = lev15 - 1;
-					if(newValue >= 0){
-						socket.emit('PlatformDown', newValue);
-					} else {
-						clearInterval(timerIntervalDownPlatform);
-					}
-				}, 100);
-			});
-			buttonDownPlatform.addEventListener(leave, function() { clearInterval(timerIntervalDownPlatform); });
-			buttonDownPlatform.addEventListener(stop, function() { clearInterval(timerIntervalDownPlatform); });
 			$('#platformDown').click(function(){
 				var newValue = lev15 - 1;
 				if(newValue >= 0){ socket.emit('PlatformDown', newValue); }
 			});
 
-			// --- Suitcases Sound ---
-			buttonUpSuitcases.addEventListener(start, function() {
-				timerIntervalUpSuitcases = setInterval(function(){
-					var newValue = lev16 + 1;
-					if(newValue <= 20){
-						socket.emit('SuitcasesUp', newValue);
-					} else {
-						clearInterval(timerIntervalUpSuitcases);
-					}
-			  }, 100);
-			});
-			buttonUpSuitcases.addEventListener(leave, function() { clearInterval(timerIntervalUpSuitcases); });
-			buttonUpSuitcases.addEventListener(stop, function() { clearInterval(timerIntervalUpSuitcases); });
 			$('#suitcasesUp').click(function(){
 				var newValue = lev16 + 1;
 				if(newValue <= 20){ socket.emit('SuitcasesUp', newValue); }
 			});
-
-			buttonDownSuitcases.addEventListener(start, function() {
-				timerIntervalDownSuitcases = setInterval(function(){
-					var newValue = lev16 - 1;
-					if(newValue >= 0){
-						socket.emit('SuitcasesDown', newValue);
-					} else {
-						clearInterval(timerIntervalDownSuitcases);
-					}
-				}, 100);
-			});
-			buttonDownSuitcases.addEventListener(leave, function() { clearInterval(timerIntervalDownSuitcases); });
-			buttonDownSuitcases.addEventListener(stop, function() { clearInterval(timerIntervalDownSuitcases); });
 			$('#suitcasesDown').click(function(){
 				var newValue = lev16 - 1;
 				if(newValue >= 0){ socket.emit('SuitcasesDown', newValue); }
 			});
 
-			// --- Safe Sound ---
-			buttonUpSafe.addEventListener(start, function() {
-				timerIntervalUpSafe = setInterval(function(){
-					var newValue = lev17 + 1;
-					if(newValue <= 20){
-						socket.emit('SafeUp', newValue);
-					} else {
-						clearInterval(timerIntervalUpSafe);
-					}
-			  }, 100);
-			});
-			buttonUpSafe.addEventListener(leave, function() { clearInterval(timerIntervalUpSafe); });
-			buttonUpSafe.addEventListener(stop, function() { clearInterval(timerIntervalUpSafe); });
 			$('#safeUp').click(function(){
 				var newValue = lev17 + 1;
 				if(newValue <= 20){ socket.emit('SafeUp', newValue); }
 			});
-
-			buttonDownSafe.addEventListener(start, function() {
-				timerIntervalDownSafe = setInterval(function(){
-					var newValue = lev17 - 1;
-					if(newValue >= 0){
-						socket.emit('SafeDown', newValue);
-					} else {
-						clearInterval(timerIntervalDownSafe);
-					}
-				}, 100);
-			});
-			buttonDownSafe.addEventListener(leave, function() { clearInterval(timerIntervalDownSafe); });
-			buttonDownSafe.addEventListener(stop, function() { clearInterval(timerIntervalDownSafe); });
-			
 			$('#safeDown').click(function(){
-				// (последний клик) ---
 				var newValue = lev17 - 1;
 				if(newValue >= 0){ socket.emit('SafeDown', newValue); }
-			});
-			buttonDownSafe.addEventListener(stop, function() {
-				clearInterval(timerIntervalDownSafe);
 			});
 			
 			// --- (Инициализация музыки в Ready) ---

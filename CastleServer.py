@@ -1783,7 +1783,7 @@ def Phone(phone):
           pygame.mixer.music.set_volume(float(ph))
      #print(phone)    
      # отправляем данные на других клиентов синхронизируем 
-          socketio.emit('volume', ph, to=None, include_self=False)
+          socketio.emit('volume', ph, to=None)
      
 #все тоже самое для других звуковых каналов             
 @socketio.on('Voice')
@@ -1795,7 +1795,7 @@ def Voice(voice):
      f1.close()   
      voiceLevel = float(voi)
      channel3.set_volume(float(voi),float(voi))  
-     socketio.emit('volume2', voi, to=None, include_self=False)    
+     socketio.emit('volume2', voi, to=None)    
 @socketio.on('Effects')
 def Effects(effects):
      global effectLevel
@@ -1810,87 +1810,131 @@ def Effects(effects):
          ch.set_volume(float(eff), float(eff))
      # ---------------------------------------------------------------
      
-     socketio.emit('volume1', eff, to=None, include_self=False)
+     socketio.emit('volume1', eff, to=None)
+
+# --- ESP32 volume controls ---
+# Защита от двойного срабатывания на UI:
+# 1. Server-side dedup: *Up игнорируется если v <= текущего, *Down — если v >= текущего
+# 2. Rate-limit per sid: если client шлёт volume event чаще 300мс — игнор
+#    (защита от stuck setInterval в старых вкладках)
+
+_volume_last_event = {}  # {(sid, kind): timestamp}
+
+def _volume_rate_limited(sid, kind, min_interval=0.3):
+     import time
+     key = (sid, kind)
+     now = time.time()
+     last = _volume_last_event.get(key, 0)
+     if now - last < min_interval:
+         return True
+     _volume_last_event[key] = now
+     return False
 
 @socketio.on('WolfUp')
 def WolfSound(wolfsound):
+     from flask import request as _req
      global wolfLevel
-     f1 = open('5.txt','w')
-     f1.write(str(wolfsound))
-     f1.close()   
-     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(wolfsound)}", debounce=True)
-     wolfLevel = int(wolfsound)
-     socketio.emit('wolf', wolfLevel, to=None, include_self=False)
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'wolf'): return
+     v = int(wolfsound)
+     if v <= wolfLevel:
+         return  # WolfUp не должен снижать громкость
+     wolfLevel = v
+     with open('5.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('wolf', wolfLevel, to=None)
 
 @socketio.on('WolfDown')
-def WolfSound(wolfsound):
+def WolfSoundDown(wolfsound):
+     from flask import request as _req
      global wolfLevel
-     f1 = open('5.txt','w')
-     f1.write(str(wolfsound))
-     f1.close()   
-     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(wolfsound)}", debounce=True)
-     wolfLevel = int(wolfsound)
-     socketio.emit('wolf', wolfLevel, to=None, include_self=False) 
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'wolf'): return
+     v = int(wolfsound)
+     if v >= wolfLevel:
+         return  # WolfDown не должен повышать громкость
+     wolfLevel = v
+     with open('5.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_WOLF_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('wolf', wolfLevel, to=None)
 
 @socketio.on('PlatformUp')
 def TrainSound(platformsound):
+     from flask import request as _req
      global trainLevel
-     f1 = open('6.txt','w')
-     f1.write(str(platformsound))
-     f1.close()   
-     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(platformsound)}", debounce=True)
-     trainLevel = int(platformsound)
-     socketio.emit('platform', trainLevel, to=None, include_self=False)
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'platform'): return
+     v = int(platformsound)
+     if v <= trainLevel: return
+     trainLevel = v
+     with open('6.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('platform', trainLevel, to=None)
 
 @socketio.on('PlatformDown')
-def TrainSound(platformsound):
+def TrainSoundDown(platformsound):
+     from flask import request as _req
      global trainLevel
-     f1 = open('6.txt','w')
-     f1.write(str(platformsound))
-     f1.close()   
-     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(platformsound)}", debounce=True)
-     trainLevel = int(platformsound)
-     socketio.emit('platform', trainLevel, to=None, include_self=False)
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'platform'): return
+     v = int(platformsound)
+     if v >= trainLevel: return
+     trainLevel = v
+     with open('6.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('platform', trainLevel, to=None)
 
 @socketio.on('SuitcasesUp')
 def SuitcasesSound(suitcasessound):
+     from flask import request as _req
      global suitcaseLevel
-     f1 = open('7.txt','w')
-     f1.write(str(suitcasessound))
-     f1.close()   
-     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(suitcasessound)}", debounce=True)
-     suitcaseLevel = int(suitcasessound)
-     socketio.emit('suitcases', suitcaseLevel, to=None, include_self=False)
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'suitcases'): return
+     v = int(suitcasessound)
+     if v <= suitcaseLevel: return
+     suitcaseLevel = v
+     with open('7.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('suitcases', suitcaseLevel, to=None)
 
 @socketio.on('SuitcasesDown')
-def SuitcasesSound(suitcasessound):
+def SuitcasesSoundDown(suitcasessound):
+     from flask import request as _req
      global suitcaseLevel
-     f1 = open('7.txt','w')
-     f1.write(str(suitcasessound))
-     f1.close()   
-     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(suitcasessound)}", debounce=True)
-     suitcaseLevel = int(suitcasessound)
-     socketio.emit('suitcases', suitcaseLevel, to=None, include_self=False)     
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'suitcases'): return
+     v = int(suitcasessound)
+     if v >= suitcaseLevel: return
+     suitcaseLevel = v
+     with open('7.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('suitcases', suitcaseLevel, to=None)
 
 @socketio.on('SafeUp')
 def SafeSound(safesound):
+     from flask import request as _req
      global safeLevel
-     f1 = open('8.txt','w')
-     f1.write(str(safesound))
-     f1.close()   
-     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(safesound)}", debounce=True)
-     safeLevel = int(safesound)
-     socketio.emit('safe', safeLevel, to=None, include_self=False)
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'safe'): return
+     v = int(safesound)
+     if v <= safeLevel: return
+     safeLevel = v
+     with open('8.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('safe', safeLevel, to=None)
 
 @socketio.on('SafeDown')
-def SafeSound(safesound):
+def SafeSoundDown(safesound):
+     from flask import request as _req
      global safeLevel
-     f1 = open('8.txt','w')
-     f1.write(str(safesound))
-     f1.close()   
-     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(safesound)}", debounce=True)
-     safeLevel = int(safesound)
-     socketio.emit('safe', safeLevel, to=None, include_self=False)  
+     sid = getattr(_req, 'sid', '?')
+     if _volume_rate_limited(sid, 'safe'): return
+     v = int(safesound)
+     if v >= safeLevel: return
+     safeLevel = v
+     with open('8.txt','w') as f: f.write(str(v))
+     send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(v)}", debounce=True)
+     socketio.emit('safe', safeLevel, to=None)
 
 #декоратор для управления квестом с интерфейса
 @socketio.on('Remote')
