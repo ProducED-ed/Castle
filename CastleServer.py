@@ -604,6 +604,42 @@ def _log_status_changes(status):
 _last_mega_response = 0.0
 
 
+def hostapd_bootstrap_watchdog():
+    """После старта сервера: если за 60 сек ни одна станция не ассоциирована
+    с Castle AP (wlan0), но при этом hostapd active — значит hostapd встал
+    кривой при boot (race condition с fix-wlan-names или RTL8189fs драйвером).
+    Один раз рестартим hostapd. Если и после этого 0 stations через 90 сек —
+    больше не вмешиваемся (ESP32 могут быть выключены физически).
+    Покрывает 99% сценариев "клиент включил квест и Castle AP мёртв"."""
+    import subprocess
+    eventlet.sleep(60)  # дать клиентам время подключиться при нормальном boot
+
+    def count_stations():
+        try:
+            r = subprocess.run(['sudo', 'iw', 'dev', 'wlan0', 'station', 'dump'],
+                               capture_output=True, timeout=3, text=True)
+            return r.stdout.count('Station ')
+        except Exception:
+            return -1
+
+    n = count_stations()
+    if n == 0:
+        logger.warning(f"HOSTAPD WATCHDOG: 0 stations через 60s после старта — рестартим hostapd")
+        try:
+            subprocess.run(['sudo', 'systemctl', 'restart', 'hostapd'],
+                           check=False, timeout=10)
+        except Exception as _e:
+            logger.error(f"hostapd restart failed: {_e}")
+        eventlet.sleep(90)
+        n2 = count_stations()
+        if n2 == 0:
+            logger.warning(f"HOSTAPD WATCHDOG: 0 stations и после рестарта — ESP32 видимо выключены физически, больше не вмешиваемся")
+        else:
+            logger.info(f"HOSTAPD WATCHDOG: после рестарта подключено {n2} stations — OK")
+    else:
+        logger.info(f"HOSTAPD WATCHDOG: {n} stations подключено за 60s — bootstrap прошёл штатно, watchdog не нужен")
+
+
 def system_status_loop():
     """Раз в 5 секунд эмитит system_status для технического пульта."""
     global _last_mega_response
@@ -6018,6 +6054,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
+        socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:
