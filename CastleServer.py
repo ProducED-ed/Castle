@@ -604,6 +604,57 @@ def _log_status_changes(status):
 _last_mega_response = 0.0
 
 
+def wlan1_watchdog():
+    """Постоянный мониторинг wlan1 (USB-WiFi-донгла). Если интерфейс упал
+    >30 сек — soft reset (ip link down/up + dhcpcd). Если >100 сек —
+    hard reset через USB authorized=0/1 (физический re-enumerate
+    устройства, эквивалент передёргиванию кабеля).
+
+    Причина: USB-донгл на CLC3 (TP-Link 2357:0111) на порту 1-1.3
+    периодически отваливается из-за нестабильного контакта/удлинителя.
+    Клиенту приходилось передёргивать руками. Теперь сервер делает сам.
+
+    Привязка к порту 1-1.3 одинакова для CLC1/CLC2/CLC3 (см.
+    [[clc-arduino-usb-port-binding]] — invariant port mapping)."""
+    import subprocess
+    eventlet.sleep(120)  # дать time bootstrap + hostapd_watchdog отработать первым
+    consecutive_down = 0
+    USB_WIFI_PATH = '/sys/bus/usb/devices/1-1.3/authorized'
+    while True:
+        try:
+            up, ip = _iface_state('wlan1')
+            healthy = up and bool(ip) and not ip.startswith('169.254.')
+            if not healthy:
+                consecutive_down += 1
+                if consecutive_down == 3:  # ~30 сек down
+                    logger.warning("WLAN1 WATCHDOG: wlan1 down ~30s — soft reset")
+                    try:
+                        text_to_wlan1_reset()
+                        subprocess.run(['sudo', 'systemctl', 'restart', 'dhcpcd'],
+                                       check=False, timeout=8)
+                    except Exception as _e:
+                        logger.error(f"wlan1 soft reset failed: {_e}")
+                elif consecutive_down == 10:  # ~100 сек down
+                    logger.warning("WLAN1 WATCHDOG: still down — USB power-cycle (authorized=0/1)")
+                    try:
+                        subprocess.run(['sudo', 'sh', '-c', f'echo 0 > {USB_WIFI_PATH}'],
+                                       check=False, timeout=3)
+                        eventlet.sleep(2)
+                        subprocess.run(['sudo', 'sh', '-c', f'echo 1 > {USB_WIFI_PATH}'],
+                                       check=False, timeout=3)
+                    except Exception as _e:
+                        logger.error(f"USB power-cycle failed: {_e}")
+                elif consecutive_down == 30:  # ~5 мин down
+                    logger.error("WLAN1 WATCHDOG: wlan1 down >5 min — manual intervention needed")
+            else:
+                if consecutive_down >= 3:
+                    logger.info(f"WLAN1 WATCHDOG: recovered (was down ~{consecutive_down*10}s)")
+                consecutive_down = 0
+        except Exception as e:
+            logger.error(f"wlan1_watchdog error: {e}")
+        eventlet.sleep(10)
+
+
 def hostapd_bootstrap_watchdog():
     """После старта сервера: если за 60 сек ни одна станция не ассоциирована
     с Castle AP (wlan0), но при этом hostapd active — значит hostapd встал
@@ -6055,6 +6106,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=timer)
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
         socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
+        socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:
