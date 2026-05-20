@@ -6876,12 +6876,21 @@ void RestOn() {
 // Это решает проблему, когда сообщения от башен терялись, так как плата
 // не слушала их в состоянии ожидания (PowerOn/RestOn).
 void ListenForReady() {
-  // Обработка экстренного рестарта во время проверки
+  // Обработка экстренного рестарта во время проверки Ready
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff.indexOf("restart") != -1) {
-      level = 0;  // Сброс в PowerOn
+      // Полный рестарт: рассылаем восстановление башням, открываем все
+      // двери и переходим в RestOn-state (level=25), как при штатном Restart
+      // с других уровней. До фикса было `level = 0` без OpenAll — кнопка
+      // Restart не открывала двери если Ready был запущен.
+      SendRestartToAll();
+      OpenAll();
+      while (Serial.available()) Serial.read();
+      isRestInitialized = false;
+      RestOn();
+      level = 25;
       return;
     }
   }
