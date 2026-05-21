@@ -1540,7 +1540,15 @@ def handle_flash(board_id):
             try: ser.open()
             except: pass
             is_system_flashing = False
-            socketio.emit('flash_log', {'board': board_id, 'msg': '\nСервер возобновил работу. [END]'})
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\nПерезапускаю сервер для гарантированного восстановления связи... [END]'})
+            # После прошивки Main Board часто остаётся "stale fd" на ttyUSB_MAIN —
+            # ser.open() формально успешен, но реально пакеты уходят в пустоту.
+            # Mega → ничего не получает → Restart с пульта не работает физически.
+            # Самый надёжный способ — полный рестарт процесса через systemd.
+            eventlet.sleep(1)  # дать UI время показать сообщение
+            logger.warning("[FLASH] Main Board flashed — auto-restart of castleserver to clear stale serial fd")
+            import os, signal
+            os.kill(os.getpid(), signal.SIGTERM)  # systemd рестартанёт через Restart=on-failure / always
         else:
             socketio.emit('flash_log', {'board': board_id, 'msg': '\n[END]'})
 
