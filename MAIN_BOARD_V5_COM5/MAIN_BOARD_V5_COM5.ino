@@ -806,7 +806,7 @@ void setup() {
   pinMode(board3, INPUT_PULLUP);
   pinMode(board4, INPUT_PULLUP);
 
-  boyServo.attach(49);
+  boyServo.attach(49, 500, 2500);
   boyServo.write(0);
   boyServo.detach();
   // --- БЛОК ПРОВЕРКИ БАШЕН ---
@@ -1341,9 +1341,9 @@ void PowerOn() {
     }
 
     if (buff == "start") {
-      boyServo.attach(49);
+      boyServo.attach(49, 500, 2500);
       boyServo.write(0);
-      delay(500);
+      delay(1000);
       boyServo.detach();
       Serial.println("modalend");
       delay(100);
@@ -1888,10 +1888,10 @@ void StartDoor() {
 
     // --- ЛОГИКА СЕРВОПРИВОДА ---
     if (!boyServo.attached()) {
-      boyServo.attach(49);
+      boyServo.attach(49, 500, 2500);
     }
     delay(50);
-    boyServo.write(130);  // Поворот
+    boyServo.write(170);  // Поворот
 
     // Цикл ожидания 3 секунды
     unsigned long startWait = millis();
@@ -1938,9 +1938,9 @@ void StartDoor() {
       isStartDoorOpenedGlobal = true;
 
       // Имитация работы сервопривода, как при физическом открытии
-      if (!boyServo.attached()) { boyServo.attach(49); }
+      if (!boyServo.attached()) { boyServo.attach(49, 500, 2500); }
       delay(50);
-      boyServo.write(130);
+      boyServo.write(170);
       unsigned long startWait = millis();
       while (millis() - startWait < 3000) {
         if (Serial.available()) {
@@ -7465,7 +7465,7 @@ void SendRestartToAll() {
 
 void RunStudentHide() {
   Serial.println("log:confirm:student_hide_start");  // Лог начала
-  boyServo.attach(49);
+  boyServo.attach(49, 500, 2500);
   digitalWrite(HallLight, HIGH);
   digitalWrite(MansardLight, HIGH);
   boyServo.write(0);  // Поворот (прячется)
@@ -7480,8 +7480,8 @@ void RunStudentOpen() {
   smartDelay(1000);
 
   Serial.println("log:confirm:student_open_start");
-  boyServo.attach(49);
-  boyServo.write(130);  // Поворот (открывается)
+  boyServo.attach(49, 500, 2500);
+  boyServo.write(170);  // Поворот (открывается)
   smartDelay(1000);
 
   boyServo.detach();

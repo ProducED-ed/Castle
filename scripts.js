@@ -532,6 +532,23 @@ $('.ui.dropdown')
 
       //finalAlert = 0;
     });
+    // Real Restart-button press → блокируем Ready на 10 сек чтобы Mega успела
+    // выполнить OpenAll/RestOn/SendRestartToAll до того как пользователь начнёт
+    // следующий цикл. Это НЕ replay-event (не в socklist) — не дёргается при reconnect.
+    // Server-driven блокировка Ready после нажатия Restart.
+    // restart_pressed → блок поднят. ready_block_off → блок снят (через 10 сек).
+    // Не зависит от rest/replay timing — сервер сам контролирует.
+    socket.on('restart_pressed', function() {
+        window._readyBlocked = true;
+        $('#Ready').addClass('disabled');
+        $('#estart').addClass('loading');
+    });
+    socket.on('ready_block_off', function() {
+        window._readyBlocked = false;
+        $('#Ready').removeClass('disabled');
+        $('#estart').removeClass('loading');
+    });
+
     //здесь принимаем строки о прохождении отображаем на пульте
      socket.on('level', function(inp) {
         
@@ -1291,7 +1308,6 @@ $('.ui.dropdown')
                 
                 //если пришло с сервера rest все скидываем обновляем приводим к виду по умолчанию
                 $('#Restart').css('border','red 2px solid');
-                $('#estart').addClass('loading'); 
                 //$('#Start').css('border','white 2px solid');
                 $('#Start').css('border','grey 2px solid');
                 $('#start_icon').removeClass('green');
@@ -1301,11 +1317,15 @@ $('.ui.dropdown')
                 $('#Ready').css('border','white 2px solid');
                 $('#ready_icon').removeClass('gray');
                 $('#ready_icon').addClass('orange');
-                $('#Ready').removeClass('disabled');
+                // Не снимаем disabled с Ready пока сервер не пришлёт ready_block_off
+                if (!window._readyBlocked) {
+                    $('#Ready').removeClass('disabled');
+                }
                 
                 if(restflag==0){
                 $('.button').removeClass('positive');
-                $('.button').removeClass('disabled');
+                $('.button').not('#Ready').removeClass('disabled');
+                if (window._readyBlocked) { $('#Ready').addClass('disabled'); }
                 $('.icon').removeClass('check');
 				
 				// Сброс иконок и прогресс-баров ---

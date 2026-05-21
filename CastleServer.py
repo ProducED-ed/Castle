@@ -3026,6 +3026,19 @@ def tmr(res):
          logger.debug("State changed: Game restarted.")
          pending_restart = True
          pending_ready = False
+         # Эмитим отдельный event для блокировки кнопки Ready на клиенте.
+         # 'level':'rest' идёт в socklist и реплеится при reconnect — мы не хотим
+         # чтобы клиент запускал 10s timer повторно при каждом reconnect, поэтому
+         # отдельный event 'restart_pressed' который НЕ сохраняется.
+         logger.info("[RESTART] Emitting restart_pressed (Ready block ON, 10s timer)")
+         socketio.emit('restart_pressed', {}, to=None)
+         # Через 10 сек шлём ready_block_off — клиент снимает disabled с Ready.
+         # Промежуточные 'rest' events (replay из socklist) не сбивают timer.
+         def _unblock_ready_after_10s():
+             eventlet.sleep(10)
+             logger.info("[RESTART] Emitting ready_block_off (Ready активна)")
+             socketio.emit('ready_block_off', {}, to=None)
+         eventlet.spawn_n(_unblock_ready_after_10s)
          serial_write_queue.put('restart')
          serial_write_queue.put('restart')
          serial_write_queue.put('restart')
