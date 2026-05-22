@@ -1970,6 +1970,31 @@ def tech_diag_exit(data):
     logger.info(f"[DIAG] Exiting diag mode for {device}")
     _diag_send(device, 'off')
 
+@socketio.on('tech_send_serial')
+def tech_send_serial(data):
+    """Отправка существующей game-команды на Mega через serial_write_queue.
+    Используется новым (read-only-friendly) диаг-пультом для Main+башен.
+    Whitelist допустимых команд — чтобы из UI нельзя было послать что попало."""
+    cmd = (data or {}).get('cmd', '').strip()
+    if not cmd:
+        return
+    SAFE_DIAG_CMDS = {
+        # Двери Main Board
+        'open_mansard_door', 'open_crime_door', 'open_bank_door',
+        'open_potion_door', 'open_low_tower_door', 'open_high_tower_door',
+        'open_library_door', 'open_safe_door', 'open_memory_door',
+        # Двери башен (Mega транслирует на нужный Serial)
+        'open_owl_door', 'open_dog_door', 'open_workshop_door',
+        'open_basket_door', 'open_mine_door',
+        # Сервисные
+        'check_towers',
+    }
+    if cmd not in SAFE_DIAG_CMDS:
+        logger.warning(f"[TECH-DIAG] rejected non-whitelisted cmd: {cmd}")
+        return
+    logger.info(f"[TECH-DIAG] sending {cmd} via Mega serial")
+    serial_write_queue.put(cmd)
+
 @socketio.on('tech_diag_command')
 def tech_diag_command(data):
     """Прозрачный прокси команд от UI к устройству в diag-режиме.
@@ -4197,6 +4222,9 @@ def serial():
                            # эмитятся в _log_status_changes() с понятными лейблами.
                            if prev != _tower_status_snapshot:
                                logger.debug(f"TOWERS: {_tower_status_snapshot}")
+                           # Broadcast в /tech диаг-панель (heartbeat 5/сек)
+                           socketio.emit('tech_tower_heartbeat',
+                                         dict(_tower_status_snapshot), to=None)
                        except Exception as _e:
                            logger.debug(f"Failed to parse tower_status '{flag}': {_e}")
                        # Это служебное сообщение — не пропускаем дальше в общую логику
@@ -4299,6 +4327,25 @@ def serial():
                        logging.debug(f'RECEIVED {tag}: {description} (RAW: {flag})')
                    else:
                        logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
+
+                   # Broadcast в /tech диагностическую панель — read-only мониторинг
+                   # серийки без модификации Mega-кода. Каждое сообщение прилетает
+                   # клиенту с device-tag для фильтрации в UI.
+                   if isinstance(flag, str) and not flag.startswith('log:main:HB '):
+                       _device = tag.strip('[]').lower().replace(' board', '').replace(' ', '_')
+                       try:
+                           socketio.emit('tech_serial_log',
+                                         {'device': _device, 'text': flag,
+                                          'ts': time.time()}, to=None)
+                       except Exception:
+                           pass
+                   # Бродкаст game level в Main Board diag tab
+                   if isinstance(flag, str) and flag.startswith("level_"):
+                       try:
+                           socketio.emit('tech_game_level',
+                                         {'level': int(flag.split('_')[1])}, to=None)
+                       except Exception:
+                           pass
                    # Логирование смены уровня ---
                    if flag.startswith("level_"):
                        try:
