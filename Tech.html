@@ -552,42 +552,217 @@
 
             <!-- Main Board (Mega) pane -->
             <div class="ui bottom attached tab segment inverted" data-diag-pane="main" style="display:none;">
-                <div style="color:#888; font-size:13px; margin-bottom:8px;">
-                    Read-only мониторинг + кнопки открытия дверей (используют существующие game-команды,
-                    Mega не модифицирована). Безопасно во время игры — каждая кнопка просто открывает дверь.
-                </div>
-                <div style="display:flex; gap:20px; flex-wrap:wrap; color:#bbb; font-size:13px; margin-bottom:1em;">
-                    <span title="Текущий level Mega state-machine (обновляется при каждом level_X событии).">
-                        Game Level: <b id="diag-main-lvl" style="color:#3498db;">—</b>
-                    </span>
-                    <span>
-                        Башни (heartbeat &lt;30с):
-                        <span class="status-icon-wrap st-unknown" id="diag-main-hb-workshop" title="Workshop"><i class="chess rook icon"></i></span>
-                        <span class="status-icon-wrap st-unknown" id="diag-main-hb-basket" title="Basket"><i class="chess rook icon"></i></span>
-                        <span class="status-icon-wrap st-unknown" id="diag-main-hb-dog" title="Dog"><i class="chess rook icon"></i></span>
-                        <span class="status-icon-wrap st-unknown" id="diag-main-hb-owls" title="Owls"><i class="chess rook icon"></i></span>
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-main-toggle-wrap">
+                        <input type="checkbox" id="diag-main-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает Mega!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('main')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего DIAG_SNAPSHOT:main от Mega (5 раз/сек).">Snapshot:</span>
+                        <span id="diag-main-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Чтение analogRead(voltagePin) — питание Mega.">Volt:</span>
+                        <span id="diag-main-volt" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime Mega в секундах с момента ребута.">Uptime:</span>
+                        <span id="diag-main-uptime" style="color:#aaa;">—</span>
                     </span>
                 </div>
 
-                <h4>Двери — клик открывает (300мс импульс)</h4>
-                <div class="diag-grid" id="diag-main-doors"></div>
+                <div id="diag-main-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры Mega (live)</h4>
+                    <div class="diag-grid" id="diag-main-inputs"></div>
 
-                <h4>Live-лог от Mega (последние 30 сообщений)</h4>
-                <pre id="diag-main-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:300px; overflow:auto; border-radius:4px; white-space:pre-wrap;"></pre>
+                    <h4>Heartbeat башен (мс с последнего pong)</h4>
+                    <div style="display:flex; gap:18px; flex-wrap:wrap; font-family:monospace; font-size:13px; color:#bbb;">
+                        <span>Workshop: <b id="diag-main-hb-workshop-ms" style="color:#3498db;">—</b></span>
+                        <span>Basket: <b id="diag-main-hb-basket-ms" style="color:#3498db;">—</b></span>
+                        <span>Dog: <b id="diag-main-hb-dog-ms" style="color:#3498db;">—</b></span>
+                        <span>Owls: <b id="diag-main-hb-owls-ms" style="color:#3498db;">—</b></span>
+                    </div>
+
+                    <h4>Двери — клик = импульс 300мс</h4>
+                    <div class="diag-grid" id="diag-main-doors"></div>
+
+                    <h4>Фейерверк (toggle)</h4>
+                    <button class="diag-out-btn" id="mout-fireworks"
+                            onclick="diagMainOutToggle('fireworks')">Fireworks: OFF</button>
+
+                    <pre id="diag-main-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
             </div>
 
-            <!-- Tower panes (workshop/basket/dog/owls): read-only мониторинг + одна кнопка двери -->
+            <!-- Workshop pane -->
             <div class="ui bottom attached tab segment inverted" data-diag-pane="workshop" style="display:none;">
-                <div class="tower-pane-readonly" data-tower="workshop" data-door-cmd="open_workshop_door" data-title="Workshop"></div>
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-workshop-toggle-wrap">
+                        <input type="checkbox" id="diag-workshop-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает Workshop!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('workshop')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего DIAG_SNAPSHOT от Workshop (через Mega Serial1).">Snapshot:</span>
+                        <span id="diag-workshop-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime Mega-башни в секундах.">Uptime:</span>
+                        <span id="diag-workshop-uptime" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-workshop-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры (live)</h4>
+                    <div class="diag-grid" id="diag-workshop-inputs"></div>
+
+                    <h4>Электрозамок (LOCK_PIN)</h4>
+                    <button class="diag-out-btn" onclick="diagWorkshopCmd('diag_set:lock_pulse:0')"
+                            title="Импульс 500мс — постоянное включение спалит соленоид" style="width:150px;">
+                        Открыть замок
+                    </button>
+
+                    <h4>Выходы — клик переключает</h4>
+                    <div class="diag-grid" id="diag-workshop-outputs"></div>
+
+                    <h4>NeoPixel: огонь камина (np_fire)</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_fire:FF0000')">Красная</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_fire:00FF00')">Зелёная</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_fire:0000FF')">Синяя</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_fire:FFFFFF')">Белая</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_fire:000000')">Off</button>
+                    </div>
+                    <h4>NeoPixel: верстак (np_workbench)</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_workbench:FF0000')">Красная</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_workbench:00FF00')">Зелёная</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_workbench:0000FF')">Синяя</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_workbench:FFFFFF')">Белая</button>
+                        <button class="ui mini button" onclick="diagWorkshopCmd('diag_set:np_workbench:000000')">Off</button>
+                    </div>
+
+                    <pre id="diag-workshop-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
             </div>
+
+            <!-- Basket pane -->
             <div class="ui bottom attached tab segment inverted" data-diag-pane="basket" style="display:none;">
-                <div class="tower-pane-readonly" data-tower="basket" data-door-cmd="open_basket_door" data-title="Basket"></div>
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-basket-toggle-wrap">
+                        <input type="checkbox" id="diag-basket-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает Basket!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('basket')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего DIAG_SNAPSHOT от Basket (через Mega Serial2).">Snapshot:</span>
+                        <span id="diag-basket-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime Mega-башни в секундах.">Uptime:</span>
+                        <span id="diag-basket-uptime" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-basket-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры (live)</h4>
+                    <div class="diag-grid" id="diag-basket-inputs"></div>
+
+                    <h4>Электрозамок (SHERIF_EM2)</h4>
+                    <button class="diag-out-btn" onclick="diagBasketCmd('diag_set:sherif_em2_pulse:0')"
+                            title="Импульс 500мс — постоянное включение спалит соленоид" style="width:150px;">
+                        Открыть замок
+                    </button>
+
+                    <h4>Выходы — клик переключает</h4>
+                    <div class="diag-grid" id="diag-basket-outputs"></div>
+
+                    <pre id="diag-basket-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
             </div>
+
+            <!-- Dog pane -->
             <div class="ui bottom attached tab segment inverted" data-diag-pane="dog" style="display:none;">
-                <div class="tower-pane-readonly" data-tower="dog" data-door-cmd="open_dog_door" data-title="Dog"></div>
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-dog-toggle-wrap">
+                        <input type="checkbox" id="diag-dog-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает Dog/Cerber!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('dog')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего DIAG_SNAPSHOT от Dog (через Mega Serial3).">Snapshot:</span>
+                        <span id="diag-dog-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime Nano-башни в секундах.">Uptime:</span>
+                        <span id="diag-dog-uptime" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-dog-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры — герконы и ИК (live)</h4>
+                    <div class="diag-grid" id="diag-dog-inputs"></div>
+
+                    <h4>Замки — клик = импульс 500мс</h4>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="diag-out-btn" onclick="diagDogCmd('diag_set:door_lock_pulse:0')"
+                                title="Импульс 500мс на DOOR_LOCK_PIN">
+                            Дверной замок (импульс)
+                        </button>
+                        <button class="diag-out-btn" onclick="diagDogCmd('diag_set:cage_lock_pulse:0')"
+                                title="Импульс 500мс на CAGE_LOCK_PIN">
+                            Замок клетки (импульс)
+                        </button>
+                    </div>
+
+                    <h4>Выходы — клик переключает</h4>
+                    <div class="diag-grid" id="diag-dog-outputs"></div>
+
+                    <pre id="diag-dog-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
             </div>
+
+            <!-- Owls pane -->
             <div class="ui bottom attached tab segment inverted" data-diag-pane="owls" style="display:none;">
-                <div class="tower-pane-readonly" data-tower="owls" data-door-cmd="open_owl_door" data-title="Owls"></div>
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-owls-toggle-wrap">
+                        <input type="checkbox" id="diag-owls-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает Owls!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('owls')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего DIAG_SNAPSHOT от Owls (через Mega mySerial).">Snapshot:</span>
+                        <span id="diag-owls-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime Mega-башни в секундах.">Uptime:</span>
+                        <span id="diag-owls-uptime" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-owls-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры</h4>
+                    <div style="color:#888; font-size:13px;">У Owls нет физических сенсоров — управляется командами от Mega.</div>
+
+                    <h4>Дверь шкафчика (loker_door)</h4>
+                    <button class="diag-out-btn" onclick="diagOwlsCmd('diag_set:loker_door_pulse:0')"
+                            title="Импульс 500мс на PIN_LOKER_DOOR" style="width:200px;">
+                        Открыть дверь шкафчика
+                    </button>
+
+                    <h4>Выходы — клик переключает</h4>
+                    <div class="diag-grid" id="diag-owls-outputs"></div>
+
+                    <h4>NeoPixel: плитки (np_tiles)</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="ui mini button" onclick="diagOwlsCmd('diag_set:np_tiles:FF0000')">Красная</button>
+                        <button class="ui mini button" onclick="diagOwlsCmd('diag_set:np_tiles:00FF00')">Зелёная</button>
+                        <button class="ui mini button" onclick="diagOwlsCmd('diag_set:np_tiles:0000FF')">Синяя</button>
+                        <button class="ui mini button" onclick="diagOwlsCmd('diag_set:np_tiles:FFFFFF')">Белая</button>
+                        <button class="ui mini button" onclick="diagOwlsCmd('diag_set:np_tiles:000000')">Off</button>
+                    </div>
+
+                    <pre id="diag-owls-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
             </div>
         </div>
         <!-- ============ /ДИАГНОСТИКА ============ -->
@@ -1395,101 +1570,412 @@
             }
         });
 
-        // ============ Диагностика Main Board (read-only + door pulses) ============
-        // Не модифицируем Mega-код — только парсим то что Mega уже шлёт +
-        // отправляем существующие game-команды (open_*_door) на запрос.
-        const MAIN_DOORS_RO = [
-            { cmd: 'open_mansard_door',    label: 'Мансарда' },
-            { cmd: 'open_potion_door',     label: 'Зельеварение' },
-            { cmd: 'open_library_door',    label: 'Библиотека' },
-            { cmd: 'open_bank_door',       label: 'Банк' },
-            { cmd: 'open_low_tower_door',  label: 'Низ. башня' },
-            { cmd: 'open_high_tower_door', label: 'Верх. башня' },
-            { cmd: 'open_memory_door',     label: 'Воспоминания' },
-            { cmd: 'open_crime_door',      label: 'Тюрьма' },
-            { cmd: 'open_safe_door',       label: 'Тайник банка' },
-        ];
-
-        (function initMainDoors() {
-            const $doors = $('#diag-main-doors');
-            if (!$doors.length) return;
-            MAIN_DOORS_RO.forEach(d => {
-                $doors.append(`<button class="diag-out-btn" onclick="techSendSerial('${d.cmd}')" title="Отправить ${d.cmd} на Mega">${d.label}</button>`);
-            });
-        })();
-
         function techSendSerial(cmd) {
             socket.emit('tech_send_serial', { cmd: cmd });
         }
 
-        // Game level от сервера (парсится из level_X логов Mega)
-        socket.on('tech_game_level', function(d) {
-            if (typeof d.level === 'number') $('#diag-main-lvl').text(d.level);
-        });
+        // ============ Диагностика Main Board (Mega) — полный DIAG ============
+        // Snapshot формат от Mega:
+        //   {"in":{"cr1":0/1,"cr2":0/1,"cr3":0/1,"cr4":0/1,"win":0/1,"crm":0/1,"strt":0/1},
+        //    "volt":0..1023, "hb":{"workshop":ms,"basket":ms,"dog":ms,"owls":ms}, "up":sec}
+        // SET-ключи: 9 дверей (pulse) + fireworks (toggle)
+        const MAIN_INPUTS = [
+            { id: 'cr1',  label: 'Кристалл 1 (firstCrystal)' },
+            { id: 'cr2',  label: 'Кристалл 2 (secondCrystal)' },
+            { id: 'cr3',  label: 'Кристалл 3 (thirdCrystal)' },
+            { id: 'cr4',  label: 'Кристалл 4 (fourCrystal)' },
+            { id: 'win',  label: 'Окно (WindowSens analogRead>500)' },
+            { id: 'crm',  label: 'Геркон Тюрьмы (crimeDoorPin)' },
+            { id: 'strt', label: 'Start Door (startDoorPin)' },
+        ];
+        const MAIN_DOORS = [
+            { key: 'mansard_door',    label: 'Мансарда' },
+            { key: 'potions_door',    label: 'Зельеварение' },
+            { key: 'library_door',    label: 'Библиотека' },
+            { key: 'bank_door',       label: 'Банк' },
+            { key: 'low_tower_door',  label: 'Низ. башня' },
+            { key: 'high_tower_door', label: 'Верх. башня' },
+            { key: 'memory_door',     label: 'Воспоминания' },
+            { key: 'crime_door',      label: 'Тюрьма' },
+            { key: 'stash_door',      label: 'Тайник банка' },
+        ];
+        let diagMainActive = false;
+        let mainFireworksOn = false;
 
-        // Tower heartbeat от сервера (парсится из tower_status:)
-        socket.on('tech_tower_heartbeat', function(d) {
-            for (const t of ['workshop', 'basket', 'dog', 'owls']) {
-                const ok = d[t] === true;
-                const $el = $('#diag-main-hb-' + t);
-                $el.removeClass('st-ok st-fail st-unknown');
-                $el.addClass(ok ? 'st-ok' : 'st-fail');
+        (function initDiagMain() {
+            const $in = $('#diag-main-inputs');
+            MAIN_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="minp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $doors = $('#diag-main-doors');
+            MAIN_DOORS.forEach(d => {
+                $doors.append(`<button class="diag-out-btn" onclick="diagMainCmd('diag_set:${d.key}:0')" title="DIAG_SET:main:${d.key}">${d.label}</button>`);
+            });
+        })();
+
+        $('#diag-main-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'main' });
+                $('#diag-main-body').show();
+                diagMainActive = true;
+                mainFireworksOn = false;
+                $('#mout-fireworks').removeClass('on').text('Fireworks: OFF');
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'main' });
+                $('#diag-main-body').hide();
+                diagMainActive = false;
             }
         });
 
-        // Live serial log feed (Mega + башни) — отдельный feed по каждой вкладке
-        // Server emits 'tech_serial_log' {device, text, ts} на каждое RECEIVED от Mega
-        const SERIAL_LOG_BUFFER = { main: [], workshop: [], basket: [], dog: [], owls: [] };
-        const SERIAL_LOG_MAX = 30;
-        socket.on('tech_serial_log', function(d) {
-            const key = d.device;
-            if (!(key in SERIAL_LOG_BUFFER)) return;
-            const buf = SERIAL_LOG_BUFFER[key];
-            const ts = new Date(d.ts * 1000).toLocaleTimeString();
-            buf.push(`[${ts}] ${d.text}`);
-            while (buf.length > SERIAL_LOG_MAX) buf.shift();
-            const $el = $('#diag-' + key + '-log');
-            if ($el.length) {
-                $el.text(buf.join('\n'));
-                $el[0].scrollTop = $el[0].scrollHeight;
+        function diagMainCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'main', cmd: cmd });
+        }
+        function diagMainOutToggle(key) {
+            if (key === 'fireworks') {
+                mainFireworksOn = !mainFireworksOn;
+                diagMainCmd('diag_set:fireworks:' + (mainFireworksOn ? 1 : 0));
+                $('#mout-fireworks').toggleClass('on', mainFireworksOn)
+                    .text('Fireworks: ' + (mainFireworksOn ? 'ON' : 'OFF'));
+            }
+        }
+
+        socket.on('main_diag_state', function(s) {
+            if (!diagMainActive) return;
+            $('#diag-main-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.volt === 'number') $('#diag-main-volt').text(s.volt);
+            if (typeof s.up === 'number') {
+                const sec = s.up;
+                $('#diag-main-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (s.in && typeof s.in === 'object') {
+                MAIN_INPUTS.forEach(inp => {
+                    const v = s.in[inp.id];
+                    const on = (v === 1) || (v === true);
+                    $('#minp-' + inp.id).toggleClass('on', on).toggleClass('off', !on);
+                });
+            }
+            if (s.hb && typeof s.hb === 'object') {
+                ['workshop', 'basket', 'dog', 'owls'].forEach(t => {
+                    const ms = s.hb[t];
+                    if (typeof ms === 'number') {
+                        const $el = $('#diag-main-hb-' + t + '-ms');
+                        $el.text(ms >= 999999 ? '—' : (ms + ' ms'));
+                        let col = '#3498db';
+                        if (ms >= 999999 || ms > 30000) col = '#e74c3c';
+                        else if (ms > 10000) col = '#f39c12';
+                        $el.css('color', col);
+                    }
+                });
             }
         });
 
-        // ============ Tower panes (workshop/basket/dog/owls) — read-only ============
-        // Каждая башня имеет: 1 кнопку «Открыть дверь» (существующая game-команда),
-        // heartbeat-индикатор, live-лог.
-        $('.tower-pane-readonly').each(function() {
-            const $pane = $(this);
-            const tower = $pane.data('tower');
-            const doorCmd = $pane.data('door-cmd');
-            const title = $pane.data('title');
-            $pane.html(`
-                <div style="color:#888; font-size:13px; margin-bottom:8px;">
-                    Read-only мониторинг ${title}: live-лог сообщений + кнопка открытия двери.
-                    Без модификации tower-прошивки. Безопасно во время игры.
-                </div>
-                <div style="display:flex; gap:20px; align-items:center; margin-bottom:1em;">
-                    <span style="color:#bbb; font-size:13px;">
-                        Heartbeat (Mega видит pong &lt;30с):
-                        <span class="status-icon-wrap st-unknown" id="diag-${tower}-hb-icon" title="${title}"><i class="chess rook icon"></i></span>
-                    </span>
-                    <button class="diag-out-btn" style="width:200px;" onclick="techSendSerial('${doorCmd}')">
-                        Открыть дверь (${doorCmd})
-                    </button>
-                </div>
-                <h4>Live-лог от ${title} (последние 30 сообщений)</h4>
-                <pre id="diag-${tower}-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:300px; overflow:auto; border-radius:4px; white-space:pre-wrap;"></pre>
-            `);
+        // ============ Диагностика Workshop ============
+        const WORKSHOP_INPUTS = [
+            { id: 'reed',       label: 'REED_SWITCH (главный геркон)' },
+            { id: 'hint_reed',  label: 'HINT_REED_SWITCH (подсказка)' },
+            { id: 'wb1',        label: 'REED_WORKBENCH 1' },
+            { id: 'wb2',        label: 'REED_WORKBENCH 2' },
+            { id: 'wb3',        label: 'REED_WORKBENCH 3' },
+            { id: 'wb4',        label: 'REED_WORKBENCH 4' },
+            { id: 'galet',      label: 'GALET (галетный переключатель)' },
+            { id: 'flag_ir',    label: 'FLAG_IR (ИК-флаг)' },
+        ];
+        const WORKSHOP_OUTPUTS = [
+            { id: 'led_floor1', label: 'LED Floor 1' },
+            { id: 'led_floor2', label: 'LED Floor 2' },
+            { id: 'roof_light', label: 'Roof Light' },
+        ];
+        let diagWorkshopActive = false;
+        (function initDiagWorkshop() {
+            const $in = $('#diag-workshop-inputs');
+            WORKSHOP_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="wsinp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $('#diag-workshop-outputs');
+            WORKSHOP_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="wsout-${o.id}"
+                    onclick="diagWorkshopOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+        $('#diag-workshop-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'workshop' });
+                $('#diag-workshop-body').show();
+                diagWorkshopActive = true;
+                $('.diag-out-btn[id^="wsout-"]').each(function() {
+                    const id = this.id.replace('wsout-', '');
+                    const label = WORKSHOP_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'workshop' });
+                $('#diag-workshop-body').hide();
+                diagWorkshopActive = false;
+            }
+        });
+        function diagWorkshopCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'workshop', cmd: cmd });
+        }
+        function diagWorkshopOutToggle(outId) {
+            const $btn = $('#wsout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagWorkshopCmd('diag_set:' + outId + ':' + newVal);
+            const label = WORKSHOP_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        socket.on('workshop_diag_state', function(s) {
+            if (!diagWorkshopActive) return;
+            $('#diag-workshop-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.up === 'number') {
+                const sec = s.up;
+                $('#diag-workshop-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= WORKSHOP_INPUTS.length) return;
+                    $('#wsinp-' + WORKSHOP_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= WORKSHOP_OUTPUTS.length) return;
+                    const id = WORKSHOP_OUTPUTS[i].id;
+                    const $btn = $('#wsout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(WORKSHOP_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
         });
 
-        // Per-tower heartbeat icon update (reuse the same socket event)
-        socket.on('tech_tower_heartbeat', function(d) {
-            for (const t of ['workshop', 'basket', 'dog', 'owls']) {
-                const ok = d[t] === true;
-                const $el = $('#diag-' + t + '-hb-icon');
-                if (!$el.length) continue;
-                $el.removeClass('st-ok st-fail st-unknown');
-                $el.addClass(ok ? 'st-ok' : 'st-fail');
+        // ============ Диагностика Basket ============
+        const BASKET_INPUTS = [
+            { id: 'basket_ir', label: 'BASKET_IR (мяч в корзине)' },
+            { id: 'boy_btn',   label: 'Кнопка мальчика (D28)' },
+        ];
+        const BASKET_OUTPUTS = [
+            { id: 'troll_led',  label: 'Troll LED' },
+            { id: 'sherif_em1', label: 'SHERIF_EM1 (электромагнит 1)' },
+            { id: 'basket_led', label: 'Basket LED' },
+            { id: 'owl_led',    label: 'Owl LED' },
+            { id: 'solenoid',   label: 'Solenoid' },
+        ];
+        let diagBasketActive = false;
+        (function initDiagBasket() {
+            const $in = $('#diag-basket-inputs');
+            BASKET_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="bkinp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $('#diag-basket-outputs');
+            BASKET_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="bkout-${o.id}"
+                    onclick="diagBasketOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+        $('#diag-basket-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'basket' });
+                $('#diag-basket-body').show();
+                diagBasketActive = true;
+                $('.diag-out-btn[id^="bkout-"]').each(function() {
+                    const id = this.id.replace('bkout-', '');
+                    const label = BASKET_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'basket' });
+                $('#diag-basket-body').hide();
+                diagBasketActive = false;
+            }
+        });
+        function diagBasketCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'basket', cmd: cmd });
+        }
+        function diagBasketOutToggle(outId) {
+            const $btn = $('#bkout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagBasketCmd('diag_set:' + outId + ':' + newVal);
+            const label = BASKET_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        socket.on('basket_diag_state', function(s) {
+            if (!diagBasketActive) return;
+            $('#diag-basket-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.up === 'number') {
+                const sec = s.up;
+                $('#diag-basket-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= BASKET_INPUTS.length) return;
+                    $('#bkinp-' + BASKET_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= BASKET_OUTPUTS.length) return;
+                    const id = BASKET_OUTPUTS[i].id;
+                    const $btn = $('#bkout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(BASKET_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+        });
+
+        // ============ Диагностика Dog (Cerber) ============
+        const DOG_INPUTS = [
+            { id: 'padlock', label: 'PADLOCK reed (висячий замок)' },
+            { id: 'capsule', label: 'CAPSULE reed' },
+            { id: 'knight',  label: 'KNIGHT reed (рыцарь)' },
+            { id: 'cage',    label: 'CAGE reed (клетка)' },
+            { id: 'end',     label: 'END reed (финиш)' },
+            { id: 'crystal', label: 'CRYSTAL reed' },
+            { id: 'rose',    label: 'ROSE reed (роза)' },
+            { id: 'flag_ir', label: 'FLAG_IR (ИК-флаг)' },
+        ];
+        const DOG_OUTPUTS = [
+            { id: 'lighting_led',  label: 'Lighting LED' },
+            { id: 'vibro_motor',   label: 'Vibro Motor' },
+            { id: 'led_strip',     label: 'LED Strip' },
+            { id: 'crystal_light', label: 'Crystal Light' },
+            { id: 'roof_lighting', label: 'Roof Lighting' },
+        ];
+        let diagDogActive = false;
+        (function initDiagDog() {
+            const $in = $('#diag-dog-inputs');
+            DOG_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="dginp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $('#diag-dog-outputs');
+            DOG_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="dgout-${o.id}"
+                    onclick="diagDogOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+        $('#diag-dog-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'dog' });
+                $('#diag-dog-body').show();
+                diagDogActive = true;
+                $('.diag-out-btn[id^="dgout-"]').each(function() {
+                    const id = this.id.replace('dgout-', '');
+                    const label = DOG_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'dog' });
+                $('#diag-dog-body').hide();
+                diagDogActive = false;
+            }
+        });
+        function diagDogCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'dog', cmd: cmd });
+        }
+        function diagDogOutToggle(outId) {
+            const $btn = $('#dgout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagDogCmd('diag_set:' + outId + ':' + newVal);
+            const label = DOG_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        socket.on('dog_diag_state', function(s) {
+            if (!diagDogActive) return;
+            $('#diag-dog-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.up === 'number') {
+                const sec = s.up;
+                $('#diag-dog-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= DOG_INPUTS.length) return;
+                    $('#dginp-' + DOG_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= DOG_OUTPUTS.length) return;
+                    const id = DOG_OUTPUTS[i].id;
+                    const $btn = $('#dgout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(DOG_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+        });
+
+        // ============ Диагностика Owls ============
+        const OWLS_OUTPUTS = [
+            { id: 'led_room',   label: 'LED Room (свет в комнате)' },
+            { id: 'led_window', label: 'LED Window (свет окна)' },
+        ];
+        let diagOwlsActive = false;
+        (function initDiagOwls() {
+            const $out = $('#diag-owls-outputs');
+            OWLS_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="owout-${o.id}"
+                    onclick="diagOwlsOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+        $('#diag-owls-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'owls' });
+                $('#diag-owls-body').show();
+                diagOwlsActive = true;
+                $('.diag-out-btn[id^="owout-"]').each(function() {
+                    const id = this.id.replace('owout-', '');
+                    const label = OWLS_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'owls' });
+                $('#diag-owls-body').hide();
+                diagOwlsActive = false;
+            }
+        });
+        function diagOwlsCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'owls', cmd: cmd });
+        }
+        function diagOwlsOutToggle(outId) {
+            const $btn = $('#owout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagOwlsCmd('diag_set:' + outId + ':' + newVal);
+            const label = OWLS_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        socket.on('owls_diag_state', function(s) {
+            if (!diagOwlsActive) return;
+            $('#diag-owls-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.up === 'number') {
+                const sec = s.up;
+                $('#diag-owls-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= OWLS_OUTPUTS.length) return;
+                    const id = OWLS_OUTPUTS[i].id;
+                    const $btn = $('#owout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(OWLS_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
             }
         });
 

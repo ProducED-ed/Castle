@@ -1684,12 +1684,17 @@ def handle_flash(board_id):
             try: ser.open()
             except: pass
             is_system_flashing = False
-            socketio.emit('flash_log', {'board': board_id, 'msg': '\nПерезапускаю сервер для гарантированного восстановления связи... [END]'})
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\nПауза 5с для USB-controller settling, потом рестарт сервера... [END]'})
             # После прошивки Main Board часто остаётся "stale fd" на ttyUSB_MAIN —
             # ser.open() формально успешен, но реально пакеты уходят в пустоту.
             # Mega → ничего не получает → Restart с пульта не работает физически.
             # Самый надёжный способ — полный рестарт процесса через systemd.
-            eventlet.sleep(1)  # дать UI время показать сообщение
+            #
+            # Cooldown 5с (увеличено с 1с после инцидента 22 мая 2026): даём USB
+            # controller успокоиться после avrdude (DTR-pulses + bus enum stress).
+            # Без cooldown свеже-запущенный server-instance иногда не может
+            # открыть ttyUSB_MAIN (USB ещё в re-enumerate state).
+            eventlet.sleep(5)  # USB settling + UI feedback
             logger.warning("[FLASH] Main Board flashed — auto-restart of castleserver to clear stale serial fd")
             import signal  # os уже импортирован глобально (не делать import os здесь —
                            # иначе Python считает os локальной во ВСЕЙ функции и падает
@@ -1741,6 +1746,14 @@ def _handle_dog_flash():
         ok = ('bytes of flash verified' in out.lower())
         return ok, r.returncode
 
+    # USB-stress mitigation. Из инцидента 22 мая 2026: после 5+ avrdude-флэшей
+    # подряд (silence → dog → restore × несколько раз) Pi xHCI controller
+    # сошёл в "HC died" state — USB полностью отвалился. Лечится только cold-
+    # reboot Pi, и то на cheap-USB-hub конфигурации не гарантированно.
+    # Mitigation: ставим 6-секундные паузы между avrdude-шагами, чтобы USB
+    # controller успевал отстояться между bus reset / DTR pulse / enum.
+    USB_COOLDOWN = 6  # seconds between avrdude steps
+
     try:
         # --- Шаг 1: silence Mega ---
         socketio.emit('flash_log', {'board': 'dog', 'msg': '=== ШАГ 1/3: Прошиваем silence.ino на Mega (отключает Mega от Nano) ===\n'})
@@ -1759,8 +1772,8 @@ def _handle_dog_flash():
         socketio.emit('flash_log', {'board': 'dog', 'msg': '\n✅ silence на Mega — Mega теперь молчит на Serial3.\n'})
 
         # --- Шаг 2: dog ---
-        socketio.emit('flash_log', {'board': 'dog', 'msg': '\n=== ШАГ 2/3: Прошиваем dog.ino на Nano (через USB-CH340) ===\n'})
-        eventlet.sleep(1)
+        socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n=== ШАГ 2/3: Прошиваем dog.ino на Nano (через USB-CH340), пауза {USB_COOLDOWN}с для USB-controller ===\n'})
+        eventlet.sleep(USB_COOLDOWN)
         ok2, _ = _run(avrdude_dog, 'Шаг 2: dog → Nano')
         if not ok2:
             socketio.emit('flash_log', {'board': 'dog', 'msg': '\n⚠️  ШАГ 2 НЕ УДАЛСЯ: dog не прошился. Восстанавливаю Mega...\n'})
@@ -1769,8 +1782,8 @@ def _handle_dog_flash():
             socketio.emit('flash_log', {'board': 'dog', 'msg': '\n✅ dog на Nano прошит.\n'})
 
         # --- Шаг 3: восстановить Mega ---
-        socketio.emit('flash_log', {'board': 'dog', 'msg': '\n=== ШАГ 3/3: Восстанавливаем MAIN_BOARD на Mega ===\n'})
-        eventlet.sleep(1)
+        socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n=== ШАГ 3/3: Восстанавливаем MAIN_BOARD на Mega, пауза {USB_COOLDOWN}с ===\n'})
+        eventlet.sleep(USB_COOLDOWN)
         ok3, _ = _run(avrdude_mega(MEGA_HEX), 'Шаг 3: MAIN_BOARD → Mega')
 
         # Финал
@@ -1792,8 +1805,12 @@ def _handle_dog_flash():
         # (особенно когда вложенная функция вызвана из @socketio.on handler).
         # _exit — bypass всех handlers, immediate exit. systemd Restart=always
         # подхватит и поднимет свежий процесс.
-        socketio.emit('flash_log', {'board': 'dog', 'msg': '\nПерезапускаю сервер для гарантированного восстановления связи... [END]\n'})
-        eventlet.sleep(1)
+        #
+        # Cooldown 4с ПЕРЕД exit: даём USB controller успокоиться после
+        # серии avrdude-операций. Без этого после restart fresh-instance
+        # пытается открыть ttyUSB_MAIN, когда USB ещё в settling-state.
+        socketio.emit('flash_log', {'board': 'dog', 'msg': f'\nПауза {USB_COOLDOWN-2}с для USB settling, потом рестарт сервера... [END]\n'})
+        eventlet.sleep(USB_COOLDOWN - 2)
         logger.warning("[FLASH] Dog flashed (3-step via silence) — auto-restart of castleserver")
         os._exit(0)
 
@@ -1954,21 +1971,53 @@ def _diag_send(device, action, body=None):
     )
     send_esp32_command(url, cmd, debounce=False)
 
+# Когда хоть одна башня (workshop/basket/dog/owls) входит в diag — Mega тоже
+# должна замёрзнуть (иначе её state-machine будет толкать команды в их UART).
+# Поэтому 'main' заходит в diag автоматически как зависимость башен.
+# Если пользователь сам включил main — это _diag_main_explicit, не выключаем
+# до явного toggle.
+_diag_active_devices = set()  # towers/ESP32 в diag (НЕ 'main')
+_diag_main_explicit = False   # включил ли пользователь main явно
+
+def _diag_tower_active():
+    return bool(_diag_active_devices & {'workshop','basket','dog','owls'})
+
+def _diag_main_needed():
+    return _diag_main_explicit or _diag_tower_active()
+
 @socketio.on('tech_diag_enter')
 def tech_diag_enter(data):
+    global _diag_main_explicit
     device = (data or {}).get('device')
     if not device:
         return
     logger.info(f"[DIAG] Entering diag mode for {device}")
-    _diag_send(device, 'on')
+    was_main_needed = _diag_main_needed()
+    if device == 'main':
+        _diag_main_explicit = True
+    else:
+        _diag_active_devices.add(device)
+    # Подняли main первым, если он не был активен
+    if device in ('main','workshop','basket','dog','owls') and not was_main_needed:
+        _diag_send('main', 'on')
+    if device != 'main':
+        _diag_send(device, 'on')
 
 @socketio.on('tech_diag_exit')
 def tech_diag_exit(data):
+    global _diag_main_explicit
     device = (data or {}).get('device')
     if not device:
         return
     logger.info(f"[DIAG] Exiting diag mode for {device}")
-    _diag_send(device, 'off')
+    if device == 'main':
+        _diag_main_explicit = False
+    else:
+        _diag_active_devices.discard(device)
+        _diag_send(device, 'off')
+    # Если main больше никому не нужен — опускаем
+    if device in ('main','workshop','basket','dog','owls') and not _diag_main_needed():
+        _diag_send('main', 'off')
 
 @socketio.on('tech_send_serial')
 def tech_send_serial(data):
