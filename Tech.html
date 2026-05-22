@@ -260,10 +260,10 @@
             </div>
 
             <div class="ui inverted top attached tabular menu" id="diag-tab-menu">
-                <a class="active item" data-diag-tab="train">Train (192.168.4.202)</a>
-                <a class="item" data-diag-tab="wolf">Wolf (192.168.4.201)</a>
-                <span class="item" style="opacity:0.4;">Suitcases — TODO</span>
-                <span class="item" style="opacity:0.4;">Safe — TODO</span>
+                <a class="active item" data-diag-tab="train">Train (.202)</a>
+                <a class="item" data-diag-tab="wolf">Wolf (.201)</a>
+                <a class="item" data-diag-tab="safe">Safe (.204)</a>
+                <a class="item" data-diag-tab="suitcases">Suitcases (.203)</a>
                 <span class="item" style="opacity:0.4;">Башни — TODO</span>
             </div>
 
@@ -422,6 +422,127 @@
                     </div>
 
                     <pre id="diag-wolf-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
+            </div>
+
+            <!-- Safe pane -->
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="safe" style="display:none;">
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-safe-toggle-wrap">
+                        <input type="checkbox" id="diag-safe-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает сейф!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('safe')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;" id="diag-safe-meta">
+                        <span title="Время последнего полученного пакета snapshot от ESP32 (каждые 200мс). Не обновляется → нет связи.">Snapshot:</span>
+                        <span id="diag-safe-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Уровень WiFi от ESP32 до Castle AP, dBm. -50 = отлично, -70 = норма, ниже -85 = разрывы.">RSSI:</span>
+                        <span id="diag-safe-rssi" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Свободная RAM на ESP32. Падение <50 KB → скоро out-of-memory crash.">Heap:</span>
+                        <span id="diag-safe-heap" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Время с момента последнего ребута ESP32. Сброс без вашего вмешательства = crash/brownout.">Uptime:</span>
+                        <span id="diag-safe-uptime" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Внутренняя температура чипа ESP32, °C. Жёлтый >60°, красный >75°.">Temp:</span>
+                        <span id="diag-safe-temp" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-safe-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры (live)</h4>
+                    <div class="diag-grid" id="diag-safe-inputs"></div>
+
+                    <h4>Электрозамок (GPIO 18, LOCKER_PIN)</h4>
+                    <button class="diag-out-btn" onclick="diagSafeCmd('diag_set:lock_pulse:0')"
+                            title="Импульс 500мс — постоянное включение спалит соленоид" style="width:150px;">
+                        Открыть замок
+                    </button>
+
+                    <h4>Подсветка (LED_1, LED_2)</h4>
+                    <div class="diag-grid" id="diag-safe-outputs"></div>
+                    <div style="margin-top:6px;">
+                        <button class="ui mini button" onclick="diagSafeCmd('diag_set:leds_all:1')">Обе ON</button>
+                        <button class="ui mini button" onclick="diagSafeCmd('diag_set:leds_all:0')">Обе OFF</button>
+                    </div>
+
+                    <h4>Звук (DFPlayer)</h4>
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <span style="color:#ccc;">Трек:</span>
+                        <input type="number" id="diag-safe-track" value="2" min="1" max="100" style="width:70px;"/>
+                        <button class="ui mini blue button" onclick="diagSafePlay()"><i class="play icon"></i>Play</button>
+                        <button class="ui mini button" onclick="diagSafeCmd('diag_set:stop_audio:0')"><i class="stop icon"></i>Stop</button>
+                        <span style="margin-left:20px; color:#ccc;">Громкость:</span>
+                        <input type="range" id="diag-safe-vol" min="0" max="30" value="15" style="width:150px;"/>
+                        <span id="diag-safe-vol-val" style="color:#3498db; font-family:monospace;">15</span>
+                    </div>
+
+                    <pre id="diag-safe-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
+            </div>
+
+            <!-- Suitcases pane -->
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="suitcases" style="display:none;">
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-suitcases-toggle-wrap">
+                        <input type="checkbox" id="diag-suitcases-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает чемоданы!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('suitcases')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего полученного пакета snapshot от ESP32 (каждые 200мс).">Snapshot:</span>
+                        <span id="diag-suitcases-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Уровень WiFi от ESP32 до Castle AP, dBm.">RSSI:</span>
+                        <span id="diag-suitcases-rssi" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Свободная RAM на ESP32.">Heap:</span>
+                        <span id="diag-suitcases-heap" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime с момента последнего ребута.">Uptime:</span>
+                        <span id="diag-suitcases-uptime" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Внутренняя температура чипа, °C.">Temp:</span>
+                        <span id="diag-suitcases-temp" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-suitcases-body" style="display:none; margin-top:1em;">
+                    <h4>Кнопки + геркон (live)</h4>
+                    <div class="diag-grid" id="diag-suitcases-inputs"></div>
+
+                    <h4>Электрозамок (SHERIF_EM2, GPIO 21)</h4>
+                    <button class="diag-out-btn" onclick="diagSuitcasesCmd('diag_set:lock_pulse:0')"
+                            title="Импульс 250мс — постоянное включение спалит соленоид" style="width:150px;">
+                        Открыть замок
+                    </button>
+
+                    <h4>Индикаторные LED</h4>
+                    <div class="diag-grid" id="diag-suitcases-outputs"></div>
+
+                    <h4>4 символа на кнопках (PWM 0-255)</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                        <span style="color:#ccc;">Яркость:</span>
+                        <input type="range" id="diag-suitcases-sym-bri" min="0" max="255" value="128" style="width:200px;"/>
+                        <span id="diag-suitcases-sym-bri-val" style="color:#3498db; font-family:monospace; width:35px;">128</span>
+                        <button class="ui mini button" onclick="diagSuitcasesSymOne(1)">Sym 1</button>
+                        <button class="ui mini button" onclick="diagSuitcasesSymOne(2)">Sym 2</button>
+                        <button class="ui mini button" onclick="diagSuitcasesSymOne(3)">Sym 3</button>
+                        <button class="ui mini button" onclick="diagSuitcasesSymOne(4)">Sym 4</button>
+                        <button class="ui mini button" onclick="diagSuitcasesCmd('diag_set:syms_all:' + ($('#diag-suitcases-sym-bri').val()))">Все ON</button>
+                        <button class="ui mini button" onclick="diagSuitcasesCmd('diag_set:syms_all:0')">Все OFF</button>
+                    </div>
+
+                    <h4>Звук (DFPlayer)</h4>
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <span style="color:#ccc;">Трек:</span>
+                        <input type="number" id="diag-suitcases-track" value="1" min="1" max="100" style="width:70px;"/>
+                        <button class="ui mini blue button" onclick="diagSuitcasesPlay()"><i class="play icon"></i>Play</button>
+                        <button class="ui mini button" onclick="diagSuitcasesCmd('diag_set:stop_audio:0')"><i class="stop icon"></i>Stop</button>
+                        <span style="margin-left:20px; color:#ccc;">Громкость:</span>
+                        <input type="range" id="diag-suitcases-vol" min="0" max="30" value="15" style="width:150px;"/>
+                        <span id="diag-suitcases-vol-val" style="color:#3498db; font-family:monospace;">15</span>
+                    </div>
+
+                    <pre id="diag-suitcases-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
                 </div>
             </div>
         </div>
@@ -846,6 +967,28 @@
             $('[data-diag-pane="' + tab + '"]').show();
         });
 
+        // ============ Общий helper: показать лог любого устройства ============
+        function diagShowLog(device) {
+            socket.emit('tech_diag_log_request', { device: device, lines: 200 });
+            $('#diag-' + device + '-log').show();
+        }
+        // ============ Общий helper: обновить системные метрики (RSSI/Heap/Uptime/Temp) ============
+        function diagUpdateSystemMetrics(device, s) {
+            $('#diag-' + device + '-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.rssi === 'number') $('#diag-' + device + '-rssi').text(s.rssi + ' dBm');
+            if (typeof s.heap === 'number') $('#diag-' + device + '-heap').text((s.heap / 1024).toFixed(1) + ' KB');
+            if (typeof s.uptime === 'number') {
+                const sec = s.uptime;
+                $('#diag-' + device + '-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (typeof s.temp === 'number') {
+                let col = '#aaa';
+                if (s.temp > 75) col = '#e74c3c';
+                else if (s.temp > 60) col = '#f39c12';
+                $('#diag-' + device + '-temp').css('color', col).text(s.temp.toFixed(1) + ' °C');
+            }
+        }
+
         // ============ Диагностика волка ============
         // По схеме wolf.net + wolf.ino — порядок sensor input в snapshot:
         const WOLF_INPUTS = [
@@ -1036,6 +1179,196 @@
             if (typeof s.vol === 'number' && document.activeElement.id !== 'diag-train-vol') {
                 $('#diag-train-vol').val(s.vol);
                 $('#diag-train-vol-val').text(s.vol);
+            }
+        });
+
+        // ============ Диагностика Safe (192.168.4.204) ============
+        const SAFE_INPUTS = [
+            { id: 'reed_1', label: 'Reed Switch 1 (GPIO 36, NO-pullup, active=HIGH)' },
+            { id: 'reed_2', label: 'Reed Switch 2 (GPIO 32, INPUT_PULLUP, active=LOW)' },
+            { id: 'ball',   label: 'Ball Sensor (GPIO 39, active=HIGH)' },
+        ];
+        const SAFE_OUTPUTS = [
+            { id: 'led_1', label: 'LED 1 (GPIO 21)' },
+            { id: 'led_2', label: 'LED 2 (GPIO 22)' },
+        ];
+        let diagSafeActive = false;
+
+        (function initDiagSafe() {
+            const $in = $('#diag-safe-inputs');
+            SAFE_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="sinp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $('#diag-safe-outputs');
+            SAFE_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="sout-${o.id}"
+                    onclick="diagSafeOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+
+        $('#diag-safe-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'safe' });
+                $('#diag-safe-body').show();
+                diagSafeActive = true;
+                $('.diag-out-btn[id^="sout-"]').each(function() {
+                    const id = this.id.replace('sout-', '');
+                    const label = SAFE_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'safe' });
+                $('#diag-safe-body').hide();
+                diagSafeActive = false;
+            }
+        });
+
+        function diagSafeCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'safe', cmd: cmd });
+        }
+        function diagSafeOutToggle(outId) {
+            const $btn = $('#sout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagSafeCmd('diag_set:' + outId + ':' + newVal);
+            const label = SAFE_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        function diagSafePlay() {
+            const t = parseInt($('#diag-safe-track').val()) || 1;
+            diagSafeCmd('diag_set:play:' + t);
+        }
+        $('#diag-safe-vol').on('input', function() {
+            const v = $(this).val();
+            $('#diag-safe-vol-val').text(v);
+            diagSafeCmd('diag_set:volume:' + v);
+        });
+
+        // ============ Диагностика Suitcases (192.168.4.203) ============
+        const SUIT_INPUTS = [
+            { id: 'butt1', label: 'Кнопка 1 (GPIO 32, HIGH_PULL)' },
+            { id: 'butt2', label: 'Кнопка 2 (GPIO 35, HIGH_PULL)' },
+            { id: 'butt3', label: 'Кнопка 3 (GPIO 34, HIGH_PULL)' },
+            { id: 'butt4', label: 'Кнопка 4 (GPIO 39, HIGH_PULL)' },
+            { id: 'help',  label: 'Help button (GPIO 36, HIGH_PULL)' },
+            { id: 'eye',   label: 'Eye Symbol геркон (GPIO 33, active=LOW)' },
+        ];
+        const SUIT_OUTPUTS = [
+            { id: 'mistake_led', label: 'Mistake LED (GPIO 22)' },
+            { id: 'inside_led',  label: 'Inside LED (GPIO 23)' },
+        ];
+        let diagSuitcasesActive = false;
+
+        (function initDiagSuitcases() {
+            const $in = $('#diag-suitcases-inputs');
+            SUIT_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="suinp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $('#diag-suitcases-outputs');
+            SUIT_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="suout-${o.id}"
+                    onclick="diagSuitcasesOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+
+        $('#diag-suitcases-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'suitcases' });
+                $('#diag-suitcases-body').show();
+                diagSuitcasesActive = true;
+                $('.diag-out-btn[id^="suout-"]').each(function() {
+                    const id = this.id.replace('suout-', '');
+                    const label = SUIT_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'suitcases' });
+                $('#diag-suitcases-body').hide();
+                diagSuitcasesActive = false;
+            }
+        });
+
+        function diagSuitcasesCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'suitcases', cmd: cmd });
+        }
+        function diagSuitcasesOutToggle(outId) {
+            const $btn = $('#suout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagSuitcasesCmd('diag_set:' + outId + ':' + newVal);
+            const label = SUIT_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        function diagSuitcasesPlay() {
+            const t = parseInt($('#diag-suitcases-track').val()) || 1;
+            diagSuitcasesCmd('diag_set:play:' + t);
+        }
+        function diagSuitcasesSymOne(n) {
+            const v = $('#diag-suitcases-sym-bri').val();
+            diagSuitcasesCmd('diag_set:sym_' + n + ':' + v);
+        }
+        $('#diag-suitcases-vol').on('input', function() {
+            const v = $(this).val();
+            $('#diag-suitcases-vol-val').text(v);
+            diagSuitcasesCmd('diag_set:volume:' + v);
+        });
+        $('#diag-suitcases-sym-bri').on('input', function() {
+            $('#diag-suitcases-sym-bri-val').text($(this).val());
+        });
+
+        socket.on('suitcases_diag_state', function(s) {
+            if (!diagSuitcasesActive) return;
+            diagUpdateSystemMetrics('suitcases', s);
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= SUIT_INPUTS.length) return;
+                    $('#suinp-' + SUIT_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= SUIT_OUTPUTS.length) return;
+                    const id = SUIT_OUTPUTS[i].id;
+                    const $btn = $('#suout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(SUIT_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+            if (typeof s.vol === 'number' && document.activeElement.id !== 'diag-suitcases-vol') {
+                $('#diag-suitcases-vol').val(s.vol);
+                $('#diag-suitcases-vol-val').text(s.vol);
+            }
+        });
+
+        socket.on('safe_diag_state', function(s) {
+            if (!diagSafeActive) return;
+            diagUpdateSystemMetrics('safe', s);
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= SAFE_INPUTS.length) return;
+                    $('#sinp-' + SAFE_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.out)) {
+                // out: [led_1, led_2, locker] — locker не toggle, не отображается как кнопка
+                s.out.slice(0, 2).forEach((v, i) => {
+                    const id = SAFE_OUTPUTS[i].id;
+                    const $btn = $('#sout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(SAFE_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+            if (typeof s.vol === 'number' && document.activeElement.id !== 'diag-safe-vol') {
+                $('#diag-safe-vol').val(s.vol);
+                $('#diag-safe-vol-val').text(s.vol);
             }
         });
     </script>

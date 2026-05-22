@@ -108,6 +108,11 @@ bool safeEndConfirmed = false;      // Флаг подтверждения от 
 unsigned long stepEnteredAt = 0;    // Момент входа в текущий gameWonSequenceStep (для time-based fallback если DFPlayer не шлёт events)
 unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
 
+// === DIAG MODE (см. [[clc-tech-pult-diag-panel]]) ===
+bool diagModeActive = false;
+unsigned long diagLastSnapshot = 0;
+const unsigned long DIAG_SNAPSHOT_INTERVAL = 200;
+
 // Настройки статического IP
 IPAddress local_IP(192, 168, 4, 204);
 IPAddress gateway(192, 168, 4, 1);
@@ -133,7 +138,10 @@ void ledOn();
 void ledOff();
 void openLocker();
 // Новая вспомогательная функция, чтобы не дублировать код
-void startGameWonSequence(); 
+void startGameWonSequence();
+// DIAG
+void handleDiagSet(String body);
+void sendDiagSnapshot();
 
 void setup() {
   // Отключаем встроенный Brown-Out Detector — он может валить ESP32
@@ -228,6 +236,39 @@ void setup() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
       sendLogToServer("{\"log\":\"Safe received command: " + body + "\"}");
+
+      // === DIAG MODE ===
+      if (body == "\"diag_on\"") {
+        diagModeActive = true;
+        myDFPlayer.stop();
+        digitalWrite(LOCKER_PIN, LOW);
+        ledOff();
+        Serial.println("DIAG ON");
+        server.send(200, "application/json", "{\"status\":\"diag_on\"}");
+        return;
+      }
+      if (body == "\"diag_off\"") {
+        diagModeActive = false;
+        digitalWrite(LOCKER_PIN, LOW);
+        ledOff();
+        myDFPlayer.stop();
+        currentState = IDLE;
+        Serial.println("DIAG OFF");
+        server.send(200, "application/json", "{\"status\":\"diag_off\"}");
+        return;
+      }
+      if (body.startsWith("\"diag_set:")) {
+        handleDiagSet(body);
+        server.send(200, "application/json", "{\"status\":\"diag_set\"}");
+        return;
+      }
+      if (diagModeActive) {
+        Serial.println("DIAG ignored: " + body);
+        server.send(200, "application/json", "{\"status\":\"ignored_diag\"}");
+        return;
+      }
+      // === END DIAG ===
+
       if(body == "\"start\""){
         ledOff();
         Serial.println("Команда 'start': подсветка выключена.");
@@ -360,6 +401,17 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   server.handleClient();
+
+  // === DIAG MODE: ранний выход, игнорируем игровую логику ===
+  if (diagModeActive) {
+    if (millis() - diagLastSnapshot >= DIAG_SNAPSHOT_INTERVAL) {
+      diagLastSnapshot = millis();
+      sendDiagSnapshot();
+    }
+    return;
+  }
+  // === END DIAG ===
+
   // WiFi watchdog: non-blocking, restart только после 60 сек непрерывной потери
   static unsigned long lastReconnectAttempt = 0;
   static unsigned long wifiDownSince = 0;
@@ -827,4 +879,79 @@ void SendData(){
     int httpCode = http.POST(payload);
     http.end();
   }
+}
+
+// === DIAG: парсер команд diag_set:<output>:<value> ===
+// Safe-специфика. Выходы:
+//   LOCKER_PIN (GPIO 18) — электрозамок, ТОЛЬКО импульс 500мс (соленоид сгорит)
+//   LED_PIN_1 (GPIO 21), LED_PIN_2 (GPIO 22) — подсветка сейфа
+void handleDiagSet(String body) {
+  int firstQuote = body.indexOf('"');
+  int lastQuote  = body.lastIndexOf('"');
+  if (firstQuote < 0 || lastQuote <= firstQuote) return;
+  String s = body.substring(firstQuote + 1, lastQuote);
+  s = s.substring(strlen("diag_set:"));
+
+  int colon = s.indexOf(':');
+  if (colon < 0) return;
+  String key = s.substring(0, colon);
+  String val = s.substring(colon + 1);
+  int onv = val.toInt() ? HIGH : LOW;
+
+  if      (key == "led_1")    digitalWrite(LED_PIN_1, onv);
+  else if (key == "led_2")    digitalWrite(LED_PIN_2, onv);
+  else if (key == "leds_all") {
+    digitalWrite(LED_PIN_1, onv);
+    digitalWrite(LED_PIN_2, onv);
+  }
+  else if (key == "lock_pulse") {
+    // 500мс импульс на электрозамок (как openLocker())
+    digitalWrite(LOCKER_PIN, HIGH);
+    delay(500);
+    digitalWrite(LOCKER_PIN, LOW);
+  }
+  else if (key == "volume") {
+    value = constrain(val.toInt(), 0, 30);
+    myDFPlayer.volume(value);
+  }
+  else if (key == "play")       myDFPlayer.play(val.toInt());
+  else if (key == "stop_audio") myDFPlayer.stop();
+}
+
+// === DIAG: периодический snapshot всех I/O ===
+// Формат: {"diag":{"in":[3],"out":[3],"vol":N,"rssi":N,"heap":N,"uptime":N,"temp":N}}
+// in[0..2]: reed_1(36), reed_2(32), ball(39)
+// Нормализация: 1 = активен.
+//   reed_1 (INPUT, без pullup): active=HIGH (внешний pulldown)
+//   reed_2 (INPUT_PULLUP): active=LOW (геркон к GND)
+//   ball   (INPUT): active=HIGH
+void sendDiagSnapshot() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  String payload = "{\"diag\":{\"in\":[";
+  payload += (digitalRead(REED_SWITCH_1_PIN) == HIGH ? "1" : "0"); payload += ",";
+  payload += (digitalRead(REED_SWITCH_2_PIN) == LOW  ? "1" : "0"); payload += ",";
+  payload += (digitalRead(BALL_SENSOR_PIN)   == HIGH ? "1" : "0");
+  payload += "],\"out\":[";
+  payload += String(digitalRead(LED_PIN_1));   payload += ",";
+  payload += String(digitalRead(LED_PIN_2));   payload += ",";
+  payload += String(digitalRead(LOCKER_PIN));
+  payload += "],\"vol\":";
+  payload += String(value);
+  payload += ",\"rssi\":";
+  payload += String(WiFi.RSSI());
+  payload += ",\"heap\":";
+  payload += String(ESP.getFreeHeap());
+  payload += ",\"uptime\":";
+  payload += String(millis() / 1000UL);
+  payload += ",\"temp\":";
+  payload += String(temperatureRead(), 1);
+  payload += "}}";
+
+  HTTPClient http;
+  http.begin("http://192.168.4.1:3000/api?device=safe");
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(150);
+  http.POST(payload);
+  http.end();
 }

@@ -67,6 +67,13 @@ bool hintFlag = 1;
 bool chestEndConfirmed = false;      // Флаг подтверждения от сервера
 unsigned long chestEndSendTimer = 0; // Таймер для периодической отправки
 
+// === DIAG MODE (см. [[clc-tech-pult-diag-panel]]) ===
+bool diagModeActive = false;
+unsigned long diagLastSnapshot = 0;
+const unsigned long DIAG_SNAPSHOT_INTERVAL = 200;
+void handleDiagSet(String body);
+void sendDiagSnapshot();
+
 // --- Системные треки (1-2) ---
 const int TRACK_FON_SUITCASE = 1;
 const int TRACK_SUITCASE_END = 2;
@@ -327,6 +334,43 @@ void setup() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
       sendLogToServer("{\"log\":\"Chest received command: " + body + "\"}");
+
+      // === DIAG MODE ===
+      if (body == "\"diag_on\"") {
+        diagModeActive = true;
+        myMP3.stop();
+        digitalWrite(SHERIF_EM2, LOW);
+        digitalWrite(mistakeLed, LOW);
+        digitalWrite(insideLed, LOW);
+        for (int i = 0; i < arrayLenght; i++) analogWrite(ledsSym[i], 0);
+        Serial.println("DIAG ON");
+        server.send(200, "application/json", "{\"status\":\"diag_on\"}");
+        return;
+      }
+      if (body == "\"diag_off\"") {
+        diagModeActive = false;
+        digitalWrite(SHERIF_EM2, LOW);
+        digitalWrite(mistakeLed, LOW);
+        digitalWrite(insideLed, LOW);
+        for (int i = 0; i < arrayLenght; i++) analogWrite(ledsSym[i], 0);
+        myMP3.stop();
+        state = 0;
+        Serial.println("DIAG OFF");
+        server.send(200, "application/json", "{\"status\":\"diag_off\"}");
+        return;
+      }
+      if (body.startsWith("\"diag_set:")) {
+        handleDiagSet(body);
+        server.send(200, "application/json", "{\"status\":\"diag_set\"}");
+        return;
+      }
+      if (diagModeActive) {
+        Serial.println("DIAG ignored: " + body);
+        server.send(200, "application/json", "{\"status\":\"ignored_diag\"}");
+        return;
+      }
+      // === END DIAG ===
+
       if(body == "\"game\""){
         state = 1;
         myMP3.playMp3Folder(TRACK_FON_SUITCASE);
@@ -489,6 +533,18 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();
+  server.handleClient();
+
+  // === DIAG MODE: ранний выход, игнорируем игровую логику ===
+  if (diagModeActive) {
+    if (millis() - diagLastSnapshot >= DIAG_SNAPSHOT_INTERVAL) {
+      diagLastSnapshot = millis();
+      sendDiagSnapshot();
+    }
+    return;
+  }
+  // === END DIAG ===
+
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
     command.trim(); // Убираем лишние пробелы и символы переноса строки
@@ -505,7 +561,7 @@ void loop() {
       }
     }
   }
-  server.handleClient();
+  // server.handleClient() уже вызван выше (см. начало loop, до DIAG-блока)
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
     delay(2000);
@@ -1106,3 +1162,93 @@ void handlePlayerQueries() {
   }
 }
 
+
+// === DIAG: парсер команд diag_set:<output>:<value> ===
+// Chest-специфика. Выходы:
+//   SHERIF_EM2 (GPIO 21) — электрозамок (импульс 250мс)
+//   mistakeLed (GPIO 22), insideLed (GPIO 23) — индикация
+//   ledsSym[] = {25, 5, 18, 19} — 4 PWM LED символы кнопок (0-255)
+void handleDiagSet(String body) {
+  int firstQuote = body.indexOf('"');
+  int lastQuote  = body.lastIndexOf('"');
+  if (firstQuote < 0 || lastQuote <= firstQuote) return;
+  String s = body.substring(firstQuote + 1, lastQuote);
+  s = s.substring(strlen("diag_set:"));
+
+  int colon = s.indexOf(':');
+  if (colon < 0) return;
+  String key = s.substring(0, colon);
+  String val = s.substring(colon + 1);
+  int onv = val.toInt() ? HIGH : LOW;
+
+  if      (key == "mistake_led") digitalWrite(mistakeLed, onv);
+  else if (key == "inside_led")  digitalWrite(insideLed, onv);
+  else if (key == "sym_1")       analogWrite(ledsSym[0], val.toInt());  // 0-255 PWM
+  else if (key == "sym_2")       analogWrite(ledsSym[1], val.toInt());
+  else if (key == "sym_3")       analogWrite(ledsSym[2], val.toInt());
+  else if (key == "sym_4")       analogWrite(ledsSym[3], val.toInt());
+  else if (key == "syms_all") {
+    int v = val.toInt();
+    for (int i = 0; i < arrayLenght; i++) analogWrite(ledsSym[i], v);
+  }
+  else if (key == "lock_pulse") {
+    // 250мс импульс на SHERIF_EM2 (как OpenLock())
+    digitalWrite(SHERIF_EM2, HIGH);
+    delay(250);
+    digitalWrite(SHERIF_EM2, LOW);
+  }
+  else if (key == "volume") {
+    value = constrain(val.toInt(), 0, 30);
+    myMP3.volume(value);
+  }
+  else if (key == "play")       myMP3.play(val.toInt());
+  else if (key == "stop_audio") myMP3.stop();
+}
+
+// === DIAG: периодический snapshot всех I/O ===
+// Формат: {"diag":{"in":[6],"out":[2],"syms":[4],"vol":N,"rssi":N,"heap":N,"uptime":N,"temp":N}}
+// in[0..5]: butt1(32), butt2(35), butt3(34), butt4(39), helpButton(36), eyeSymbolGerkon(33)
+// Нормализация: 1 = активен.
+//   Кнопки/help (HIGH_PULL): active=LOW
+//   eyeSymbolGerkon (INPUT): active=LOW (по коду `!digitalRead(eyeSymbolGerkon)`)
+void sendDiagSnapshot() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  auto inv = [](int pin) { return digitalRead(pin) == LOW ? "1" : "0"; };
+
+  String payload = "{\"diag\":{\"in\":[";
+  payload += inv(32); payload += ",";  // butt1
+  payload += inv(35); payload += ",";  // butt2
+  payload += inv(34); payload += ",";  // butt3
+  payload += inv(39); payload += ",";  // butt4
+  payload += inv(36); payload += ",";  // helpButton
+  payload += inv(33);                  // eyeSymbolGerkon
+  payload += "],\"out\":[";
+  payload += String(digitalRead(mistakeLed)); payload += ",";
+  payload += String(digitalRead(insideLed));
+  payload += "],\"syms\":[";
+  // ledsSym текущее значение PWM прочитать нельзя без shadow-переменных —
+  // покажем 0/1 (включён ли LED) через digitalRead. Если PWM пишется аналогово,
+  // digitalRead вернёт HIGH когда duty > threshold. Это приближение, но достаточно.
+  payload += String(digitalRead(ledsSym[0])); payload += ",";
+  payload += String(digitalRead(ledsSym[1])); payload += ",";
+  payload += String(digitalRead(ledsSym[2])); payload += ",";
+  payload += String(digitalRead(ledsSym[3]));
+  payload += "],\"vol\":";
+  payload += String(value);
+  payload += ",\"rssi\":";
+  payload += String(WiFi.RSSI());
+  payload += ",\"heap\":";
+  payload += String(ESP.getFreeHeap());
+  payload += ",\"uptime\":";
+  payload += String(millis() / 1000UL);
+  payload += ",\"temp\":";
+  payload += String(temperatureRead(), 1);
+  payload += "}}";
+
+  HTTPClient http;
+  http.begin("http://192.168.4.1:3000/api?device=suitcases");
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(150);
+  http.POST(payload);
+  http.end();
+}
