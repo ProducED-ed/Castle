@@ -562,24 +562,27 @@ void loop() {
   if (!isActive && currentMillis - last_start_ping >= 500L) {
     last_start_ping = currentMillis;
     if (currentQuestState == STATE_WAITING_FOR_START || currentQuestState == STATE_RESTARTING) {
+      // Запоминаем БЫЛО ли state == RESTARTING ДО перехода — это единственный
+      // случай когда нужно пульсировать CAGE_LOCK (реально перезапустили).
+      // WAITING_FOR_START может прийти много раз от Mega "ready" → не пульсировать.
+      bool wasRestart = (currentQuestState == STATE_RESTARTING);
       resetQuestState();
       currentQuestState = STATE_IN_PROGRESS;
       if (digitalRead(CAPSULE_REED_PIN) == HIGH) {
         Serial.println((__FlashStringHelper *)MSG_DOG_NRD);
-        lightingBlinkActive = true;
-        currentLightingBlinkState = true;
-        analogWrite(LIGHTING_LED_PIN, 255);
-        lastBlinkLightingTime = currentMillis;
-      } else {
+        // Капсула не на месте — LED выключен, никаких действий.
+      } else if (wasRestart) {
+        // Реальный restart с капсулой в месте — открываем клетку (импульс).
         digitalWrite(CAGE_LOCK_PIN, HIGH);
         cageLockInitialOpenTime = currentMillis;
         cageLockInitialOpenActive = true;
-        lightingBlinkActive = false;
-        currentLightingBlinkState = false;
-        analogWrite(LIGHTING_LED_PIN, 0);
-        currentLightingBrightness = 0;
-        lightingFadingIn = false;
       }
+      // LED всегда выключаем (никаких миганий)
+      lightingBlinkActive = false;
+      currentLightingBlinkState = false;
+      analogWrite(LIGHTING_LED_PIN, 0);
+      currentLightingBrightness = 0;
+      lightingFadingIn = false;
     }
   }
 
@@ -694,10 +697,11 @@ void loop() {
           currentQuestState = STATE_WAITING_FOR_START;
           if (digitalRead(CAPSULE_REED_PIN) == HIGH) {
             Serial.println((__FlashStringHelper *)MSG_DOG_NRD);
-            lightingBlinkActive = true;
-            currentLightingBlinkState = true;
-            analogWrite(LIGHTING_LED_PIN, 255);
-            lastBlinkLightingTime = currentMillis;
+            // Раньше мигало освещение как «нужно вставить капсулу». Убрано.
+            lightingBlinkActive = false;
+            currentLightingBlinkState = false;
+            analogWrite(LIGHTING_LED_PIN, 0);
+            currentLightingBrightness = 0;
           } else {
             lightingBlinkActive = false;
             currentLightingBlinkState = false;

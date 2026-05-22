@@ -1787,12 +1787,15 @@ def _handle_dog_flash():
             socketio.emit('flash_failed', {'board': 'dog'})
             socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n[SYSTEM] ⚠️ silence={ok1} dog={ok2} mega_restore={ok3}\n'})
 
-        # После flash Mega — нужен рестарт сервера для свежего fd (см. commit 7cb898d)
+        # После flash Mega — нужен рестарт сервера для свежего fd (см. commit 7cb898d).
+        # os._exit(0) вместо SIGTERM: SIGTERM иногда не доходит в eventlet greenlet
+        # (особенно когда вложенная функция вызвана из @socketio.on handler).
+        # _exit — bypass всех handlers, immediate exit. systemd Restart=always
+        # подхватит и поднимет свежий процесс.
         socketio.emit('flash_log', {'board': 'dog', 'msg': '\nПерезапускаю сервер для гарантированного восстановления связи... [END]\n'})
         eventlet.sleep(1)
         logger.warning("[FLASH] Dog flashed (3-step via silence) — auto-restart of castleserver")
-        import signal
-        os.kill(os.getpid(), signal.SIGTERM)
+        os._exit(0)
 
     except Exception as e:
         socketio.emit('flash_failed', {'board': 'dog'})
