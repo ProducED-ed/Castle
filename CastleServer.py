@@ -1591,9 +1591,12 @@ def handle_get_stats():
 def handle_flash(board_id):
     global is_system_flashing
     global ser
-    
+
+    # Dog: специальный 3-шаговый flow (см. ниже после commands)
+    if board_id == 'dog':
+        return _handle_dog_flash()
+
     commands = {
-        'dog': 'sudo avrdude -v -p atmega328p -c arduino -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/dog/dog.ino.hex:i',
         'main': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN -b 115200 -D -U flash:w:/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex:i',
         'owls': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
         'basket': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
@@ -1614,20 +1617,8 @@ def handle_flash(board_id):
         # никогда не происходит → флэш висит вечно. Перед прошивкой говорим Mega
         # перевести её TX/RX в Z-state. Owls на SoftwareSerial — пока работает без.
         #
-        # Для dog: на DMC_TOP плате DTR-reset не работает. Шлём через Mega→Serial3
-        # команду wdt_reboot_for_flash → Nano сам ребутится через watchdog →
-        # попадает в Optiboot. Потом сразу release_serial3 → avrdude в окне
-        # Optiboot (~1 сек). Тайминги: 100мс на доставку wdt-команды, 200мс на
-        # release+sleep, avrdude стартует ~T+300мс после wdt-trigger.
-        _release_map = {'workshop': 'serial1', 'basket': 'serial2', 'dog': 'serial3'}
-        if board_id == 'dog':
-            socketio.emit('flash_log', {'board': board_id, 'msg': 'Шлём wdt_reboot_for_flash в Nano (через Mega→Serial3)...\n'})
-            serial_write_queue.put('wdt_reboot_for_flash')
-            eventlet.sleep(0.1)  # доставка байт + Nano принимает команду
-            socketio.emit('flash_log', {'board': board_id, 'msg': 'release_serial3 + сразу avrdude (Nano уже в Optiboot)...\n'})
-            serial_write_queue.put('release_serial3')
-            eventlet.sleep(0.2)  # короткий sleep — попасть в окно Optiboot (1 сек после wdt-reset)
-        elif board_id in _release_map:
+        _release_map = {'workshop': 'serial1', 'basket': 'serial2'}
+        if board_id in _release_map:
             sn = _release_map[board_id]
             socketio.emit('flash_log', {'board': board_id, 'msg': f'Отправка команды release_{sn} на Главную плату...\n'})
             serial_write_queue.put(f'release_{sn}')
@@ -1683,12 +1674,7 @@ def handle_flash(board_id):
             socketio.emit('flash_log', {'board': board_id, 'msg': '\n[SYSTEM] ВНИМАНИЕ! Обнаружена ошибка. Плата НЕ прошилась!\n'})
 
         # 5. Восстановление портов
-        if board_id == 'dog':
-            socketio.emit('flash_log', {'board': board_id, 'msg': 'Восстановление связи (restore_serial3)...'})
-            serial_write_queue.put('restore_serial3')
-            eventlet.sleep(0.5)
-            socketio.emit('flash_log', {'board': board_id, 'msg': '\nСвязь успешно восстановлена! [END]'})
-        elif board_id in _release_map:
+        if board_id in _release_map:
             sn = _release_map[board_id]
             socketio.emit('flash_log', {'board': board_id, 'msg': f'Восстановление связи (restore_{sn})...'})
             serial_write_queue.put(f'restore_{sn}')
@@ -1718,6 +1704,103 @@ def handle_flash(board_id):
         is_system_flashing = False
         try: ser.open()
         except: pass
+
+
+def _handle_dog_flash():
+    """3-шаговая прошивка Dog (Nano на DMC_TOP):
+    1. Mega ← silence.ino (Mega становится "немой" на Serial3 → освобождает RX/TX к Nano)
+    2. Nano ← dog.ino (через USB-CH340 на хабе)
+    3. Mega ← MAIN_BOARD_V5_COM5.ino (восстанавливаем игровую прошивку)
+
+    Почему так: на DMC_TOP линии RX/TX делятся между Mega и Nano. На скорости
+    115200 STK500-sync ломается из-за LED+R+capacitance даже когда Mega пины
+    в high-Z через release_serial3. silence.ino полностью убирает Mega-firmware
+    как источник сигнала на этих линиях — Mega после flash сидит в setup() без
+    активной UART → линия чистая → avrdude синхронизируется."""
+    global is_system_flashing, ser
+    SILENCE_HEX = '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/silence.ino.hex'
+    MEGA_HEX    = '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex'
+    DOG_HEX     = '/home/pi/New/Sketches/dog/dog.ino.hex'
+    DOG_PORT    = '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0'
+
+    avrdude_mega = lambda hex_path: (
+        f'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN '
+        f'-b 115200 -D -U flash:w:{hex_path}:i'
+    )
+    avrdude_dog = (
+        f'sudo avrdude -v -p atmega328p -c arduino -P {DOG_PORT} '
+        f'-b 115200 -D -U flash:w:{DOG_HEX}:i'
+    )
+
+    def _run(cmd, label):
+        socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n[{label}] {cmd}\n\n'})
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        out = (r.stdout or '') + '\n' + (r.stderr or '')
+        socketio.emit('flash_log', {'board': 'dog', 'msg': out})
+        socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n[{label}] rc={r.returncode}\n'})
+        ok = ('bytes of flash verified' in out.lower())
+        return ok, r.returncode
+
+    try:
+        # --- Шаг 1: silence Mega ---
+        socketio.emit('flash_log', {'board': 'dog', 'msg': '=== ШАГ 1/3: Прошиваем silence.ino на Mega (отключает Mega от Nano) ===\n'})
+        is_system_flashing = True
+        eventlet.sleep(1)
+        try: ser.close()
+        except: pass
+        ok1, _ = _run(avrdude_mega(SILENCE_HEX), 'Шаг 1: silence → Mega')
+        if not ok1:
+            socketio.emit('flash_failed', {'board': 'dog'})
+            socketio.emit('flash_log', {'board': 'dog', 'msg': '\n[SYSTEM] ШАГ 1 НЕ УДАЛСЯ: silence не прошился на Mega. Mega может быть в неопределённом состоянии — перезагрузи квест! [END]\n'})
+            try: ser.open()
+            except: pass
+            is_system_flashing = False
+            return
+        socketio.emit('flash_log', {'board': 'dog', 'msg': '\n✅ silence на Mega — Mega теперь молчит на Serial3.\n'})
+
+        # --- Шаг 2: dog ---
+        socketio.emit('flash_log', {'board': 'dog', 'msg': '\n=== ШАГ 2/3: Прошиваем dog.ino на Nano (через USB-CH340) ===\n'})
+        eventlet.sleep(1)
+        ok2, _ = _run(avrdude_dog, 'Шаг 2: dog → Nano')
+        if not ok2:
+            socketio.emit('flash_log', {'board': 'dog', 'msg': '\n⚠️  ШАГ 2 НЕ УДАЛСЯ: dog не прошился. Восстанавливаю Mega...\n'})
+            # Не возвращаемся — попробуем хоть Mega вернуть в рабочее состояние
+        else:
+            socketio.emit('flash_log', {'board': 'dog', 'msg': '\n✅ dog на Nano прошит.\n'})
+
+        # --- Шаг 3: восстановить Mega ---
+        socketio.emit('flash_log', {'board': 'dog', 'msg': '\n=== ШАГ 3/3: Восстанавливаем MAIN_BOARD на Mega ===\n'})
+        eventlet.sleep(1)
+        ok3, _ = _run(avrdude_mega(MEGA_HEX), 'Шаг 3: MAIN_BOARD → Mega')
+
+        # Финал
+        if ok1 and ok2 and ok3:
+            now_str = datetime.now().strftime('%d.%m.%Y %H:%M')
+            flashes = {}
+            if os.path.exists(FLASH_STATS_FILE):
+                with open(FLASH_STATS_FILE, 'r') as f: flashes = json.load(f)
+            flashes['dog'] = now_str
+            with open(FLASH_STATS_FILE, 'w') as f: json.dump(flashes, f)
+            socketio.emit('flash_success', {'board': 'dog', 'time': now_str})
+            socketio.emit('flash_log', {'board': 'dog', 'msg': '\n[SYSTEM] ✅ Все 3 шага прошли успешно! Dog обновлён.\n'})
+        else:
+            socketio.emit('flash_failed', {'board': 'dog'})
+            socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n[SYSTEM] ⚠️ silence={ok1} dog={ok2} mega_restore={ok3}\n'})
+
+        # После flash Mega — нужен рестарт сервера для свежего fd (см. commit 7cb898d)
+        socketio.emit('flash_log', {'board': 'dog', 'msg': '\nПерезапускаю сервер для гарантированного восстановления связи... [END]\n'})
+        eventlet.sleep(1)
+        logger.warning("[FLASH] Dog flashed (3-step via silence) — auto-restart of castleserver")
+        import signal
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    except Exception as e:
+        socketio.emit('flash_failed', {'board': 'dog'})
+        socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n[SYSTEM] КРИТИЧЕСКАЯ ОШИБКА: {str(e)} [END]\n'})
+        is_system_flashing = False
+        try: ser.open()
+        except: pass
+
 
 # --- ЧТЕНИЕ ЛОГОВ (Эмулятор tail -f на чистом Python) ---
 live_log_active = False
