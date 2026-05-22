@@ -18,6 +18,16 @@ HardwareSerial mySerial(1);
 
 Adafruit_PCF8574 OUTPUTS;
 
+// === DIAG MODE (тех-пульт /tech → вкладка "Диагностика") ===
+// Когда diagModeActive == true:
+//  - вся игровая логика в loop() пропускается (early return)
+//  - входящие /data команды игнорируются, кроме "diag_*"
+//  - каждые 200ms ESP32 шлёт snapshot всех I/O на /api?device=wolf
+bool diagModeActive = false;
+unsigned long diagLastSnapshot = 0;
+const unsigned long DIAG_SNAPSHOT_INTERVAL = 200;  // ms
+volatile unsigned long vibCount = 0;  // счётчик прерываний с пина 25 (для отображения в diag)
+
 CRGB wolfLed[10];
 CRGB threeLed[10];
 
@@ -266,6 +276,125 @@ volatile bool vibrationDetected = false;
 // Функция, которая вызывается мгновенно при ударе
 void IRAM_ATTR vibrationISR() {
   vibrationDetected = true;
+  vibCount++;
+}
+
+// === DIAG: парсер команд diag_set:<output>:<value> ===
+// Wolf-специфика. По схеме PCF8574 OUTPUTS (0x20):
+//   pin 0 = SH1 → электрозамок   pin 4 = three1Led
+//   pin 1 = rightCloudLed         pin 5 = three2Led
+//   pin 2 = wolfEyeLed            pin 6 = three3Led
+//   pin 3 = leftCloudLed          pin 7 = moonLed
+// WS2812: threeLed[10] (GPIO 18) — подсветка тройки; wolfLed[10] (GPIO 19) — глаза/туман волка
+void handleDiagSet(String body) {
+  int firstQuote = body.indexOf('"');
+  int lastQuote  = body.lastIndexOf('"');
+  if (firstQuote < 0 || lastQuote <= firstQuote) return;
+  String s = body.substring(firstQuote + 1, lastQuote);
+  s = s.substring(strlen("diag_set:"));
+
+  int colon = s.indexOf(':');
+  if (colon < 0) return;
+  String key = s.substring(0, colon);
+  String val = s.substring(colon + 1);
+
+  auto hexToCRGB = [](const String& h) -> CRGB {
+    long n = strtol(h.c_str(), NULL, 16);
+    return CRGB((n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF);
+  };
+
+  int onv = val.toInt() ? HIGH : LOW;
+  if      (key == "moon_led")     OUTPUTS.digitalWrite(7, onv);
+  else if (key == "left_cloud")   OUTPUTS.digitalWrite(3, onv);
+  else if (key == "right_cloud")  OUTPUTS.digitalWrite(1, onv);
+  else if (key == "wolf_eye")     OUTPUTS.digitalWrite(2, onv);
+  else if (key == "three1")       OUTPUTS.digitalWrite(4, onv);
+  else if (key == "three2")       OUTPUTS.digitalWrite(5, onv);
+  else if (key == "three3")       OUTPUTS.digitalWrite(6, onv);
+  else if (key == "wolf_strip") {
+    CRGB c = hexToCRGB(val);
+    for (int i = 0; i < 10; i++) wolfLed[i] = c;
+    FastLED.show();
+  } else if (key == "three_strip") {
+    CRGB c = hexToCRGB(val);
+    for (int i = 0; i < 10; i++) threeLed[i] = c;
+    FastLED.show();
+  } else if (key == "volume") {
+    value = constrain(val.toInt(), 0, 30);
+    myMP3.volume(value);
+  } else if (key == "play") {
+    myMP3.play(val.toInt());
+  } else if (key == "stop_audio") {
+    myMP3.stop();
+  } else if (key == "reset_vib") {
+    vibCount = 0;
+  } else if (key == "lock_pulse") {
+    // 500мс импульс на электрозамок (PCF pin 0). Намеренно НЕ делаем
+    // continuous-toggle: solenoid сгорит если оставить его под напряжением.
+    // Логика идентична игровой OpenLock(SH1).
+    OUTPUTS.digitalWrite(0, HIGH);
+    delay(500);
+    OUTPUTS.digitalWrite(0, LOW);
+  }
+}
+
+// === DIAG: периодический snapshot всех I/O ===
+// Формат: {"diag":{"in":[8],"vib":N,"out":[8],"wolf":"<6hex>","three":"<6hex>",
+//                  "vol":N,"rssi":N,"heap":N,"uptime":N,"temp":N}}
+// in[0..7]: moon(32), wolf(33), help(23), ghost(25), leftCloud(35),
+//           rightCloud1(36), rightCloud2(39), rightCloud3(34)
+// Нормализация: 1 = ЗАМКНУТ/НАЖАТ.
+//   HIGH_PULL сенсоры (всё кроме ghost) активны при digitalRead==LOW.
+//   ghost (LOW_PULL) активен при digitalRead==HIGH.
+void sendDiagSnapshot() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  auto inv = [](int pin) { return digitalRead(pin) == LOW ? "1" : "0"; };
+  String payload = "{\"diag\":{\"in\":[";
+  payload += inv(32); payload += ",";  // moon
+  payload += inv(33); payload += ",";  // wolf
+  payload += inv(23); payload += ",";  // help
+  payload += (digitalRead(25) == HIGH ? "1" : "0"); payload += ",";  // ghost (LOW_PULL)
+  payload += inv(35); payload += ",";  // leftCloud
+  payload += inv(36); payload += ",";  // rightCloud1
+  payload += inv(39); payload += ",";  // rightCloud2
+  payload += inv(34);                  // rightCloud3
+  payload += "],\"vib\":";
+  payload += String(vibCount);
+  payload += ",\"out\":[";
+  // Порядок для UI: moon, leftCloud, wolfEye, rightCloud, three1, three2, three3
+  payload += String(OUTPUTS.digitalRead(7)); payload += ",";  // moon
+  payload += String(OUTPUTS.digitalRead(3)); payload += ",";  // leftCloud
+  payload += String(OUTPUTS.digitalRead(2)); payload += ",";  // wolfEye
+  payload += String(OUTPUTS.digitalRead(1)); payload += ",";  // rightCloud
+  payload += String(OUTPUTS.digitalRead(4)); payload += ",";  // three1
+  payload += String(OUTPUTS.digitalRead(5)); payload += ",";  // three2
+  payload += String(OUTPUTS.digitalRead(6));                  // three3
+  payload += "],\"wolf\":\"";
+  char buf[7];
+  snprintf(buf, sizeof(buf), "%02x%02x%02x", wolfLed[0].r, wolfLed[0].g, wolfLed[0].b);
+  payload += buf;
+  payload += "\",\"three\":\"";
+  snprintf(buf, sizeof(buf), "%02x%02x%02x", threeLed[0].r, threeLed[0].g, threeLed[0].b);
+  payload += buf;
+  payload += "\",\"vol\":";
+  payload += String(value);
+  payload += ",\"rssi\":";
+  payload += String(WiFi.RSSI());
+  payload += ",\"heap\":";
+  payload += String(ESP.getFreeHeap());
+  payload += ",\"uptime\":";
+  payload += String(millis() / 1000UL);
+  payload += ",\"temp\":";
+  payload += String(temperatureRead(), 1);
+  payload += "}}";
+
+  HTTPClient http;
+  http.begin("http://192.168.4.1:3000/api?device=wolf");
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(150);
+  http.POST(payload);
+  http.end();
 }
 
 void setup() {
@@ -417,6 +546,42 @@ void setup() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
       sendLogToServer("{\"log\":\"Wolf received command: " + body + "\"}");
+
+      // === DIAG MODE ===
+      if (body == "\"diag_on\"") {
+        diagModeActive = true;
+        myMP3.stop();
+        for (uint8_t p = 0; p < 8; p++) OUTPUTS.digitalWrite(p, LOW);
+        for (int i = 0; i < 10; i++) { wolfLed[i] = CRGB::Black; threeLed[i] = CRGB::Black; }
+        FastLED.show();
+        vibCount = 0;
+        Serial.println("DIAG ON");
+        server.send(200, "application/json", "{\"status\":\"diag_on\"}");
+        return;
+      }
+      if (body == "\"diag_off\"") {
+        diagModeActive = false;
+        for (uint8_t p = 0; p < 8; p++) OUTPUTS.digitalWrite(p, LOW);
+        for (int i = 0; i < 10; i++) { wolfLed[i] = CRGB::Black; threeLed[i] = CRGB::Black; }
+        FastLED.show();
+        myMP3.stop();
+        state = 0;
+        Serial.println("DIAG OFF");
+        server.send(200, "application/json", "{\"status\":\"diag_off\"}");
+        return;
+      }
+      if (body.startsWith("\"diag_set:")) {
+        handleDiagSet(body);
+        server.send(200, "application/json", "{\"status\":\"diag_set\"}");
+        return;
+      }
+      if (diagModeActive) {
+        Serial.println("DIAG ignored: " + body);
+        server.send(200, "application/json", "{\"status\":\"ignored_diag\"}");
+        return;
+      }
+      // === END DIAG ===
+
       if (body == "\"game\"") {
         state = 1;
         doorRepeatActive = false;
@@ -638,7 +803,17 @@ void loop() {
     WiFi.reconnect();
     delay(2000);
   }
-  
+
+  // === DIAG MODE: ранний выход, игнорируем игровую логику ===
+  if (diagModeActive) {
+    if (millis() - diagLastSnapshot >= DIAG_SNAPSHOT_INTERVAL) {
+      diagLastSnapshot = millis();
+      sendDiagSnapshot();
+    }
+    return;
+  }
+  // === END DIAG ===
+
   handlePlayerQueries();
   handleFadeOut();
 

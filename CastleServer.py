@@ -346,6 +346,15 @@ ESP32_API_WOLF_URL = f"http://{ESP32_IP_WOLF}/data"
 ESP32_API_TRAIN_URL = f"http://{ESP32_IP_TRAIN}/data"
 ESP32_API_SUITCASE_URL = f"http://{ESP32_IP_SUITCASE}/data"
 ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
+
+# Маппинг device_id (используется на /tech диагностической вкладке) -> ESP32 URL
+DIAG_DEVICE_URLS = {
+    'train':     ESP32_API_TRAIN_URL,
+    'wolf':      ESP32_API_WOLF_URL,
+    'suitcases': ESP32_API_SUITCASE_URL,
+    'safe':      ESP32_API_SAFE_URL,
+}
+DIAG_LOG_DIR = "/home/pi/New/diag_logs"  # pi user может писать без sudo
 is_system_flashing = False
 lesson_intro_seq = 0
 rating = 0
@@ -473,6 +482,45 @@ def _check_esp32(ip):
         return r.ok
     except Exception:
         return False
+
+_diag_loggers = {}  # device -> logging.Logger (создаются лениво на первый snapshot)
+
+def _get_diag_logger(device):
+    """Один RotatingFileHandler на устройство: 5 MB × 3 backup = 20 MB max.
+    Аналогично castle.log (RotatingFileHandler) — пишет в <device>.log, при заполнении
+    переименовывает в <device>1.log, <device>2.log, <device>3.log; самый старый удаляется.
+    Итого ~5.5 часов истории активной диагностики на устройство."""
+    lg = _diag_loggers.get(device)
+    if lg is not None:
+        return lg
+    os.makedirs(DIAG_LOG_DIR, exist_ok=True)
+    lg = logging.getLogger(f"diag.{device}")
+    lg.setLevel(logging.INFO)
+    lg.propagate = False  # не дублировать в castle.log
+    fname = os.path.join(DIAG_LOG_DIR, f"{device}.log")
+    handler = RotatingFileHandler(fname, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8')
+    def _namer(default_name):
+        # default_name = "...<device>.log.1" → "...<device>1.log" (как у castle.log)
+        base, num = default_name.split('.log.')
+        return f"{base}{num}.log"
+    handler.namer = _namer
+    handler.setFormatter(logging.Formatter('%(message)s'))  # timestamp пишем сами в snap-строку
+    lg.addHandler(handler)
+    _diag_loggers[device] = lg
+    return lg
+
+def _log_diag_snapshot(device, snap):
+    """Append одну строку snapshot'а в /home/pi/New/diag_logs/<device>.log с ротацией.
+    Вызывается на каждый POST {"diag": {...}} от ESP32 (5/сек на устройство в diag-mode).
+    Используется для post-mortem анализа: монтажник тыкал железо → потом смотрит лог."""
+    try:
+        from datetime import datetime as _dt
+        now = _dt.now()
+        _get_diag_logger(device).info(
+            f"{now.isoformat(timespec='milliseconds')} {json.dumps(snap, separators=(',', ':'))}"
+        )
+    except Exception as e:
+        logger.warning(f"[DIAG] Failed to log snapshot for {device}: {e}")
 
 def gather_system_status():
     """Собирает текущий статус устройств и сетей для технического пульта."""
@@ -689,6 +737,58 @@ def hostapd_bootstrap_watchdog():
             logger.info(f"HOSTAPD WATCHDOG: после рестарта подключено {n2} stations — OK")
     else:
         logger.info(f"HOSTAPD WATCHDOG: {n} stations подключено за 60s — bootstrap прошёл штатно, watchdog не нужен")
+
+
+def tailscale_watchdog():
+    """Авто-восстановление Tailscale на Pi.
+
+    Симптом сбоя: `tailscale status` показывает logged out / NoState / failed to
+    resolve controlplane.tailscale.com — Pi выпадает из Tailnet, ни клиент,
+    ни оператор не могут зайти на 100.79.189.15:3000/tech удалённо.
+
+    Лечение: `sudo tailscale up --reset --accept-dns=false`. Опытным путём — этого
+    достаточно, реавторизации обычно НЕ требуется (узел остаётся в учётке клиента,
+    --reset поднимает локальный демон со свежим состоянием).
+
+    Цикл: каждые 120с проверяем BackendState из `tailscale status --json`.
+    После восстановления — 5 мин cooldown, чтобы не зациклиться при затяжных проблемах."""
+    import subprocess
+    eventlet.sleep(180)  # дать сервису время на normal startup (Tailscale стартует ~30-60с)
+
+    while True:
+        try:
+            r = subprocess.run(['tailscale', 'status', '--json'],
+                               capture_output=True, text=True, timeout=8)
+            state = None
+            if r.returncode == 0 and r.stdout:
+                try:
+                    state = json.loads(r.stdout).get('BackendState')
+                except Exception:
+                    state = None
+
+            if state == 'Running':
+                # OK — лог только при восстановлении после прошлой проблемы
+                if getattr(tailscale_watchdog, '_was_broken', False):
+                    logger.info(f"TAILSCALE WATCHDOG: восстановлен (BackendState={state})")
+                    tailscale_watchdog._was_broken = False
+            else:
+                logger.warning(f"TAILSCALE WATCHDOG: Tailscale unhealthy (BackendState={state}, rc={r.returncode}) — пытаюсь --reset")
+                tailscale_watchdog._was_broken = True
+                try:
+                    res = subprocess.run(
+                        ['sudo', 'tailscale', 'up', '--reset', '--accept-dns=false'],
+                        capture_output=True, text=True, timeout=30
+                    )
+                    logger.info(f"TAILSCALE WATCHDOG: tailscale up rc={res.returncode} "
+                                f"out={(res.stdout or '').strip()[:200]} "
+                                f"err={(res.stderr or '').strip()[:200]}")
+                except Exception as _e:
+                    logger.error(f"TAILSCALE WATCHDOG: --reset failed: {_e}")
+                eventlet.sleep(300)  # cooldown 5 мин чтобы не зациклиться
+                continue
+        except Exception as e:
+            logger.error(f"tailscale_watchdog error: {e}")
+        eventlet.sleep(120)
 
 
 def system_status_loop():
@@ -1547,7 +1647,9 @@ def handle_flash(board_id):
             # Самый надёжный способ — полный рестарт процесса через systemd.
             eventlet.sleep(1)  # дать UI время показать сообщение
             logger.warning("[FLASH] Main Board flashed — auto-restart of castleserver to clear stale serial fd")
-            import os, signal
+            import signal  # os уже импортирован глобально (не делать import os здесь —
+                           # иначе Python считает os локальной во ВСЕЙ функции и падает
+                           # на os.path.exists(FLASH_STATS_FILE) выше при прошивке не-main плат)
             os.kill(os.getpid(), signal.SIGTERM)  # systemd рестартанёт через Restart=on-failure / always
         else:
             socketio.emit('flash_log', {'board': board_id, 'msg': '\n[END]'})
@@ -1672,6 +1774,63 @@ def tech_jump_basket():
     send_esp32_command(ESP32_API_SAFE_URL, "day_off")
     # Переводим карту (Поезд) в предфинальное состояние, чтобы выключить проектор
     send_esp32_command(ESP32_API_TRAIN_URL, "stage_12")
+
+# === DIAG: тех-диагностика устройств (вкладка /tech → "Диагностика") ===
+# Workflow: оператор включает diag_on → ESP32 замораживает игру и шлёт snapshot
+# I/O каждые 200ms на /api?device=<id>. Сервер ретранслирует через socketio как
+# '<device>_diag_state'. Toggle выходов идут через tech_diag_command.
+@socketio.on('tech_diag_enter')
+def tech_diag_enter(data):
+    device = (data or {}).get('device')
+    url = DIAG_DEVICE_URLS.get(device)
+    if not url:
+        logger.warning(f"[DIAG] Unknown device for diag_enter: {device}")
+        return
+    logger.info(f"[DIAG] Entering diag mode for {device}")
+    send_esp32_command(url, "diag_on", debounce=False)
+
+@socketio.on('tech_diag_exit')
+def tech_diag_exit(data):
+    device = (data or {}).get('device')
+    url = DIAG_DEVICE_URLS.get(device)
+    if not url:
+        logger.warning(f"[DIAG] Unknown device for diag_exit: {device}")
+        return
+    logger.info(f"[DIAG] Exiting diag mode for {device}")
+    send_esp32_command(url, "diag_off", debounce=False)
+
+@socketio.on('tech_diag_command')
+def tech_diag_command(data):
+    """Прозрачный прокси команд от UI к ESP32 в diag-режиме.
+    data = {'device': 'train', 'cmd': 'diag_set:tunnel_led:1'}"""
+    device = (data or {}).get('device')
+    cmd = (data or {}).get('cmd')
+    url = DIAG_DEVICE_URLS.get(device)
+    if not url or not cmd:
+        logger.warning(f"[DIAG] Bad diag_command: device={device} cmd={cmd}")
+        return
+    logger.debug(f"[DIAG] {device}: {cmd}")
+    send_esp32_command(url, cmd, debounce=False)
+
+@socketio.on('tech_diag_log_request')
+def tech_diag_log_request(data):
+    """Отдаёт последние N строк snapshot-лога для пост-мортем анализа.
+    data = {'device': 'train', 'lines': 200}"""
+    device = (data or {}).get('device', 'train')
+    n = int((data or {}).get('lines', 200))
+    n = max(1, min(n, 5000))
+    try:
+        fname = os.path.join(DIAG_LOG_DIR, f"{device}.log")
+        if not os.path.exists(fname):
+            socketio.emit('tech_diag_log_data', {'device': device, 'lines': []})
+            return
+        with open(fname, 'r') as f:
+            all_lines = f.readlines()
+        socketio.emit('tech_diag_log_data',
+                      {'device': device, 'lines': [l.rstrip('\n') for l in all_lines[-n:]]})
+    except Exception as e:
+        logger.warning(f"[DIAG] log read failed: {e}")
+        socketio.emit('tech_diag_log_data', {'device': device, 'lines': [f"[ERROR] {e}"]})
 
 #декоратор работы socket отвечает за настройки wifi
 @socketio.on('WLAN')
@@ -2764,6 +2923,13 @@ def handle_data():
     global mapClickOut
     if request.method == 'POST':
         data = request.get_json()
+        # === DIAG snapshot от ESP32: {"diag": {"in":[...], "enc":[...], ...}}
+        # POST'ится на /api?device=<id> каждые 200ms в diag-режиме (см. /tech)
+        if isinstance(data, dict) and 'diag' in data and isinstance(data['diag'], dict):
+            device = request.args.get('device', 'unknown')
+            socketio.emit(f'{device}_diag_state', data['diag'])
+            _log_diag_snapshot(device, data['diag'])
+            return jsonify({"status": "diag_ok"})
         if 'train_enc' in data:
             socketio.emit('level', data['train_enc'], to=None)
             logging.info(f"TRAIN ENCODER STATUS: {data['train_enc']}")
@@ -6128,6 +6294,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
         socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
+        socketio.start_background_task(target=tailscale_watchdog)  # Авто-восстановление Tailscale (logged out / DNS fail)
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:

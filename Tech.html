@@ -50,6 +50,38 @@
                 display: inline-block; width: 1px; height: 16px;
                 background: #444; margin: 0 6px; vertical-align: middle;
             }
+            /* === Диагностика устройств === */
+            .diag-section { margin-top: 2em; border: 1px solid #444; border-radius: 8px;
+                            padding: 15px; background: #111; }
+            .diag-section h3 { color: #fff; }
+            .diag-section h4 { color: #ddd; margin: 1em 0 0.5em; border-bottom: 1px solid #333; padding-bottom: 4px; }
+            .diag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                         gap: 8px; }
+            .diag-chip { background: #222; border-radius: 4px; padding: 6px 10px; color: #aaa;
+                         display: flex; align-items: center; gap: 8px; font-size: 13px; }
+            .diag-chip .dot {
+                display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+                background: #555; transition: background 0.15s;
+            }
+            .diag-chip.on .dot   { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
+            .diag-chip.off .dot  { background: #555; }
+            .diag-out-btn { background: #333; border: 1px solid #555; color: #ddd; cursor: pointer;
+                            padding: 6px 12px; border-radius: 4px; font-size: 13px; }
+            .diag-out-btn.on { background: #2ecc71; color: #000; border-color: #2ecc71; }
+            .diag-map-grid {
+                display: grid; grid-template-columns: repeat(10, 22px); gap: 4px;
+                margin: 8px 0; padding: 8px; background: #1a1a1a; border-radius: 4px; width: fit-content;
+            }
+            .diag-map-led {
+                width: 22px; height: 22px; border-radius: 50%; background: #222;
+                border: 1px solid #333; font-size: 9px; color: #666; text-align: center;
+                line-height: 22px;
+            }
+            #diag-train-log {
+                background: #000; color: #a8ff60; font-family: monospace; font-size: 11px;
+                padding: 8px; height: 250px; overflow: auto; border-radius: 4px;
+                margin-top: 10px; white-space: pre; display: none;
+            }
         </style>
 
         <div class="ui four column stackable grid" style="margin-bottom: 10px;">
@@ -219,6 +251,182 @@
             </tbody>
         </table>
         
+        <!-- ============ ДИАГНОСТИКА УСТРОЙСТВ ============ -->
+        <div class="diag-section">
+            <h3><i class="microchip icon"></i>Диагностика устройств (мультиметр в браузере)</h3>
+            <div style="color:#888; font-size:13px; margin-bottom:10px;">
+                В режиме диагностики устройство замораживает игровую логику. Каждый сенсор отображается живо;
+                выходы (LED, реле, звук) можно дёргать вручную. Не использовать во время игры!
+            </div>
+
+            <div class="ui inverted top attached tabular menu" id="diag-tab-menu">
+                <a class="active item" data-diag-tab="train">Train (192.168.4.202)</a>
+                <a class="item" data-diag-tab="wolf">Wolf (192.168.4.201)</a>
+                <span class="item" style="opacity:0.4;">Suitcases — TODO</span>
+                <span class="item" style="opacity:0.4;">Safe — TODO</span>
+                <span class="item" style="opacity:0.4;">Башни — TODO</span>
+            </div>
+
+            <!-- Train pane -->
+            <div class="ui bottom attached active tab segment inverted" data-diag-pane="train">
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-train-toggle-wrap">
+                        <input type="checkbox" id="diag-train-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает поезд!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagTrainShowLog()">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего полученного пакета snapshot от ESP32 (приходит каждые 200мс). Если значение не обновляется — устройство потеряло связь.">Snapshot:</span>
+                        <span id="diag-train-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Уровень WiFi-сигнала от ESP32 до точки доступа Castle, в dBm. -50 = отлично, -70 = норма, ниже -85 = неустойчиво (возможны разрывы).">RSSI:</span>
+                        <span id="diag-train-rssi" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Свободная RAM на ESP32 (heap memory). Норма для train: ~270 KB. Если падает ниже 50 KB — скоро out-of-memory crash и ребут устройства.">Heap:</span>
+                        <span id="diag-train-heap" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Время с момента последнего ребута ESP32. Если сбросилось без вашего вмешательства — был crash или brownout (просадка питания).">Uptime:</span>
+                        <span id="diag-train-uptime" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Внутренняя температура чипа ESP32, °C. Норма 30-55°. Жёлтый >60° — нагрев, проверь вентиляцию. Красный >75° — критично, чип скоро уйдёт в throttle.">Temp:</span>
+                        <span id="diag-train-temp" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-train-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры (live)</h4>
+                    <div class="diag-grid" id="diag-train-inputs"></div>
+
+                    <h4>Датчик стука (счётчик прерываний GPIO 36, KNOCK SENS)</h4>
+                    <div style="color:#bbb; font-family:monospace; font-size:14px;">
+                        Срабатываний с момента входа в diag:
+                        <span id="diag-train-vib" style="color:#3498db; font-size:18px;">0</span>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:reset_vib:0')" style="margin-left:10px;">Сброс счётчика</button>
+                    </div>
+
+                    <h4>Энкодеры (тики с момента входа в diag)</h4>
+                    <div style="color:#bbb; font-size:14px; font-family:monospace;">
+                        Color (enc1): <span id="diag-enc-color" style="color:#3498db;">0</span> &nbsp;|&nbsp;
+                        Flicker (enc2): <span id="diag-enc-flicker" style="color:#3498db;">0</span> &nbsp;|&nbsp;
+                        Music (enc3): <span id="diag-enc-music" style="color:#3498db;">0</span>
+                    </div>
+
+                    <h4>Выходы — клик переключает</h4>
+                    <div class="diag-grid" id="diag-train-outputs"></div>
+
+                    <h4>LED-карта (30 пикселей, live с устройства)</h4>
+                    <div class="diag-map-grid" id="diag-train-map"></div>
+
+                    <h4>Быстрая засветка карты</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:map_all:FF0000')">Красная</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:map_all:00FF00')">Зелёная</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:map_all:0000FF')">Синяя</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:map_all:FFFFFF')">Белая</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:map_all:000000')">Погасить карту</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:skin_led:00FF00')">Кожа Кай зелёная</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:skin_led:000000')">Кожа off</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:train_leds:FF8800')">Поезд оранжевый</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:train_leds:000000')">Поезд off</button>
+                    </div>
+
+                    <h4>Звук (DFPlayer)</h4>
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <span style="color:#ccc;">Трек:</span>
+                        <input type="number" id="diag-train-track" value="5" min="1" max="100" style="width:70px;"/>
+                        <button class="ui mini blue button" onclick="diagTrainPlay()"><i class="play icon"></i>Play</button>
+                        <button class="ui mini button" onclick="diagTrainCmd('diag_set:stop_audio:0')"><i class="stop icon"></i>Stop</button>
+                        <span style="margin-left:20px; color:#ccc;">Громкость:</span>
+                        <input type="range" id="diag-train-vol" min="0" max="30" value="15" style="width:150px;"/>
+                        <span id="diag-train-vol-val" style="color:#3498db; font-family:monospace;">15</span>
+                    </div>
+
+                    <pre id="diag-train-log"></pre>
+                </div>
+            </div>
+
+            <!-- Wolf pane -->
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="wolf" style="display:none;">
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-wolf-toggle-wrap">
+                        <input type="checkbox" id="diag-wolf-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает волка!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagWolfShowLog()">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего полученного пакета snapshot от ESP32 (приходит каждые 200мс). Если значение не обновляется — устройство потеряло связь.">Snapshot:</span>
+                        <span id="diag-wolf-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Уровень WiFi-сигнала от ESP32 до точки доступа Castle, в dBm. -50 = отлично, -70 = норма, ниже -85 = неустойчиво.">RSSI:</span>
+                        <span id="diag-wolf-rssi" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Свободная RAM на ESP32 (heap memory). Норма ~250 KB. Падение <50 KB → скоро out-of-memory crash и ребут.">Heap:</span>
+                        <span id="diag-wolf-heap" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Время с момента последнего ребута ESP32. Сброс без вашего вмешательства = crash или brownout (просадка питания).">Uptime:</span>
+                        <span id="diag-wolf-uptime" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Внутренняя температура чипа ESP32, °C. Норма 30-55°. Жёлтый >60°, красный >75° — критично.">Temp:</span>
+                        <span id="diag-wolf-temp" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-wolf-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры (live, сырой digitalRead — без debounce)</h4>
+                    <div class="diag-grid" id="diag-wolf-inputs"></div>
+
+                    <h4>Датчик вибрации (счётчик прерываний GPIO 25)</h4>
+                    <div style="color:#bbb; font-family:monospace; font-size:14px;">
+                        Срабатываний с момента входа в diag:
+                        <span id="diag-wolf-vib" style="color:#3498db; font-size:18px;">0</span>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:reset_vib:0')" style="margin-left:10px;">Сброс счётчика</button>
+                    </div>
+
+                    <h4>Электрозамок (PCF P0 / SH1)</h4>
+                    <button class="diag-out-btn" onclick="diagWolfCmd('diag_set:lock_pulse:0')"
+                            title="Только импульс 500мс — постоянное включение спалит соленоид"
+                            style="width:150px;">
+                        Открыть замок
+                    </button>
+
+                    <h4>Выходы (PCF8574 0x20) — клик переключает</h4>
+                    <div class="diag-grid" id="diag-wolf-outputs"></div>
+
+                    <h4>WS2812 ленты</h4>
+                    <div style="display:flex; gap:30px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                        <div>
+                            <b style="color:#ccc;">wolfLed[10] (GPIO 19, глаза/туман):</b>
+                            <span id="diag-wolf-strip-preview" style="display:inline-block; width:30px; height:30px; border-radius:4px; background:#222; vertical-align:middle; border:1px solid #555;"></span>
+                        </div>
+                        <div>
+                            <b style="color:#ccc;">threeLed[10] (GPIO 18, тройка):</b>
+                            <span id="diag-three-strip-preview" style="display:inline-block; width:30px; height:30px; border-radius:4px; background:#222; vertical-align:middle; border:1px solid #555;"></span>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:wolf_strip:FF0000')">Wolf красный</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:wolf_strip:00FF00')">Wolf зелёный</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:wolf_strip:0000FF')">Wolf синий</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:wolf_strip:FFFFFF')">Wolf белый</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:wolf_strip:000000')">Wolf off</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:three_strip:FF0000')">Three красный</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:three_strip:FFFFFF')">Three белый</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:three_strip:000000')">Three off</button>
+                    </div>
+
+                    <h4>Звук (DFPlayer)</h4>
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <span style="color:#ccc;">Трек:</span>
+                        <input type="number" id="diag-wolf-track" value="1" min="1" max="100" style="width:70px;"/>
+                        <button class="ui mini blue button" onclick="diagWolfPlay()"><i class="play icon"></i>Play</button>
+                        <button class="ui mini button" onclick="diagWolfCmd('diag_set:stop_audio:0')"><i class="stop icon"></i>Stop</button>
+                        <span style="margin-left:20px; color:#ccc;">Громкость:</span>
+                        <input type="range" id="diag-wolf-vol" min="0" max="30" value="15" style="width:150px;"/>
+                        <span id="diag-wolf-vol-val" style="color:#3498db; font-family:monospace;">15</span>
+                    </div>
+
+                    <pre id="diag-wolf-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
+            </div>
+        </div>
+        <!-- ============ /ДИАГНОСТИКА ============ -->
+
         <a href="/" class="ui inverted basic button" style="margin-top: 20px;"><i class="arrow left icon"></i> Вернуться к пульту</a>
     </div>
 
@@ -526,6 +734,308 @@
                     $('#audio-broken-list').html(data.broken_files.map(b => '⚠ ' + b.file + ' — ' + b.error).join('<br>'));
                 }
                 appendToTerminal(`\n[AUDIO] Итог: ОК=${data.ok}  Отсутствуют=${data.missing}  Битые=${data.broken}\n`, '#f1c40f');
+            }
+        });
+
+        // ============ Диагностика поезда ============
+        // Соответствие индексов в snapshot ESP32 -> человеко-читаемое название.
+        // Порядок строго совпадает с sendDiagSnapshot() в train.ino.
+        const TRAIN_INPUTS = [
+            { id: 'workshop', label: 'Workshop геркон (PCF8574 IN0)' },
+            { id: 'train',    label: 'Train sensor (PCF IN1)' },
+            { id: 'hint',     label: 'Кнопка подсказки (PCF IN2)' },
+            { id: 'owl',      label: 'Owl геркон (PCF IN3)' },
+            { id: 'trainmap', label: 'Train Map геркон (PCF IN4)' },
+            { id: 'fish',     label: 'Fish геркон (PCF IN5)' },
+            { id: 'key',      label: 'Key геркон (PCF IN6)' },
+            { id: 'unused7',  label: 'IN7 (резерв)' },
+            { id: 'ghost',    label: 'Ghost button (GPIO 36)' },
+        ];
+        const TRAIN_OUTPUTS = [
+            { id: 'tunnel_led', label: 'Tunnel LED (GPIO 23)' },
+            { id: 'uf_led',     label: 'UF LED (GPIO 19)' },
+            { id: 'ceiling_led', label: 'LED Ceiling — свет потолка (PCF OUT0)' },
+            { id: 'stars_led',   label: 'LED Stars — звёзды (PCF OUT1)' },
+        ];
+
+        let diagTrainActive = false;
+
+        // Рендер initial шаблонов для inputs/outputs/map
+        (function initDiagTrain() {
+            // Inputs
+            const $in = $('#diag-train-inputs');
+            TRAIN_INPUTS.forEach((s, i) => {
+                $in.append(`<div class="diag-chip off" id="in-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            // Outputs (toggles)
+            const $out = $('#diag-train-outputs');
+            TRAIN_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="out-${o.id}"
+                    onclick="diagTrainOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+            // Map LEDs
+            const $map = $('#diag-train-map');
+            for (let i = 0; i < 30; i++) {
+                $map.append(`<div class="diag-map-led" id="map-led-${i}" title="LED ${i}">${i}</div>`);
+            }
+        })();
+
+        $('#diag-train-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'train' });
+                $('#diag-train-body').show();
+                diagTrainActive = true;
+                // Сбрасываем шадоу состояния выходов в UI
+                $('.diag-out-btn').each(function() {
+                    const id = this.id.replace('out-', '');
+                    const label = TRAIN_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'train' });
+                $('#diag-train-body').hide();
+                diagTrainActive = false;
+            }
+        });
+
+        function diagTrainCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'train', cmd: cmd });
+        }
+
+        function diagTrainOutToggle(outId) {
+            const $btn = $('#out-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagTrainCmd('diag_set:' + outId + ':' + newVal);
+            // Оптимистично обновляем UI (snapshot подтвердит через 200ms)
+            const label = TRAIN_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+
+        function diagTrainPlay() {
+            const track = parseInt($('#diag-train-track').val()) || 1;
+            diagTrainCmd('diag_set:play:' + track);
+        }
+
+        $('#diag-train-vol').on('input', function() {
+            const v = $(this).val();
+            $('#diag-train-vol-val').text(v);
+            diagTrainCmd('diag_set:volume:' + v);
+        });
+
+        function diagTrainShowLog() {
+            socket.emit('tech_diag_log_request', { device: 'train', lines: 200 });
+            $('#diag-train-log').show();
+        }
+        socket.on('tech_diag_log_data', function(d) {
+            const $log = $('#diag-' + d.device + '-log');
+            if (!$log.length) return;
+            $log.text(d.lines.length ? d.lines.join('\n') : '(лог пуст)');
+            $log.scrollTop($log[0].scrollHeight);
+        });
+
+        // ============ Переключение табов диагностики ============
+        $('#diag-tab-menu a.item').on('click', function() {
+            const tab = $(this).data('diag-tab');
+            $('#diag-tab-menu .item').removeClass('active');
+            $(this).addClass('active');
+            $('[data-diag-pane]').hide();
+            $('[data-diag-pane="' + tab + '"]').show();
+        });
+
+        // ============ Диагностика волка ============
+        // По схеме wolf.net + wolf.ino — порядок sensor input в snapshot:
+        const WOLF_INPUTS = [
+            { id: 'moon',         label: 'Moon геркон (GPIO 32)' },
+            { id: 'wolf',         label: 'Wolf геркон (GPIO 33)' },
+            { id: 'help',         label: 'Help button (GPIO 23)' },
+            { id: 'ghost',        label: 'Ghost vibration (GPIO 25, LOW_PULL)' },
+            { id: 'left_cloud',   label: 'Left Cloud геркон (GPIO 35)' },
+            { id: 'right_cloud1', label: 'Right Cloud 1 (GPIO 36)' },
+            { id: 'right_cloud2', label: 'Right Cloud 2 (GPIO 39)' },
+            { id: 'right_cloud3', label: 'Right Cloud 3 (GPIO 34)' },
+        ];
+        // Порядок outputs строго совпадает с sendDiagSnapshot() в wolf.ino
+        const WOLF_OUTPUTS = [
+            { id: 'moon_led',    label: 'Moon LED (PCF P7)' },
+            { id: 'left_cloud',  label: 'Left Cloud LED (PCF P3)' },
+            { id: 'wolf_eye',    label: 'Wolf Eye LED (PCF P2)' },
+            { id: 'right_cloud', label: 'Right Cloud LED (PCF P1)' },
+            { id: 'three1',      label: 'Three 1 LED (PCF P4)' },
+            { id: 'three2',      label: 'Three 2 LED (PCF P5)' },
+            { id: 'three3',      label: 'Three 3 LED (PCF P6)' },
+        ];
+
+        let diagWolfActive = false;
+
+        (function initDiagWolf() {
+            const $in = $('#diag-wolf-inputs');
+            WOLF_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="winp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $('#diag-wolf-outputs');
+            WOLF_OUTPUTS.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="wout-${o.id}"
+                    onclick="diagWolfOutToggle('${o.id}')">${o.label}: OFF</button>`);
+            });
+        })();
+
+        $('#diag-wolf-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'wolf' });
+                $('#diag-wolf-body').show();
+                diagWolfActive = true;
+                $('.diag-out-btn[id^="wout-"]').each(function() {
+                    const id = this.id.replace('wout-', '');
+                    const label = WOLF_OUTPUTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'wolf' });
+                $('#diag-wolf-body').hide();
+                diagWolfActive = false;
+            }
+        });
+
+        function diagWolfCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'wolf', cmd: cmd });
+        }
+        function diagWolfOutToggle(outId) {
+            const $btn = $('#wout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagWolfCmd('diag_set:' + outId + ':' + newVal);
+            const label = WOLF_OUTPUTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+        function diagWolfPlay() {
+            const t = parseInt($('#diag-wolf-track').val()) || 1;
+            diagWolfCmd('diag_set:play:' + t);
+        }
+        $('#diag-wolf-vol').on('input', function() {
+            const v = $(this).val();
+            $('#diag-wolf-vol-val').text(v);
+            diagWolfCmd('diag_set:volume:' + v);
+        });
+        function diagWolfShowLog() {
+            socket.emit('tech_diag_log_request', { device: 'wolf', lines: 200 });
+            $('#diag-wolf-log').show();
+        }
+
+        socket.on('wolf_diag_state', function(s) {
+            if (!diagWolfActive) return;
+            $('#diag-wolf-ts').text(new Date().toLocaleTimeString());
+            $('#diag-wolf-rssi').text(s.rssi + ' dBm');
+            if (typeof s.heap === 'number') $('#diag-wolf-heap').text((s.heap / 1024).toFixed(1) + ' KB');
+            if (typeof s.uptime === 'number') {
+                const sec = s.uptime;
+                $('#diag-wolf-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (typeof s.temp === 'number') {
+                const t = s.temp;
+                let col = '#aaa';
+                if (t > 75) col = '#e74c3c';
+                else if (t > 60) col = '#f39c12';
+                $('#diag-wolf-temp').css('color', col).text(t.toFixed(1) + ' °C');
+            }
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= WOLF_INPUTS.length) return;
+                    $('#winp-' + WOLF_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (typeof s.vib === 'number') $('#diag-wolf-vib').text(s.vib);
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= WOLF_OUTPUTS.length) return;
+                    const id = WOLF_OUTPUTS[i].id;
+                    const $btn = $('#wout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(WOLF_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+            if (typeof s.wolf === 'string')  $('#diag-wolf-strip-preview').css('background', '#' + s.wolf);
+            if (typeof s.three === 'string') $('#diag-three-strip-preview').css('background', '#' + s.three);
+            if (typeof s.vol === 'number' && document.activeElement.id !== 'diag-wolf-vol') {
+                $('#diag-wolf-vol').val(s.vol);
+                $('#diag-wolf-vol-val').text(s.vol);
+            }
+        });
+
+        // Snapshot от ESP32 (каждые 200ms)
+        socket.on('train_diag_state', function(s) {
+            if (!diagTrainActive) return;
+            $('#diag-train-ts').text(new Date().toLocaleTimeString());
+            $('#diag-train-rssi').text(s.rssi + ' dBm');
+            if (typeof s.heap === 'number') {
+                $('#diag-train-heap').text((s.heap / 1024).toFixed(1) + ' KB');
+            }
+            if (typeof s.uptime === 'number') {
+                const sec = s.uptime;
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s2 = sec % 60;
+                $('#diag-train-uptime').text(`${h}h ${m}m ${s2}s`);
+            }
+            if (typeof s.temp === 'number') {
+                const t = s.temp;
+                let col = '#aaa';
+                if (t > 75) col = '#e74c3c';
+                else if (t > 60) col = '#f39c12';
+                $('#diag-train-temp').css('color', col).text(t.toFixed(1) + ' °C');
+            }
+
+            // Inputs: s.in = [9 значений: PCF 0..7 + GPIO 36]
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= TRAIN_INPUTS.length) return;
+                    $('#in-' + TRAIN_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+
+            // Encoders
+            if (Array.isArray(s.enc)) {
+                $('#diag-enc-color').text(s.enc[0]);
+                $('#diag-enc-flicker').text(s.enc[1]);
+                $('#diag-enc-music').text(s.enc[2]);
+            }
+            // Vibration counter (knock sensor GPIO 36)
+            if (typeof s.vib === 'number') $('#diag-train-vib').text(s.vib);
+
+            // Outputs
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= TRAIN_OUTPUTS.length) return;
+                    const id = TRAIN_OUTPUTS[i].id;
+                    const $btn = $('#out-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(TRAIN_OUTPUTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+
+            // Map LEDs: 30 × 6 hex chars подряд
+            if (typeof s.map === 'string' && s.map.length === 180) {
+                for (let i = 0; i < 30; i++) {
+                    const hex = s.map.substr(i * 6, 6);
+                    $('#map-led-' + i).css('background', '#' + hex);
+                    // Если LED включён (не чёрный) — белый текст индекса, иначе тёмный
+                    const isOn = hex !== '000000';
+                    $('#map-led-' + i).css('color', isOn ? '#000' : '#666');
+                }
+            }
+
+            // Volume slider — синхронизируем без триггера на input
+            if (typeof s.vol === 'number' && document.activeElement.id !== 'diag-train-vol') {
+                $('#diag-train-vol').val(s.vol);
+                $('#diag-train-vol-val').text(s.vol);
             }
         });
     </script>

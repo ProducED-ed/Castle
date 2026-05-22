@@ -99,6 +99,23 @@ bool lastSoundOk = false;
 Adafruit_PCF8574 INPUTS;
 Adafruit_PCF8574 OUTPUTS;
 
+// === DIAG MODE (тех-пульт /tech → вкладка "Диагностика") ===
+// Когда diagModeActive == true:
+//  - вся игровая логика в loop() пропускается (early return)
+//  - входящие команды (start/stage_X/restart...) игнорируются, кроме "diag_*"
+//  - каждые 200ms ESP32 шлёт snapshot всех I/O на /api?device=train
+bool diagModeActive = false;
+unsigned long diagLastSnapshot = 0;
+const unsigned long DIAG_SNAPSHOT_INTERVAL = 200;  // ms
+// Отдельные счётчики энкодеров для diag-режима (GyverEncoder не даёт getCount() —
+// используем isLeft/isRight как и игровая логика)
+long diagEnc1 = 0, diagEnc2 = 0, diagEnc3 = 0;
+// Счётчик прерываний с пьезо-датчика стука (GPIO 36, "KNOCK SENS" по схеме).
+// Дополняет существующий GButton ghost(36): GButton ловит "одиночные/двойные клики",
+// а этот счётчик — каждый отдельный RISING-edge для отображения в diag.
+volatile unsigned long vibCount = 0;
+void IRAM_ATTR knockISR() { vibCount++; }
+
 // --- Истории (7-42) ---
 // Блок Story 15
 const int TRACK_STORY_15_RU = 13;
@@ -466,6 +483,8 @@ void setup() {
   ghost.setTickMode(AUTO);
 
   pinMode(36, INPUT);
+  // Прерывание для счётчика стуков в diag-режиме (не мешает GButton ghost.tick())
+  attachInterrupt(digitalPinToInterrupt(36), knockISR, RISING);
 
   enc1.setType(TYPE2);
   enc2.setType(TYPE2);
@@ -540,6 +559,53 @@ void setup() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
       sendLogToServer("RX:" + body);
+
+      // === DIAG MODE — обработка тех-диагностики (см. /tech → Диагностика) ===
+      if (body == "\"diag_on\"") {
+        diagModeActive = true;
+        // Гасим всё, останавливаем звук, чтобы получить чистое состояние
+        myMP3.stop();
+        for (int i = 0; i < 30; i++) ledMap[i] = CRGB::Black;
+        for (int i = 0; i < 4; i++) leds1[i] = CRGB::Black;
+        FastLED.show();
+        digitalWrite(TUNNEL_LED, LOW);
+        digitalWrite(UF_LED, LOW);
+        OUTPUTS.digitalWrite(0, LOW);
+        OUTPUTS.digitalWrite(1, LOW);
+        OUTPUTS.digitalWrite(2, LOW);
+        Serial.println("DIAG ON");
+        server.send(200, "application/json", "{\"status\":\"diag_on\"}");
+        return;
+      }
+      if (body == "\"diag_off\"") {
+        diagModeActive = false;
+        // Возвращаем устройство в idle: гасим выходы (state=0)
+        for (int i = 0; i < 30; i++) ledMap[i] = CRGB::Black;
+        for (int i = 0; i < 4; i++) leds1[i] = CRGB::Black;
+        FastLED.show();
+        digitalWrite(TUNNEL_LED, LOW);
+        digitalWrite(UF_LED, LOW);
+        OUTPUTS.digitalWrite(0, LOW);
+        OUTPUTS.digitalWrite(1, LOW);
+        myMP3.stop();
+        state = 0;
+        Serial.println("DIAG OFF");
+        server.send(200, "application/json", "{\"status\":\"diag_off\"}");
+        return;
+      }
+      if (body.startsWith("\"diag_set:")) {
+        handleDiagSet(body);
+        server.send(200, "application/json", "{\"status\":\"diag_set\"}");
+        return;
+      }
+      // Если diag активен — все игровые команды игнорируем
+      if (diagModeActive) {
+        Serial.println("DIAG ignored: " + body);
+        server.send(200, "application/json", "{\"status\":\"ignored_diag\"}");
+        return;
+      }
+      // === END DIAG ===
+
       // Добавляем обработку подтверждения от сервера
       if (body == "\"confirm_train_end\"") {
         trainEndConfirmed = true; // Получили подтверждение, прекращаем отправку
@@ -1371,19 +1437,40 @@ void resumeEncoders() {
 }
 
 void loop() {
-  if (!INPUTS.digitalRead(1)) { 
-      trainSensorLatched = true; // Запоминаем, что нажатие было
-  }
+  // OTA и HTTP-сервер должны работать в любом режиме
   ArduinoOTA.handle();
-  // обязательная функция отработки. Должна постоянно опрашиваться
   server.handleClient();
-  // Читаем датчик постоянно
-  if (!INPUTS.digitalRead(1)) { 
-      trainSensorLatched = true; 
-  }
+
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
     delay(2000);
+  }
+
+  // === DIAG MODE: ранний выход, игнорируем всю игровую логику ===
+  if (diagModeActive) {
+    // Энкодеры: считаем тики (для отображения в UI)
+    if (enc1.isLeft())  diagEnc1--;
+    if (enc1.isRight()) diagEnc1++;
+    if (enc2.isLeft())  diagEnc2--;
+    if (enc2.isRight()) diagEnc2++;
+    if (enc3.isLeft())  diagEnc3--;
+    if (enc3.isRight()) diagEnc3++;
+
+    // Snapshot каждые 200ms
+    if (millis() - diagLastSnapshot >= DIAG_SNAPSHOT_INTERVAL) {
+      diagLastSnapshot = millis();
+      sendDiagSnapshot();
+    }
+    return;  // никакой игровой логики
+  }
+  // === END DIAG ===
+
+  if (!INPUTS.digitalRead(1)) {
+      trainSensorLatched = true; // Запоминаем, что нажатие было
+  }
+  // Читаем датчик постоянно
+  if (!INPUTS.digitalRead(1)) {
+      trainSensorLatched = true;
   }
   handlePlayerQueries();
   MapGerkon();
@@ -2243,6 +2330,138 @@ void SendData(String payload) {
     // --- КОНЕЦ ИЗМЕНЕНИЯ ---
     http.end();
   }
+}
+
+// === DIAG: парсер команд diag_set:<output>:<value> ===
+// Примеры:
+//   diag_set:tunnel_led:1        — включить туннельный LED
+//   diag_set:train_light:0       — выключить свет поезда (реле)
+//   diag_set:map_all:FF0000      — все 30 LED карты красные
+//   diag_set:map:9:00FF00        — пиксель карты #9 зелёным
+//   diag_set:skin_led:00AA00     — кожа (leds1[0])
+//   diag_set:train_leds:FF8800   — leds1[1..3] оранжевые
+//   diag_set:volume:20           — громкость 20
+//   diag_set:play:5              — играть трек 5
+//   diag_set:stop_audio:0        — стоп
+void handleDiagSet(String body) {
+  // body выглядит как "\"diag_set:tunnel_led:1\""
+  // снимем кавычки и префикс
+  int firstQuote = body.indexOf('"');
+  int lastQuote  = body.lastIndexOf('"');
+  if (firstQuote < 0 || lastQuote <= firstQuote) return;
+  String s = body.substring(firstQuote + 1, lastQuote); // "diag_set:tunnel_led:1"
+  s = s.substring(strlen("diag_set:"));                 // "tunnel_led:1"
+
+  int colon = s.indexOf(':');
+  if (colon < 0) return;
+  String key = s.substring(0, colon);
+  String val = s.substring(colon + 1);
+
+  auto hexToCRGB = [](const String& h) -> CRGB {
+    long n = strtol(h.c_str(), NULL, 16);
+    return CRGB((n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF);
+  };
+
+  if (key == "tunnel_led") {
+    digitalWrite(TUNNEL_LED, val.toInt() ? HIGH : LOW);
+  } else if (key == "uf_led") {
+    digitalWrite(UF_LED, val.toInt() ? HIGH : LOW);
+  } else if (key == "ceiling_led") {
+    // По схеме train.net: U6 P0 → "LED CEILING" (свет потолка комнаты)
+    OUTPUTS.digitalWrite(0, val.toInt() ? HIGH : LOW);
+  } else if (key == "stars_led") {
+    // По схеме train.net: U6 P1 → "LED STARS" (звёзды на потолке)
+    OUTPUTS.digitalWrite(1, val.toInt() ? HIGH : LOW);
+  } else if (key == "skin_led") {
+    leds1[0] = hexToCRGB(val);
+    FastLED.show();
+  } else if (key == "train_leds") {
+    CRGB c = hexToCRGB(val);
+    for (int i = 1; i < 4; i++) leds1[i] = c;
+    FastLED.show();
+  } else if (key == "map_all") {
+    CRGB c = hexToCRGB(val);
+    for (int i = 0; i < 30; i++) ledMap[i] = c;
+    FastLED.show();
+  } else if (key == "map") {
+    // val = "9:00FF00"
+    int c2 = val.indexOf(':');
+    if (c2 > 0) {
+      int idx = val.substring(0, c2).toInt();
+      if (idx >= 0 && idx < 30) {
+        ledMap[idx] = hexToCRGB(val.substring(c2 + 1));
+        FastLED.show();
+      }
+    }
+  } else if (key == "volume") {
+    value = constrain(val.toInt(), 0, 30);
+    myMP3.volume(value);
+  } else if (key == "play") {
+    myMP3.play(val.toInt());
+  } else if (key == "stop_audio") {
+    myMP3.stop();
+  } else if (key == "reset_vib") {
+    vibCount = 0;
+  }
+}
+
+// === DIAG: периодическая отправка snapshot всех I/O на сервер ===
+// Формат: {"diag":{"in":[..9..],"enc":[c,f,m],"out":[..4..],"vol":N,"map":"<60 hex>","rssi":N}}
+// in[0..7] — PCF8574 INPUTS pin 0..7 (workshop/train/hint/owl/trainmap/fish/key/<unused>)
+// in[8]    — ghost button (GPIO 36)
+// Значения геркона: 1 = ЗАМКНУТ (низкий уровень на пине из-за INPUT_PULLUP, инвертируем).
+void sendDiagSnapshot() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  String payload = "{\"diag\":{\"in\":[";
+  for (int i = 0; i < 8; i++) {
+    payload += (INPUTS.digitalRead(i) == LOW) ? "1" : "0";
+    payload += ",";
+  }
+  payload += (digitalRead(36) == LOW) ? "1" : "0";  // ghost btn — LOW_PULL, нажатие = LOW
+  payload += "],\"enc\":[";
+  payload += String(diagEnc1);
+  payload += ",";
+  payload += String(diagEnc2);
+  payload += ",";
+  payload += String(diagEnc3);
+  payload += "],\"out\":[";
+  payload += String(digitalRead(TUNNEL_LED));
+  payload += ",";
+  payload += String(digitalRead(UF_LED));
+  payload += ",";
+  // PCF8574 не даёт читать обратно output reliably — используем последнее записанное
+  // значение через digitalRead (Adafruit lib хранит shadow)
+  payload += String(OUTPUTS.digitalRead(0));
+  payload += ",";
+  payload += String(OUTPUTS.digitalRead(1));
+  payload += "],\"vol\":";
+  payload += String(value);
+  payload += ",\"map\":\"";
+  // 30 × 6 hex chars
+  char buf[7];
+  for (int i = 0; i < 30; i++) {
+    snprintf(buf, sizeof(buf), "%02x%02x%02x", ledMap[i].r, ledMap[i].g, ledMap[i].b);
+    payload += buf;
+  }
+  payload += "\",\"vib\":";
+  payload += String(vibCount);
+  payload += ",\"rssi\":";
+  payload += String(WiFi.RSSI());
+  payload += ",\"heap\":";
+  payload += String(ESP.getFreeHeap());
+  payload += ",\"uptime\":";
+  payload += String(millis() / 1000UL);
+  payload += ",\"temp\":";
+  payload += String(temperatureRead(), 1);  // °C, точность ±10°C — годится для контроля перегрева
+  payload += "}}";
+
+  HTTPClient http;
+  http.begin("http://192.168.4.1:3000/api?device=train");
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(150);
+  http.POST(payload);
+  http.end();
 }
 
 void StartTimer() {
