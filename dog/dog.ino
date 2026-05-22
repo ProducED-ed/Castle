@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <string.h>
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>  // для wdt-reboot перед прошивкой (см. ниже)
 #include "GyverButton.h"
 
 // --- NASTROYKA PINOV ---
@@ -351,6 +352,12 @@ void smoothTurnOffCrystal() {
 }
 
 void setup() {
+  // САМОЕ ПЕРВОЕ: гасим watchdog. После wdt-reset (см. wdt_reboot_for_flash)
+  // некоторые бутлоадеры оставляют WDT включённым → reset loop. Стандартный
+  // Arduino-trick: очистить MCUSR + wdt_disable() в самом начале setup().
+  MCUSR = 0;
+  wdt_disable();
+
   Serial.begin(9600);
 
   pinMode(PADLOCK_REED_PIN, INPUT_PULLUP);
@@ -513,11 +520,14 @@ void dSendDiagSnapshot() {
 }
 
 void loop() {
-  // === DIAG: интерсептор через Serial0 ===
+  // === DIAG: интерсептор через Serial0 (с timeout-reset на UART noise) ===
+  static unsigned long diagBufLastByte = 0;
+  if (diagBufA && millis() - diagBufLastByte > 500UL) { diagBuf = ""; diagBufA = false; }
   while (Serial.available()) {
     int p = Serial.peek();
     if (!diagBufA && p != 'D') break;
     int ch = Serial.read();
+    diagBufLastByte = millis();
     if (ch == '\n' || ch == '\r') {
       if (diagBuf.length() > 0) { diagBuf.trim(); dDiagHandleLine(diagBuf); diagBuf = ""; }
       diagBufA = false;
@@ -600,6 +610,16 @@ void loop() {
         else if (strcmp_P(receivedUartMessageBuffer, PSTR("ping_main")) == 0) {
           // Безопасный heartbeat от Main: только отвечаем "pong", без побочек и логов.
           Serial.println(F("pong"));
+        }
+        else if (strcmp_P(receivedUartMessageBuffer, PSTR("wdt_reboot_for_flash")) == 0) {
+          // Workaround DTR-reset: сервер шлёт эту команду перед прошивкой
+          // (через Mega→Serial3). Включаем watchdog → 15ms → ATmega328 ресет →
+          // Optiboot активен 2 сек → avrdude успевает синхронизироваться.
+          // Это работает даже когда DTR-cap на dog-плате не пульсирует RESET.
+          Serial.println(F("log:dog:WDT reboot for flash"));
+          delay(50);  // дать байту лога уйти
+          wdt_enable(WDTO_15MS);
+          while (1) { }  // ждём watchdog reset
         }
         else if (strcmp_P(receivedUartMessageBuffer, MSG_RESTART) == 0) {
           hasSentReadyLog = false;

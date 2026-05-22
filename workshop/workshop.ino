@@ -293,11 +293,18 @@ void wsSendDiagSnapshot() {
 }
 
 void loop() {
-  // === DIAG MODE: перехват uppercase DIAG_* от Mega через Serial1
+  // === DIAG MODE: перехват DIAG_* от Mega через Serial1
+  // Безопасность: если буфер активен но нет байт >500мс — сброс (защита от
+  // случайного байта 'D' на UART noise который иначе залип бы навечно).
+  static unsigned long diagBufLastByte = 0;
+  if (diagBufA && millis() - diagBufLastByte > 500UL) {
+    diagBuf = ""; diagBufA = false;
+  }
   while (Serial1.available()) {
     int p = Serial1.peek();
     if (!diagBufA && p != 'D') break;
     int ch = Serial1.read();
+    diagBufLastByte = millis();
     if (ch == '\n' || ch == '\r') {
       if (diagBuf.length() > 0) {
         diagBuf.trim();

@@ -600,6 +600,34 @@ def gather_system_status():
     except Exception:
         pass
 
+    # Per-port проверка для USB-CH340 башен: если CH340 на хабе "залип"
+    # (errcode -110 на USB control transfer), tcgetattr вернёт EIO. Используем
+    # неблокирующий os.open + termios — намного быстрее чем subprocess stty,
+    # и не блокирует eventlet loop.
+    import termios as _termios
+    import fcntl as _fcntl
+    tower_usb_paths = {
+        'usb_owls':     '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0',
+        'usb_dog':      '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0',
+        'usb_basket':   '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0',
+        'usb_workshop': '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0',
+    }
+    for key, path in tower_usb_paths.items():
+        fd = -1
+        try:
+            if not os.path.exists(path):
+                usb[key] = False
+                continue
+            fd = os.open(path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+            _termios.tcgetattr(fd)  # USB control transfer — EIO если CH340 не отвечает
+            usb[key] = True
+        except Exception:
+            usb[key] = False
+        finally:
+            if fd >= 0:
+                try: os.close(fd)
+                except: pass
+
     return {
         'esp32':     esp32,
         'towers':    towers,
@@ -616,6 +644,7 @@ _prev_status_state = {
     'tower_main': None, 'tower_owls': None, 'tower_basket': None, 'tower_workshop': None, 'tower_dog': None,
     'network_castle_ap': None, 'network_client_wifi': None, 'network_tailscale': None, 'network_internet': None,
     'usb_audio': None, 'usb_wifi_dongle': None, 'usb_hub': None, 'usb_mega_main': None,
+    'usb_usb_owls': None, 'usb_usb_basket': None, 'usb_usb_workshop': None, 'usb_usb_dog': None,
 }
 
 # Имена для логов: показываем понятные русские/английские лейблы вместо ключей.
@@ -624,6 +653,7 @@ _status_labels = {
     'tower_main': 'Main Board', 'tower_owls': 'Tower Owls', 'tower_basket': 'Tower Basket', 'tower_workshop': 'Tower Workshop', 'tower_dog': 'Tower Dog',
     'network_castle_ap': 'Castle AP', 'network_client_wifi': 'Client WiFi', 'network_tailscale': 'Tailscale', 'network_internet': 'Internet',
     'usb_audio': 'USB Audio', 'usb_wifi_dongle': 'USB WiFi-dongle', 'usb_hub': 'USB Hub', 'usb_mega_main': 'USB Mega-main',
+    'usb_usb_owls': 'USB Owls (1.2.1)', 'usb_usb_basket': 'USB Basket (1.2.3)', 'usb_usb_workshop': 'USB Workshop (1.2.4)', 'usb_usb_dog': 'USB Dog (1.2.2)',
 }
 
 
@@ -1579,9 +1609,28 @@ def handle_flash(board_id):
 
     try:
         # 1. Освобождение портов
+        # Башни Mega (workshop/basket/dog) делят UART-линии с USB-CH340. Если Mega
+        # шлёт "ping_main" каждые 5с, она ломает STK500-протокол avrdude → sync
+        # никогда не происходит → флэш висит вечно. Перед прошивкой говорим Mega
+        # перевести её TX/RX в Z-state. Owls на SoftwareSerial — пока работает без.
+        #
+        # Для dog: на DMC_TOP плате DTR-reset не работает. Шлём через Mega→Serial3
+        # команду wdt_reboot_for_flash → Nano сам ребутится через watchdog →
+        # попадает в Optiboot. Потом сразу release_serial3 → avrdude в окне
+        # Optiboot (~1 сек). Тайминги: 100мс на доставку wdt-команды, 200мс на
+        # release+sleep, avrdude стартует ~T+300мс после wdt-trigger.
+        _release_map = {'workshop': 'serial1', 'basket': 'serial2', 'dog': 'serial3'}
         if board_id == 'dog':
-            socketio.emit('flash_log', {'board': board_id, 'msg': 'Отправка команды release_serial3 на Главную плату...\n'})
+            socketio.emit('flash_log', {'board': board_id, 'msg': 'Шлём wdt_reboot_for_flash в Nano (через Mega→Serial3)...\n'})
+            serial_write_queue.put('wdt_reboot_for_flash')
+            eventlet.sleep(0.1)  # доставка байт + Nano принимает команду
+            socketio.emit('flash_log', {'board': board_id, 'msg': 'release_serial3 + сразу avrdude (Nano уже в Optiboot)...\n'})
             serial_write_queue.put('release_serial3')
+            eventlet.sleep(0.2)  # короткий sleep — попасть в окно Optiboot (1 сек после wdt-reset)
+        elif board_id in _release_map:
+            sn = _release_map[board_id]
+            socketio.emit('flash_log', {'board': board_id, 'msg': f'Отправка команды release_{sn} на Главную плату...\n'})
+            serial_write_queue.put(f'release_{sn}')
             eventlet.sleep(1.5)
         elif board_id == 'main':
             is_system_flashing = True
@@ -1637,6 +1686,12 @@ def handle_flash(board_id):
         if board_id == 'dog':
             socketio.emit('flash_log', {'board': board_id, 'msg': 'Восстановление связи (restore_serial3)...'})
             serial_write_queue.put('restore_serial3')
+            eventlet.sleep(0.5)
+            socketio.emit('flash_log', {'board': board_id, 'msg': '\nСвязь успешно восстановлена! [END]'})
+        elif board_id in _release_map:
+            sn = _release_map[board_id]
+            socketio.emit('flash_log', {'board': board_id, 'msg': f'Восстановление связи (restore_{sn})...'})
+            serial_write_queue.put(f'restore_{sn}')
             eventlet.sleep(0.5)
             socketio.emit('flash_log', {'board': board_id, 'msg': '\nСвязь успешно восстановлена! [END]'})
         elif board_id == 'main':

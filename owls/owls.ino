@@ -655,11 +655,14 @@ void oSendDiagSnapshot() {
 }
 
 void loop() {
-  // === DIAG: интерсептор через Serial0 ===
+  // === DIAG: интерсептор через Serial0 (с timeout-reset на UART noise) ===
+  static unsigned long diagBufLastByte = 0;
+  if (diagBufA && millis() - diagBufLastByte > 500UL) { diagBuf = ""; diagBufA = false; }
   while (Serial.available()) {
     int p = Serial.peek();
     if (!diagBufA && p != 'D') break;
     int ch = Serial.read();
+    diagBufLastByte = millis();
     if (ch == '\n' || ch == '\r') {
       if (diagBuf.length() > 0) { diagBuf.trim(); oDiagHandleLine(diagBuf); diagBuf = ""; }
       diagBufA = false;

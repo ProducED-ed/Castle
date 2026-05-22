@@ -156,11 +156,14 @@ void bSendDiagSnapshot() {
 }
 
 void loop() {
-  // === DIAG: интерсептор через Serial1 ===
+  // === DIAG: интерсептор через Serial1 (с timeout-reset на случай UART noise) ===
+  static unsigned long diagBufLastByte = 0;
+  if (diagBufA && millis() - diagBufLastByte > 500UL) { diagBuf = ""; diagBufA = false; }
   while (Serial1.available()) {
     int p = Serial1.peek();
     if (!diagBufA && p != 'D') break;
     int ch = Serial1.read();
+    diagBufLastByte = millis();
     if (ch == '\n' || ch == '\r') {
       if (diagBuf.length() > 0) { diagBuf.trim(); bDiagHandleLine(diagBuf); diagBuf = ""; }
       diagBufA = false;
