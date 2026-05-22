@@ -354,6 +354,9 @@ DIAG_DEVICE_URLS = {
     'suitcases': ESP32_API_SUITCASE_URL,
     'safe':      ESP32_API_SAFE_URL,
 }
+# Устройства которые dialect-ируются через Mega serial (а не HTTP).
+# Mega проксирует команды башням через свои Serial1/2/3/mySerial.
+DIAG_SERIAL_DEVICES = {'main', 'workshop', 'basket', 'dog', 'owls'}
 DIAG_LOG_DIR = "/home/pi/New/diag_logs"  # pi user может писать без sudo
 is_system_flashing = False
 lesson_intro_seq = 0
@@ -1779,38 +1782,64 @@ def tech_jump_basket():
 # Workflow: оператор включает diag_on → ESP32 замораживает игру и шлёт snapshot
 # I/O каждые 200ms на /api?device=<id>. Сервер ретранслирует через socketio как
 # '<device>_diag_state'. Toggle выходов идут через tech_diag_command.
+def _diag_send(device, action, body=None):
+    """Транспорт-агностичная отправка diag-команды.
+    Для ESP32-устройств (train/wolf/suitcases/safe) — HTTP POST на /data.
+    Для main/towers — пишет UPPERCASE строку в serial_write_queue (Mega поймает).
+    action: 'on' | 'off' | <cmd-string-already-formatted>"""
+    if device in DIAG_SERIAL_DEVICES:
+        # Сериализуем как: DIAG_ON:<device>, DIAG_OFF:<device>, DIAG_SET:<device>:<key>:<val>
+        if action == 'on':
+            line = f"DIAG_ON:{device}"
+        elif action == 'off':
+            line = f"DIAG_OFF:{device}"
+        else:  # action содержит уже "diag_set:key:val" (lowercase от UI) — конвертим
+            # Ожидаемый формат от UI: "diag_set:KEY:VAL". Переписываем в uppercase prefix.
+            if action.startswith("diag_set:"):
+                rest = action[len("diag_set:"):]
+                line = f"DIAG_SET:{device}:{rest}"
+            else:
+                logger.warning(f"[DIAG] Unknown serial action: {action}")
+                return
+        serial_write_queue.put(line)
+        return
+    # ESP32 path
+    url = DIAG_DEVICE_URLS.get(device)
+    if not url:
+        logger.warning(f"[DIAG] Unknown device: {device}")
+        return
+    cmd = action if action in ('diag_on', 'diag_off') else (
+        'diag_on' if action == 'on' else ('diag_off' if action == 'off' else action)
+    )
+    send_esp32_command(url, cmd, debounce=False)
+
 @socketio.on('tech_diag_enter')
 def tech_diag_enter(data):
     device = (data or {}).get('device')
-    url = DIAG_DEVICE_URLS.get(device)
-    if not url:
-        logger.warning(f"[DIAG] Unknown device for diag_enter: {device}")
+    if not device:
         return
     logger.info(f"[DIAG] Entering diag mode for {device}")
-    send_esp32_command(url, "diag_on", debounce=False)
+    _diag_send(device, 'on')
 
 @socketio.on('tech_diag_exit')
 def tech_diag_exit(data):
     device = (data or {}).get('device')
-    url = DIAG_DEVICE_URLS.get(device)
-    if not url:
-        logger.warning(f"[DIAG] Unknown device for diag_exit: {device}")
+    if not device:
         return
     logger.info(f"[DIAG] Exiting diag mode for {device}")
-    send_esp32_command(url, "diag_off", debounce=False)
+    _diag_send(device, 'off')
 
 @socketio.on('tech_diag_command')
 def tech_diag_command(data):
-    """Прозрачный прокси команд от UI к ESP32 в diag-режиме.
+    """Прозрачный прокси команд от UI к устройству в diag-режиме.
     data = {'device': 'train', 'cmd': 'diag_set:tunnel_led:1'}"""
     device = (data or {}).get('device')
     cmd = (data or {}).get('cmd')
-    url = DIAG_DEVICE_URLS.get(device)
-    if not url or not cmd:
+    if not device or not cmd:
         logger.warning(f"[DIAG] Bad diag_command: device={device} cmd={cmd}")
         return
     logger.debug(f"[DIAG] {device}: {cmd}")
-    send_esp32_command(url, cmd, debounce=False)
+    _diag_send(device, cmd)
 
 @socketio.on('tech_diag_log_request')
 def tech_diag_log_request(data):
@@ -3993,6 +4022,23 @@ def serial():
                        pending_ready = False
                        logger.info("SYSTEM CHECK COMPLETE: Playing startup sound.")
                        play_effect(on_sound)
+
+                   # --- DIAG snapshot от Mega (или прокинутый от башни) ---
+                   # Формат: "DIAG_SNAPSHOT:<device>:{...JSON...}"
+                   # device = main | workshop | basket | dog | owls
+                   if isinstance(flag, str) and flag.startswith("DIAG_SNAPSHOT:"):
+                       try:
+                           rest = flag[len("DIAG_SNAPSHOT:"):]
+                           colon = rest.find(':')
+                           if colon > 0:
+                               device = rest[:colon]
+                               body   = rest[colon+1:]
+                               snap = json.loads(body)
+                               socketio.emit(f'{device}_diag_state', snap)
+                               _log_diag_snapshot(device, snap)
+                       except Exception as _e:
+                           logger.debug(f"DIAG snapshot parse failed: {_e}")
+                       continue
 
                    # --- Heartbeat башен (ответ Mega на check_towers) ---
                    # Формат: "tower_status:workshop=1,basket=0,dog=1,owls=1"

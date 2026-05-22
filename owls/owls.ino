@@ -610,7 +610,69 @@ void setup() {
 }
 
 
+// === DIAG MODE: Owls общается с Mega через Serial (Serial0) ===
+static bool diagActive = false;
+static unsigned long diagLastSnap = 0;
+static String diagBuf = ""; static bool diagBufA = false;
+
+void oDiagHandleLine(String line) {
+  if (line == "DIAG_ON") {
+    diagActive = true;
+    digitalWrite(PIN_LOKER_DOOR, LOW);
+    digitalWrite(PIN_LED_ROOM, LOW);
+    digitalWrite(PIN_LED_WINDOW, LOW);
+    for (int i = 0; i < NUM_TILE_LEDS; i++) tileLeds[i] = CRGB::Black;
+    FastLED.show();
+  } else if (line == "DIAG_OFF") {
+    diagActive = false;
+  } else if (line.startsWith("DIAG_SET:")) {
+    String s = line.substring(strlen("DIAG_SET:"));
+    int c = s.indexOf(':'); if (c < 0) return;
+    String key = s.substring(0, c), val = s.substring(c + 1);
+    int onv = val.toInt() ? HIGH : LOW;
+    if      (key == "led_room")   digitalWrite(PIN_LED_ROOM, onv);
+    else if (key == "led_window") digitalWrite(PIN_LED_WINDOW, onv);
+    else if (key == "loker_door_pulse") {
+      digitalWrite(PIN_LOKER_DOOR, HIGH); delay(500); digitalWrite(PIN_LOKER_DOOR, LOW);
+    } else if (key == "np_tiles") {
+      long n = strtol(val.c_str(), NULL, 16);
+      CRGB c2 = CRGB((n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF);
+      for (int i = 0; i < NUM_TILE_LEDS; i++) tileLeds[i] = c2;
+      FastLED.show();
+    }
+  }
+}
+
+void oSendDiagSnapshot() {
+  // У owls нет физических сенсоров (управляется командами от Mega)
+  String s = "DIAG_SNAPSHOT:{\"in\":[],\"out\":[";
+  s += String(digitalRead(PIN_LED_ROOM));   s += ",";
+  s += String(digitalRead(PIN_LED_WINDOW));
+  s += "],\"up\":";
+  s += String(millis() / 1000UL);
+  s += "}";
+  Serial.println(s);
+}
+
 void loop() {
+  // === DIAG: интерсептор через Serial0 ===
+  while (Serial.available()) {
+    int p = Serial.peek();
+    if (!diagBufA && p != 'D') break;
+    int ch = Serial.read();
+    if (ch == '\n' || ch == '\r') {
+      if (diagBuf.length() > 0) { diagBuf.trim(); oDiagHandleLine(diagBuf); diagBuf = ""; }
+      diagBufA = false;
+    } else {
+      diagBuf += (char)ch; diagBufA = true;
+      if (diagBuf.length() > 250) { diagBuf = ""; diagBufA = false; }
+    }
+  }
+  if (diagActive) {
+    if (millis() - diagLastSnap >= 200UL) { diagLastSnap = millis(); oSendDiagSnapshot(); }
+    return;
+  }
+
   static int previousState = -1;
   if (state != previousState) {
     previousState = state;

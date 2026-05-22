@@ -264,7 +264,11 @@
                 <a class="item" data-diag-tab="wolf">Wolf (.201)</a>
                 <a class="item" data-diag-tab="safe">Safe (.204)</a>
                 <a class="item" data-diag-tab="suitcases">Suitcases (.203)</a>
-                <span class="item" style="opacity:0.4;">Башни — TODO</span>
+                <a class="item" data-diag-tab="main">Main Board (Mega)</a>
+                <a class="item" data-diag-tab="workshop">Workshop</a>
+                <a class="item" data-diag-tab="basket">Basket</a>
+                <a class="item" data-diag-tab="dog">Dog</a>
+                <a class="item" data-diag-tab="owls">Owls</a>
             </div>
 
             <!-- Train pane -->
@@ -544,6 +548,65 @@
 
                     <pre id="diag-suitcases-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
                 </div>
+            </div>
+
+            <!-- Main Board (Mega) pane -->
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="main" style="display:none;">
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-main-toggle-wrap">
+                        <input type="checkbox" id="diag-main-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает Main Board!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('main')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего snapshot от Mega (раз в 200мс через Serial0).">Snapshot:</span>
+                        <span id="diag-main-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime Mega с момента последнего ребута.">Uptime:</span>
+                        <span id="diag-main-uptime" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Текущий уровень игры (level) в Mega state machine.">Level:</span>
+                        <span id="diag-main-lvl" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Аналоговое значение voltagePin (A1) — пьезо-датчик/напряжение. 0-1023.">Volt:</span>
+                        <span id="diag-main-volt" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+
+                <div id="diag-main-body" style="display:none; margin-top:1em;">
+                    <h4>Сенсоры (live, INPUT_PULLUP — замкнут = зелёный)</h4>
+                    <div class="diag-grid" id="diag-main-inputs"></div>
+
+                    <h4>Башни (heartbeat &lt;15с)</h4>
+                    <div class="diag-grid" id="diag-main-towers"></div>
+
+                    <h4>Двери — клик открывает на 300мс</h4>
+                    <div class="diag-grid" id="diag-main-doors"></div>
+
+                    <h4>Освещение — клик переключает</h4>
+                    <div class="diag-grid" id="diag-main-lights"></div>
+
+                    <h4>Соленоид стука</h4>
+                    <button class="diag-out-btn" onclick="diagMainCmd('diag_set:knock_pulse:0')"
+                            title="100мс импульс KnockSol" style="width:150px;">
+                        Стук (100мс)
+                    </button>
+
+                    <pre id="diag-main-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
+                </div>
+            </div>
+
+            <!-- Tower panes (workshop/basket/dog/owls): generic skeleton, заполняется через JS-фабрику -->
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="workshop" style="display:none;">
+                <div class="diag-tower-pane-content" id="diag-pane-workshop"></div>
+            </div>
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="basket" style="display:none;">
+                <div class="diag-tower-pane-content" id="diag-pane-basket"></div>
+            </div>
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="dog" style="display:none;">
+                <div class="diag-tower-pane-content" id="diag-pane-dog"></div>
+            </div>
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="owls" style="display:none;">
+                <div class="diag-tower-pane-content" id="diag-pane-owls"></div>
             </div>
         </div>
         <!-- ============ /ДИАГНОСТИКА ============ -->
@@ -1254,7 +1317,7 @@
             { id: 'butt3', label: 'Кнопка 3 (GPIO 34, HIGH_PULL)' },
             { id: 'butt4', label: 'Кнопка 4 (GPIO 39, HIGH_PULL)' },
             { id: 'help',  label: 'Help button (GPIO 36, HIGH_PULL)' },
-            { id: 'eye',   label: 'Eye Symbol геркон (GPIO 33, active=LOW)' },
+            { id: 'eye',   label: 'ИК датчик (GPIO 33, active=LOW)' },
         ];
         const SUIT_OUTPUTS = [
             { id: 'mistake_led', label: 'Mistake LED (GPIO 22)' },
@@ -1346,6 +1409,333 @@
                 $('#diag-suitcases-vol-val').text(s.vol);
             }
         });
+
+        // ============ Диагностика Main Board (Mega через serial) ============
+        const MAIN_INPUTS = [
+            { id: 'crystal_1', label: 'Кристалл 1 (D27, INPUT_PULLUP)' },
+            { id: 'crystal_2', label: 'Кристалл 2 (D24, INPUT_PULLUP)' },
+            { id: 'crystal_3', label: 'Кристалл 3 (D23, INPUT_PULLUP)' },
+            { id: 'crystal_4', label: 'Кристалл 4 (D25, INPUT_PULLUP)' },
+            { id: 'window',    label: 'Window sensor (A13, INPUT_PULLUP)' },
+            { id: 'crime_door',label: 'Crime door геркон (D38)' },
+            { id: 'start_door',label: 'Start door геркон (D41)' },
+        ];
+        const MAIN_TOWERS = [
+            { id: 'workshop', label: 'Workshop (Serial1)' },
+            { id: 'basket',   label: 'Basket (Serial2)' },
+            { id: 'dog',      label: 'Dog (Serial3)' },
+            { id: 'owls',     label: 'Owls (SoftSerial)' },
+        ];
+        const MAIN_DOORS = [
+            { id: 'door_mansard',     label: 'Дверь мансарды' },
+            { id: 'door_potions',     label: 'Дверь зельеварения' },
+            { id: 'door_library',     label: 'Дверь библиотеки' },
+            { id: 'door_bank',        label: 'Дверь банка' },
+            { id: 'door_high_tower',  label: 'Дверь верх. башни 1' },
+            { id: 'door_high_tower2', label: 'Дверь верх. башни 2' },
+            { id: 'door_memory',      label: 'Дверь воспоминаний' },
+            { id: 'door_crime',       label: 'Дверь тюрьмы' },
+            { id: 'door_bank_stash',  label: 'Тайник банка' },
+        ];
+        const MAIN_LIGHTS = [
+            { id: 'library_light',    label: 'Свет библиотеки (A7)' },
+            { id: 'hall_light',       label: 'Свет холла (D37)' },
+            { id: 'uf_hall_light',    label: 'УФ-свет холла (A5)' },
+            { id: 'mansard_light',    label: 'Свет мансарды (D39)' },
+            { id: 'last_tower_light', label: 'Свет верх. башни (D36)' },
+            { id: 'fireworks',        label: 'Фейерверк (D3)' },
+            { id: 'bank_room_light',  label: 'Бра банка (D4)' },
+            { id: 'torch_light',      label: 'Факелы (D7)' },
+        ];
+        let diagMainActive = false;
+
+        (function initDiagMain() {
+            const $in = $('#diag-main-inputs');
+            MAIN_INPUTS.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="minp-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $tw = $('#diag-main-towers');
+            MAIN_TOWERS.forEach(t => {
+                $tw.append(`<div class="diag-chip off" id="mtwr-${t.id}" title="Heartbeat ${t.label}">
+                    <span class="dot"></span><span>${t.label}</span></div>`);
+            });
+            const $doors = $('#diag-main-doors');
+            MAIN_DOORS.forEach(d => {
+                $doors.append(`<button class="diag-out-btn" onclick="diagMainCmd('diag_set:${d.id}:0')">${d.label}</button>`);
+            });
+            const $lights = $('#diag-main-lights');
+            MAIN_LIGHTS.forEach(l => {
+                $lights.append(`<button class="diag-out-btn" id="mout-${l.id}"
+                    onclick="diagMainOutToggle('${l.id}')">${l.label}: OFF</button>`);
+            });
+        })();
+
+        $('#diag-main-toggle-wrap').checkbox({
+            onChecked: function() {
+                socket.emit('tech_diag_enter', { device: 'main' });
+                $('#diag-main-body').show();
+                diagMainActive = true;
+                $('.diag-out-btn[id^="mout-"]').each(function() {
+                    const id = this.id.replace('mout-', '');
+                    const label = MAIN_LIGHTS.find(o => o.id === id).label;
+                    $(this).removeClass('on').text(label + ': OFF').data('on', false);
+                });
+            },
+            onUnchecked: function() {
+                socket.emit('tech_diag_exit', { device: 'main' });
+                $('#diag-main-body').hide();
+                diagMainActive = false;
+            }
+        });
+
+        function diagMainCmd(cmd) {
+            socket.emit('tech_diag_command', { device: 'main', cmd: cmd });
+        }
+        function diagMainOutToggle(outId) {
+            const $btn = $('#mout-' + outId);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagMainCmd('diag_set:' + outId + ':' + newVal);
+            const label = MAIN_LIGHTS.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+
+        socket.on('main_diag_state', function(s) {
+            if (!diagMainActive) return;
+            $('#diag-main-ts').text(new Date().toLocaleTimeString());
+            if (typeof s.up === 'number') {
+                const sec = s.up;
+                $('#diag-main-uptime').text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+            }
+            if (typeof s.lvl === 'number') $('#diag-main-lvl').text(s.lvl);
+            if (typeof s.v === 'number')   $('#diag-main-volt').text(s.v + ' (0-1023)');
+            if (Array.isArray(s.in)) {
+                s.in.forEach((v, i) => {
+                    if (i >= MAIN_INPUTS.length) return;
+                    $('#minp-' + MAIN_INPUTS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.twr)) {
+                s.twr.forEach((v, i) => {
+                    if (i >= MAIN_TOWERS.length) return;
+                    $('#mtwr-' + MAIN_TOWERS[i].id).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                });
+            }
+            if (Array.isArray(s.out)) {
+                s.out.forEach((v, i) => {
+                    if (i >= MAIN_LIGHTS.length) return;
+                    const id = MAIN_LIGHTS[i].id;
+                    const $btn = $('#mout-' + id);
+                    const on = v === 1;
+                    $btn.data('on', on).toggleClass('on', on)
+                        .text(MAIN_LIGHTS[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                });
+            }
+        });
+
+        // ============ Диагностика башен (workshop/basket/dog/owls) ============
+        // Generic factory — каждая башня описывается конфигом, UI собирается из шаблонов
+        const TOWER_CONFIGS = {
+            workshop: {
+                title: 'Workshop',
+                inputs: [
+                    { id: 'reed_stove',    label: 'Геркон печки (D31)' },
+                    { id: 'reed_hint',     label: 'Геркон подсказки (D29)' },
+                    { id: 'reed_wb1',      label: 'Верстак 1 (D44)' },
+                    { id: 'reed_wb2',      label: 'Верстак 2 (D42)' },
+                    { id: 'reed_wb3',      label: 'Верстак 3 (D40)' },
+                    { id: 'reed_wb4',      label: 'Верстак 4 (D46)' },
+                    { id: 'galet',         label: 'Галетник солнце (D30)' },
+                    { id: 'flag_ir',       label: 'ИК флаг (D27)' },
+                ],
+                outputs: [
+                    { id: 'led_floor1',  label: 'LED 1 этаж (D23)' },
+                    { id: 'led_floor2',  label: 'LED 2 этаж (D12)' },
+                    { id: 'roof_light',  label: 'Подсветка крыши (D47)' },
+                ],
+                lock:    { id: 'lock_pulse', label: 'Открыть замок (D21)' },
+                neopixels: [
+                    { id: 'fire',      label: 'Огонь (3 LED)' },
+                    { id: 'workbench', label: 'Верстак (4 LED)' },
+                ],
+            },
+            basket: {
+                title: 'Basket',
+                inputs: [
+                    { id: 'ir_ball',  label: 'ИК сенсор мяча (A10)' },
+                    { id: 'boy_btn',  label: 'Кнопка мальчика (D28)' },
+                ],
+                outputs: [
+                    { id: 'troll_led',  label: 'Troll LED' },
+                    { id: 'sherif_em1', label: 'SHERIF EM1 (тайник)' },
+                    { id: 'basket_led', label: 'Basket LED' },
+                    { id: 'owl_led',    label: 'Owl LED' },
+                    { id: 'solenoid',   label: 'Соленоид (кольцо)' },
+                ],
+                lock:    { id: 'sherif_em2_pulse', label: 'SHERIF EM2 — импульс' },
+                neopixels: [],
+            },
+            dog: {
+                title: 'Dog',
+                inputs: [
+                    { id: 'padlock', label: 'Геркон навесного замка (A5)' },
+                    { id: 'capsule', label: 'Геркон капсулы (D11)' },
+                    { id: 'knight',  label: 'Геркон рыцаря (D13)' },
+                    { id: 'cage',    label: 'Геркон клетки (A0)' },
+                    { id: 'end',     label: 'Геркон end (A1)' },
+                    { id: 'crystal', label: 'Геркон кристалла (A2)' },
+                    { id: 'rose',    label: 'Геркон розы (A3)' },
+                    { id: 'flag_ir', label: 'ИК флаг (D7)' },
+                ],
+                outputs: [
+                    { id: 'lighting_led', label: 'Освещение (D9, PWM)' },
+                    { id: 'vibro_motor',  label: 'Вибромотор (D6)' },
+                    { id: 'led_strip',    label: 'Лента 12V (D4)' },
+                    { id: 'crystal_light',label: 'Свет кристалла (D3, PWM)' },
+                    { id: 'roof_lighting',label: 'Свет крыши (D2)' },
+                ],
+                lock: { id: 'door_lock_pulse', label: 'Дверь — импульс (D10)' },
+                lock2: { id: 'cage_lock_pulse', label: 'Клетка — импульс (D5)' },
+                neopixels: [],
+            },
+            owls: {
+                title: 'Owls',
+                inputs: [],  // у owls нет физических сенсоров (только серво-обратная связь?)
+                outputs: [
+                    { id: 'led_room',   label: 'Свет комнаты (D12, PWM)' },
+                    { id: 'led_window', label: 'Свет окна (D21, PWM)' },
+                ],
+                lock: { id: 'loker_door_pulse', label: 'Локер двери — импульс (D23)' },
+                neopixels: [
+                    { id: 'tiles', label: 'Плитки (4 LED)' },
+                ],
+            },
+        };
+
+        const towerActive = { workshop: false, basket: false, dog: false, owls: false };
+
+        function buildTowerPane(twrId) {
+            const cfg = TOWER_CONFIGS[twrId];
+            const $pane = $('#diag-pane-' + twrId);
+            let html = `
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox" id="diag-${twrId}-toggle-wrap">
+                        <input type="checkbox" id="diag-${twrId}-toggle"/>
+                        <label style="color:#fff;">Diag mode ON (замораживает ${cfg.title}!)</label>
+                    </div>
+                    <button class="ui mini basic inverted button" onclick="diagShowLog('${twrId}')">
+                        <i class="file alternate outline icon"></i> Открыть лог
+                    </button>
+                    <span style="color:#888; font-size:13px;">
+                        <span title="Время последнего snapshot от башни (через Mega-relay).">Snapshot:</span>
+                        <span id="diag-${twrId}-ts" style="color:#aaa;">—</span> &nbsp;|&nbsp;
+                        <span title="Uptime с момента последнего ребута башни.">Uptime:</span>
+                        <span id="diag-${twrId}-uptime" style="color:#aaa;">—</span>
+                    </span>
+                </div>
+                <div id="diag-${twrId}-body" style="display:none; margin-top:1em;">`;
+            if (cfg.inputs.length) {
+                html += `<h4>Сенсоры (live)</h4><div class="diag-grid" id="diag-${twrId}-inputs"></div>`;
+            }
+            if (cfg.lock || cfg.lock2) {
+                html += `<h4>Замки (импульс)</h4>`;
+                if (cfg.lock) {
+                    html += `<button class="diag-out-btn" onclick="diagTowerCmd('${twrId}','diag_set:${cfg.lock.id}:0')" style="width:200px;">${cfg.lock.label}</button> `;
+                }
+                if (cfg.lock2) {
+                    html += `<button class="diag-out-btn" onclick="diagTowerCmd('${twrId}','diag_set:${cfg.lock2.id}:0')" style="width:200px;">${cfg.lock2.label}</button>`;
+                }
+            }
+            if (cfg.outputs.length) {
+                html += `<h4>Выходы — клик переключает</h4><div class="diag-grid" id="diag-${twrId}-outputs"></div>`;
+            }
+            if (cfg.neopixels.length) {
+                html += `<h4>NeoPixel ленты</h4>`;
+                cfg.neopixels.forEach(np => {
+                    html += `<div style="display:flex; gap:6px; align-items:center; margin:4px 0;">
+                        <b style="color:#ccc; min-width:140px;">${np.label}:</b>
+                        <button class="ui mini button" onclick="diagTowerCmd('${twrId}','diag_set:np_${np.id}:FF0000')">Red</button>
+                        <button class="ui mini button" onclick="diagTowerCmd('${twrId}','diag_set:np_${np.id}:00FF00')">Green</button>
+                        <button class="ui mini button" onclick="diagTowerCmd('${twrId}','diag_set:np_${np.id}:0000FF')">Blue</button>
+                        <button class="ui mini button" onclick="diagTowerCmd('${twrId}','diag_set:np_${np.id}:FFFFFF')">White</button>
+                        <button class="ui mini button" onclick="diagTowerCmd('${twrId}','diag_set:np_${np.id}:000000')">Off</button>
+                    </div>`;
+                });
+            }
+            html += `<pre id="diag-${twrId}-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>`;
+            html += `</div>`;
+            $pane.html(html);
+
+            // Заполняем сенсоры/выходы
+            const $in = $(`#diag-${twrId}-inputs`);
+            cfg.inputs.forEach(s => {
+                $in.append(`<div class="diag-chip off" id="tinp-${twrId}-${s.id}" title="${s.label}">
+                    <span class="dot"></span><span>${s.label}</span></div>`);
+            });
+            const $out = $(`#diag-${twrId}-outputs`);
+            cfg.outputs.forEach(o => {
+                $out.append(`<button class="diag-out-btn" id="tout-${twrId}-${o.id}"
+                    onclick="diagTowerOutToggle('${twrId}','${o.id}')">${o.label}: OFF</button>`);
+            });
+
+            // Привязываем toggle
+            $(`#diag-${twrId}-toggle-wrap`).checkbox({
+                onChecked: () => {
+                    socket.emit('tech_diag_enter', { device: twrId });
+                    $(`#diag-${twrId}-body`).show();
+                    towerActive[twrId] = true;
+                },
+                onUnchecked: () => {
+                    socket.emit('tech_diag_exit', { device: twrId });
+                    $(`#diag-${twrId}-body`).hide();
+                    towerActive[twrId] = false;
+                }
+            });
+
+            // Listener на snapshot
+            socket.on(twrId + '_diag_state', function(s) {
+                if (!towerActive[twrId]) return;
+                $(`#diag-${twrId}-ts`).text(new Date().toLocaleTimeString());
+                if (typeof s.up === 'number') {
+                    const sec = s.up;
+                    $(`#diag-${twrId}-uptime`).text(`${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m ${sec%60}s`);
+                }
+                if (Array.isArray(s.in)) {
+                    s.in.forEach((v, i) => {
+                        if (i >= cfg.inputs.length) return;
+                        $(`#tinp-${twrId}-${cfg.inputs[i].id}`).toggleClass('on', v === 1).toggleClass('off', v !== 1);
+                    });
+                }
+                if (Array.isArray(s.out)) {
+                    s.out.forEach((v, i) => {
+                        if (i >= cfg.outputs.length) return;
+                        const id = cfg.outputs[i].id;
+                        const $btn = $(`#tout-${twrId}-${id}`);
+                        const on = v === 1;
+                        $btn.data('on', on).toggleClass('on', on)
+                            .text(cfg.outputs[i].label + ': ' + (on ? 'ON' : 'OFF'));
+                    });
+                }
+            });
+        }
+
+        function diagTowerCmd(twrId, cmd) {
+            socket.emit('tech_diag_command', { device: twrId, cmd: cmd });
+        }
+        function diagTowerOutToggle(twrId, outId) {
+            const cfg = TOWER_CONFIGS[twrId];
+            const $btn = $(`#tout-${twrId}-${outId}`);
+            const wasOn = $btn.data('on') === true;
+            const newVal = wasOn ? 0 : 1;
+            diagTowerCmd(twrId, 'diag_set:' + outId + ':' + newVal);
+            const label = cfg.outputs.find(o => o.id === outId).label;
+            $btn.data('on', !wasOn).toggleClass('on', !wasOn)
+                .text(label + ': ' + (newVal ? 'ON' : 'OFF'));
+        }
+
+        ['workshop', 'basket', 'dog', 'owls'].forEach(buildTowerPane);
 
         socket.on('safe_diag_state', function(s) {
             if (!diagSafeActive) return;

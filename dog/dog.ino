@@ -452,7 +452,85 @@ void CheckState() {
   }
 }
 
+// === DIAG MODE: Dog общается с Mega через Serial (Serial0). atmega328p, мало RAM —
+// snapshot компактный (значения раздельно по запятым в JSON для совместимости с UI).
+static bool diagActive = false;
+static unsigned long diagLastSnap = 0;
+static String diagBuf = ""; static bool diagBufA = false;
+
+void dDiagHandleLine(String line) {
+  if (line == "DIAG_ON") {
+    diagActive = true;
+    digitalWrite(DOOR_LOCK_PIN, LOW);
+    analogWrite(LIGHTING_LED_PIN, 0);
+    digitalWrite(VIBRO_MOTOR_PIN, LOW);
+    digitalWrite(CAGE_LOCK_PIN, LOW);
+    digitalWrite(LED_STRIP_PIN, LOW);
+    analogWrite(CRYSTAL_LIGHT_PIN, 0);
+    digitalWrite(ROOF_LIGHTING_PIN, LOW);
+  } else if (line == "DIAG_OFF") {
+    diagActive = false;
+  } else if (line.startsWith("DIAG_SET:")) {
+    String s = line.substring(strlen("DIAG_SET:"));
+    int c = s.indexOf(':'); if (c < 0) return;
+    String key = s.substring(0, c), val = s.substring(c + 1);
+    int onv = val.toInt() ? HIGH : LOW;
+    if      (key == "lighting_led")  analogWrite(LIGHTING_LED_PIN, onv ? 255 : 0);
+    else if (key == "vibro_motor")   digitalWrite(VIBRO_MOTOR_PIN, onv);
+    else if (key == "led_strip")     digitalWrite(LED_STRIP_PIN, onv);
+    else if (key == "crystal_light") analogWrite(CRYSTAL_LIGHT_PIN, onv ? 255 : 0);
+    else if (key == "roof_lighting") digitalWrite(ROOF_LIGHTING_PIN, onv);
+    else if (key == "door_lock_pulse") {
+      digitalWrite(DOOR_LOCK_PIN, HIGH); delay(500); digitalWrite(DOOR_LOCK_PIN, LOW);
+    } else if (key == "cage_lock_pulse") {
+      digitalWrite(CAGE_LOCK_PIN, HIGH); delay(500); digitalWrite(CAGE_LOCK_PIN, LOW);
+    }
+  }
+}
+
+void dSendDiagSnapshot() {
+  // PADLOCK,CAPSULE,KNIGHT,CAGE,END,CRYSTAL,ROSE,FLAG_IR — все активны=LOW (INPUT_PULLUP)
+  // FLAG_IR на D7 — это IR-сенсор, может работать по-другому. По коду используется как INPUT.
+  String s = "DIAG_SNAPSHOT:{\"in\":[";
+  s += (digitalRead(PADLOCK_REED_PIN) == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(CAPSULE_REED_PIN) == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(KNIGHT_REED_PIN)  == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(CAGE_REED_PIN)    == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(END_REED_PIN)     == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(CRYSTAL_REED_PIN) == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(ROSE_REED_PIN)    == LOW ? "1" : "0"); s += ",";
+  s += (digitalRead(FLAG_IR_SENSOR_PIN) == LOW ? "1" : "0");
+  s += "],\"out\":[";
+  s += String(digitalRead(LIGHTING_LED_PIN)); s += ",";
+  s += String(digitalRead(VIBRO_MOTOR_PIN));  s += ",";
+  s += String(digitalRead(LED_STRIP_PIN));    s += ",";
+  s += String(digitalRead(CRYSTAL_LIGHT_PIN));s += ",";
+  s += String(digitalRead(ROOF_LIGHTING_PIN));
+  s += "],\"up\":";
+  s += String(millis() / 1000UL);
+  s += "}";
+  Serial.println(s);
+}
+
 void loop() {
+  // === DIAG: интерсептор через Serial0 ===
+  while (Serial.available()) {
+    int p = Serial.peek();
+    if (!diagBufA && p != 'D') break;
+    int ch = Serial.read();
+    if (ch == '\n' || ch == '\r') {
+      if (diagBuf.length() > 0) { diagBuf.trim(); dDiagHandleLine(diagBuf); diagBuf = ""; }
+      diagBufA = false;
+    } else {
+      diagBuf += (char)ch; diagBufA = true;
+      if (diagBuf.length() > 250) { diagBuf = ""; diagBufA = false; }
+    }
+  }
+  if (diagActive) {
+    if (millis() - diagLastSnap >= 200UL) { diagLastSnap = millis(); dSendDiagSnapshot(); }
+    return;
+  }
+
   static QuestState previousState = STATE_RESTARTING;
   if (currentQuestState != previousState) {
     String stateName = "UNKNOWN";
