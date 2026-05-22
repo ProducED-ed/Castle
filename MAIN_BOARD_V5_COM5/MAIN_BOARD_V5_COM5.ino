@@ -145,11 +145,22 @@ unsigned long lastSeenOwls     = 0;
 //   DIAG_ACK_MAIN:ON / :OFF
 bool diagMainActive = false;
 unsigned long diagLastMainSnap = 0;
-char diagInBuf[80];           // буфер входящих DIAG_* команд от сервера
+char diagInBuf[64];           // 64 хватает: longest cmd 'DIAG_SET:basket:sherif_em2_pulse:1'=35
 uint8_t diagInLen = 0;
-char diagTwrBuf[4][96];       // буферы строк от башен (для relay), idx 0..3 = workshop/basket/dog/owls
-uint8_t diagTwrLen[4] = {0,0,0,0};
-const char* const DIAG_TOWER_NAMES[4] = {"workshop", "basket", "dog", "owls"};
+// Tower-relay state-machine (вместо буферизации полной строки):
+// state: 0=ищем 'D', 1=матчим префикс "DIAG_SNAPSHOT:", 2=пробрасываем байты до \n.
+// На каждую башню: 2 байта (state+pos) вместо 96 байт буфера — экономия 376 байт.
+uint8_t diagTwrState[4] = {0,0,0,0};
+uint8_t diagTwrPos[4]   = {0,0,0,0};
+// Имена башен в PROGMEM (8 байт RAM экономии)
+const char DIAG_TWR_NAME_0[] PROGMEM = "workshop";
+const char DIAG_TWR_NAME_1[] PROGMEM = "basket";
+const char DIAG_TWR_NAME_2[] PROGMEM = "dog";
+const char DIAG_TWR_NAME_3[] PROGMEM = "owls";
+const char* const DIAG_TOWER_NAMES[4] PROGMEM = {
+  DIAG_TWR_NAME_0, DIAG_TWR_NAME_1, DIAG_TWR_NAME_2, DIAG_TWR_NAME_3
+};
+const char DIAG_SNAP_PREFIX[] PROGMEM = "DIAG_SNAPSHOT:";  // 14 chars
 void processDiagCmd(char* cmd);
 void diagSetMainOutput(const char* key, int val);
 void sendDiagSnapMain();
@@ -7556,8 +7567,10 @@ void diagSetMainOutput(const char* key, int val) {
 
 // Возвращает 0..3 для tower-device, -1 для "main", -2 если не распознано
 static int8_t diagTowerIndex(const char* device) {
+  char namebuf[10];  // longest имя "workshop"=8 + null
   for (int8_t i = 0; i < 4; i++) {
-    if (strcmp(device, DIAG_TOWER_NAMES[i]) == 0) return i;
+    strcpy_P(namebuf, (PGM_P)pgm_read_word(&DIAG_TOWER_NAMES[i]));
+    if (strcmp(device, namebuf) == 0) return i;
   }
   if (strcmp(device, "main") == 0) return -1;
   return -2;
@@ -7665,31 +7678,48 @@ void sendDiagSnapMain() {
   Serial.println(F("}"));
 }
 
-// Считываем все 4 башенных UART'а. На каждую полную строку "DIAG_SNAPSHOT:<json>"
-// шлём в Serial0 как "DIAG_SNAPSHOT:<tower_name>:<json>" — server уже умеет это парсить.
-static void diagFlushTowerLine(uint8_t i) {
-  diagTwrBuf[i][diagTwrLen[i]] = 0;
-  if (diagTwrLen[i] >= 14 && strncmp(diagTwrBuf[i], "DIAG_SNAPSHOT:", 14) == 0) {
-    Serial.print(F("DIAG_SNAPSHOT:"));
-    Serial.print(DIAG_TOWER_NAMES[i]);
-    Serial.print(':');
-    Serial.println(diagTwrBuf[i] + 14);
-  }
-  diagTwrLen[i] = 0;
-}
-
+// State-machine relay: байт-за-байтом смотрим UART каждой башни.
+// Сначала ищем 'D' (state 0), потом матчим оставшиеся 13 символов префикса
+// "DIAG_SNAPSHOT:" (state 1). На полном матче — печатаем в Serial0
+// "DIAG_SNAPSHOT:<tower_name>:" и переходим в pass-through (state 2):
+// каждый следующий байт от башни сразу пишется в Serial0 до \n или \r.
+// Использует только 8 байт RAM (4 башни × 2 байта state) вместо 384 байт.
 void relayTowerSnapshots() {
   Stream* streams[4] = { &Serial1, &Serial2, &Serial3, &mySerial };
   for (uint8_t i = 0; i < 4; i++) {
     Stream* s = streams[i];
     while (s->available()) {
       char c = s->read();
-      if (c == '\n' || c == '\r') {
-        diagFlushTowerLine(i);
-      } else if (diagTwrLen[i] < sizeof(diagTwrBuf[i]) - 1) {
-        diagTwrBuf[i][diagTwrLen[i]++] = c;
-      } else {
-        diagTwrLen[i] = 0;
+      switch (diagTwrState[i]) {
+        case 0: // ищем начало префикса
+          if (c == 'D') { diagTwrState[i] = 1; diagTwrPos[i] = 1; }
+          break;
+        case 1: // матчим "DIAG_SNAPSHOT:" — позиция 1..13
+          if (c == (char)pgm_read_byte(&DIAG_SNAP_PREFIX[diagTwrPos[i]])) {
+            diagTwrPos[i]++;
+            if (diagTwrPos[i] == 14) {
+              // Полный матч префикса — пишем свой prefix с device-tag
+              Serial.print(F("DIAG_SNAPSHOT:"));
+              char nbuf[10];
+              strcpy_P(nbuf, (PGM_P)pgm_read_word(&DIAG_TOWER_NAMES[i]));
+              Serial.print(nbuf);
+              Serial.print(':');
+              diagTwrState[i] = 2;  // pass-through
+            }
+          } else {
+            // Mismatch — назад в S0; если случайно 'D' — сразу начинаем новый матч
+            diagTwrState[i] = (c == 'D') ? 1 : 0;
+            diagTwrPos[i] = (c == 'D') ? 1 : 0;
+          }
+          break;
+        case 2: // pass-through: пробрасываем каждый байт в Serial0 до \n
+          if (c == '\n' || c == '\r') {
+            Serial.println();
+            diagTwrState[i] = 0;
+          } else {
+            Serial.write(c);
+          }
+          break;
       }
     }
   }
