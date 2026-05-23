@@ -132,6 +132,16 @@ unsigned long lastSeenWorkshop = 0;
 unsigned long lastSeenBasket   = 0;
 unsigned long lastSeenDog      = 0;
 unsigned long lastSeenOwls     = 0;
+
+// === DIAG MODE (short-commands, без изменения Serial.setTimeout) ===
+// Все команды ≤8 байт = один USB CDC chunk = надёжная доставка от Pi к Mega.
+// Не трогаем Serial.setTimeout(50) — игровые short commands продолжают работать как раньше.
+// Server -> Mega: dg_on, dg_off, dg_d1...dg_d9 (двери), dg_fw (fireworks toggle), dg_sn (request snapshot)
+// Mega -> Server: dg:ack:on, dg:ack:off, dgs:<csv> (snapshot)
+bool dgActive = false;
+unsigned long dgLastSnap = 0;
+void processDgCmd(const String& cmd);
+void sendDgSnap();
 //----------------RFID
 OneWire myRFID(13);  // рфидка на котле в комнате зельеварения
 byte addr[8];
@@ -913,6 +923,22 @@ void loop() {
     Serial.println(lastSeenOwls ? (now - lastSeenOwls) : 999999UL);
   }
 
+  // === DIAG MODE: если активен — обрабатываем dg_*, шлём snapshot 5Гц, ИГРА ЗАМОРОЖЕНА.
+  // Normal mode: один if-check, нулевой overhead.
+  if (dgActive) {
+    while (Serial.available()) {
+      String b = Serial.readStringUntil('\n');
+      b.trim();
+      if (b.startsWith("dg_")) processDgCmd(b);
+      // не-dg команды игнорируются (заморозка)
+    }
+    if (millis() - dgLastSnap >= 200UL) {
+      dgLastSnap = millis();
+      sendDgSnap();
+    }
+    return;  // skip handleLocks/switch(level) — game frozen
+  }
+
   handleLocks();
   handleUfBlinking();
   handleLibraryFlicker();
@@ -1212,6 +1238,17 @@ void PowerOn() {
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
+
+    // === DIAG ENTRY (idle state, level=0) ===
+    // Короткая команда `dg_on` (5 байт) — single USB chunk, надёжно доходит.
+    if (buff == "dg_on") {
+      dgActive = true;
+      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
+      digitalWrite(Fireworks, LOW);
+      Serial.println(F("dg:ack:on"));
+      while(Serial.available()) Serial.read();
+      return;
+    }
 
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
@@ -6720,11 +6757,21 @@ void RestOn() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
+    // === DIAG ENTRY (rest state, level=25) ===
+    if (buff == "dg_on") {
+      dgActive = true;
+      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
+      digitalWrite(Fireworks, LOW);
+      Serial.println(F("dg:ack:on"));
+      while(Serial.available()) Serial.read();
+      return;
+    }
+
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();
-      OpenAll(); 
+      OpenAll();
       while(Serial.available()) Serial.read();
-      isRestInitialized = false; 
+      isRestInitialized = false;
       level = 25;
       previousLevel = 0;
       return;
@@ -7486,4 +7533,51 @@ void RunStudentOpen() {
 
   boyServo.detach();
   Serial.println("log:confirm:student_open_success");  // ВАЖНО: Ответ серверу
+}
+
+// ====================================================================
+// === DIAG MODE: short-command implementation ===
+// Все команды от server'а ≤8 байт = один USB CDC chunk = надёжно.
+// ====================================================================
+
+void processDgCmd(const String& c) {
+  if (c == "dg_off") {
+    dgActive = false;
+    Serial.println(F("dg:ack:off"));
+    return;
+  }
+  // Двери — pulse через OpenDoor (300мс импульс)
+  if (c == "dg_d1") { OpenDoor(MansardDoor);    return; }
+  if (c == "dg_d2") { OpenDoor(PotionsRoomDoor); return; }
+  if (c == "dg_d3") { OpenDoor(LibraryDoor);     return; }
+  if (c == "dg_d4") { OpenDoor(BankDoor);        return; }
+  if (c == "dg_d5") { OpenDoor(HightTowerDoor);  return; }
+  if (c == "dg_d6") { OpenDoor(HightTowerDoor2); return; }
+  if (c == "dg_d7") { OpenDoor(MemoryRoomDoor);  return; }
+  if (c == "dg_d8") { OpenDoor(CrimeDoor);       return; }
+  if (c == "dg_d9") { OpenDoor(BankStashDoor);   return; }
+  // Fireworks toggle
+  if (c == "dg_fw") {
+    digitalWrite(Fireworks, !digitalRead(Fireworks));
+    return;
+  }
+  // Snapshot по запросу (one-shot, дополнительно к auto 5Гц)
+  if (c == "dg_sn") {
+    sendDgSnap();
+    return;
+  }
+}
+
+void sendDgSnap() {
+  // CSV: cr1,cr2,cr3,cr4,win,crime,start,volt,uptime
+  Serial.print(F("dgs:"));
+  Serial.print(digitalRead(firstCrystal));   Serial.print(',');
+  Serial.print(digitalRead(secondCrystal));  Serial.print(',');
+  Serial.print(digitalRead(thirdCrystal));   Serial.print(',');
+  Serial.print(digitalRead(fourCrystal));    Serial.print(',');
+  Serial.print(analogRead(WindowSens) > 500 ? 1 : 0); Serial.print(',');
+  Serial.print(digitalRead(crimeDoorPin));   Serial.print(',');
+  Serial.print(digitalRead(startDoorPin));   Serial.print(',');
+  Serial.print(analogRead(voltagePin));      Serial.print(',');
+  Serial.println(millis() / 1000UL);
 }
