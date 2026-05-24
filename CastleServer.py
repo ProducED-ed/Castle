@@ -772,6 +772,43 @@ def hostapd_bootstrap_watchdog():
         logger.info(f"HOSTAPD WATCHDOG: {n} stations подключено за 60s — bootstrap прошёл штатно, watchdog не нужен")
 
 
+def mega_boot_watchdog():
+    """Watchdog для cold-boot Mega.
+
+    Симптом 24 мая 2026: после power-on квеста ~50% случаев Mega не
+    отправляет QUEST_SYSTEM_READY (клиент слышит тишину, нет on.wav).
+    Помогает physical reset кнопка — но клиенту это не доступно.
+
+    Решение: ждём 30 сек после server start. Если QUEST_SYSTEM_READY не
+    пришёл — программно дёргаем DTR на ttyUSB_MAIN. DTR pulse триггерит
+    hardware reset Mega через её reset-цепь (то же что нажатие RESET
+    кнопки на плате). Mega ребутается → bootloader → user code → on.wav.
+
+    Если после второй попытки (60 сек total) тоже нет ответа — logger.error,
+    дальше не пробуем (что-то существенно сломано).
+    """
+    global mega_initial_boot_received
+    # 30 сек на нормальный boot Mega
+    eventlet.sleep(30)
+    if mega_initial_boot_received:
+        return  # Mega успела загрузиться сама
+    logger.warning("MEGA BOOT WATCHDOG: QUEST_SYSTEM_READY не пришёл за 30с — форсирую DTR reset Mega")
+    try:
+        ser.dtr = False
+        eventlet.sleep(0.1)
+        ser.dtr = True
+        logger.info("MEGA BOOT WATCHDOG: DTR pulse отправлен, жду ещё 30с...")
+    except Exception as e:
+        logger.error(f"MEGA BOOT WATCHDOG: DTR toggle failed: {e}")
+        return
+    # Вторая попытка: если за 30с после DTR-pulse тоже не ответила
+    eventlet.sleep(30)
+    if mega_initial_boot_received:
+        logger.info("MEGA BOOT WATCHDOG: Mega ожила после DTR reset ✅")
+    else:
+        logger.error("MEGA BOOT WATCHDOG: Mega не отвечает даже после DTR reset — возможен hardware-сбой, требуется ручное вмешательство")
+
+
 def tailscale_watchdog():
     """Авто-восстановление Tailscale на Pi.
 
@@ -1209,13 +1246,22 @@ story_fade_active = False
 # Убираем автопоиск и жёстко прописываем порт Arduino
 try:
     # Указываем порт, найденный через утилиту serial.tools.list_ports
-    ARDUINO_PORT = '/dev/ttyUSB_MAIN' 
+    ARDUINO_PORT = '/dev/ttyUSB_MAIN'
     ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1)
     logger.info(f"Successfully connected to Arduino on port {ARDUINO_PORT}")
 except serial.SerialException as e:
     logger.critical(f"Could not open serial port {ARDUINO_PORT}. Error: {e}")
     logger.critical("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
     exit() # Завершаем работу, если не удалось подключиться
+
+# === MEGA BOOT WATCHDOG ===
+# При cold power-on квеста ~50% случаев Mega остаётся в halfway state и не
+# отправляет QUEST_SYSTEM_READY — клиент слышит тишину, должен вручную ребутить.
+# Watchdog: ждём 30 сек после server start. Если QUEST_SYSTEM_READY не пришёл —
+# программно дёргаем DTR на ttyUSB (эквивалент нажатия reset кнопки на Mega).
+# Этот код срабатывает ОДИН РАЗ при server boot. После QUEST_SYSTEM_READY флаг
+# выключается и watchdog бездействует.
+mega_initial_boot_received = False
 
 # --- SERIAL BUFFER ACCUMULATOR ---
 # Вместо ser.readline() (который может вернуть неполную строку при таймауте),
@@ -4186,6 +4232,8 @@ def serial():
                    
                    if flag == "QUEST_SYSTEM_READY":
                        pending_ready = False
+                       # Сигнал boot-watchdog'у что Mega успешно загрузилась
+                       globals()['mega_initial_boot_received'] = True
                        logger.info("SYSTEM CHECK COMPLETE: Playing startup sound.")
                        play_effect(on_sound)
 
@@ -6529,6 +6577,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
         socketio.start_background_task(target=tailscale_watchdog)  # Авто-восстановление Tailscale (logged out / DNS fail)
+        socketio.start_background_task(target=mega_boot_watchdog)  # Авто-DTR-reset если Mega молчит после cold-boot
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:
