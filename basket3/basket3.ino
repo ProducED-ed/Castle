@@ -110,73 +110,7 @@ void setup() {
   sendLog("Bask: SYS START");
 }
 
-// === DIAG MODE: Basket общается с Mega через Serial1 ===
-static bool diagActive = false;
-static unsigned long diagLastSnap = 0;
-static String diagBuf = ""; static bool diagBufA = false;
-
-void bDiagHandleLine(String line) {
-  if (line == "DIAG_ON") {
-    diagActive = true;
-    digitalWrite(trollLed, LOW);  digitalWrite(SHERIF_EM1, LOW);
-    digitalWrite(SHERIF_EM2, LOW); digitalWrite(basketLed, LOW);
-    digitalWrite(Solenoid, LOW);   digitalWrite(owlLed, LOW);
-  } else if (line == "DIAG_OFF") {
-    diagActive = false;
-  } else if (line.startsWith("DIAG_SET:")) {
-    String s = line.substring(strlen("DIAG_SET:"));
-    int c = s.indexOf(':'); if (c < 0) return;
-    String key = s.substring(0, c), val = s.substring(c + 1);
-    int onv = val.toInt() ? HIGH : LOW;
-    if      (key == "troll_led")  digitalWrite(trollLed, onv);
-    else if (key == "sherif_em1") digitalWrite(SHERIF_EM1, onv);
-    else if (key == "basket_led") digitalWrite(basketLed, onv);
-    else if (key == "owl_led")    digitalWrite(owlLed, onv);
-    else if (key == "solenoid")   digitalWrite(Solenoid, onv);
-    else if (key == "sherif_em2_pulse") {
-      digitalWrite(SHERIF_EM2, HIGH); delay(500); digitalWrite(SHERIF_EM2, LOW);
-    }
-  }
-}
-
-void bSendDiagSnapshot() {
-  String s = "DIAG_SNAPSHOT:{\"in\":[";
-  s += (digitalRead(BASKET_IR_PIN) == LOW ? "1" : "0"); s += ",";  // мяч
-  s += (digitalRead(28)            == LOW ? "1" : "0");             // boyButton
-  s += "],\"out\":[";
-  s += String(digitalRead(trollLed));  s += ",";
-  s += String(digitalRead(SHERIF_EM1)); s += ",";
-  s += String(digitalRead(basketLed));  s += ",";
-  s += String(digitalRead(owlLed));     s += ",";
-  s += String(digitalRead(Solenoid));
-  s += "],\"up\":";
-  s += String(millis() / 1000UL);
-  s += "}";
-  Serial1.println(s);
-}
-
 void loop() {
-  // === DIAG: интерсептор через Serial1 (с timeout-reset на случай UART noise) ===
-  static unsigned long diagBufLastByte = 0;
-  if (diagBufA && millis() - diagBufLastByte > 500UL) { diagBuf = ""; diagBufA = false; }
-  while (Serial1.available()) {
-    int p = Serial1.peek();
-    if (!diagBufA && p != 'D') break;
-    int ch = Serial1.read();
-    diagBufLastByte = millis();
-    if (ch == '\n' || ch == '\r') {
-      if (diagBuf.length() > 0) { diagBuf.trim(); bDiagHandleLine(diagBuf); diagBuf = ""; }
-      diagBufA = false;
-    } else {
-      diagBuf += (char)ch; diagBufA = true;
-      if (diagBuf.length() > 250) { diagBuf = ""; diagBufA = false; }
-    }
-  }
-  if (diagActive) {
-    if (millis() - diagLastSnap >= 200UL) { diagLastSnap = millis(); bSendDiagSnapshot(); }
-    return;
-  }
-
   // ОПРОС ВСЕХ КНОПОК В КАЖДОМ ЦИКЛЕ (КРИТИЧНО!)
   butt1.tick(); butt2.tick(); butt3.tick(); butt4.tick();
   butt5.tick(); butt6.tick(); butt7.tick(); butt8.tick();
