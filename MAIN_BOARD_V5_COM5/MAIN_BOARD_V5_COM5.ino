@@ -2296,7 +2296,7 @@ void GaletGame() {
     Serial3.println("check_state");
     delay(10);
     mySerial.println("check_state");
-    if (galetG5) Serial.println("galetG1");
+    if (galetG5) Serial.println("galet1");
   }
 
   // 4. ЧТЕНИЕ ЛОКАЛЬНОГО ГАЛЕТНИКА
@@ -2304,7 +2304,7 @@ void GaletGame() {
   bool currentGalet5State = galetSwitches.state();
   if (currentGalet5State != galetG5) {
     galetG5 = currentGalet5State;
-    if (galetG5) Serial.println("galetG1");
+    if (galetG5) Serial.println("galet1");
     else Serial.println("galet1_off");
   }
 
@@ -2319,7 +2319,7 @@ void GaletGame() {
     } else if (buf1 == "galet_on") {
       galetG1 = true;
       galetInit1 = true;
-      Serial.println("galetG2");
+      Serial.println("galet2");
     } else if (buf1 == "galet_off") {
       galetG1 = false;
       galetInit1 = true;
@@ -2336,7 +2336,7 @@ void GaletGame() {
     } else if (buf2 == "galet_on") {
       galetG2 = true;
       galetInit2 = true;
-      Serial.println("galetG3");
+      Serial.println("galet3");
     } else if (buf2 == "galet_off") {
       galetG2 = false;
       galetInit2 = true;
@@ -2353,7 +2353,7 @@ void GaletGame() {
     } else if (buf3 == "galet_on") {
       galetG3 = true;
       galetInit3 = true;
-      Serial.println("galetG4");
+      Serial.println("galet4");
     } else if (buf3 == "galet_off") {
       galetG3 = false;
       galetInit3 = true;
@@ -2370,7 +2370,7 @@ void GaletGame() {
     } else if (buf4 == "galet_on" || buf4 == "owls_galet_on") {
       galetG4 = true;
       galetInit4 = true;
-      Serial.println("galetG5");
+      Serial.println("galet5");
     } else if (buf4 == "galet_off" || buf4 == "owls_galet_off") {
       galetG4 = false;
       galetInit4 = true;
