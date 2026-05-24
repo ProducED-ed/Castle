@@ -777,36 +777,79 @@ def mega_boot_watchdog():
 
     Симптом 24 мая 2026: после power-on квеста ~50% случаев Mega не
     отправляет QUEST_SYSTEM_READY (клиент слышит тишину, нет on.wav).
-    Помогает physical reset кнопка — но клиенту это не доступно.
+    Помогает physical reset кнопка — клиенту не доступна.
 
-    Решение: ждём 30 сек после server start. Если QUEST_SYSTEM_READY не
-    пришёл — программно дёргаем DTR на ttyUSB_MAIN. DTR pulse триггерит
-    hardware reset Mega через её reset-цепь (то же что нажатие RESET
-    кнопки на плате). Mega ребутается → bootloader → user code → on.wav.
-
-    Если после второй попытки (60 сек total) тоже нет ответа — logger.error,
-    дальше не пробуем (что-то существенно сломано).
+    Эскалация (всё после 25 сек тишины):
+      1. DTR pulse 0.5с — должно ресетить Mega через её reset-цепь
+         (то же что нажатие RESET кнопки на плате).
+      2. Если за 25 сек не ответила → ser.close()+open() — переоткрытие
+         CDC pipe, сбрасывает state CH340 + вторая попытка DTR.
+      3. Если ещё 25 сек тишина → USB power-cycle на порт 1-1.1
+         (где сидит Mega CH340) — жёсткий ресет всего USB-устройства.
+      4. После каждого шага — 25 сек wait. Если в любой момент пришёл
+         QUEST_SYSTEM_READY → watchdog завершается, флаг подтверждён.
     """
-    global mega_initial_boot_received
-    # 30 сек на нормальный boot Mega
-    eventlet.sleep(30)
-    if mega_initial_boot_received:
-        return  # Mega успела загрузиться сама
-    logger.warning("MEGA BOOT WATCHDOG: QUEST_SYSTEM_READY не пришёл за 30с — форсирую DTR reset Mega")
+    global mega_initial_boot_received, ser
+
+    def _wait_or_done(seconds):
+        """Спим N сек, возвращаем True если Mega ожила за это время."""
+        for _ in range(seconds * 2):
+            if mega_initial_boot_received:
+                return True
+            eventlet.sleep(0.5)
+        return False
+
+    # Шаг 0: начальное ожидание нормального boot
+    if _wait_or_done(25):
+        return
+
+    # Шаг 1: DTR pulse 0.5 сек
+    logger.warning("MEGA BOOT WATCHDOG: 25с тишины — DTR pulse 0.5с")
     try:
         ser.dtr = False
-        eventlet.sleep(0.1)
+        eventlet.sleep(0.5)
         ser.dtr = True
-        logger.info("MEGA BOOT WATCHDOG: DTR pulse отправлен, жду ещё 30с...")
     except Exception as e:
         logger.error(f"MEGA BOOT WATCHDOG: DTR toggle failed: {e}")
+    if _wait_or_done(25):
+        logger.info("MEGA BOOT WATCHDOG: Mega ожила после DTR pulse ✅")
         return
-    # Вторая попытка: если за 30с после DTR-pulse тоже не ответила
-    eventlet.sleep(30)
-    if mega_initial_boot_received:
-        logger.info("MEGA BOOT WATCHDOG: Mega ожила после DTR reset ✅")
-    else:
-        logger.error("MEGA BOOT WATCHDOG: Mega не отвечает даже после DTR reset — возможен hardware-сбой, требуется ручное вмешательство")
+
+    # Шаг 2: ser.close()+open() — пересоздание CDC pipe (более жёсткий reset)
+    logger.warning("MEGA BOOT WATCHDOG: всё ещё тишина — пересоздаю serial connection")
+    try:
+        ser.close()
+        eventlet.sleep(1)
+        ser.open()
+        # После open() pyserial автоматически делает DTR pulse
+    except Exception as e:
+        logger.error(f"MEGA BOOT WATCHDOG: serial reopen failed: {e}")
+    if _wait_or_done(25):
+        logger.info("MEGA BOOT WATCHDOG: Mega ожила после ser.close/open ✅")
+        return
+
+    # Шаг 3: USB power-cycle на порт Mega (1-1.1)
+    logger.warning("MEGA BOOT WATCHDOG: serial reopen не помог — USB power-cycle 1-1.1")
+    try:
+        USB_MEGA_PATH = '/sys/bus/usb/devices/1-1.1/authorized'
+        subprocess.run(['sudo', 'sh', '-c', f'echo 0 > {USB_MEGA_PATH}'], check=False, timeout=3)
+        eventlet.sleep(2)
+        subprocess.run(['sudo', 'sh', '-c', f'echo 1 > {USB_MEGA_PATH}'], check=False, timeout=3)
+        eventlet.sleep(3)  # ждём re-enumeration
+        # После re-enumeration udev пересоздаёт /dev/ttyUSB_MAIN
+        # Нужно переоткрыть ser
+        try:
+            ser.close()
+        except: pass
+        eventlet.sleep(1)
+        ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1)
+    except Exception as e:
+        logger.error(f"MEGA BOOT WATCHDOG: USB power-cycle failed: {e}")
+    if _wait_or_done(25):
+        logger.info("MEGA BOOT WATCHDOG: Mega ожила после USB power-cycle ✅")
+        return
+
+    logger.error("MEGA BOOT WATCHDOG: ВСЕ ПОПЫТКИ ИСЧЕРПАНЫ — Mega молчит. Нужно ручное вмешательство (reset на плате Mega или замена платы)")
 
 
 def tailscale_watchdog():
