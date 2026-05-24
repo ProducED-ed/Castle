@@ -1111,16 +1111,29 @@ void handlePlayerQueries() {
   if(millis()- trackTimer >= 2000){
     flagTrack = 0;
   }
-  if (myMP3.available()) {
-    uint8_t type = myMP3.readType();
-    if (type == 11) {
-      int finishedTrack = myMP3.read();
-      Serial.print("Завершился трек: ");
+  // RAW DFPlayer frame parser — обходим DFRobotDFPlayerMini.available()
+  // (та же проблема что в Safe ESP32 — см. memory clc-safe-dfplayer-fix).
+  // Библиотека не парсит CMD=0x3D event "track finished" → hintFlag не
+  // сбрасывался в 1 → после первой подсказки helpButton переставал работать.
+  // DFPlayer Mini protocol: 10 байт 0x7E 0xFF 0x06 [CMD] [ACK] [HI] [LO] [CKH] [CKL] 0xEF
+  static uint8_t rawBuf[10];
+  static int rawPos = 0;
+  while (mySerial.available()) {
+    uint8_t b = mySerial.read();
+    if (rawPos == 0 && b != 0x7E) continue;  // ждём начало frame
+    rawBuf[rawPos++] = b;
+    if (rawPos >= 10) {
+      rawPos = 0;
+      if (rawBuf[9] != 0xEF || rawBuf[1] != 0xFF || rawBuf[2] != 0x06) continue;
+      uint8_t cmd = rawBuf[3];
+      // CMD 0x3D = трек на SD card завершён
+      if (cmd != 0x3D) continue;
+      int finishedTrack = (rawBuf[5] << 8) | rawBuf[6];
+      Serial.print("[RAW] Завершился трек: ");
       Serial.println(finishedTrack);
       hintFlag = 1;
 
-      // ИЗМЕНЕНИЕ 3: Эта логика возобновляет фоновую музыку после окончания любого другого трека.
-      // Она уже была в коде и должна работать правильно.
+      // Возобновление фоновой музыки (state 1-2)
       if (state >= 1 && state < 3 && finishedTrack != TRACK_FON_SUITCASE) {
         if(!flagTrack){
           myMP3.playMp3Folder(TRACK_FON_SUITCASE);
@@ -1128,12 +1141,9 @@ void handlePlayerQueries() {
           trackTimer = millis();
           flagTrack = 1;
         }
-        // Возобновляем фоновую музыку с места паузы
       }
 
-      // Перезапускаем фон только если игра активна (state == 1)
       if (finishedTrack == TRACK_FON_SUITCASE) {
-        // Добавляем проверку: перезапускать фон только в состоянии 1
         if (state == 1 && !flagTrack) {
           myMP3.playMp3Folder(TRACK_FON_SUITCASE);
           sendLogToServer("{\"log\":\"Chest: Playing Fon Suitcase sound\"}");
@@ -1153,9 +1163,7 @@ void handlePlayerQueries() {
         Serial.println("again");
       }
 
-      // --- Логика финала ---
       if (finishedTrack == TRACK_SUITCASE_END) {
-          // Вызываем общую функцию финала
           finalizeGame();
       }
     }
