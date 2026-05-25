@@ -107,6 +107,7 @@ int value = 30;
 bool safeEndConfirmed = false;      // Флаг подтверждения от сервера
 unsigned long stepEnteredAt = 0;    // Момент входа в текущий gameWonSequenceStep (для time-based fallback если DFPlayer не шлёт events)
 unsigned long safeEndSendTimer = 0; // Таймер для периодической отправки
+int safeEndSendAttempts = 0;        // Счётчик попыток (макс 3, не циклить бесконечно)
 
 // === DIAG MODE (см. [[clc-tech-pult-diag-panel]]) ===
 bool diagModeActive = false;
@@ -273,7 +274,7 @@ void setup() {
         ledOff();
         Serial.println("Команда 'start': подсветка выключена.");
         currentState = AWAIT_GAME;
-		safeEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
       }
       if(body == "\"restart\""){
         ledOn();
@@ -281,13 +282,13 @@ void setup() {
         myDFPlayer.stop();
        
         currentState = IDLE;
-		safeEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
       }
       if(body == "\"ready\""){
         ledOff();
         myDFPlayer.stop();
         currentState = IDLE;
-		safeEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
       }
       if(body == "\"game\""){
         ledOn();
@@ -573,11 +574,17 @@ void loop() {
       }
       break;
     case GAME_WON:
-      // Периодически отправляем, пока не получим подтверждение
-      if (!safeEndConfirmed) {
-        if (millis() - safeEndSendTimer > 1000) {
+      // 2026-05-25: было — POST раз в секунду пока не пришёл confirm_safe_end.
+      // Это вешало ESP32: каждый POST синхронно блокировал loop на 5+ сек (timeout),
+      // heap фрагментировался, ESP32 уходила в reboot и не возвращалась.
+      // Теперь — макс 3 попытки с интервалом 5 сек. После SendData() в response
+      // body сервер возвращает {"confirm":true} → safeEndConfirmed=true локально
+      // (см. SendData() ниже).
+      if (!safeEndConfirmed && safeEndSendAttempts < 3) {
+        if (safeEndSendAttempts == 0 || millis() - safeEndSendTimer > 5000) {
           SendData();
           safeEndSendTimer = millis();
+          safeEndSendAttempts++;
         }
       }
 
@@ -874,9 +881,19 @@ void SendData(){
     HTTPClient http;
     http.begin(externalApi);
     http.addHeader("Content-Type", "application/json");
-    // Пример POST-запроса
+    http.setTimeout(3000);  // не блокировать loop надолго — 3 сек хватит
     String payload = "{\"safe\":\"end\"}";
     int httpCode = http.POST(payload);
+    // 2026-05-25: если сервер вернул {"confirm":true} прямо в body —
+    // ставим safeEndConfirmed=true локально (не ждём встречный
+    // confirm_safe_end HTTP request, который тоже может теряться).
+    if (httpCode == 200) {
+      String resp = http.getString();
+      if (resp.indexOf("\"confirm\"") >= 0 && resp.indexOf("true") >= 0) {
+        safeEndConfirmed = true;
+        Serial.println("Safe: end confirmed via response body");
+      }
+    }
     http.end();
   }
 }

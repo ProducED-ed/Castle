@@ -3233,6 +3233,14 @@ def handle_data():
              # Логируем как есть, если описание не найдено
              logging.info(f'RECEIVED [ESP32 API]: {data}')
 
+        # 2026-05-25: для game-end событий возвращаем `{"confirm": true}` прямо
+        # в response body. ESP32 видит это и ставит локальный *_endConfirmed=true
+        # без необходимости ждать встречный HTTP POST с командой confirm_*_end.
+        # Это исключает recursion lock и спам POST'ов от ESP32 (см. проблему
+        # Safe ESP32 ушёл offline через 14 сек после safe:end — clc-safe-offline).
+        # Также оставляем send_esp32_command(...) для обратной совместимости со
+        # старыми прошивками которые ещё ждут отдельный confirm_*_end.
+        ack_response = None
         if 'suitcase' in data and data['suitcase'] == 'end':
           logger.debug("'suitcase: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "case_finish")
@@ -3240,6 +3248,7 @@ def handle_data():
           socketio.emit('level', 'suitcase',to=None)
           socklist.append('suitcase')
           send_esp32_command(ESP32_API_SUITCASE_URL, "confirm_suitcase_end")
+          ack_response = jsonify({"confirm": True, "event": "suitcase_end"})
         if 'safe' in data and data['safe'] == 'end':
           logger.debug("'safe: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "safe_finish")
@@ -3247,6 +3256,7 @@ def handle_data():
           socketio.emit('level', 'animals',to=None)
           socklist.append('animals')
           send_esp32_command(ESP32_API_SAFE_URL, "confirm_safe_end")
+          ack_response = jsonify({"confirm": True, "event": "safe_end"})
         if 'wolf' in data and data['wolf'] == 'end':
           logger.debug("'wolf: end' logic triggered.")
           send_esp32_command(ESP32_API_TRAIN_URL, "wolf_finish")
@@ -3254,6 +3264,9 @@ def handle_data():
           socketio.emit('level', 'wolf',to=None)
           socklist.append('wolf')
           send_esp32_command(ESP32_API_WOLF_URL, "confirm_wolf_end")
+          ack_response = jsonify({"confirm": True, "event": "wolf_end"})
+        if ack_response is not None:
+          return ack_response
          
         # --- ИЗМЕНЕНИЕ: Добавляем логику для TRAIN (projector end) ---
         elif 'projector' in data and data['projector'] == 'end':
