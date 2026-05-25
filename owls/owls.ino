@@ -187,12 +187,11 @@ void processOwlCommand(String command) {
     owlCommandReceived = false;
   }
 
-  if (command == "owl_door") {
-    F = true;
-    Serial1.println("door_owl");
-    Serial.println("door_owl");
-    state = 1;
-  }
+  // 2026-05-25: handler "owl_door" удалён. Он немедленно слал door_owl без
+  // проверки геркона PIN_HERKON_OWA — дублировал и ломал правильную логику
+  // ниже (line ~351): owlCommandReceived=true + геркон → door_owl. После
+  // фикса в server.py команда owl_door вообще не должна приходить, но даже
+  // если придёт — игнорируем. Правильный flow: команда "owl" → ждём геркон.
 
   if (command == "open_door") {
     digitalWrite(PIN_LOKER_DOOR, HIGH);

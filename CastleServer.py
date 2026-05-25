@@ -2868,33 +2868,21 @@ def Remote(check):
              eventlet.sleep(1) 
              name = "story_2"
         if check == 'owl':
-             #-----отправка клиенту 
-             socketio.emit('level', 'owl',to=None)
-             #-----добавить в историю
-             socklist.append('owl')
-             # FIX: Отправляем owl_open на карту, чтобы LED совы стал жёлтым
+             # 2026-05-25: Remote('owl') теперь делает только активацию совы на карте —
+             # то же что клик на карте Train (data['map'] == 'owl'). Раньше тут был
+             # auto-skip: шёл owl_door + auto-play door_owl/story_13/14_a, что
+             # создавало баг "дверь сов открывается сама". Стандартный flow:
+             # клик активирует совы (owlCommandReceived=true в owls.ino) → игроки в
+             # течение таймера нажимают геркон на башне → door_owl event → проигрыш
+             # эффекта + историй + физическое открытие лока (см. door_owl handler).
+             # Для полного skip этапа есть отдельная кнопка Remote('owls').
+             logger.debug("Remote 'owl' triggered (manual map activation).")
+             serial_write_queue.put('owl')
              send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
              send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
-             #----отправить на мегу
-             serial_write_queue.put('owl_door')
-             # FIX: Воспроизводим эффекты и истории как при обычном door_owl
-             play_effect(door_owl)
-             eventlet.sleep(2.0)
-             if story13Flag == 0:
-                 story13Flag = 1
-                 play_localized_audio("story_13")
-                 while channel3.get_busy()==True and go == 1:
-                     eventlet.sleep(0.1)
-             play_localized_audio("story_14_a")
-             def _after_owl_skip_story():
-                 while channel3.get_busy() and go == 1:
-                     eventlet.sleep(0.1)
-                 send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
-             socketio.start_background_task(_after_owl_skip_story)
-             #-----активируем блок
-             socketio.emit('level', 'active_owls',to=None)
-             socklist.append('active_owls')
-             name = "story_2"
+             play_effect(map_click)
+             # active_owls indicator (UI прогресс-бар) ставится только когда придёт
+             # door_owl event от геркона — см. door_owl handler ниже.
         if check == 'owls':
              #-----отправка клиенту 
              socketio.emit('level', 'owls',to=None)
