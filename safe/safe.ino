@@ -785,66 +785,23 @@ void handlePlayerQueries() {
     }
   }
 
-  if (myDFPlayer.available()) {
-    uint8_t type = myDFPlayer.readType();
-    int value = myDFPlayer.read();
-    Serial.print("DFPlayer event type=");
-    Serial.print(type);
-    Serial.print(" value=");
-    Serial.println(value);
-    sendLogToServer("{\"log\":\"Safe DFPlayer LIB event: type=" + String(type) + " value=" + String(value) + " state=" + String(currentState) + " step=" + String(gameWonSequenceStep) + "\"}");
-    if (type == 11) {
-      int finishedTrack = value;
-      Serial.print("Завершился трек: ");
-      Serial.println(finishedTrack);
-      hintFlag = 1;
-
-      if (currentState == GAME_ACTIVE && finishedTrack != TRACK_FON_SAFE) {
-        if(!flagTrack){
-          myDFPlayer.playMp3Folder(TRACK_FON_SAFE);
-          sendLogToServer("{\"log\":\"Safe: Playing Fon Safe sound\"}");
-          trackTimer = millis();
-          flagTrack = 1;
-        }
-      }
-      
-      if (currentState == GAME_WON) {
-        // Шаг 1 -> 2: Завершился TRACK_STORY_29A, теперь запускаем TRACK_SAFE_END
-        bool isTrack29A = (finishedTrack == TRACK_STORY_29A_RU || finishedTrack == TRACK_STORY_29A_AR || finishedTrack == TRACK_STORY_29A_FR
-                        || finishedTrack == TRACK_STORY_29A_EN || finishedTrack == TRACK_STORY_29A_UK || finishedTrack == TRACK_STORY_29A_PL);
-        
-        if (isTrack29A && gameWonSequenceStep == 1) {
-          gameWonSequenceStep = 2;
-          stepEnteredAt = millis();
-          myDFPlayer.playMp3Folder(TRACK_SAFE_END);
-          sendLogToServer("{\"log\":\"Safe: Playing Safe End sound\"}");
-        } 
-        // Шаг 2 -> 3: Завершился TRACK_SAFE_END, открываем замок и запускаем TRACK_STORY_29B
-        else if (finishedTrack == TRACK_SAFE_END && gameWonSequenceStep == 2) {
-          gameWonSequenceStep = 3;
-          stepEnteredAt = millis();
-          openLocker();
-          if(language == 1){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (RU)\"}"); }
-          if(language == 2){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (EN)\"}"); }
-          if(language == 3){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_AR); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (AR)\"}"); }
-          if(language == 4){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_FR); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (FR)\"}"); }
-          if(language == 5){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_UK); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (UK)\"}"); }
-          if(language == 6){ myDFPlayer.playMp3Folder(TRACK_STORY_29B_PL); sendLogToServer("{\"log\":\"Safe: Playing Story 29B (PL)\"}"); }
-          hintFlag = 0; // Запрещаем подсказки после этого момента
-        } 
-        // Шаг 3 -> 4: Завершился TRACK_STORY_29B, сцена окончена
-        else if (gameWonSequenceStep == 3) {
-          bool isTrack29B = (finishedTrack == TRACK_STORY_29B_RU || finishedTrack == TRACK_STORY_29B_AR || finishedTrack == TRACK_STORY_29B_FR
-                        || finishedTrack == TRACK_STORY_29B_EN || finishedTrack == TRACK_STORY_29B_UK || finishedTrack == TRACK_STORY_29B_PL);
-          if (isTrack29B) {
-            gameWonSequenceStep = 4;
-            stepEnteredAt = millis();
-            Serial.println("Сцена победы полностью завершена.");
-          }
-        }
-      }
-    }
-  }
+  // 2026-05-25 fix v4: Library DFPlayer handler УДАЛЁН.
+  //
+  // ROOT CAUSE найден через USB Serial debug: при transition 29A→SAFE_END
+  // (step 1→2 в GAME_WON) ESP32 крашилась и уходила в offline. В serial
+  // видно последняя строка "[RAW] track: 23" — после этого reset.
+  //
+  // Причина — гонка между двумя DFPlayer parser'ами:
+  //   1) RAW parser выше (читает dfplayerSerial напрямую как байты)
+  //   2) Library handler здесь (myDFPlayer.available() / readType()):
+  //      внутри DFRobotDFPlayerMini тоже читает dfplayerSerial
+  // Оба пытались поймать CMD 0x3D track-finished event. На transition
+  // оба триггерили playMp3Folder(SAFE_END) — два вызова почти подряд
+  // → DFPlayer library state machine crash → ESP32 panic.
+  //
+  // RAW parser выше уже имеет полностью идентичную логику transition
+  // (GAME_ACTIVE → resume fon, GAME_WON step 1→2→3→4). Так что удаление
+  // library handler не теряет функциональность.
 }
 
 // --- НОВАЯ ФУНКЦИЯ ---
