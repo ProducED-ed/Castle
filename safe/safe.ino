@@ -123,16 +123,20 @@ const char* externalApi = "http://192.168.4.1:3000/api";
 
 WebServer server(80);
 void sendLogToServer(String payload) {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin("http://192.168.4.1:3000/api");
-    http.addHeader("Content-Type", "application/json");
-    http.setTimeout(1500);  // 2026-05-25: было ~5 сек default → ESP32
-                            // блокировалась в loop при WiFi-glitch и
-                            // уходила в WDT crash. См. clc-safe-offline.
-    int httpCode = http.POST(payload);
-    http.end();
-  }
+  // 2026-05-25 fix v3: HTTP logging ПОЛНОСТЬЮ отключён.
+  //
+  // Контекст: Safe ESP32 уходила offline после команды 'skip' / 'safe:end'.
+  // Фиксы v1 (убрать SendData spam) и v2 (sendLog только на cmd=0x3D + timeout
+  // 1.5с) не помогли — Safe умирала уже на ПЕРВОМ DFPlayer event.
+  // 58 sendLogToServer call sites в коде — слишком многие в hot paths
+  // (DFPlayer events, gameWonSequence, handle /data). Каждый блокирует loop
+  // на HTTP POST → WDT crash. Полное отключение HTTP-логирования —
+  // единственный надёжный способ исключить эту причину.
+  //
+  // Debug-логи теперь идут только через Serial (USB кабель к ноутбуку).
+  // Если на проде логи нужны — подключи USB-TTL к Safe ESP32.
+  Serial.print("[SAFE-LOG] ");
+  Serial.println(payload);
 }
 
 // --- Прототипы функций ---
