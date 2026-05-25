@@ -64,13 +64,18 @@ bool afterEffect;
 bool flagTrack = 0; 
 unsigned long trackTimer = 0;
 bool hintFlag = 1;
-// Backup-таймер для hintFlag: если DFPlayer event "track finished" не
-// придёт (библиотека DFRobotDFPlayerMini его теряет — см. clc-safe-dfplayer-fix),
-// принудительно вернём hintFlag=1 через HINT_COOLDOWN_MS, чтобы повторное
-// нажатие геркона работало. handlePlayerQueries() остаётся как есть —
-// это safety net, не замена.
+// Возврат hintFlag=1 в Chest реализован двумя механизмами (event от
+// DFPlayer теряется библиотекой — см. clc-safe-dfplayer-fix):
+//   1) ПОЛЛИНГ DFPlayer.readState() каждые HINT_POLL_INTERVAL_MS пока
+//      идёт подсказка. Когда readState() возвращает 0 (STOPPED) или 2
+//      (PAUSED) — значит подсказка отыграла, сбрасываем hintFlag=1.
+//   2) BACKUP cooldown HINT_COOLDOWN_MS на случай если readState() тоже
+//      возвращает мусор (UART glitch). Принудительный сброс через 20 сек.
 const unsigned long HINT_COOLDOWN_MS = 20000UL;
+const unsigned long HINT_POLL_INTERVAL_MS = 1000UL;  // опрос каждую секунду
+const unsigned long HINT_POLL_DELAY_MS = 2000UL;     // не опрашивать первые 2с (трек точно играет)
 unsigned long hintWentZeroAt = 0;
+unsigned long hintPollNext = 0;
 bool chestEndConfirmed = false;      // Флаг подтверждения от сервера
 unsigned long chestEndSendTimer = 0; // Таймер для периодической отправки
 
@@ -574,18 +579,36 @@ void loop() {
   }
   handlePlayerQueries();
 
-  // === HINT COOLDOWN WATCHDOG ===
-  // Запоминаем момент когда hintFlag упал в 0 (геркон нажали → запустили подсказку).
-  // Если за HINT_COOLDOWN_MS DFPlayer event "track finished" не вернул hintFlag=1
-  // (баг библиотеки) — принудительно сбрасываем сами, чтобы повторное нажатие работало.
+  // === HINT FINISH DETECTION (см. константы выше) ===
   static bool prevHintFlag = true;
   if (prevHintFlag && !hintFlag) {
+    // Только что нажали геркон → подсказка стартовала. Засекаем время и
+    // расписание первого опроса.
     hintWentZeroAt = millis();
+    hintPollNext = hintWentZeroAt + HINT_POLL_DELAY_MS;
   }
   prevHintFlag = hintFlag;
-  if (!hintFlag && (millis() - hintWentZeroAt) >= HINT_COOLDOWN_MS) {
-    hintFlag = 1;
-    Serial.println("[hint-cooldown] forced reset hintFlag=1");
+
+  if (!hintFlag) {
+    // 1) ПОЛЛИНГ readState() — если DFPlayer уже stopped/paused, сбрасываем
+    //    hintFlag=1 быстро (быстрее чем cooldown). myMP3.readState() блокирует
+    //    loop до ~500ms — поэтому не вызываем чаще раз в секунду.
+    //    State codes: 0=STOPPED, 1=PLAYING, 2=PAUSED.
+    if (millis() >= hintPollNext) {
+      hintPollNext = millis() + HINT_POLL_INTERVAL_MS;
+      int s = myMP3.readState();
+      if (s == 0 || s == 2) {
+        hintFlag = 1;
+        Serial.print("[hint-poll] DFPlayer state="); Serial.print(s);
+        Serial.println(" → reset hintFlag=1");
+      }
+    }
+    // 2) BACKUP COOLDOWN — если polling тоже не сработал, через 20 сек
+    //    принудительно сбрасываем.
+    if (!hintFlag && (millis() - hintWentZeroAt) >= HINT_COOLDOWN_MS) {
+      hintFlag = 1;
+      Serial.println("[hint-cooldown] forced reset hintFlag=1");
+    }
   }
 
   helpButton.tick();
