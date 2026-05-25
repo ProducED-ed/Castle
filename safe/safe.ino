@@ -596,16 +596,20 @@ void loop() {
       }
 
       // Time-based fallback на случай если DFPlayer не шлёт track-finished
-      // events (hardware: RX-провод от DFPlayer к ESP32 не работает).
-      // Принудительно двигаем sequence по таймеру 30 сек на шаг.
-      if (gameWonSequenceStep == 1 && (millis() - stepEnteredAt > 30000UL)) {
+      // events (library DFRobotDFPlayerMini не парсит CMD=0x3D на Safe).
+      // Длины треков (максимум на всех языках, 25 мая 2026):
+      //   29A      ≈ 10 сек → fallback 12 сек (буфер 2 сек)
+      //   SAFE_END ≈  5 сек → fallback  7 сек
+      //   29B      ≈  5 сек → fallback  7 сек
+      // Если треки удлинятся (новые языки / переозвучка) — увеличить здесь.
+      if (gameWonSequenceStep == 1 && (millis() - stepEnteredAt > 12000UL)) {
         Serial.println("FALLBACK: 29A timeout — переход к SAFE_END");
         sendLogToServer("{\"log\":\"Safe FALLBACK step1→2 by timer (DFPlayer event missing)\"}");
         gameWonSequenceStep = 2;
         stepEnteredAt = millis();
         myDFPlayer.playMp3Folder(TRACK_SAFE_END);
       }
-      else if (gameWonSequenceStep == 2 && (millis() - stepEnteredAt > 30000UL)) {
+      else if (gameWonSequenceStep == 2 && (millis() - stepEnteredAt > 7000UL)) {
         Serial.println("FALLBACK: SAFE_END timeout — открываем дверь + 29B");
         sendLogToServer("{\"log\":\"Safe FALLBACK step2→3 by timer (open door + 29B)\"}");
         gameWonSequenceStep = 3;
@@ -619,7 +623,7 @@ void loop() {
         else if(language == 6) myDFPlayer.playMp3Folder(TRACK_STORY_29B_PL);
         hintFlag = 0;
       }
-      else if (gameWonSequenceStep == 3 && (millis() - stepEnteredAt > 30000UL)) {
+      else if (gameWonSequenceStep == 3 && (millis() - stepEnteredAt > 7000UL)) {
         Serial.println("FALLBACK: 29B timeout — сцена завершена");
         sendLogToServer("{\"log\":\"Safe FALLBACK step3→4 by timer (sequence done)\"}");
         gameWonSequenceStep = 4;
