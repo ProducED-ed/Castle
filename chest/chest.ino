@@ -64,6 +64,13 @@ bool afterEffect;
 bool flagTrack = 0; 
 unsigned long trackTimer = 0;
 bool hintFlag = 1;
+// Backup-таймер для hintFlag: если DFPlayer event "track finished" не
+// придёт (библиотека DFRobotDFPlayerMini его теряет — см. clc-safe-dfplayer-fix),
+// принудительно вернём hintFlag=1 через HINT_COOLDOWN_MS, чтобы повторное
+// нажатие геркона работало. handlePlayerQueries() остаётся как есть —
+// это safety net, не замена.
+const unsigned long HINT_COOLDOWN_MS = 20000UL;
+unsigned long hintWentZeroAt = 0;
 bool chestEndConfirmed = false;      // Флаг подтверждения от сервера
 unsigned long chestEndSendTimer = 0; // Таймер для периодической отправки
 
@@ -566,6 +573,21 @@ void loop() {
     delay(2000);
   }
   handlePlayerQueries();
+
+  // === HINT COOLDOWN WATCHDOG ===
+  // Запоминаем момент когда hintFlag упал в 0 (геркон нажали → запустили подсказку).
+  // Если за HINT_COOLDOWN_MS DFPlayer event "track finished" не вернул hintFlag=1
+  // (баг библиотеки) — принудительно сбрасываем сами, чтобы повторное нажатие работало.
+  static bool prevHintFlag = true;
+  if (prevHintFlag && !hintFlag) {
+    hintWentZeroAt = millis();
+  }
+  prevHintFlag = hintFlag;
+  if (!hintFlag && (millis() - hintWentZeroAt) >= HINT_COOLDOWN_MS) {
+    hintFlag = 1;
+    Serial.println("[hint-cooldown] forced reset hintFlag=1");
+  }
+
   helpButton.tick();
   if(helpButton.isPress()){
     Serial.println("1");
