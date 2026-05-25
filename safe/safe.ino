@@ -712,78 +712,25 @@ void handlePlayerQueries() {
     flagTrack = 0;
   }
 
-  // RAW DFPlayer frame parser — обходим библиотеку DFRobotDFPlayerMini
-  // (она по неизвестной причине не парсит event-frames, хотя сигнал на RX
-  // пине 16 ESP32 подтверждён осциллографом). DFPlayer Mini protocol:
-  // 10 байт: 0x7E 0xFF 0x06 [CMD] [ACK] [HI] [LO] [CK_HI] [CK_LO] 0xEF
-  // CMD=0x3D — «трек на SD card завершился».
-  static uint8_t rawBuf[10];
-  static int rawPos = 0;
-  while (dfplayerSerial.available()) {
-    uint8_t b = dfplayerSerial.read();
-    if (rawPos == 0 && b != 0x7E) continue;  // ждём начало frame
-    rawBuf[rawPos++] = b;
-    if (rawPos >= 10) {
-      rawPos = 0;
-      if (rawBuf[9] == 0xEF && rawBuf[1] == 0xFF && rawBuf[2] == 0x06) {
-        uint8_t cmd = rawBuf[3];
-        int trackNum = (rawBuf[5] << 8) | rawBuf[6];
-        // 2026-05-25: sendLogToServer ТОЛЬКО на cmd==0x3D (track finished).
-        // Раньше логировался каждый DFPlayer frame (status/init/ready тоже) —
-        // на каждый шёл синхронный HTTP POST с 5-сек timeout, при WiFi-glitch
-        // ESP32 блокировалась в loop → WDT crash → offline. См.
-        // clc-safe-offline-2026-05-25.
-        // CMD 0x3D = трек завершён (SD card)
-        if (cmd == 0x3D) {
-          sendLogToServer("{\"log\":\"Safe DFPlayer RAW: cmd=0x3D track=" + String(trackNum) + " state=" + String(currentState) + " step=" + String(gameWonSequenceStep) + "\"}");
-          int finishedTrack = trackNum;
-          Serial.print("[RAW] Завершился трек: ");
-          Serial.println(finishedTrack);
-          hintFlag = 1;
-          if (currentState == GAME_ACTIVE && finishedTrack != TRACK_FON_SAFE) {
-            if(!flagTrack){
-              myDFPlayer.playMp3Folder(TRACK_FON_SAFE);
-              trackTimer = millis();
-              flagTrack = 1;
-            }
-          }
-          if (currentState == GAME_WON) {
-            bool isTrack29A = (finishedTrack == TRACK_STORY_29A_RU || finishedTrack == TRACK_STORY_29A_AR || finishedTrack == TRACK_STORY_29A_FR
-                            || finishedTrack == TRACK_STORY_29A_EN || finishedTrack == TRACK_STORY_29A_UK || finishedTrack == TRACK_STORY_29A_PL);
-            if (isTrack29A && gameWonSequenceStep == 1) {
-              gameWonSequenceStep = 2;
-              stepEnteredAt = millis();
-              myDFPlayer.playMp3Folder(TRACK_SAFE_END);
-              sendLogToServer("{\"log\":\"Safe: 29A done by EVENT → SAFE_END\"}");
-            }
-            else if (finishedTrack == TRACK_SAFE_END && gameWonSequenceStep == 2) {
-              gameWonSequenceStep = 3;
-              stepEnteredAt = millis();
-              openLocker();
-              sendLogToServer("{\"log\":\"Safe: SAFE_END done by EVENT → open door + 29B\"}");
-              if(language == 1) myDFPlayer.playMp3Folder(TRACK_STORY_29B_RU);
-              else if(language == 2) myDFPlayer.playMp3Folder(TRACK_STORY_29B_EN);
-              else if(language == 3) myDFPlayer.playMp3Folder(TRACK_STORY_29B_AR);
-              else if(language == 4) myDFPlayer.playMp3Folder(TRACK_STORY_29B_FR);
-              else if(language == 5) myDFPlayer.playMp3Folder(TRACK_STORY_29B_UK);
-              else if(language == 6) myDFPlayer.playMp3Folder(TRACK_STORY_29B_PL);
-              hintFlag = 0;
-            }
-            else if (gameWonSequenceStep == 3) {
-              bool isTrack29B = (finishedTrack == TRACK_STORY_29B_RU || finishedTrack == TRACK_STORY_29B_AR || finishedTrack == TRACK_STORY_29B_FR
-                              || finishedTrack == TRACK_STORY_29B_EN || finishedTrack == TRACK_STORY_29B_UK || finishedTrack == TRACK_STORY_29B_PL);
-              if (isTrack29B) {
-                gameWonSequenceStep = 4;
-                stepEnteredAt = millis();
-                sendLogToServer("{\"log\":\"Safe: 29B done by EVENT → sequence complete\"}");
-              }
-            }
-          }
-        }
-      }
-      // если не валидный frame — сдвигаемся и продолжаем искать 0x7E
-    }
-  }
+  // 2026-05-25 fix v5: RAW DFPlayer parser УДАЛЁН (был выше).
+  //
+  // Через USB Serial debug найдено что в Safe ESP32 БЫЛИ ДВА конкурирующих
+  // parser'а: RAW (читает dfplayerSerial напрямую) и library (через
+  // myDFPlayer.available() ниже). Оба читали с одного UART, на CMD=0x3D
+  // оба триггерили playMp3Folder(SAFE_END) → DFPlayer library state corrupt
+  // → ESP32 reset → offline.
+  //
+  // v4 пытался убрать library handler (оставить RAW) — стало ХУЖЕ: ESP32
+  // моментально крашится на startGameWonSequence (видимо library требует
+  // что-то от available() для корректной работы playMp3Folder).
+  //
+  // v5: наоборот — убираем RAW parser, оставляем только library handler.
+  // Логика transition (step 1→2→3→4) полностью реализована в library
+  // handler ниже. Time-based fallback в case GAME_WON (стр ~575+) подхватит
+  // если library не парсит CMD=0x3D — через 30 сек step продвинется по
+  // таймеру (это и работало в логе до v4).
+  //
+  // Тот же паттерн что в chest.ino (commit 3357d03) — там тоже убрали RAW.
 
   if (myDFPlayer.available()) {
     uint8_t type = myDFPlayer.readType();
