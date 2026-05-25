@@ -127,6 +127,9 @@ void sendLogToServer(String payload) {
     HTTPClient http;
     http.begin("http://192.168.4.1:3000/api");
     http.addHeader("Content-Type", "application/json");
+    http.setTimeout(1500);  // 2026-05-25: было ~5 сек default → ESP32
+                            // блокировалась в loop при WiFi-glitch и
+                            // уходила в WDT crash. См. clc-safe-offline.
     int httpCode = http.POST(payload);
     http.end();
   }
@@ -721,9 +724,14 @@ void handlePlayerQueries() {
       if (rawBuf[9] == 0xEF && rawBuf[1] == 0xFF && rawBuf[2] == 0x06) {
         uint8_t cmd = rawBuf[3];
         int trackNum = (rawBuf[5] << 8) | rawBuf[6];
-        sendLogToServer("{\"log\":\"Safe DFPlayer RAW: cmd=0x" + String(cmd, HEX) + " track=" + String(trackNum) + " state=" + String(currentState) + " step=" + String(gameWonSequenceStep) + "\"}");
+        // 2026-05-25: sendLogToServer ТОЛЬКО на cmd==0x3D (track finished).
+        // Раньше логировался каждый DFPlayer frame (status/init/ready тоже) —
+        // на каждый шёл синхронный HTTP POST с 5-сек timeout, при WiFi-glitch
+        // ESP32 блокировалась в loop → WDT crash → offline. См.
+        // clc-safe-offline-2026-05-25.
         // CMD 0x3D = трек завершён (SD card)
         if (cmd == 0x3D) {
+          sendLogToServer("{\"log\":\"Safe DFPlayer RAW: cmd=0x3D track=" + String(trackNum) + " state=" + String(currentState) + " step=" + String(gameWonSequenceStep) + "\"}");
           int finishedTrack = trackNum;
           Serial.print("[RAW] Завершился трек: ");
           Serial.println(finishedTrack);
