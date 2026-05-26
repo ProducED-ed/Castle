@@ -25,10 +25,32 @@
         <h2 class="ui center aligned inverted header" style="margin-bottom: 30px;">
             <i class="cogs icon"></i>
             <div class="content">Technical Firmware Dashboard</div>
-            <div class="sub header" id="connection-status" style="margin-top: 10px; color: #e74c3c; font-weight: bold; transition: color 0.3s;">
-                <i class="circle icon"></i> Ожидание подключения...
+            <div class="sub header" style="margin-top: 10px; font-weight: bold; transition: color 0.3s; display: inline-flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                <span id="connection-status" style="color: #e74c3c; transition: color 0.3s;">
+                    <i class="circle icon"></i> Ожидание подключения...
+                </span>
+                <span id="status-icons" style="display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap;"></span>
             </div>
         </h2>
+        <!-- Стили для иконок статуса устройств -->
+        <style>
+            .status-icon-wrap {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 20px; height: 20px; cursor: help;
+                position: relative;
+            }
+            .status-icon-wrap i.icon {
+                font-size: 14px !important; margin: 0 !important;
+                transition: color 0.3s; line-height: 1;
+            }
+            .status-icon-wrap.st-ok i.icon       { color: #2ecc71 !important; }
+            .status-icon-wrap.st-fail i.icon     { color: #e74c3c !important; }
+            .status-icon-wrap.st-unknown i.icon  { color: #777   !important; }
+            .status-group-sep {
+                display: inline-block; width: 1px; height: 16px;
+                background: #444; margin: 0 6px; vertical-align: middle;
+            }
+        </style>
 
         <div class="ui four column stackable grid" style="margin-bottom: 10px;">
             <div class="column">
@@ -212,6 +234,85 @@
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
         const terminal = document.getElementById('main-terminal');
+
+        // === Status icons (4 башни, 4 ESP32, сети, USB, BT) ===
+        function renderStatusIcons(s) {
+            window._lastSystemStatus = s;
+            const target = document.getElementById('status-icons');
+            if (!target) return;
+            const groups = [
+                {
+                    label: 'Башни', icon: 'chess rook',
+                    items: [
+                        ['Главная плата (Mega)', s.towers && s.towers.main],
+                        ['Совы',                  s.towers && s.towers.owls],
+                        ['Баскетбол',             s.towers && s.towers.basket],
+                        ['Мастер (плотник)',      s.towers && s.towers.workshop],
+                        ['Собака',                s.towers && s.towers.dog],
+                    ]
+                },
+                {
+                    label: 'ESP32', icon: 'microchip',
+                    items: [
+                        ['Волк в лесу',           s.esp32 && s.esp32.wolf],
+                        ['Платформа (поезд)',     s.esp32 && s.esp32.platform],
+                        ['Чемоданы',              s.esp32 && s.esp32.suitcases],
+                        ['Golden Safe',           s.esp32 && s.esp32.safe],
+                    ]
+                },
+                {
+                    label: 'Сети', icon: 'wifi',
+                    items: [
+                        ['Castle AP',     s.networks && s.networks.castle_ap],
+                        ['Wi-Fi клиент',  s.networks && s.networks.client_wifi],
+                        ['Tailscale',     s.networks && s.networks.tailscale],
+                        ['Интернет',      s.networks && s.networks.internet],
+                    ]
+                },
+                {
+                    label: 'USB', icon: 'usb',
+                    items: [
+                        ['USB-аудио',           s.usb && s.usb.audio],
+                        ['USB-Wi-Fi-донгл',     s.usb && s.usb.wifi_dongle],
+                        ['USB-хаб с башнями',   s.usb && s.usb.hub],
+                        ['Mega (USB)',          s.usb && s.usb.mega_main],
+                    ]
+                },
+                {
+                    label: 'Bluetooth', icon: 'bluetooth b',
+                    items: [ ['Bluetooth', s.bluetooth === true] ]
+                },
+            ];
+            let html = '';
+            groups.forEach(function(g, gi) {
+                if (gi > 0) html += '<span class="status-group-sep"></span>';
+                g.items.forEach(function(pair) {
+                    const name = pair[0];
+                    const ok   = pair[1];
+                    const cls  = (ok === true)  ? 'st-ok'
+                               : (ok === false) ? 'st-fail'
+                                                : 'st-unknown';
+                    const stateText = (ok === true) ? 'на связи'
+                                    : (ok === false) ? 'НЕ на связи'
+                                                     : '—';
+                    const title = g.label + ': ' + name + ' — ' + stateText;
+                    html += '<span class="status-icon-wrap ' + cls + '" title="'
+                          + title.replace(/"/g, '&quot;') + '">'
+                          + '<i class="' + g.icon + ' icon"></i></span>';
+                });
+            });
+            target.innerHTML = html;
+        }
+
+        socket.on('system_status', function(s) {
+            renderStatusIcons(s);
+        });
+        socket.on('bt_state', function(active) {
+            if (window._lastSystemStatus) {
+                window._lastSystemStatus.bluetooth = !!active;
+                renderStatusIcons(window._lastSystemStatus);
+            }
+        });
 
         // Автоскролл — toggle через кнопку
         let autoscrollOn = true;
