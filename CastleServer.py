@@ -911,11 +911,21 @@ def system_status_loop():
         try:
             # Запросить у Mega текущий статус башен (она ответит "tower_status:..." -
             # его поймает парсер в serial() и обновит _tower_status_snapshot).
-            try:
-                serial_write_queue.put('check_towers')
-                process_serial_queue()  # принудительно вытолкнуть команду на Mega сразу
-            except Exception:
-                pass
+            # 2026-05-26 ОТКЛЮЧЕНО (подтверждённый root cause циклов door_owl
+            # на этапе сов на CLC3). Архивная Mega (от 3.4.26) НЕ имеет handler
+            # для команды check_towers → попадает в Unlocks(buff) fall-through и
+            # broadcastится через все 4 Serial (Serial1=Workshop, Serial2=Basket,
+            # Serial3=Dog, mySerial=Owls). Башни echo команду через sendLog → Mega
+            # substring match buff.indexOf("door_owl") срабатывает на fragment →
+            # ghost door_owl event → зацикленный hint_14_c. См. memory:
+            # project_clc_check_towers_root_cause_2026_05_26.md
+            # Восстановить можно ТОЛЬКО после добавления явного handler'а
+            # `check_towers` в Mega (no-op + ответ tower_status:...).
+            # try:
+            #     serial_write_queue.put('check_towers')
+            #     process_serial_queue()
+            # except Exception:
+            #     pass
             status = gather_system_status()
             socketio.emit('system_status', status, to=None)
             _log_status_changes(status)
