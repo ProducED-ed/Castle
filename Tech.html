@@ -155,6 +155,12 @@
             </div>
         </div>
 
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <button class="ui mini button" id="btn-autoscroll" onclick="toggleAutoscroll()" style="background:#27ae60; color:#fff;">
+                <i class="arrow down icon"></i> Автоскролл: ВКЛ
+            </button>
+            <span id="autoscroll-hint" style="color:#7f8c8d; font-size:0.85em;">когда выключено — можно спокойно читать старые строки</span>
+        </div>
         <div id="main-terminal" class="main-terminal">=== Терминал инициализирован. Ожидание команд ===
 </div>
         
@@ -558,18 +564,35 @@
         var socket = io.connect('http://' + document.domain + ':' + location.port);
         const terminal = document.getElementById('main-terminal');
 
+        // Автоскролл — toggle через кнопку
+        let autoscrollOn = true;
+        function toggleAutoscroll() {
+            autoscrollOn = !autoscrollOn;
+            const btn = document.getElementById('btn-autoscroll');
+            if (autoscrollOn) {
+                btn.style.background = '#27ae60';
+                btn.innerHTML = '<i class="arrow down icon"></i> Автоскролл: ВКЛ';
+                terminal.scrollTop = terminal.scrollHeight;  // догнать до низа
+            } else {
+                btn.style.background = '#e67e22';
+                btn.innerHTML = '<i class="pause icon"></i> Автоскролл: ВЫКЛ';
+            }
+        }
+
         // Функция добавления текста в терминал
         function appendToTerminal(text, color = '#a8ff60') {
             const lineElem = document.createElement('div'); // Изменили span на div
             lineElem.style.color = color;
-            
-            // Очищаем перенос строки (\n) на самом конце текста, 
+
+            // Очищаем перенос строки (\n) на самом конце текста,
             // так как блочный элемент <div> автоматически перенесет следующую строку.
             // При этом внутренние переносы (например, внутри лога avrdude) сохранятся.
-            lineElem.textContent = text.replace(/\n$/, ''); 
-            
+            lineElem.textContent = text.replace(/\n$/, '');
+
             terminal.appendChild(lineElem);
-            terminal.scrollTop = terminal.scrollHeight; // Автоскролл
+            if (autoscrollOn) {
+                terminal.scrollTop = terminal.scrollHeight; // Автоскролл
+            }
         }
 
         const statusElem = document.getElementById('connection-status');

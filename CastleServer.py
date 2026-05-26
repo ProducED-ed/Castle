@@ -4414,8 +4414,21 @@ def serial():
                    # ИЗМЕНЕНО: Улучшенное логирование входящих сообщений от Arduino
                    description = EVENT_DESCRIPTIONS.get(flag, '-')
                    tag = get_device_tag(flag)
-                   # Периодический heartbeat-диагностика — на DEBUG, не INFO.
-                   if isinstance(flag, str) and flag.startswith('log:main:HB '):
+                   # Периодические heartbeat'ы — на DEBUG (не пишутся в файл-лог).
+                   # 2026-05-26: добавлены фильтры спама от башен (log:*:Received command: ping,
+                   # CMD: check_state, CMD: ping_main), чтобы не засорять INFO-лог
+                   # и не забивать UI-терминал на /tech.
+                   is_noise = (
+                       isinstance(flag, str) and (
+                           flag.startswith('log:main:HB ') or
+                           'Received command: ping' in flag or
+                           'Received command: chec' in flag or  # ловит "check_state", "check_towers" (truncated)
+                           'CMD: ping_main' in flag or
+                           'CMD: check_state' in flag or
+                           flag == 'pong'
+                       )
+                   )
+                   if is_noise:
                        logging.debug(f'RECEIVED {tag}: {description} (RAW: {flag})')
                    else:
                        logging.info(f'RECEIVED {tag}: {description} (RAW: {flag})')
