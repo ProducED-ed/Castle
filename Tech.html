@@ -121,14 +121,6 @@
                 <button class="ui blue fluid button" id="btn-audio-check" onclick="checkAudio()">
                     <i class="volume up icon"></i> <span data-i18n="btn_audio_check">Проверить аудио</span>
                 </button>
-                <!-- Toggle на отдельной строке под кнопкой, чтобы не ломать узкую колонку -->
-                <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:nowrap;">
-                    <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="color:#fff;">
-                        <input type="checkbox" id="test-audio-toggle"/>
-                        <label style="color:#fff !important; white-space:nowrap;" data-i18n="test_audio_label">Тест. звуки RU</label>
-                    </div>
-                </div>
-                <div id="test-audio-status" style="margin-top:4px; font-size:0.8em; color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" data-i18n="test_audio_status_full">Игровые звуки (полные)</div>
             </div>
         </div>
 
@@ -185,6 +177,14 @@
                 <i class="arrow down icon"></i> <span id="btn-autoscroll-text" data-i18n="autoscroll_on">Автоскролл: ВКЛ</span>
             </button>
             <span id="autoscroll-hint" style="color:#7f8c8d; font-size:0.85em;" data-i18n="autoscroll_hint">когда выключено — можно спокойно читать старые строки</span>
+            <!-- Toggle тестовых звуков справа (на одной строке с автоскроллом) -->
+            <div style="margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="color:#fff;">
+                    <input type="checkbox" id="test-audio-toggle"/>
+                    <label style="color:#fff !important; white-space:nowrap;" data-i18n="test_audio_label">Тест. звуки RU</label>
+                </div>
+                <div id="test-audio-status" style="font-size:0.8em; color:#aaa; white-space:nowrap;" data-i18n="test_audio_status_full">Игровые звуки (полные)</div>
+            </div>
         </div>
         <div id="main-terminal" class="main-terminal">=== Терминал инициализирован. Ожидание команд ===
 </div>
