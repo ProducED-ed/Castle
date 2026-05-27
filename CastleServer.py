@@ -977,6 +977,36 @@ log.setLevel(logging.ERROR)
 pygame.mixer.pre_init(44100, -16, 2, 2048)
 pygame.init()
 pygame.mixer.init()
+
+# === Layer 3: pygame audio safety monkey-patch (2026-05-27) ===
+# pygame.mixer.Sound() и music.load() поддерживают ТОЛЬКО 16-bit PCM WAV.
+# Если клиент зальёт через Samba 24/32-bit WAV из Audacity/Reaper —
+# pygame бросит "Unable to open file". Без этой обёртки модульная
+# инициализация (Sound('door_act.wav') etc.) упадёт и сервер не стартует.
+# С обёрткой — battery 400-byte silence-buffer, channel.play() не падает.
+# См. reference: pygame-wav-24-bit
+_orig_Sound = pygame.mixer.Sound
+def _safe_Sound(*a, **kw):
+    try:
+        return _orig_Sound(*a, **kw)
+    except Exception as e:
+        logging.warning(f"Sound load failed {a}: {e} — returning silence stub")
+        try:
+            return _orig_Sound(buffer=bytes(400))  # ~0.1s тишины
+        except Exception:
+            return None
+pygame.mixer.Sound = _safe_Sound
+
+_orig_music_load = pygame.mixer.music.load
+def _safe_music_load(*a, **kw):
+    try:
+        return _orig_music_load(*a, **kw)
+    except Exception as e:
+        logging.warning(f"music.load failed {a}: {e}")
+        return None
+pygame.mixer.music.load = _safe_music_load
+# === END Layer 3 ===
+
 #------инициализация звуковых каналов
 # Явно запрашиваем 8 каналов у Pygame (стандартно, но для надежности)
 pygame.mixer.set_num_channels(8)
@@ -1587,6 +1617,74 @@ def _test_audio_disable():
     except Exception:
         pass
     return {'restored': restored}
+
+# === 2026-05-27: scan + convert all WAV в /home/pi/New/ к 16-bit PCM ===
+# CLC заливается клиентом по Samba — может прийти 24/32-bit WAV из DAW.
+# pygame.mixer не грузит ничего кроме 16-bit → "Sound load failed" → тишина.
+# Запускается с кнопки на /tech "Конвертировать аудио в 16-bit".
+@socketio.on('convert_audio_bitdepth')
+def handle_convert_audio_bitdepth():
+    def _run():
+        import wave as wave_module
+        import shutil as _sh
+        import subprocess as _sp
+        if not _sh.which('sox'):
+            socketio.emit('audio_convert_result',
+                          {'ok': False, 'error': 'sox не установлен на Pi (apt install -y sox)'}, to=None)
+            return
+        scan_dir = GAME_AUDIO_DIR  # /home/pi/New
+        scanned = 0
+        converted_list = []
+        skipped_list = []
+        errors_list = []
+        socketio.emit('audio_convert_progress',
+                      {'phase': 'start', 'dir': scan_dir}, to=None)
+        try:
+            files = sorted([f for f in os.listdir(scan_dir) if f.lower().endswith('.wav')])
+        except Exception as e:
+            socketio.emit('audio_convert_result',
+                          {'ok': False, 'error': f'list dir failed: {e}'}, to=None)
+            return
+        total = len(files)
+        for i, fname in enumerate(files):
+            path = os.path.join(scan_dir, fname)
+            try:
+                with wave_module.open(path, 'rb') as w:
+                    sampwidth = w.getsampwidth()
+            except Exception as e:
+                errors_list.append({'file': fname, 'error': f'wave read: {e}'})
+                continue
+            scanned += 1
+            socketio.emit('audio_convert_progress',
+                          {'phase': 'scan', 'current': i+1, 'total': total,
+                           'file': fname, 'bits': sampwidth*8}, to=None)
+            if sampwidth == 2:
+                skipped_list.append(fname)
+                continue
+            # Конвертация в 16-bit через sox
+            tmp = path + '.16bit.tmp.wav'
+            try:
+                r = _sp.run(['sox', path, '-b', '16', tmp],
+                            capture_output=True, timeout=60, text=True)
+                if r.returncode == 0 and os.path.exists(tmp):
+                    os.replace(tmp, path)
+                    converted_list.append({'file': fname, 'from_bits': sampwidth*8})
+                    logger.info(f"[AUDIO-CONVERT] {fname}: {sampwidth*8}-bit → 16-bit")
+                else:
+                    if os.path.exists(tmp):
+                        try: os.remove(tmp)
+                        except: pass
+                    errors_list.append({'file': fname, 'error': f'sox rc={r.returncode}: {r.stderr[:200]}'})
+            except Exception as e:
+                errors_list.append({'file': fname, 'error': f'sox exception: {e}'})
+        socketio.emit('audio_convert_result',
+                      {'ok': True, 'scanned': scanned,
+                       'converted': converted_list,
+                       'skipped': len(skipped_list),
+                       'errors': errors_list}, to=None)
+        logger.info(f"[AUDIO-CONVERT] Done: scanned={scanned}, converted={len(converted_list)}, "
+                    f"skipped={len(skipped_list)}, errors={len(errors_list)}")
+    socketio.start_background_task(_run)
 
 @socketio.on('test_audio_set')
 def handle_test_audio_set(data):
