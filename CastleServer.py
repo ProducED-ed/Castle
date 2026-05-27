@@ -394,7 +394,16 @@ last_owl_flew_time = 0
 last_lesson_goal_time = 0
 arduino_level = 0
 # --- ДЛЯ BLUETOOTH ---
-bluetooth_active = False
+# 2026-05-27: определяем реальное начальное состояние Bluetooth через bluetoothctl,
+# а не просто False. Иначе после рестарта сервера toggle на пульте показывает OFF
+# хотя устройство ещё подключено по BT.
+def _detect_bluetooth_state():
+    try:
+        result = subprocess.run("bluetoothctl show", shell=True, capture_output=True, text=True, timeout=5)
+        return ("Powered: yes" in result.stdout) and ("Discoverable: yes" in result.stdout or "Pairable: yes" in result.stdout)
+    except Exception:
+        return False
+bluetooth_active = _detect_bluetooth_state()
 
 def set_bluetooth_state(state):
     """Функция жесткого включения/выключения Bluetooth"""
@@ -1525,7 +1534,10 @@ def tech_panel():
 # полные игровые истории.
 # Заменяются ТОЛЬКО те файлы, что есть в TEST_AUDIO_DIR. Остальные нетронуты.
 GAME_AUDIO_DIR = '/home/pi/New'
-TEST_AUDIO_DIR = '/home/pi/New/test_ru'
+# 2026-05-27 ВАЖНО: в /home/pi/New/test_ru/ лежат КОПИИ оригинальных файлов
+# (md5 совпадает с игровыми). Настоящие "заглушки" — короткие версии — лежат
+# в подпапке 'Заглушки историй'. Только их и надо использовать.
+TEST_AUDIO_DIR = '/home/pi/New/test_ru/Заглушки историй'
 TEST_AUDIO_BACKUP_DIR = '/home/pi/New/test_ru_backup'
 
 def _test_audio_is_active():
@@ -2297,6 +2309,8 @@ def handle_connect():
                       {'active': _test_audio_is_active(), 'swapped': swapped}, to=request.sid)
     except Exception as e:
         logger.warning(f"[TEST-AUDIO] sync on connect failed: {e}")
+    # 2026-05-27: текущее состояние Bluetooth toggle (фикс: ранее не синкалось → залипало OFF)
+    socketio.emit('bt_state', bluetooth_active, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
