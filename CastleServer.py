@@ -3124,12 +3124,17 @@ def Remote(check):
              serial_write_queue.put('crime')     
                          
         if check == 'basket':
-             #-----отправка клиенту 
+             #-----отправка клиенту
              socketio.emit('level', 'basket',to=None)
              socklist.append('basket')
-             socketio.emit('level', 'win_player',to=None)
-             socklist.append('win_player')
-             
+
+             # 2026-05-26: НЕ ставим preemptive 'win_player' в socklist.
+             # Дедуп-guard в flag=="win" (`if 'win_player' in socklist: continue`)
+             # блокировал победную музыку (fon19 + story_66 + win.wav + салют)
+             # когда Basket отвечал на наш force_win_bask. Теперь дадим
+             # flag=="win" handler самому сыграть всю последовательность,
+             # он сам поставит 'win_player' после.
+
              # --- УНИКАЛЬНОЕ ИМЯ КОМАНДЫ ---
              serial_write_queue.put('force_win_bask')
 
@@ -4111,10 +4116,19 @@ def send_command_with_confirmation(command, success_log_part, max_retries=3):
     Отправляет команду и ждет подтверждения в логах от Arduino.
     Если подтверждения нет — пробует снова (max_retries раз).
     ФИКС багJ: добавлена проверка go==1 чтобы при pause/restart не зависать.
-    Таймаут уменьшен с 3.5 до 2.0 сек — достаточно для Arduino при нормальной работе.
+
+    2026-05-26: Логика retry уточнена. Серво на workshop крутится 3-5 сек,
+    а старый таймаут 2.0 сек вызывал ложный retry → duplicate команда servo
+    → серво начинал движение заново и недокручивал на половину
+    (баг student_open half-turn). Теперь:
+      - Базовый таймаут увеличен до 6.0 сек (с запасом на медленный серво).
+      - Если Arduino уже ответил "<command>_start" — мы знаем что команда
+        принята и выполняется → больше НЕ retry'им, просто ждём _success
+        до 10 секунд. Только если даже _start не пришёл — делаем retry.
     """
+    start_log_part = f"{command}_start"
     logging.info(f"HANDSHAKE: Starting sequence for '{command}'...")
-    
+
     for attempt in range(max_retries):
         if go != 1:
             logging.info(f"HANDSHAKE ABORTED: game stopped (go={go})")
@@ -4123,10 +4137,12 @@ def send_command_with_confirmation(command, success_log_part, max_retries=3):
         # 1. Отправляем команду
         serial_write_queue.put(command)
         process_serial_queue()
-        
+
         # 2. Ждем подтверждения
         start_wait = time.time()
-        while time.time() - start_wait < 2.0:
+        got_start = False
+        wait_limit = 6.0
+        while time.time() - start_wait < wait_limit:
             if go != 1:
                 logging.info(f"HANDSHAKE ABORTED mid-wait: game stopped (go={go})")
                 return False
@@ -4136,13 +4152,25 @@ def send_command_with_confirmation(command, success_log_part, max_retries=3):
                 if success_log_part in line:
                     logging.info(f"HANDSHAKE SUCCESS: Arduino confirmed '{command}' (Log: {line})")
                     return True
+                if not got_start and start_log_part in line:
+                    # Arduino принял команду — больше НЕ retry'им, ждём
+                    # _success до 10 сек суммарно (серво может ехать долго).
+                    got_start = True
+                    wait_limit = 10.0
+                    logging.info(f"HANDSHAKE START ACK: '{command}_start' received, waiting for success...")
                 logging.info(f"RECEIVED [During Wait]: {line}")
-            
-            process_serial_queue() 
+
+            process_serial_queue()
             eventlet.sleep(0.05)
-            
+
+        if got_start:
+            # _start был, но _success так и не пришёл — это не "Arduino не услышал",
+            # это "Arduino делает, но не отрепортил". Retry не имеет смысла
+            # (повторное servo прервёт текущее движение). Сдаёмся без retry.
+            logging.warning(f"HANDSHAKE STALL: '{command}_start' получено, но _success нет за {wait_limit}s. НЕ retry (избегаем duplicate servo).")
+            return False
         logging.warning(f"HANDSHAKE TIMEOUT: No confirmation for '{command}' (Attempt {attempt+1}/{max_retries})")
-    
+
     logging.error(f"HANDSHAKE FAILED: '{command}' was sent {max_retries} times but not confirmed.")
     return False
 

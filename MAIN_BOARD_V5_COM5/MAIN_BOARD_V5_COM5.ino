@@ -889,10 +889,12 @@ void smartDelay(unsigned long ms) {
 }
 
 void loop() {
-  // Heartbeat в башни: раз в 5 сек шлём "ping_main" — башни отвечают "pong".
+  // Heartbeat в башни: раз в 15 сек шлём "ping_main" — башни отвечают "pong".
   // Это безопасно: команда "ping_main" обрабатывается в каждой башне ТОЛЬКО как ping (return).
+  // 2026-05-26: интервал 5с → 15с по запросу Эдуарда — меньше эфирного шума на Serial.
+  // tower_status timeout window остаётся 30 сек (см. check_towers handler).
   static unsigned long lastTowerPing = 0;
-  if (millis() - lastTowerPing > 5000UL) {
+  if (millis() - lastTowerPing > 15000UL) {
     lastTowerPing = millis();
     Serial1.println(F("ping_main"));
     Serial2.println(F("ping_main"));
