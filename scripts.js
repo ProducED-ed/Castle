@@ -1632,14 +1632,14 @@ $('.ui.dropdown')
         // Раньше клик сразу запускал выключение — рискованно при случайном нажатии.
         // Теперь: Yes/No модалка → подтверждение → дальнейшая логика shutdown.
         swal.fire({
-            title: 'Выключение системы',
-            text: 'Вы уверены, что хотите выключить систему?',
+            title: 'System Shutdown',
+            text: 'Are you sure you want to turn off the system?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Да, выключить',
-            cancelButtonText: 'Отмена'
+            confirmButtonText: 'Yes, turn off',
+            cancelButtonText: 'Cancel'
         }).then((result) => {
             if (!result.isConfirmed) return;
 
