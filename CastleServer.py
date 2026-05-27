@@ -398,9 +398,12 @@ arduino_level = 0
 # а не просто False. Иначе после рестарта сервера toggle на пульте показывает OFF
 # хотя устройство ещё подключено по BT.
 def _detect_bluetooth_state():
+    # Проверяем ТОЛЬКО Powered: yes — после старта сервера BT-адаптер может быть
+    # включён но НЕ discoverable (телефон уже спарен раньше). Это всё ещё значит
+    # что BT "активен" с точки зрения пользователя.
     try:
         result = subprocess.run("bluetoothctl show", shell=True, capture_output=True, text=True, timeout=5)
-        return ("Powered: yes" in result.stdout) and ("Discoverable: yes" in result.stdout or "Pairable: yes" in result.stdout)
+        return "Powered: yes" in result.stdout
     except Exception:
         return False
 bluetooth_active = _detect_bluetooth_state()
