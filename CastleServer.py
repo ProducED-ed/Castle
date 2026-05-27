@@ -2863,9 +2863,15 @@ def Remote(check):
     #----нажали выключить
      if check == 'off':
              # Добавлено удаление файла-метки и остановка музыки ---
-             
+
              # 1. Логируем событие
              logger.debug("SHUTDOWN: Получена команда 'off' от пульта...")
+             # 2026-05-27: Гасим LED на всех ESP32 чтобы устройства перестали
+             # светиться сразу после нажатия Выключить (до фактического shutdown Pi).
+             send_esp32_command(ESP32_API_WOLF_URL, "day_off")
+             send_esp32_command(ESP32_API_TRAIN_URL, "day_off")
+             send_esp32_command(ESP32_API_SUITCASE_URL, "day_off")
+             send_esp32_command(ESP32_API_SAFE_URL, "day_off")
              
              # 2. Удаляем файл-метку, сигнализируя о КОРРЕКТНОМ завершении
              try:
@@ -3831,6 +3837,14 @@ def tmr(res):
                send_esp32_command(ESP32_API_SAFE_URL, lang_cmd)
                logger.info(f"Language synced to ESP32 on Ready: {lang_cmd}")
                # ------------------------------------
+
+               # 2026-05-27: Гасим LED на всех ESP32 чтобы устройства не светились
+               # в режиме Ready (когда монтажник/оператор готовит квест).
+               send_esp32_command(ESP32_API_WOLF_URL, "day_off")
+               send_esp32_command(ESP32_API_TRAIN_URL, "day_off")
+               send_esp32_command(ESP32_API_SUITCASE_URL, "day_off")
+               send_esp32_command(ESP32_API_SAFE_URL, "day_off")
+               logger.info("day_off sent to all ESP32 on Ready")
 
                # 2. ОТПРАВЛЯЕМ 'ready' на Arduino.
                serial_write_queue.put('ready')
