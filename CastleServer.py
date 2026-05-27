@@ -657,9 +657,16 @@ _status_labels = {
 }
 
 
+_status_fail_counter = {}  # key -> сколько последовательных fail'ов
+OFFLINE_FAIL_THRESHOLD = 2  # 2026-05-27: ALERT только после 2 подряд неудачных проверок (~10s)
+
 def _log_status_changes(status):
     """Сравнивает текущий статус с предыдущим и пишет ALERT/OK в лог
-    только при изменении. Это убирает спам и оставляет только важные события."""
+    только при изменении. Это убирает спам и оставляет только важные события.
+
+    2026-05-27: добавлен fail-counter — ALERT только после OFFLINE_FAIL_THRESHOLD
+    подряд неудачных проверок. Защита от ложных alert'ов из-за транзитных
+    потерь пакетов / WiFi reconnect (Pi RTL8189FS бывает шумит)."""
     flat = {}
     for k, v in status.get('esp32', {}).items():     flat[f'esp32_{k}'] = bool(v)
     for k, v in status.get('towers', {}).items():    flat[f'tower_{k}'] = bool(v)
@@ -667,18 +674,27 @@ def _log_status_changes(status):
     for k, v in status.get('usb', {}).items():       flat[f'usb_{k}'] = bool(v)
 
     for key, current in flat.items():
+        # Обновляем fail-counter
+        if current:
+            _status_fail_counter[key] = 0
+        else:
+            _status_fail_counter[key] = _status_fail_counter.get(key, 0) + 1
+
+        # Текущее "эффективное" состояние: считаем offline только если набрался threshold
+        effective_current = current or (_status_fail_counter.get(key, 0) < OFFLINE_FAIL_THRESHOLD)
+
         prev = _prev_status_state.get(key)
         if prev is None:
-            # Первое наблюдение — фиксируем без alert (это начальное состояние)
-            _prev_status_state[key] = current
+            # Первое наблюдение — фиксируем без alert
+            _prev_status_state[key] = effective_current
             continue
-        if prev != current:
+        if prev != effective_current:
             label = _status_labels.get(key, key)
-            if current:
+            if effective_current:
                 logger.info(f'STATUS OK: {label} restored to ONLINE')
             else:
-                logger.warning(f'STATUS ALERT: {label} went OFFLINE')
-            _prev_status_state[key] = current
+                logger.warning(f'STATUS ALERT: {label} went OFFLINE ({_status_fail_counter.get(key, 0)} consecutive fails)')
+            _prev_status_state[key] = effective_current
 
 
 # Время последнего ответа от Mega (для детектора "Mega silent")
