@@ -104,6 +104,12 @@
                 <button class="ui blue fluid button" id="btn-audio-check" onclick="checkAudio()">
                     <i class="volume up icon"></i> Проверить аудио
                 </button>
+                <!-- Toggle тестовых звуков (короткие заглушки для быстрого прогона на сборке) -->
+                <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="margin-top:10px; color:#fff;">
+                    <input type="checkbox" id="test-audio-toggle"/>
+                    <label style="color:#fff !important;">Тестовые звуки (заглушки RU)</label>
+                </div>
+                <div id="test-audio-status" style="margin-top:6px; font-size:0.85em; color:#aaa;">Игровые звуки (полные)</div>
             </div>
         </div>
 
@@ -879,6 +885,43 @@
                 }
                 appendToTerminal(`\n[AUDIO] Итог: ОК=${data.ok}  Отсутствуют=${data.missing}  Битые=${data.broken}\n`, '#f1c40f');
             }
+        });
+
+        // ============ Toggle тестовых звуков (RU заглушки) ============
+        // Заменяет игровые story_*_ru.wav на короткие версии из test_ru/.
+        // Только те файлы, что есть в test_ru/ — остальные не трогаются.
+        // Оригиналы бэкапятся в test_ru_backup/, восстанавливаются при выкл.
+        let testAudioBusy = false;
+        $('#test-audio-toggle-wrap').checkbox({
+            onChecked: function() {
+                if (testAudioBusy) return;
+                testAudioBusy = true;
+                $('#test-audio-status').text('Переключение → тестовые заглушки...').css('color', '#f1c40f');
+                socket.emit('test_audio_set', { active: true });
+            },
+            onUnchecked: function() {
+                if (testAudioBusy) return;
+                testAudioBusy = true;
+                $('#test-audio-status').text('Восстановление игровых звуков...').css('color', '#f1c40f');
+                socket.emit('test_audio_set', { active: false });
+            }
+        });
+        socket.on('test_audio_state', function(data) {
+            testAudioBusy = false;
+            const isActive = !!data.active;
+            // Программно ставим состояние toggle БЕЗ триггера onChecked/onUnchecked
+            if (isActive) {
+                $('#test-audio-toggle-wrap').checkbox('set checked');
+                $('#test-audio-status').text('⚠ Тестовые заглушки (' + (data.swapped || 0) + ' файлов)').css('color', '#e67e22');
+            } else {
+                $('#test-audio-toggle-wrap').checkbox('set unchecked');
+                $('#test-audio-status').text('Игровые звуки (полные)').css('color', '#aaa');
+            }
+        });
+        socket.on('test_audio_error', function(data) {
+            testAudioBusy = false;
+            $('#test-audio-status').text('Ошибка: ' + (data.error || 'unknown')).css('color', '#e74c3c');
+            appendToTerminal('[TEST-AUDIO] Ошибка: ' + (data.error || 'unknown') + '\n', '#e74c3c');
         });
 
         // ============ Диагностика поезда ============

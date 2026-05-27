@@ -1519,6 +1519,87 @@ HEX_PATHS = {
 def tech_panel():
     return send_file('templates/Tech.html')
 
+# === Test audio toggle (RU заглушки) ===
+# Использование на сборке: монтажник прогоняет квест на коротких .wav файлах
+# чтобы за минуты пройти все этапы. После сборки toggle OFF — восстанавливаются
+# полные игровые истории.
+# Заменяются ТОЛЬКО те файлы, что есть в TEST_AUDIO_DIR. Остальные нетронуты.
+GAME_AUDIO_DIR = '/home/pi/New'
+TEST_AUDIO_DIR = '/home/pi/New/test_ru'
+TEST_AUDIO_BACKUP_DIR = '/home/pi/New/test_ru_backup'
+
+def _test_audio_is_active():
+    """В test-mode если backup-папка существует с файлами."""
+    return os.path.isdir(TEST_AUDIO_BACKUP_DIR) and any(
+        f.endswith('.wav') for f in os.listdir(TEST_AUDIO_BACKUP_DIR)
+    )
+
+def _test_audio_enable():
+    """Backup current game files → copy test stubs over them."""
+    import shutil
+    if _test_audio_is_active():
+        return {'swapped': 0, 'note': 'already_active'}
+    os.makedirs(TEST_AUDIO_BACKUP_DIR, exist_ok=True)
+    swapped = 0
+    for fname in os.listdir(TEST_AUDIO_DIR):
+        if not fname.endswith('.wav'):
+            continue
+        test_path = os.path.join(TEST_AUDIO_DIR, fname)
+        game_path = os.path.join(GAME_AUDIO_DIR, fname)
+        if not os.path.isfile(game_path):
+            continue  # нет игровой версии — пропускаем
+        backup_path = os.path.join(TEST_AUDIO_BACKUP_DIR, fname)
+        shutil.move(game_path, backup_path)  # bk оригинал
+        shutil.copy2(test_path, game_path)   # ставим заглушку
+        swapped += 1
+    return {'swapped': swapped}
+
+def _test_audio_disable():
+    """Restore game files from backup, delete backup dir."""
+    import shutil
+    if not _test_audio_is_active():
+        return {'restored': 0, 'note': 'not_active'}
+    restored = 0
+    for fname in os.listdir(TEST_AUDIO_BACKUP_DIR):
+        if not fname.endswith('.wav'):
+            continue
+        backup_path = os.path.join(TEST_AUDIO_BACKUP_DIR, fname)
+        game_path = os.path.join(GAME_AUDIO_DIR, fname)
+        shutil.move(backup_path, game_path)  # move overwrites test version
+        restored += 1
+    try:
+        shutil.rmtree(TEST_AUDIO_BACKUP_DIR)
+    except Exception:
+        pass
+    return {'restored': restored}
+
+@socketio.on('test_audio_set')
+def handle_test_audio_set(data):
+    active = bool((data or {}).get('active'))
+    try:
+        if active:
+            result = _test_audio_enable()
+            logger.info(f"[TEST-AUDIO] Enabled — swapped {result.get('swapped')} files")
+            # Подсчитаем сколько backup-файлов лежит — это и есть кол-во активных stub'ов
+            swapped = len([f for f in os.listdir(TEST_AUDIO_BACKUP_DIR) if f.endswith('.wav')]) \
+                      if os.path.isdir(TEST_AUDIO_BACKUP_DIR) else 0
+            socketio.emit('test_audio_state', {'active': True, 'swapped': swapped}, to=None)
+        else:
+            result = _test_audio_disable()
+            logger.info(f"[TEST-AUDIO] Disabled — restored {result.get('restored')} files")
+            socketio.emit('test_audio_state', {'active': False}, to=None)
+    except Exception as e:
+        logger.error(f"[TEST-AUDIO] Error: {e}")
+        socketio.emit('test_audio_error', {'error': str(e)}, to=None)
+        # Также шлём текущее реальное состояние
+        try:
+            swapped = len([f for f in os.listdir(TEST_AUDIO_BACKUP_DIR) if f.endswith('.wav')]) \
+                      if os.path.isdir(TEST_AUDIO_BACKUP_DIR) else 0
+            socketio.emit('test_audio_state',
+                          {'active': _test_audio_is_active(), 'swapped': swapped}, to=None)
+        except Exception:
+            pass
+
 # --- ПРОВЕРКА АУДИОФАЙЛОВ (с прогрессом через WebSocket) ---
 @socketio.on('start_audio_check')
 def handle_audio_check():
@@ -2208,6 +2289,14 @@ def handle_connect():
     socketio.emit('internet_state', internet_sharing, to=request.sid)
     # 2026-05-27: текущее состояние DIAG-устройств для свежеподключённого клиента
     socketio.emit('diag_active_set', {'devices': sorted(_active_diag_devices)}, to=request.sid)
+    # 2026-05-27: текущее состояние test-audio toggle (могло быть включено до подключения)
+    try:
+        swapped = len([f for f in os.listdir(TEST_AUDIO_BACKUP_DIR) if f.endswith('.wav')]) \
+                  if os.path.isdir(TEST_AUDIO_BACKUP_DIR) else 0
+        socketio.emit('test_audio_state',
+                      {'active': _test_audio_is_active(), 'swapped': swapped}, to=request.sid)
+    except Exception as e:
+        logger.warning(f"[TEST-AUDIO] sync on connect failed: {e}")
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
