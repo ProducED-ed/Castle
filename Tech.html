@@ -118,17 +118,17 @@
                 </button>
             </div>
             <div class="column">
-                <!-- Кнопка + toggle на одной строке -->
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap;">
-                    <button class="ui blue button" id="btn-audio-check" onclick="checkAudio()" style="margin:0; white-space:nowrap;">
-                        <i class="volume up icon"></i> <span data-i18n="btn_audio_check">Проверить аудио</span>
-                    </button>
-                    <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="color:#fff; flex:1; min-width:0;">
+                <button class="ui blue fluid button" id="btn-audio-check" onclick="checkAudio()">
+                    <i class="volume up icon"></i> <span data-i18n="btn_audio_check">Проверить аудио</span>
+                </button>
+                <!-- Toggle на отдельной строке под кнопкой, чтобы не ломать узкую колонку -->
+                <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:nowrap;">
+                    <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="color:#fff;">
                         <input type="checkbox" id="test-audio-toggle"/>
-                        <label style="color:#fff !important;" data-i18n="test_audio_label">Тестовые звуки (заглушки RU)</label>
+                        <label style="color:#fff !important; white-space:nowrap;" data-i18n="test_audio_label">Тест. звуки RU</label>
                     </div>
                 </div>
-                <div id="test-audio-status" style="margin-top:6px; font-size:0.85em; color:#aaa;" data-i18n="test_audio_status_full">Игровые звуки (полные)</div>
+                <div id="test-audio-status" style="margin-top:4px; font-size:0.8em; color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" data-i18n="test_audio_status_full">Игровые звуки (полные)</div>
             </div>
         </div>
 
@@ -600,7 +600,7 @@
                 btn_audio_check: "Проверить аудио",
                 btn_audio_convert: "Конвертировать аудио в 16-bit",
                 btn_flash: "Прошить",
-                test_audio_label: "Тестовые звуки (заглушки RU)",
+                test_audio_label: "Тест. звуки RU",
                 test_audio_status_full: "Игровые звуки (полные)",
                 audio_convert_hint: "Запускать после загрузки новых .wav через Samba (pygame не грузит 24/32-bit)",
                 audio_results_title: "Результаты проверки аудиофайлов",
@@ -626,7 +626,7 @@
                 btn_audio_check: "Check audio",
                 btn_audio_convert: "Convert audio to 16-bit",
                 btn_flash: "Flash",
-                test_audio_label: "Test audio (RU stubs)",
+                test_audio_label: "Test audio RU",
                 test_audio_status_full: "Game audio (full)",
                 audio_convert_hint: "Run after uploading new .wav via Samba (pygame doesn't load 24/32-bit)",
                 audio_results_title: "Audio files check results",
