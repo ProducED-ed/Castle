@@ -202,8 +202,62 @@ $('.ui.dropdown')
              socket.emit('Game', {'level': 'all'});//отправляем heartbeat опрашиваем сервер раз в 500 мс
              //socket.emit('time', 'timer');
          }, 2000);
-         
-         
+
+
+     });
+
+     // 2026-05-27: блокировка игрового пульта когда активен DIAG-режим какого-либо устройства.
+     // Server.py шлёт diag_active_set { devices: [...] } при каждом enter/exit DIAG (+ при connect).
+     // Если devices непустой — игра заморожена (Mega/устройство в DIAG), кнопки пульта не должны
+     // отправлять game-команды.
+     socket.on('diag_active_set', function(data) {
+         var active = (data && data.devices && data.devices.length > 0);
+         var $body = $('body');
+         var $banner = $('#diag-banner');
+         // Универсальный селектор всех интерактивных элементов игрового пульта.
+         // Включает: <button>, input[button/submit], Semantic UI .ui.button,
+         // .ui.item (Start/Ready/Pause/Restart на Front.html — <a class="ui inverted item">),
+         // .ui.checkbox, .ui.toggle, иконки с onclick через .icon.link.
+         var SEL = 'button, input[type="button"], input[type="submit"], '+
+                   '.ui.button, .ui.item, a.ui.item, .ui.checkbox, .icon.link, '+
+                   '.ui.toggle.checkbox label, [onclick]';
+         if (active) {
+             if ($banner.length === 0) {
+                 $banner = $('<div id="diag-banner" style="position:fixed;top:0;left:0;right:0;z-index:9999;'+
+                     'background:#e67e22;color:#fff;padding:10px;text-align:center;font-weight:bold;'+
+                     'font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">'+
+                     '⚠ DIAG MODE ACTIVE: <span id="diag-banner-devices"></span> — игровой пульт заблокирован'+
+                     '</div>').appendTo('body');
+             }
+             $('#diag-banner-devices').text(data.devices.join(', '));
+             $body.addClass('diag-mode-active');
+             $(SEL).not('#diag-banner *').not('.diag-skip').each(function() {
+                 var $el = $(this);
+                 // Сохраняем оригинальные стили чтобы корректно восстановить
+                 if (!$el.data('diag-orig-saved')) {
+                     $el.data('diag-orig-pe', $el.css('pointer-events') || '');
+                     $el.data('diag-orig-op', $el.css('opacity') || '');
+                     $el.data('diag-orig-saved', true);
+                 }
+                 $el.prop('disabled', true).addClass('disabled')
+                    .css('pointer-events', 'none')
+                    .css('opacity', '0.4');
+             });
+         } else {
+             $body.removeClass('diag-mode-active');
+             $banner.remove();
+             $(SEL).each(function() {
+                 var $el = $(this);
+                 $el.prop('disabled', false).removeClass('disabled');
+                 if ($el.data('diag-orig-saved')) {
+                     $el.css('pointer-events', $el.data('diag-orig-pe'));
+                     $el.css('opacity', $el.data('diag-orig-op'));
+                     $el.removeData('diag-orig-saved diag-orig-pe diag-orig-op');
+                 } else {
+                     $el.css('pointer-events', '').css('opacity', '');
+                 }
+             });
+         }
      });
      //если нет ответа от сервака 
      socket.on('disconnect', function() {

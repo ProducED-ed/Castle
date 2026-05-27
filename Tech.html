@@ -156,7 +156,7 @@
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-            <button class="ui mini button" id="btn-autoscroll" onclick="toggleAutoscroll()" style="background:#27ae60; color:#fff;">
+            <button class="ui inverted basic small button" id="btn-autoscroll" onclick="toggleAutoscroll()">
                 <i class="arrow down icon"></i> Автоскролл: ВКЛ
             </button>
             <span id="autoscroll-hint" style="color:#7f8c8d; font-size:0.85em;">когда выключено — можно спокойно читать старые строки</span>
@@ -570,11 +570,11 @@
             autoscrollOn = !autoscrollOn;
             const btn = document.getElementById('btn-autoscroll');
             if (autoscrollOn) {
-                btn.style.background = '#27ae60';
+                btn.classList.remove('orange');
                 btn.innerHTML = '<i class="arrow down icon"></i> Автоскролл: ВКЛ';
                 terminal.scrollTop = terminal.scrollHeight;  // догнать до низа
             } else {
-                btn.style.background = '#e67e22';
+                btn.classList.add('orange');
                 btn.innerHTML = '<i class="pause icon"></i> Автоскролл: ВЫКЛ';
             }
         }

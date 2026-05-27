@@ -475,7 +475,9 @@ void setup() {
     wasClickLed[i] = false;
   }
 
-  ghost.setDebounce(10);       // настройка антидребезга (по умолчанию 80 мс)
+  // 2026-05-27: было setDebounce(10) — пьезо-датчик даёт очень короткие импульсы,
+  // 10ms могло их срезать. Снизили до 1ms чтобы ловить kratest knock pulses.
+  ghost.setDebounce(1);        // 1ms антидребезг (минимальный для piezo)
   ghost.setTimeout(300);       // настройка таймаута на удержание (по умолчанию 500 мс)
   ghost.setClickTimeout(100);  // настройка таймаута между кликами (по умолчанию 300 мс)
   ghost.setType(LOW_PULL);
@@ -2591,7 +2593,12 @@ void GhostGame() {
   // 2. 3-секундный "тихий" период прошел.
   // Теперь МОЖНО слушать реальный стук игрока.
 
-  if (ghostFlag == 1 and (ghost.isSingle() or ghost.isDouble() or ghost.isTriple())) {
+  // 2026-05-27: было isSingle()/isDouble()/isTriple() — требовало ПОЛНЫЙ click pattern
+  // (press + release + clickTimeout 100ms). Пьезо-датчик даёт короткие импульсы,
+  // часто не складывающиеся в полный click. Игроку приходилось стучать сильно и долго.
+  // isPress() срабатывает сразу на HIGH→LOW transition (с минимальным debounce 1ms).
+  // Это даст реакцию на любой реальный удар.
+  if (ghostFlag == 1 and ghost.isPress()) {
     ghostFlag = 0; // Прекращаем слушать (ghostFlag = 0)
     myMP3.stop();
     Serial.println("ghost_game_WIN");

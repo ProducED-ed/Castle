@@ -2053,6 +2053,14 @@ def _diag_send(device, action, body=None):
     )
     send_esp32_command(url, cmd, debounce=False)
 
+# 2026-05-27: глобальный set активных DIAG-устройств. Каждый раз при изменении
+# рассылается событие `diag_active_set` всем клиентам, чтобы Front.html
+# (игровой пульт) мог блокировать game-control кнопки.
+_active_diag_devices = set()
+
+def _broadcast_diag_state():
+    socketio.emit('diag_active_set', {'devices': sorted(_active_diag_devices)}, to=None)
+
 @socketio.on('tech_diag_enter')
 def tech_diag_enter(data):
     device = (data or {}).get('device')
@@ -2060,6 +2068,8 @@ def tech_diag_enter(data):
         return
     logger.info(f"[DIAG] Entering diag mode for {device}")
     _diag_send(device, 'on')
+    _active_diag_devices.add(device)
+    _broadcast_diag_state()
 
 @socketio.on('tech_diag_exit')
 def tech_diag_exit(data):
@@ -2068,6 +2078,8 @@ def tech_diag_exit(data):
         return
     logger.info(f"[DIAG] Exiting diag mode for {device}")
     _diag_send(device, 'off')
+    _active_diag_devices.discard(device)
+    _broadcast_diag_state()
 
 @socketio.on('tech_send_serial')
 def tech_send_serial(data):
@@ -2178,6 +2190,8 @@ def handle_connect():
     socketio.emit('safe', str(safeLevel))
     socketio.emit('ready_music_state', play_ready_music, to=request.sid)
     socketio.emit('internet_state', internet_sharing, to=request.sid)
+    # 2026-05-27: текущее состояние DIAG-устройств для свежеподключённого клиента
+    socketio.emit('diag_active_set', {'devices': sorted(_active_diag_devices)}, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
