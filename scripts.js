@@ -1628,56 +1628,66 @@ $('.ui.dropdown')
     });
 
     $('#power_off').click(function(){
-        // 1. Ставим флаг, чтобы при потере связи не выскакивала ошибка "Disconnected"
-        isShuttingDown = true; 
-        
-        // 2. Отправляем команду на сервер (он начнет процесс выключения)
-        socket.emit('Remote','off');
-
-        // 3. Запускаем красивое окно с таймером на 20 секунд
-        let timerInterval;
+        // 2026-05-27: Добавлен confirmation шаг по образу WC.
+        // Раньше клик сразу запускал выключение — рискованно при случайном нажатии.
+        // Теперь: Yes/No модалка → подтверждение → дальнейшая логика shutdown.
         swal.fire({
-            title: 'Shutting Down...',
-            html: 'System handling processes.<br>Safe shutdown in <b>20</b> seconds.',
+            title: 'Выключение системы',
+            text: 'Вы уверены, что хотите выключить систему?',
             icon: 'warning',
-            timer: 20000,           // 20 секунд
-            timerProgressBar: true, // Анимированная полоска внизу
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                swal.showLoading(); // Добавляет индикатор загрузки
-                
-                // Логика обновления цифр таймера
-                const b = swal.getHtmlContainer().querySelector('b');
-                timerInterval = setInterval(() => {
-                    if (b) {
-                        // Обновляем текст (осталось секунд)
-                        b.textContent = Math.ceil(swal.getTimerLeft() / 1000);
-                    }
-                }, 100);
-            },
-            willClose: () => {
-                clearInterval(timerInterval);
-            }
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Да, выключить',
+            cancelButtonText: 'Отмена'
         }).then((result) => {
-            // 4. Это сработает, когда таймер (20 сек) закончится
-            if (result.dismiss === swal.DismissReason.timer) {
-                swal.fire({
-                    title: "System Halted",
-                    html: "<div style='font-size: 1.2em; color: green;'>The system is safely shut down.<br>It is safe to turn off the power switch now.</div>",
-                    icon: "success",
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false 
-                });
-                
-                // Меняем статус в хедере для надежности
-                if(output) {
-                    output.innerHTML = 'Turn Power OFF';
-                    $('#output').css('color', 'red');
+            if (!result.isConfirmed) return;
+
+            // 1. Ставим флаг, чтобы при потере связи не выскакивала ошибка "Disconnected"
+            isShuttingDown = true;
+
+            // 2. Отправляем команду на сервер (он начнет процесс выключения)
+            socket.emit('Remote','off');
+
+            // 3. Запускаем красивое окно с таймером на 20 секунд
+            let timerInterval;
+            swal.fire({
+                title: 'Shutting Down...',
+                html: 'System handling processes.<br>Safe shutdown in <b>20</b> seconds.',
+                icon: 'warning',
+                timer: 20000,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    swal.showLoading();
+                    const b = swal.getHtmlContainer().querySelector('b');
+                    timerInterval = setInterval(() => {
+                        if (b) {
+                            b.textContent = Math.ceil(swal.getTimerLeft() / 1000);
+                        }
+                    }, 100);
+                },
+                willClose: () => {
+                    clearInterval(timerInterval);
                 }
-            }
+            }).then((result) => {
+                if (result.dismiss === swal.DismissReason.timer) {
+                    swal.fire({
+                        title: "System Halted",
+                        html: "<div style='font-size: 1.2em; color: green;'>The system is safely shut down.<br>It is safe to turn off the power switch now.</div>",
+                        icon: "success",
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false
+                    });
+                    if(output) {
+                        output.innerHTML = 'Turn Power OFF';
+                        $('#output').css('color', 'red');
+                    }
+                }
+            });
         });
     });
 
