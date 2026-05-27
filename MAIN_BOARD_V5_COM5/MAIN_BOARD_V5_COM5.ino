@@ -125,19 +125,16 @@ bool discoBallsActive = false;         // Флаг для диско-шаров 
 unsigned long discoBallsTimer = 0;     // Таймер для диско-шаров
 bool isGameBasketStarted = false;
 
-// --- Tower passive heartbeat ---
-// Обновляется в HelpTowersHandler() когда от башни приходит валидная строка.
-// На команду 'check_towers' от сервера отвечаем "tower_status:..." по этим timestamps.
+// --- Step 2 (2026-05-27): Tower passive heartbeat timestamps + DIAG declarations ---
+// lastSeen* всегда 0 в Step 2 — никто их не пишет (tracking в Step 3).
+// check_towers handler ниже будет отвечать всеми нулями, что безопасно.
 unsigned long lastSeenWorkshop = 0;
 unsigned long lastSeenBasket   = 0;
 unsigned long lastSeenDog      = 0;
 unsigned long lastSeenOwls     = 0;
 
-// === DIAG MODE (short-commands, без изменения Serial.setTimeout) ===
-// Все команды ≤8 байт = один USB CDC chunk = надёжная доставка от Pi к Mega.
-// Не трогаем Serial.setTimeout(50) — игровые short commands продолжают работать как раньше.
-// Server -> Mega: dg_on, dg_off, dg_d1...dg_d9 (двери), dg_fw (fireworks toggle), dg_sn (request snapshot)
-// Mega -> Server: dg:ack:on, dg:ack:off, dgs:<csv> (snapshot)
+// DIAG mode declarations (dormant — dgActive не может стать true без dg_on,
+// который мы НЕ добавляем в Step 2)
 bool dgActive = false;
 unsigned long dgLastSnap = 0;
 void processDgCmd(const String& cmd);
@@ -853,13 +850,6 @@ void setup() {
   }
 
   // 4. Анализ результатов
-  // Инициализируем heartbeat timestamps по результатам boot-проверки
-  unsigned long bootNow = millis();
-  if (t1) lastSeenWorkshop = bootNow;
-  if (t2) lastSeenBasket   = bootNow;
-  if (t3) lastSeenDog      = bootNow;
-  if (t4) lastSeenOwls     = bootNow;
-
   if (t1 && t2 && t3 && t4) {
     // Все башни на связи + Main загрузился
     Serial.println("log:main:All towers online.");
@@ -889,28 +879,25 @@ void smartDelay(unsigned long ms) {
 }
 
 void loop() {
-  // Heartbeat в башни: раз в 15 сек шлём "ping_main" — башни отвечают "pong".
-  // Это безопасно: команда "ping_main" обрабатывается в каждой башне ТОЛЬКО как ping (return).
-  // 2026-05-26: интервал 5с → 15с по запросу Эдуарда — меньше эфирного шума на Serial.
-  // tower_status timeout window остаётся 30 сек (см. check_towers handler).
-  static unsigned long lastTowerPing = 0;
-  if (millis() - lastTowerPing > 15000UL) {
-    lastTowerPing = millis();
-    Serial1.println(F("ping_main"));
-    Serial2.println(F("ping_main"));
-    Serial3.println(F("ping_main"));
-    mySerial.println(F("ping_main"));
+  // === Step 6g: + inline dg_off comparison (no function call) ===
+  if (dgActive) {
+    while (Serial.available()) {
+      String b = Serial.readStringUntil('\n');
+      b.trim();
+      if (b == "dg_off") dgActive = false;  // INLINED, без processDgCmd
+    }
+    return;
   }
+  // === END Step 6g ===
 
-  // Heartbeat-снимок: если в буфере любой Serial есть байт — башня жива.
-  // Делаем ДО всех reader-ов loop'а, не читая байты (Serial остаётся целым
-  // для последующих handler-ов галетников/флагов/HelpTowersHandler).
+  // === Step 5: passive heartbeat poll + HB log ===
+  // Просто отмечаем что от башни приходят данные (не читаем — байты остаются в буфере).
   if (Serial1.available()) lastSeenWorkshop = millis();
   if (Serial2.available()) lastSeenBasket   = millis();
   if (Serial3.available()) lastSeenDog      = millis();
   if (mySerial.available()) lastSeenOwls    = millis();
 
-  // Диагностический лог heartbeat: раз в 60 сек шлём счётчики lastSeen
+  // HB log раз в 60 секунд — для удалённой диагностики
   static unsigned long lastHbLog = 0;
   if (millis() - lastHbLog > 60000UL) {
     lastHbLog = millis();
@@ -924,22 +911,7 @@ void loop() {
     Serial.print(F(" O="));
     Serial.println(lastSeenOwls ? (now - lastSeenOwls) : 999999UL);
   }
-
-  // === DIAG MODE: если активен — обрабатываем dg_*, шлём snapshot 5Гц, ИГРА ЗАМОРОЖЕНА.
-  // Normal mode: один if-check, нулевой overhead.
-  if (dgActive) {
-    while (Serial.available()) {
-      String b = Serial.readStringUntil('\n');
-      b.trim();
-      if (b.startsWith("dg_")) processDgCmd(b);
-      // не-dg команды игнорируются (заморозка)
-    }
-    if (millis() - dgLastSnap >= 200UL) {
-      dgLastSnap = millis();
-      sendDgSnap();
-    }
-    return;  // skip handleLocks/switch(level) — game frozen
-  }
+  // === END Step 5 ===
 
   handleLocks();
   handleUfBlinking();
@@ -1241,17 +1213,6 @@ void PowerOn() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
-    // === DIAG ENTRY (idle state, level=0) ===
-    // Короткая команда `dg_on` (5 байт) — single USB chunk, надёжно доходит.
-    if (buff == "dg_on") {
-      dgActive = true;
-      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
-      digitalWrite(Fireworks, LOW);
-      Serial.println(F("dg:ack:on"));
-      while(Serial.available()) Serial.read();
-      return;
-    }
-
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();
@@ -1448,9 +1409,19 @@ void PowerOn() {
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println("open_door");
     else if (buff == "open_mine_door") Serial2.println("open_mine_door");
+    // === Step 2: DIAG entry handler (idle state) ===
+    else if (buff == "dg_on") {
+      dgActive = true;
+      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
+      digitalWrite(Fireworks, LOW);
+      Serial.println(F("dg:ack:on"));
+      while(Serial.available()) Serial.read();
+      return;
+    }
+    // === Step 2: check_towers handler ===
+    // Возвращает все нули в Step 2 (lastSeen* нигде не обновляются).
+    // В Step 3 добавим tracking — тогда статус будет реальный.
     else if (buff == "check_towers") {
-      // Запрос от сервера: вернуть статус башен по passive-heartbeat.
-      // Башня считается online если за последние 30 секунд от неё была валидная строка.
       const unsigned long w = 30000UL;
       unsigned long now = millis();
       Serial.print(F("tower_status:workshop="));
@@ -1504,9 +1475,8 @@ void HelpTowersHandler() {
     if (c == '\n') {  // Конец строки
       serial1Buffer.trim();
       if (serial1Buffer.length() > 0) {
-        lastSeenWorkshop = millis();  // heartbeat: башня жива
+        lastSeenWorkshop = millis();  // Step 3: heartbeat tracking
         if (serial1Buffer == "pong" || serial1Buffer.indexOf("ping_main") != -1) {
-          // служебный heartbeat (или эхо команды от старой непрошитой башни) — не пересылаем
           serial1Buffer = "";
           continue;
         }
@@ -1581,9 +1551,8 @@ void HelpTowersHandler() {
     if (c == '\n') {
       serial2Buffer.trim();
       if (serial2Buffer.length() > 0) {
-        lastSeenBasket = millis();  // heartbeat: башня жива
+        lastSeenBasket = millis();  // Step 3: heartbeat tracking
         if (serial2Buffer == "pong" || serial2Buffer.indexOf("ping_main") != -1) {
-          // служебный heartbeat (или эхо команды от старой непрошитой башни) — не пересылаем
           serial2Buffer = "";
           continue;
         }
@@ -1668,9 +1637,8 @@ void HelpTowersHandler() {
     if (c == '\n') {
       serial3Buffer.trim();
       if (serial3Buffer.length() > 0) {
-        lastSeenDog = millis();  // heartbeat: башня жива
+        lastSeenDog = millis();  // Step 3: heartbeat tracking
         if (serial3Buffer == "pong" || serial3Buffer.indexOf("ping_main") != -1) {
-          // служебный heartbeat (или эхо команды от старой непрошитой башни) — не пересылаем
           serial3Buffer = "";
           continue;
         }
@@ -1691,8 +1659,8 @@ void HelpTowersHandler() {
     if (c == '\n') {
       mySerialBuffer.trim();
       if (mySerialBuffer.length() > 0) {
-        lastSeenOwls = millis();  // heartbeat: башня жива
-        if (mySerialBuffer == "pong") { mySerialBuffer = ""; continue; }  // служебный ответ, не пересылаем
+        lastSeenOwls = millis();  // Step 3: heartbeat tracking
+        if (mySerialBuffer == "pong") { mySerialBuffer = ""; continue; }  // asymmetric filter (как в новой Mega)
 
         Serial.println(mySerialBuffer);  // Пересылаем ВСЕ сообщения на сервер
 
@@ -2314,8 +2282,8 @@ void GaletGame() {
   while (Serial1.available()) {  // Workshop
     String buf1 = Serial1.readStringUntil('\n');
     buf1.trim();
-    if (buf1.length() > 0) lastSeenWorkshop = millis();
-    if (buf1 == "pong" || buf1.indexOf("ping_main") != -1) continue;
+    if (buf1.length() > 0) lastSeenWorkshop = millis();  // Step 4
+    if (buf1 == "pong" || buf1.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf1.startsWith("log:")) {
       Serial.println(buf1);
     } else if (buf1 == "galet_on") {
@@ -2331,8 +2299,8 @@ void GaletGame() {
   while (Serial2.available()) {  // Basket
     String buf2 = Serial2.readStringUntil('\n');
     buf2.trim();
-    if (buf2.length() > 0) lastSeenBasket = millis();
-    if (buf2 == "pong" || buf2.indexOf("ping_main") != -1) continue;
+    if (buf2.length() > 0) lastSeenBasket = millis();  // Step 4
+    if (buf2 == "pong" || buf2.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf2.startsWith("log:")) {
       Serial.println(buf2);
     } else if (buf2 == "galet_on") {
@@ -2348,8 +2316,8 @@ void GaletGame() {
   while (Serial3.available()) {  // Dog
     String buf3 = Serial3.readStringUntil('\n');
     buf3.trim();
-    if (buf3.length() > 0) lastSeenDog = millis();
-    if (buf3 == "pong" || buf3.indexOf("ping_main") != -1) continue;
+    if (buf3.length() > 0) lastSeenDog = millis();  // Step 4
+    if (buf3 == "pong" || buf3.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf3.startsWith("log:")) {
       Serial.println(buf3);
     } else if (buf3 == "galet_on") {
@@ -2365,8 +2333,8 @@ void GaletGame() {
   while (mySerial.available()) {  // Owls
     String buf4 = mySerial.readStringUntil('\n');
     buf4.trim();
-    if (buf4.length() > 0) lastSeenOwls = millis();
-    if (buf4 == "pong" || buf4.indexOf("ping_main") != -1) continue;
+    if (buf4.length() > 0) lastSeenOwls = millis();  // Step 4
+    if (buf4 == "pong" || buf4.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf4.startsWith("log:")) {
       Serial.println(buf4);
     } else if (buf4 == "galet_on" || buf4 == "owls_galet_on") {
@@ -2499,8 +2467,8 @@ void Flags() {
   while (Serial1.available()) {
     String buf1 = Serial1.readStringUntil('\n');
     buf1.trim();
-    if (buf1.length() > 0) lastSeenWorkshop = millis();
-    if (buf1 == "pong" || buf1.indexOf("ping_main") != -1) continue;
+    if (buf1.length() > 0) lastSeenWorkshop = millis();  // Step 4
+    if (buf1 == "pong" || buf1.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf1.startsWith("log:")) {
       Serial.println(buf1);
     } else if (buf1 == "flag1_on") {
@@ -2515,8 +2483,8 @@ void Flags() {
   while (Serial2.available()) {
     String buf2 = Serial2.readStringUntil('\n');
     buf2.trim();
-    if (buf2.length() > 0) lastSeenBasket = millis();
-    if (buf2 == "pong" || buf2.indexOf("ping_main") != -1) continue;
+    if (buf2.length() > 0) lastSeenBasket = millis();  // Step 4
+    if (buf2 == "pong" || buf2.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf2.startsWith("log:")) {
       Serial.println(buf2);
     } else if (buf2 == "flag2_on") {
@@ -2531,8 +2499,8 @@ void Flags() {
   while (Serial3.available()) {
     String buf3 = Serial3.readStringUntil('\n');
     buf3.trim();
-    if (buf3.length() > 0) lastSeenDog = millis();
-    if (buf3 == "pong" || buf3.indexOf("ping_main") != -1) continue;
+    if (buf3.length() > 0) lastSeenDog = millis();  // Step 4
+    if (buf3 == "pong" || buf3.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf3.startsWith("log:")) {
       Serial.println(buf3);
     } else if (buf3 == "flag3_on") {
@@ -2547,8 +2515,8 @@ void Flags() {
   while (mySerial.available()) {
     String buf4 = mySerial.readStringUntil('\n');
     buf4.trim();
-    if (buf4.length() > 0) lastSeenOwls = millis();
-    if (buf4 == "pong" || buf4.indexOf("ping_main") != -1) continue;
+    if (buf4.length() > 0) lastSeenOwls = millis();  // Step 4
+    if (buf4 == "pong" || buf4.indexOf("ping_main") != -1) continue;  // Step 4
     if (buf4.startsWith("log:")) {
       Serial.println(buf4);
     } else if (buf4 == "flag4_on") {
@@ -6759,21 +6727,11 @@ void RestOn() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
-    // === DIAG ENTRY (rest state, level=25) ===
-    if (buff == "dg_on") {
-      dgActive = true;
-      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
-      digitalWrite(Fireworks, LOW);
-      Serial.println(F("dg:ack:on"));
-      while(Serial.available()) Serial.read();
-      return;
-    }
-
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();
-      OpenAll();
+      OpenAll(); 
       while(Serial.available()) Serial.read();
-      isRestInitialized = false;
+      isRestInitialized = false; 
       level = 25;
       previousLevel = 0;
       return;
@@ -6901,8 +6859,17 @@ void RestOn() {
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println("open_door");
     else if (buff == "open_mine_door") Serial2.println("open_mine_door");
+    // === Step 2: DIAG entry handler (rest state, level=25) ===
+    else if (buff == "dg_on") {
+      dgActive = true;
+      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
+      digitalWrite(Fireworks, LOW);
+      Serial.println(F("dg:ack:on"));
+      while(Serial.available()) Serial.read();
+      return;
+    }
+    // === Step 2: check_towers handler (rest state) ===
     else if (buff == "check_towers") {
-      // Запрос от сервера: вернуть статус башен по passive-heartbeat.
       const unsigned long w = 30000UL;
       unsigned long now = millis();
       Serial.print(F("tower_status:workshop="));
@@ -7538,8 +7505,9 @@ void RunStudentOpen() {
 }
 
 // ====================================================================
-// === DIAG MODE: short-command implementation ===
-// Все команды от server'а ≤8 байт = один USB CDC chunk = надёжно.
+// === Step 2 (2026-05-27): DIAG MODE function implementations ===
+// processDgCmd() и sendDgSnap() добавлены для compile-completeness.
+// В Step 2 они НЕ вызываются (no caller).
 // ====================================================================
 
 void processDgCmd(const String& c) {
@@ -7548,7 +7516,6 @@ void processDgCmd(const String& c) {
     Serial.println(F("dg:ack:off"));
     return;
   }
-  // Двери — pulse через OpenDoor (300мс импульс)
   if (c == "dg_d1") { OpenDoor(MansardDoor);    return; }
   if (c == "dg_d2") { OpenDoor(PotionsRoomDoor); return; }
   if (c == "dg_d3") { OpenDoor(LibraryDoor);     return; }
@@ -7558,12 +7525,10 @@ void processDgCmd(const String& c) {
   if (c == "dg_d7") { OpenDoor(MemoryRoomDoor);  return; }
   if (c == "dg_d8") { OpenDoor(CrimeDoor);       return; }
   if (c == "dg_d9") { OpenDoor(BankStashDoor);   return; }
-  // Fireworks toggle
   if (c == "dg_fw") {
     digitalWrite(Fireworks, !digitalRead(Fireworks));
     return;
   }
-  // Snapshot по запросу (one-shot, дополнительно к auto 5Гц)
   if (c == "dg_sn") {
     sendDgSnap();
     return;
@@ -7571,7 +7536,6 @@ void processDgCmd(const String& c) {
 }
 
 void sendDgSnap() {
-  // CSV: cr1,cr2,cr3,cr4,win,crime,start,volt,uptime
   Serial.print(F("dgs:"));
   Serial.print(digitalRead(firstCrystal));   Serial.print(',');
   Serial.print(digitalRead(secondCrystal));  Serial.print(',');

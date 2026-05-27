@@ -8,6 +8,8 @@ const unsigned long lockerInterval = 8000;  // Интервал 8 секунд
 const unsigned long lockerDuration = 500;   // Длительность открытия 0.5 секунды
 bool lockerActive = false;                  // Флаг активности открытия
 bool owlCommandReceived = 0;
+unsigned long owlArmedAt = 0;  // 2026-05-27 timestamp when owlCommandReceived set true
+const unsigned long OWL_GUARD_MS = 1000;  // guard period after arm — suppresses immediate false-fires
 int state = 0;
 int owl = 0;
 
@@ -173,6 +175,7 @@ void processOwlCommand(String command) {
   if (command == "owl") {
     state = 0;
     owlCommandReceived = true;
+    owlArmedAt = millis();  // 2026-05-27: запоминаем момент arming для guard'а
     F = false;
     for (int i = 0; i < NUM_TILE_LEDS; i++) {
       tileLeds[i] = CRGB::Black;
@@ -347,7 +350,13 @@ void checkOwlButton() {
 
   // Заменено isHold() на isPress() и убрана логика с флагом F.
   // Теперь команда может быть отправлена только один раз за сессию.
-  if (owlCommandReceived && PIN_HERKON_OWA.isPress()) {
+  // 2026-05-27: добавлен GUARD период (OWL_GUARD_MS=1000) после arming.
+  // Защита от ложного срабатывания PIN_HERKON_OWA сразу после команды "owl"
+  // (например электрические помехи на длинном проводе геркона или дребезг).
+  // Игроку незаметно (он идёт до башни 2-5 секунд).
+  if (owlCommandReceived
+      && (millis() - owlArmedAt > OWL_GUARD_MS)
+      && PIN_HERKON_OWA.isPress()) {
     owlCommandReceived = false;  // Предотвращаем повторное срабатывание
     Serial.println("door_owl");
     Serial1.println("door_owl");
