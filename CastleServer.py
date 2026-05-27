@@ -1618,73 +1618,68 @@ def _test_audio_disable():
         pass
     return {'restored': restored}
 
-# === 2026-05-27: scan + convert all WAV в /home/pi/New/ к 16-bit PCM ===
-# CLC заливается клиентом по Samba — может прийти 24/32-bit WAV из DAW.
-# pygame.mixer не грузит ничего кроме 16-bit → "Sound load failed" → тишина.
-# Запускается с кнопки на /tech "Конвертировать аудио в 16-bit".
-@socketio.on('convert_audio_bitdepth')
-def handle_convert_audio_bitdepth():
-    def _run():
-        import wave as wave_module
-        import shutil as _sh
-        import subprocess as _sp
-        if not _sh.which('sox'):
-            socketio.emit('audio_convert_result',
-                          {'ok': False, 'error': 'sox не установлен на Pi (apt install -y sox)'}, to=None)
-            return
-        scan_dir = GAME_AUDIO_DIR  # /home/pi/New
-        scanned = 0
-        converted_list = []
-        skipped_list = []
-        errors_list = []
-        socketio.emit('audio_convert_progress',
-                      {'phase': 'start', 'dir': scan_dir}, to=None)
+# === 2026-05-27: auto-конвертация WAV к 16-bit PCM ===
+# Helper-функция: сканирует GAME_AUDIO_DIR, конвертит не-16-bit через sox.
+# Вызывается из handle_audio_check (перед проверкой) и при старте сервера.
+# Раньше была отдельная кнопка на /tech, убрали — должно быть автоматически (как WC).
+def _auto_convert_audio_bitdepth(emit_progress=False):
+    """Возвращает dict: {ok, scanned, converted: [{file, from_bits}], skipped, errors: [{file, error}]}"""
+    import wave as wave_module
+    import shutil as _sh
+    import subprocess as _sp
+    if not _sh.which('sox'):
+        return {'ok': False, 'error': 'sox not installed (apt install -y sox)',
+                'converted': [], 'errors': [], 'scanned': 0, 'skipped': 0}
+    scan_dir = GAME_AUDIO_DIR
+    scanned = 0
+    converted_list = []
+    skipped_list = []
+    errors_list = []
+    try:
+        files = sorted([f for f in os.listdir(scan_dir) if f.lower().endswith('.wav')])
+    except Exception as e:
+        return {'ok': False, 'error': f'list dir failed: {e}',
+                'converted': [], 'errors': [], 'scanned': 0, 'skipped': 0}
+    total = len(files)
+    for i, fname in enumerate(files):
+        path = os.path.join(scan_dir, fname)
         try:
-            files = sorted([f for f in os.listdir(scan_dir) if f.lower().endswith('.wav')])
+            with wave_module.open(path, 'rb') as w:
+                sampwidth = w.getsampwidth()
         except Exception as e:
-            socketio.emit('audio_convert_result',
-                          {'ok': False, 'error': f'list dir failed: {e}'}, to=None)
-            return
-        total = len(files)
-        for i, fname in enumerate(files):
-            path = os.path.join(scan_dir, fname)
-            try:
-                with wave_module.open(path, 'rb') as w:
-                    sampwidth = w.getsampwidth()
-            except Exception as e:
-                errors_list.append({'file': fname, 'error': f'wave read: {e}'})
-                continue
-            scanned += 1
+            errors_list.append({'file': fname, 'error': f'wave read: {e}'})
+            continue
+        scanned += 1
+        if sampwidth == 2:
+            skipped_list.append(fname)
+            continue
+        if emit_progress:
             socketio.emit('audio_convert_progress',
                           {'phase': 'scan', 'current': i+1, 'total': total,
                            'file': fname, 'bits': sampwidth*8}, to=None)
-            if sampwidth == 2:
-                skipped_list.append(fname)
-                continue
-            # Конвертация в 16-bit через sox
-            tmp = path + '.16bit.tmp.wav'
-            try:
-                r = _sp.run(['sox', path, '-b', '16', tmp],
-                            capture_output=True, timeout=60, text=True)
-                if r.returncode == 0 and os.path.exists(tmp):
-                    os.replace(tmp, path)
-                    converted_list.append({'file': fname, 'from_bits': sampwidth*8})
-                    logger.info(f"[AUDIO-CONVERT] {fname}: {sampwidth*8}-bit → 16-bit")
-                else:
-                    if os.path.exists(tmp):
-                        try: os.remove(tmp)
-                        except: pass
-                    errors_list.append({'file': fname, 'error': f'sox rc={r.returncode}: {r.stderr[:200]}'})
-            except Exception as e:
-                errors_list.append({'file': fname, 'error': f'sox exception: {e}'})
-        socketio.emit('audio_convert_result',
-                      {'ok': True, 'scanned': scanned,
-                       'converted': converted_list,
-                       'skipped': len(skipped_list),
-                       'errors': errors_list}, to=None)
+        tmp = path + '.16bit.tmp.wav'
+        try:
+            r = _sp.run(['sox', path, '-b', '16', tmp],
+                        capture_output=True, timeout=60, text=True)
+            if r.returncode == 0 and os.path.exists(tmp):
+                os.replace(tmp, path)
+                converted_list.append({'file': fname, 'from_bits': sampwidth*8})
+                logger.info(f"[AUDIO-CONVERT] {fname}: {sampwidth*8}-bit → 16-bit")
+            else:
+                if os.path.exists(tmp):
+                    try: os.remove(tmp)
+                    except: pass
+                errors_list.append({'file': fname, 'error': f'sox rc={r.returncode}: {r.stderr[:200]}'})
+        except Exception as e:
+            errors_list.append({'file': fname, 'error': f'sox exception: {e}'})
+    result = {'ok': True, 'scanned': scanned,
+              'converted': converted_list,
+              'skipped': len(skipped_list),
+              'errors': errors_list}
+    if converted_list or errors_list:
         logger.info(f"[AUDIO-CONVERT] Done: scanned={scanned}, converted={len(converted_list)}, "
                     f"skipped={len(skipped_list)}, errors={len(errors_list)}")
-    socketio.start_background_task(_run)
+    return result
 
 @socketio.on('test_audio_set')
 def handle_test_audio_set(data):
@@ -1719,6 +1714,12 @@ def handle_audio_check():
     def run_check():
         import re
         import wave as wave_module
+
+        # 2026-05-27: автоконвертация 24/32-bit WAV в 16-bit ДО проверки.
+        # Раньше была отдельная кнопка, теперь это часть "Проверить аудио"
+        # (как WC делает на upload). Эмитит audio_convert_progress/result в UI.
+        conv_result = _auto_convert_audio_bitdepth(emit_progress=True)
+        socketio.emit('audio_convert_result', conv_result, to=None)
 
         all_suffixes = ['ru', 'en', 'ar', 'fr', 'uk', 'pl']
 

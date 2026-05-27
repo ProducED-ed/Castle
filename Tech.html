@@ -118,22 +118,17 @@
                 </button>
             </div>
             <div class="column">
-                <button class="ui blue fluid button" id="btn-audio-check" onclick="checkAudio()">
-                    <i class="volume up icon"></i> <span data-i18n="btn_audio_check">Проверить аудио</span>
-                </button>
-                <!-- Toggle тестовых звуков (короткие заглушки для быстрого прогона на сборке) -->
-                <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="margin-top:10px; color:#fff;">
-                    <input type="checkbox" id="test-audio-toggle"/>
-                    <label style="color:#fff !important;" data-i18n="test_audio_label">Тестовые звуки (заглушки RU)</label>
+                <!-- Кнопка + toggle на одной строке -->
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap;">
+                    <button class="ui blue button" id="btn-audio-check" onclick="checkAudio()" style="margin:0; white-space:nowrap;">
+                        <i class="volume up icon"></i> <span data-i18n="btn_audio_check">Проверить аудио</span>
+                    </button>
+                    <div class="ui toggle checkbox" id="test-audio-toggle-wrap" style="color:#fff; flex:1; min-width:0;">
+                        <input type="checkbox" id="test-audio-toggle"/>
+                        <label style="color:#fff !important;" data-i18n="test_audio_label">Тестовые звуки (заглушки RU)</label>
+                    </div>
                 </div>
                 <div id="test-audio-status" style="margin-top:6px; font-size:0.85em; color:#aaa;" data-i18n="test_audio_status_full">Игровые звуки (полные)</div>
-                <!-- Конвертация WAV в 16-bit (после загрузки новых звуков по Samba) -->
-                <button class="ui mini button" id="btn-audio-convert" onclick="convertAudio()" style="margin-top:10px;">
-                    <i class="exchange icon"></i> <span data-i18n="btn_audio_convert">Конвертировать аудио в 16-bit</span>
-                </button>
-                <div id="audio-convert-status" style="margin-top:6px; font-size:0.85em; color:#aaa;" data-i18n="audio_convert_hint">
-                    Запускать после загрузки новых .wav через Samba (pygame не грузит 24/32-bit)
-                </div>
             </div>
         </div>
 
@@ -1000,40 +995,25 @@
             }
         });
 
-        // ============ Конвертация WAV в 16-bit ============
-        function convertAudio() {
-            const $btn = $('#btn-audio-convert');
-            const $status = $('#audio-convert-status');
-            if ($btn.hasClass('loading')) return;
-            $btn.addClass('loading disabled');
-            $status.text('Сканирование...').css('color', '#f1c40f');
-            socket.emit('convert_audio_bitdepth');
-        }
+        // ============ Авто-конвертация прогресс/итог (вызывается из "Проверить аудио") ============
         socket.on('audio_convert_progress', function(data) {
-            if (data.phase === 'scan') {
-                $('#audio-convert-status').text(
-                    `Проверка ${data.current}/${data.total}: ${data.file} (${data.bits}-bit)`
-                ).css('color', '#f1c40f');
+            if (data.phase === 'scan' && data.current && data.total) {
+                appendToTerminal(`[AUDIO-CONVERT] ${data.current}/${data.total}: ${data.file} (${data.bits}-bit)\n`, '#aaa');
             }
         });
         socket.on('audio_convert_result', function(data) {
-            $('#btn-audio-convert').removeClass('loading disabled');
             if (!data.ok) {
-                $('#audio-convert-status').text('Ошибка: ' + (data.error || 'unknown')).css('color', '#e74c3c');
-                appendToTerminal('[AUDIO-CONVERT] Ошибка: ' + data.error + '\n', '#e74c3c');
+                appendToTerminal('[AUDIO-CONVERT] Ошибка: ' + (data.error || 'unknown') + '\n', '#e74c3c');
                 return;
             }
             const conv = data.converted || [];
             const errs = data.errors || [];
-            let msg = `Просканировано: ${data.scanned}, конвертировано: ${conv.length}, пропущено (уже 16-bit): ${data.skipped}`;
-            if (errs.length) msg += `, ошибок: ${errs.length}`;
-            $('#audio-convert-status').text(msg).css('color', conv.length ? '#2ecc71' : '#aaa');
-            appendToTerminal('[AUDIO-CONVERT] ' + msg + '\n', conv.length ? '#2ecc71' : '#aaa');
             if (conv.length) {
-                appendToTerminal('  Конвертированы: ' + conv.map(c => `${c.file} (${c.from_bits}→16)`).join(', ') + '\n', '#3498db');
+                appendToTerminal(`[AUDIO-CONVERT] Авто-конвертировано в 16-bit: ${conv.length} файлов\n`, '#2ecc71');
+                appendToTerminal('  ' + conv.map(c => `${c.file} (${c.from_bits}→16)`).join(', ') + '\n', '#3498db');
             }
             if (errs.length) {
-                appendToTerminal('  Ошибки: ' + errs.map(e => `${e.file}: ${e.error}`).join(' | ') + '\n', '#e74c3c');
+                appendToTerminal('  Ошибки конвертации: ' + errs.map(e => `${e.file}: ${e.error}`).join(' | ') + '\n', '#e74c3c');
             }
         });
 
