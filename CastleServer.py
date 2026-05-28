@@ -3761,6 +3761,21 @@ def tmr(res):
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
          send_esp32_command(ESP32_API_SAFE_URL, "restart")
+         # 2026-05-28 (Вариант C): на рестарте авто-открываем двери башни Basket
+         # (троль + баскет). basket3 открывает локеры только на manual-команды,
+         # а пульт-Restart шлёт башням "ready" (сброс, без открытия). Поэтому
+         # ДОПОЛНИТЕЛЬНО шлём open_basket_door/open_mine_door через 3 сек —
+         # после того как Mega войдёт в RestOn и Basket сбросится в state 0
+         # (иначе reset обнулит manual-hold). Работает с фиксом basket3 DoorDefender.
+         def _open_basket_tower_doors_after_restart():
+             eventlet.sleep(3)
+             serial_write_queue.put('open_basket_door')
+             process_serial_queue()
+             eventlet.sleep(0.3)
+             serial_write_queue.put('open_mine_door')
+             process_serial_queue()
+             logger.info("[RESTART] Авто-открытие дверей Basket tower (троль+баскет)")
+         eventlet.spawn_n(_open_basket_tower_doors_after_restart)
          rating = 0
          star = 0
          rateTime = ''
