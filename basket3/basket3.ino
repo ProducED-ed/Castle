@@ -37,6 +37,13 @@ bool doorFlags = 1;
 bool metallClick;
 unsigned long doorTimer;
 unsigned long doorDef;
+// 2026-05-28: manual-open (open_door/open_mine_door с пульта) держит дверь
+// открываемой N сек через DoorDefender в ЛЮБОМ state. Раньше DoorDefender
+// пульсировал локеры только в game-state 3-7, поэтому в restart/rest (state 0)
+// одиночный OpenLock(300ms) часто не открывал дверь.
+unsigned long manualEM1Until = 0;  // троль/cave дверь (SHERIF_EM1) manual-open до этого времени
+unsigned long manualEM2Until = 0;  // баскет дверь (SHERIF_EM2) manual-open до этого времени
+const unsigned long MANUAL_DOOR_HOLD_MS = 8000;  // 8 сек sustained-открытие после команды
 unsigned long basketTimer;
 bool _restartFlag;
 bool _restartGalet;
@@ -230,6 +237,8 @@ void HandleMessagges(String message) {
       digitalWrite(SHERIF_EM1, LOW);
       digitalWrite(SHERIF_EM2, LOW);
       digitalWrite(Solenoid, LOW);
+      manualEM1Until = 0;  // 2026-05-28 сброс manual-hold при restart/ready
+      manualEM2Until = 0;
       
       digitalWrite(trollLed, LOW);
       digitalWrite(owlLed, LOW);
@@ -293,6 +302,7 @@ void HandleMessagges(String message) {
   // --- ВАЖНЫЙ ФИКС ДЛЯ ДВЕРИ ---
   else if (message == "mine" || message == "open_mine_door") {
     OpenLock(SHERIF_EM1);
+    manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;  // 2026-05-28 sustained-открытие
     digitalWrite(trollLed, HIGH);
     Serial1.println("door_cave");
     if (state < 3) state = 3;
@@ -309,8 +319,8 @@ void HandleMessagges(String message) {
     digitalWrite(trollLed, LOW);
     sendLog("trollLed OFF");
   }
-  if(message == "open_door") OpenLock(SHERIF_EM2);
-  if(message == "opent_basket") { basketDoorAllowed = true; OpenLock(SHERIF_EM2); }
+  if(message == "open_door") { OpenLock(SHERIF_EM2); manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS; }  // 2026-05-28 sustained
+  if(message == "opent_basket") { basketDoorAllowed = true; OpenLock(SHERIF_EM2); manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS; }
 }
 
 void CheckState(bool force) {
@@ -768,19 +778,24 @@ void OpenLock(byte num) {
 }
 
 // Вернули старую логику DoorDefender
+// 2026-05-28: добавлены manual-условия (em1Active/em2Active) — manual-open
+// с пульта (open_mine_door/open_door) держит дверь открываемой MANUAL_DOOR_HOLD_MS
+// в ЛЮБОМ state, не только в game-state 3-7.
 void DoorDefender() {
+  bool em1Active = (state >= 3 && state <= 7) || (millis() < manualEM1Until);
+  bool em2Active = (basketDoorAllowed && state >= 6 && state <= 7) || (millis() < manualEM2Until);
   if (millis() - doorDef >= 3000) {
     if (doorFlags) {
-      if (state >= 3 && state <= 7) digitalWrite(SHERIF_EM1, HIGH);
-      // ФИКС баг2: SHERIF_EM2 (дверь баскетбола) открывается только после
-      // явной команды 'opent_basket' — не раньше, даже если state>=6
-      if (basketDoorAllowed && state >= 6 && state <= 7) digitalWrite(SHERIF_EM2, HIGH);
+      if (em1Active) digitalWrite(SHERIF_EM1, HIGH);
+      // ФИКС баг2: SHERIF_EM2 (дверь баскетбола) в игре открывается только после
+      // явной команды 'opent_basket'. Manual-open (em2Active по таймеру) — независимо.
+      if (em2Active) digitalWrite(SHERIF_EM2, HIGH);
       doorTimer = millis(); doorFlags = 0;
     }
   }
   if (!doorFlags && (millis() - doorTimer >= 50)) {
-      if (state >= 3 && state <= 7) digitalWrite(SHERIF_EM1, LOW);
-      if (basketDoorAllowed && state >= 6 && state <= 7) digitalWrite(SHERIF_EM2, LOW);
+      if (em1Active) digitalWrite(SHERIF_EM1, LOW);
+      if (em2Active) digitalWrite(SHERIF_EM2, LOW);
       doorDef = millis(); doorFlags = 1;
   }
 }
