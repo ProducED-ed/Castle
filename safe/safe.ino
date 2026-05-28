@@ -102,6 +102,13 @@ const char* password = "questquest";
 int language = 1;
 unsigned long doorTimer;
 bool hintFlag=1;
+// 2026-05-28: time-based re-arm для hintFlag. Раньше hintFlag возвращался в 1
+// ТОЛЬКО по событию DFPlayer "трек закончился" (type==11). DFRobotDFPlayerMini
+// ненадёжно парсит events на ESP32 (см. clc-safe-dfplayer-fix) → если событие
+// потеряно, hintFlag навсегда 0 → подсказки больше не играют. Фолбэк: через
+// HINT_REARM_MS после проигрыша подсказки принудительно re-arm.
+unsigned long hintPlayedAt = 0;
+const unsigned long HINT_REARM_MS = 20000;  // 20 сек — re-arm подсказки независимо от DFPlayer event
 int value = 30;
 
 bool safeEndConfirmed = false;      // Флаг подтверждения от сервера
@@ -440,10 +447,21 @@ void loop() {
   }
   handleSerialCommands();
   handlePlayerQueries();
+
+  // 2026-05-28: time-based re-arm hintFlag. Если DFPlayer не прислал событие
+  // "трек закончился" (type==11, ненадёжно на ESP32) — принудительно
+  // восстанавливаем hintFlag через HINT_REARM_MS, чтобы подсказки не умирали
+  // после первого нажатия геркона.
+  if (!hintFlag && hintPlayedAt != 0 && (millis() - hintPlayedAt > HINT_REARM_MS)) {
+    hintFlag = 1;
+    hintPlayedAt = 0;
+    sendLogToServer("{\"log\":\"Safe: hintFlag re-armed by timeout\"}");
+  }
+
   switch (currentState) {
     case AWAIT_GAME:
       if (digitalRead(REED_SWITCH_2_PIN) == LOW && (millis() - lastDebounceTime_2) > debounceDelay) {
-        if (hintFlag) 
+        if (hintFlag)
         {
           if(language == 1){
             myDFPlayer.playMp3Folder(TRACK_HINT_0_RU);
@@ -470,6 +488,7 @@ void loop() {
             sendLogToServer("{\"log\":\"Safe: Playing Hint 0 (PL)\"}");
           }
           hintFlag = 0;
+          hintPlayedAt = millis();  // 2026-05-28: для time-based re-arm
         }
         lastDebounceTime_2 = millis();
       }
@@ -481,6 +500,7 @@ void loop() {
         myDFPlayer.pause(); // Ставим фоновую музыку на паузу
         delay(50);
         hintFlag = 0;
+        hintPlayedAt = millis();  // 2026-05-28: для time-based re-arm
         if(language == 1){
           myDFPlayer.playMp3Folder(TRACK_STORY_28_RU);
           sendLogToServer("{\"log\":\"Safe: Playing Story 28 (RU)\"}");
@@ -566,6 +586,7 @@ void loop() {
             }
           }
           hintFlag = 0;
+          hintPlayedAt = millis();  // 2026-05-28: для time-based re-arm
           hint_counter++;
           if(hint_counter > 1){
             hint_counter = 0;
