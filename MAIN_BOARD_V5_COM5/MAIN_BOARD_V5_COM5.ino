@@ -65,10 +65,7 @@ Adafruit_NeoPixel CauldronRoomStrip = Adafruit_NeoPixel(CauldronRoomStripIndicCo
 Adafruit_NeoPixel memory_Led = Adafruit_NeoPixel(memory_LedIndicCount, memory_LedIndicPin, NEO_GRB + NEO_KHZ800);                       /// финалочка адреска на башне на отдельной нане +20 пин
 
 Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(152, 8, NEO_GRB + NEO_KHZ800);
-// strip2: 101 видимых пикселей ленты полёта мяча + кубок припаян в конце цепочки.
-// Счётчик расширен до 110, чтобы кубок (≈индекс 101) попадал в lt_all и адресовался.
-// 2026-05-29: точный индекс кубка уточняется после перепайки контакта (см. память).
-Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(110, 2, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(101, 2, NEO_GRB + NEO_KHZ800);  // кубок = пиксель 65
 Adafruit_NeoPixel* strips[] = {
   &GoldStrip,
   &CandleStrip,

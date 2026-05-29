@@ -186,6 +186,7 @@
                 <button class="ui blue small button" onclick="stripTestPixel(2)"><span data-i18n="strip_s2">Лента 2 (кубок)</span></button>
                 <button class="ui teal small button" onclick="stripTestPixel(1)"><span data-i18n="strip_s1">Лента 1</span></button>
             </div>
+            <div style="color:#7f8c8d; font-size:0.82em; margin-top:8px;" data-i18n="strip_range">Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)</div>
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
@@ -636,7 +637,8 @@
                 strip_title: "Тест адресной ленты (кубок / полёт мяча)",
                 strip_hint: "Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.",
                 strip_all: "Вся лента (бел.)", strip_off: "Выключить",
-                strip_pixel: "Пиксель №", strip_s2: "Лента 2 (кубок)", strip_s1: "Лента 1"
+                strip_pixel: "Пиксель №", strip_s2: "Лента 2 (кубок)", strip_s1: "Лента 1",
+                strip_range: "Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)"
             },
             en: {
                 title: "Technical Firmware Dashboard",
@@ -670,7 +672,8 @@
                 strip_title: "Addressable strip test (cup / ball flight)",
                 strip_hint: "Works in rest/restart mode. lt2:N lights a single strip-2 pixel green — use it to find the cup's pixel index.",
                 strip_all: "Whole strip (white)", strip_off: "Turn off",
-                strip_pixel: "Pixel #", strip_s2: "Strip 2 (cup)", strip_s1: "Strip 1"
+                strip_pixel: "Pixel #", strip_s2: "Strip 2 (cup)", strip_s1: "Strip 1",
+                strip_range: "Ranges: Strip 1 — pixels 0–151 · Strip 2 — pixels 0–100 (cup = #65)"
             }
         };
         let currentLang = localStorage.getItem('techLang') || 'ru';
