@@ -172,6 +172,22 @@
             </div>
         </div>
 
+        <!-- Панель теста адресной ленты (ball-flight + кубок) -->
+        <div id="strip-test-panel" style="margin-bottom:20px; border:1px solid #444; border-radius:8px; padding:15px; background:#111;">
+            <h4 style="color:#fff; margin-bottom:6px;"><i class="lightbulb icon"></i> <span data-i18n="strip_title">Тест адресной ленты (кубок / полёт мяча)</span></h4>
+            <div style="color:#aaa; font-size:0.85em; margin-bottom:12px;" data-i18n="strip_hint">Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                <button class="ui green small button" onclick="stripTest('lt_all')"><i class="lightbulb icon"></i> <span data-i18n="strip_all">Вся лента (бел.)</span></button>
+                <button class="ui grey small button" onclick="stripTest('lt_off')"><i class="power off icon"></i> <span data-i18n="strip_off">Выключить</span></button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <span style="color:#fff;" data-i18n="strip_pixel">Пиксель №</span>
+                <input type="number" id="strip-pixel" value="65" min="0" max="199" style="width:80px; padding:6px; border-radius:4px; border:1px solid #555; background:#222; color:#fff;"/>
+                <button class="ui blue small button" onclick="stripTestPixel(2)"><span data-i18n="strip_s2">Лента 2 (кубок)</span></button>
+                <button class="ui teal small button" onclick="stripTestPixel(1)"><span data-i18n="strip_s1">Лента 1</span></button>
+            </div>
+        </div>
+
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <button class="ui inverted basic small button" id="btn-autoscroll" onclick="toggleAutoscroll()">
                 <i class="arrow down icon"></i> <span id="btn-autoscroll-text" data-i18n="autoscroll_on">Автоскролл: ВКЛ</span>
@@ -616,7 +632,11 @@
                 board_main: "Главная Плата", board_dog: "Башня Цербер", board_owls: "Башня Совы",
                 board_basket: "Башня Баскетбол", board_workshop: "Башня Мастер", board_train: "Поезд",
                 board_suitcases: "Чемоданы", board_safe: "Сейф", board_wolf: "Волк",
-                lbl_modified: "Изменен:", lbl_flashed: "Прошит:"
+                lbl_modified: "Изменен:", lbl_flashed: "Прошит:",
+                strip_title: "Тест адресной ленты (кубок / полёт мяча)",
+                strip_hint: "Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.",
+                strip_all: "Вся лента (бел.)", strip_off: "Выключить",
+                strip_pixel: "Пиксель №", strip_s2: "Лента 2 (кубок)", strip_s1: "Лента 1"
             },
             en: {
                 title: "Technical Firmware Dashboard",
@@ -646,7 +666,11 @@
                 board_main: "Main Board", board_dog: "Cerberus Tower", board_owls: "Owls Tower",
                 board_basket: "Basketball Tower", board_workshop: "Workshop Tower", board_train: "Train",
                 board_suitcases: "Suitcases", board_safe: "Safe", board_wolf: "Wolf",
-                lbl_modified: "Modified:", lbl_flashed: "Flashed:"
+                lbl_modified: "Modified:", lbl_flashed: "Flashed:",
+                strip_title: "Addressable strip test (cup / ball flight)",
+                strip_hint: "Works in rest/restart mode. lt2:N lights a single strip-2 pixel green — use it to find the cup's pixel index.",
+                strip_all: "Whole strip (white)", strip_off: "Turn off",
+                strip_pixel: "Pixel #", strip_s2: "Strip 2 (cup)", strip_s1: "Strip 1"
             }
         };
         let currentLang = localStorage.getItem('techLang') || 'ru';
@@ -913,6 +937,17 @@
             // Логи делаем чуть более тусклыми, чтобы они отличались от прошивки
             appendToTerminal(line, '#bdc3c7');
         });
+
+        // --- ТЕСТ АДРЕСНОЙ ЛЕНТЫ (кубок / полёт мяча) ---
+        function stripTest(cmd) {
+            socket.emit('tech_strip_test', { cmd: cmd });
+            appendToTerminal('[STRIP] ' + cmd, '#2ecc71');
+        }
+        function stripTestPixel(strip) {
+            var n = parseInt(document.getElementById('strip-pixel').value, 10);
+            if (isNaN(n) || n < 0) n = 0;
+            stripTest('lt' + strip + ':' + n);
+        }
 
         // --- ПЕРЕЗАПУСК СЕРВЕРА ---
         function restartServer() {

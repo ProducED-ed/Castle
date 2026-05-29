@@ -65,7 +65,10 @@ Adafruit_NeoPixel CauldronRoomStrip = Adafruit_NeoPixel(CauldronRoomStripIndicCo
 Adafruit_NeoPixel memory_Led = Adafruit_NeoPixel(memory_LedIndicCount, memory_LedIndicPin, NEO_GRB + NEO_KHZ800);                       /// финалочка адреска на башне на отдельной нане +20 пин
 
 Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(152, 8, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(101, 2, NEO_GRB + NEO_KHZ800);
+// strip2: 101 видимых пикселей ленты полёта мяча + кубок припаян в конце цепочки.
+// Счётчик расширен до 110, чтобы кубок (≈индекс 101) попадал в lt_all и адресовался.
+// 2026-05-29: точный индекс кубка уточняется после перепайки контакта (см. память).
+Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(110, 2, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel* strips[] = {
   &GoldStrip,
   &CandleStrip,
@@ -625,7 +628,7 @@ void handleUfBlinking() {
 void setup() {
   // ДОБАВЛЕНО: Лог о начале загрузки
   Serial.begin(115200);  // Начинаем серийный порт как можно раньше
-  Serial.println("log:main:Booting up...");
+  Serial.println(F("log:main:Booting up..."));
   delay(20);  // Небольшая задержка, чтобы лог успел уйти
   // КОНЕЦ
   pinMode(firstCrystal, INPUT_PULLUP);
@@ -814,7 +817,7 @@ void setup() {
   boyServo.write(0);
   boyServo.detach();
   // --- БЛОК ПРОВЕРКИ БАШЕН ---
-  Serial.println("log:main:Checking towers...");
+  Serial.println(F("log:main:Checking towers..."));
 
   // 1. Очищаем буферы от мусора
   while (Serial1.available()) Serial1.read();
@@ -824,10 +827,10 @@ void setup() {
 
   // 2. Отправляем пинг (команду 'ready' или 'ping', на которую башни реагируют)
   // Башни обычно отвечают логами или статусом на 'ready'
-  Serial1.println("ready");
-  Serial2.println("ready");
-  Serial3.println("ready");
-  mySerial.println("ready");
+  Serial1.println(F("ready"));
+  Serial2.println(F("ready"));
+  Serial3.println(F("ready"));
+  mySerial.println(F("ready"));
 
   // 3. Ждем ответов (Таймаут 2 секунды)
   unsigned long startCheck = millis();
@@ -849,16 +852,16 @@ void setup() {
   // 4. Анализ результатов
   if (t1 && t2 && t3 && t4) {
     // Все башни на связи + Main загрузился
-    Serial.println("log:main:All towers online.");
+    Serial.println(F("log:main:All towers online."));
     delay(100);
-    Serial.println("QUEST_SYSTEM_READY");  // Команда для Python играть звук
+    Serial.println(F("QUEST_SYSTEM_READY"));  // Команда для Python играть звук
   } else {
     // Кто-то молчит
-    Serial.print("log:warn:Missing towers: ");
-    if (!t1) Serial.print("Workshop ");
-    if (!t2) Serial.print("Basket ");
-    if (!t3) Serial.print("Dog ");
-    if (!t4) Serial.print("Owls ");
+    Serial.print(F("log:warn:Missing towers: "));
+    if (!t1) Serial.print(F("Workshop "));
+    if (!t2) Serial.print(F("Basket "));
+    if (!t3) Serial.print(F("Dog "));
+    if (!t4) Serial.print(F("Owls "));
     Serial.println();
     // Звук НЕ играем, так как условие "все контроллеры дали ответ" не выполнено
   }
@@ -935,11 +938,11 @@ void loop() {
   }
   if (level != previousLevel) {
     // ДОБАВЛЕНО: Логирование смены состояния
-    Serial.print("log:main:State changed to ");
+    Serial.print(F("log:main:State changed to "));
     Serial.println(level);
     delay(10);               // ДОБАВЛЕНО: Задержка между логом и командой
                              // КОНЕЦ
-    Serial.print("level_");  // Отправляем префикс
+    Serial.print(F("level_"));  // Отправляем префикс
     Serial.println(level);   // Отправляем номер нового уровня
     previousLevel = level;   // Обновляем "предыдущий" уровень
   }
@@ -951,14 +954,14 @@ void loop() {
   if (waitingForBasketConfirm) {
     if (millis() - basketWatchdogTimer > 3000) {  // Если нет ответа 3 сек
       if (basketRetryCount < MAX_BASKET_RETRIES) {
-        Serial.println("log:warn:Bask Retry");
-        Serial2.println("start_basket");
+        Serial.println(F("log:warn:Bask Retry"));
+        Serial2.println(F("start_basket"));
         basketWatchdogTimer = millis();
         basketRetryCount++;
       } else {
         // ВМЕСТО ТОГО ЧТОБЫ СДАВАТЬСЯ:
         // 1. Сообщаем об ошибке
-        Serial.println("log:err:Bask WD Rst");
+        Serial.println(F("log:err:Bask WD Rst"));
 
         // 2. Сбрасываем счетчик попыток
         basketRetryCount = 0;
@@ -1059,23 +1062,23 @@ void loop() {
           bugTimerScroll = 0;
           for (int i = 0; i < DOORS; i++) active[i] = false;
 
-          Serial1.println("ready");
+          Serial1.println(F("ready"));
           delay(20);
-          Serial2.println("ready");
+          Serial2.println(F("ready"));
           delay(20);
-          Serial3.println("ready");
+          Serial3.println(F("ready"));
           delay(20);
-          mySerial.println("ready");
+          mySerial.println(F("ready"));
           delay(50);
-          mySerial.println("ready");
+          mySerial.println(F("ready"));
 
-          if (digitalRead(startDoorPin)) Serial.println("open_door");
-          if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
-          if (digitalReadExpander(4, board4)) Serial.println("cristal_up");
-          if (digitalReadExpander(7, board1)) Serial.println("boy_out");
-          if (digitalReadExpander(5, board3)) Serial.println("lib_door");
-          if (digitalReadExpander(1, board2)) Serial.println("crime_open");
-          if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println("safe_open");
+          if (digitalRead(startDoorPin)) Serial.println(F("open_door"));
+          if (!digitalRead(galetSwitchesPin)) Serial.println(F("galet_on"));
+          if (digitalReadExpander(4, board4)) Serial.println(F("cristal_up"));
+          if (digitalReadExpander(7, board1)) Serial.println(F("boy_out"));
+          if (digitalReadExpander(5, board3)) Serial.println(F("lib_door"));
+          if (digitalReadExpander(1, board2)) Serial.println(F("crime_open"));
+          if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println(F("safe_open"));
 
           // Выключаем свет
           digitalWrite(MansardLight, LOW);
@@ -1223,10 +1226,10 @@ void PowerOn() {
       strip1.clear(); strip2.clear(); strip1.show(); strip2.show();
 
       ClearSatelliteBuffers();
-      Serial1.println("ready"); delay(10);
-      Serial2.println("ready"); delay(10);
-      Serial3.println("ready"); delay(10);
-      mySerial.println("ready"); delay(10);
+      Serial1.println(F("ready")); delay(10);
+      Serial2.println(F("ready")); delay(10);
+      Serial3.println(F("ready")); delay(10);
+      mySerial.println(F("ready")); delay(10);
 
       unsigned long startWait = millis();
       while (millis() - startWait < 1500) {
@@ -1234,27 +1237,27 @@ void PowerOn() {
         delay(10);
       }
 
-      Serial1.println("start"); delay(10);
-      Serial2.println("start"); delay(10);
-      Serial3.println("start"); delay(10);
-      mySerial.println("start"); delay(10);
+      Serial1.println(F("start")); delay(10);
+      Serial2.println(F("start")); delay(10);
+      Serial3.println(F("start")); delay(10);
+      mySerial.println(F("start")); delay(10);
 
       // === 3. ИМИТАЦИЯ РЕАЛЬНОГО ПРОХОЖДЕНИЯ ===
       // ВАЖНО: Используем обычный delay, чтобы плата не слушала 
       // чужие логи (например, от Мастерской) во время прыжка!
-      Serial2.println("start_troll");
+      Serial2.println(F("start_troll"));
       delay(50);
-      Serial2.println("troll");
+      Serial2.println(F("troll"));
       delay(50);
-      Serial2.println("opent_basket");
+      Serial2.println(F("opent_basket"));
       delay(350);
-      Serial2.println("item_end");
+      Serial2.println(F("item_end"));
       delay(200);
       
       // Очищаем буферы от мусора загрузки башен
       ClearSatelliteBuffers(); 
       
-      Serial.println("log:main:Jumped to Basket (Level 18)");
+      Serial.println(F("log:main:Jumped to Basket (Level 18)"));
       while(Serial.available()) Serial.read();
       return;
     }
@@ -1277,10 +1280,10 @@ void PowerOn() {
       bugTimerScroll = 0;
 
       // 1. Сначала шлем всем RESET/READY
-      Serial1.println("ready");
-      Serial2.println("ready");
-      Serial3.println("ready");
-      mySerial.println("ready");
+      Serial1.println(F("ready"));
+      Serial2.println(F("ready"));
+      Serial3.println(F("ready"));
+      mySerial.println(F("ready"));
 
       // 2. Ждем, пока они проплюются логами о загрузке
       delay(1500);
@@ -1289,22 +1292,22 @@ void PowerOn() {
       ClearSatelliteBuffers();
 
       // 4. Теперь просим прислать ЧИСТЫЙ статус
-      Serial1.println("check_state");
+      Serial1.println(F("check_state"));
       delay(50);  // Workshop
-      Serial2.println("check_state");
+      Serial2.println(F("check_state"));
       delay(50);  // Basket
-      Serial3.println("check_state");
+      Serial3.println(F("check_state"));
       delay(50);  // Dog
-      mySerial.println("check_state");
+      mySerial.println(F("check_state"));
       delay(50);  // Owls
 
-      if (digitalRead(startDoorPin)) Serial.println("open_door");
-      if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
-      if (digitalReadExpander(4, board4)) Serial.println("cristal_up");
-      if (digitalReadExpander(7, board1)) Serial.println("boy_out");
-      if (digitalReadExpander(5, board3)) Serial.println("lib_door");
-      if (digitalReadExpander(1, board2)) Serial.println("crime_open");  // Концевик в замке (локере)
-      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println("safe_open");
+      if (digitalRead(startDoorPin)) Serial.println(F("open_door"));
+      if (!digitalRead(galetSwitchesPin)) Serial.println(F("galet_on"));
+      if (digitalReadExpander(4, board4)) Serial.println(F("cristal_up"));
+      if (digitalReadExpander(7, board1)) Serial.println(F("boy_out"));
+      if (digitalReadExpander(5, board3)) Serial.println(F("lib_door"));
+      if (digitalReadExpander(1, board2)) Serial.println(F("crime_open"));  // Концевик в замке (локере)
+      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println(F("safe_open"));
 
       digitalWrite(MansardLight, LOW);
       digitalWrite(LastTowerTopLight, LOW);
@@ -1333,14 +1336,14 @@ void PowerOn() {
       boyServo.write(0);
       delay(1000);
       boyServo.detach();
-      Serial.println("modalend");
+      Serial.println(F("modalend"));
       delay(100);
-      mySerial.println("start");
-      Serial1.println("start");
-      Serial2.println("start");
-      Serial3.println("start");
+      mySerial.println(F("start"));
+      Serial1.println(F("start"));
+      Serial2.println(F("start"));
+      Serial3.println(F("start"));
       delay(1000);
-      Serial.println("startgo");
+      Serial.println(F("startgo"));
       isStartDoorOpenedGlobal = false;
       // ... (сброс переменных) ...
       _dataQueue = 0;
@@ -1387,16 +1390,16 @@ void PowerOn() {
     else if (buff == "open_crime_door") OpenDoor(CrimeDoor);
     else if (buff == "open_bank_door") OpenDoor(BankDoor);
     else if (buff == "open_potion_door") OpenDoor(PotionsRoomDoor);
-    else if (buff == "open_owl_door") mySerial.println("open_door");
-    else if (buff == "open_dog_door") Serial3.println("open_door");
+    else if (buff == "open_owl_door") mySerial.println(F("open_door"));
+    else if (buff == "open_dog_door") Serial3.println(F("open_door"));
     else if (buff == "open_low_tower_door") OpenDoor(HightTowerDoor);
     else if (buff == "open_high_tower_door") OpenDoor(HightTowerDoor2);
     else if (buff == "open_library_door") OpenDoor(LibraryDoor);
-    else if (buff == "open_workshop_door") Serial1.println("open_door");
+    else if (buff == "open_workshop_door") Serial1.println(F("open_door"));
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
-    else if (buff == "open_basket_door") Serial2.println("open_door");
-    else if (buff == "open_mine_door") Serial2.println("open_mine_door");
+    else if (buff == "open_basket_door") Serial2.println(F("open_door"));
+    else if (buff == "open_mine_door") Serial2.println(F("open_mine_door"));
     // 2026-05-28: dg_on handler УДАЛЁН (DIAG mode убран).
     // === check_towers handler ===
     else if (buff == "check_towers") {
@@ -1411,6 +1414,7 @@ void PowerOn() {
       Serial.print(F(",owls="));
       Serial.println((lastSeenOwls && (now - lastSeenOwls) < w) ? 1 : 0);
     }
+    else if (handleStripTest(buff)) { /* тест ленты (PowerOn) */ }
     else Unlocks(buff);
   }
 }
@@ -1463,30 +1467,30 @@ void HelpTowersHandler() {
 
         // Обрабатываем специфичные команды, СТРОГОЕ РАВЕНСТВО (Защита от эха логов)
         if (serial1Buffer == "fire1") {
-          Serial.println("fire1");
+          Serial.println(F("fire1"));
         } else if (serial1Buffer == "fire2") {
-          Serial.println("fire2");
+          Serial.println(F("fire2"));
         } else if (serial1Buffer == "fire3") {
-          Serial.println("fire3");
+          Serial.println(F("fire3"));
         } else if (serial1Buffer == "fire0") {
-          Serial.println("fire0");
+          Serial.println(F("fire0"));
         } else if (serial1Buffer == "item_add") {
-          Serial.println("item_add");
+          Serial.println(F("item_add"));
         } else if (serial1Buffer == "broom") {
-          Serial.println("broom");
+          Serial.println(F("broom"));
         } else if (serial1Buffer == "helmet") {
-          Serial.println("helmet");
+          Serial.println(F("helmet"));
         } else if (serial1Buffer == "story_35") {
-          Serial.println("story_35");
-          Serial1.println("item_end");
-          Serial2.println("item_end");
-          Serial3.println("item_end");
-          mySerial.println("item_end");
+          Serial.println(F("story_35"));
+          Serial1.println(F("item_end"));
+          Serial2.println(F("item_end"));
+          Serial3.println(F("item_end"));
+          mySerial.println(F("item_end"));
           delay(1000);
-          Serial1.println("day_off");
-          Serial2.println("day_off");
-          Serial3.println("day_off");
-          mySerial.println("day_off");
+          Serial1.println(F("day_off"));
+          Serial2.println(F("day_off"));
+          Serial3.println(F("day_off"));
+          mySerial.println(F("day_off"));
           GoldStrip.clear();
           CandleStrip.clear();
           CauldronStrip.clear();
@@ -1541,26 +1545,26 @@ void HelpTowersHandler() {
         // 2. БАЗОВАЯ СТРАХОВКА (Мальчик и Баскетбол)
         if (serial2Buffer == "confirm_start") {
           waitingForBasketConfirm = false;
-          Serial.println("log:main:Bask WD OK");
+          Serial.println(F("log:main:Bask WD OK"));
         } else if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Boy removed") != -1) {
-          Serial.println("log:main:Ins:boy_out");
+          Serial.println(F("log:main:Ins:boy_out"));
           delay(10);
-          if (level == 18) Serial.println("boy_out_lesson");
-          else if (level == 19) Serial.println("boy_out_game");
-          else if (level == 17) Serial.println("crime_end");
-          else Serial.println("boy_out");
+          if (level == 18) Serial.println(F("boy_out_lesson"));
+          else if (level == 19) Serial.println(F("boy_out_game"));
+          else if (level == 17) Serial.println(F("crime_end"));
+          else Serial.println(F("boy_out"));
         } else if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Sent boy_in_lesson") != -1) {
-          Serial.println("log:main:Ins:boy_in_L");
+          Serial.println(F("log:main:Ins:boy_in_L"));
           delay(10);
-          Serial.println("boy_in_lesson");
+          Serial.println(F("boy_in_lesson"));
         } else if (serial2Buffer.startsWith("log:") && serial2Buffer.indexOf("Boy returned") != -1) {
-          Serial.println("log:main:Ins:boy_in_G");
+          Serial.println(F("log:main:Ins:boy_in_G"));
           delay(10);
-          Serial.println("boy_in_game");
+          Serial.println(F("boy_in_game"));
         } else if (serial2Buffer == "boy_in_lesson") {
-          Serial.println("boy_in_lesson");
+          Serial.println(F("boy_in_lesson"));
         } else if (serial2Buffer == "boy_out_lesson") {
-          Serial.println("boy_out_lesson");
+          Serial.println(F("boy_out_lesson"));
         } else if (serial2Buffer == "help") {
           HelpHandler("troll");
         }
@@ -1569,25 +1573,25 @@ void HelpTowersHandler() {
         // Используем строгое равенство (==), чтобы обрывки строк не ломали игру
         if (level == 7) {
           if (serial2Buffer == "aluminium") {
-            Serial.println("cave_search1");
-            Serial2.println("cave_search1");  // Открываем следующий этап
+            Serial.println(F("cave_search1"));
+            Serial2.println(F("cave_search1"));  // Открываем следующий этап
           } else if (serial2Buffer == "bronze") {
-            Serial.println("cave_search2");
-            Serial2.println("cave_search2");
+            Serial.println(F("cave_search2"));
+            Serial2.println(F("cave_search2"));
           } else if (serial2Buffer == "copper") {
-            Serial.println("cave_search3");
-            Serial2.println("cave_search3");
+            Serial.println(F("cave_search3"));
+            Serial2.println(F("cave_search3"));
           } else if (serial2Buffer == "cave_end") {
-            Serial.println("cave_end");
+            Serial.println(F("cave_end"));
             isTrollEnd = 1;
           } else if (serial2Buffer == "cave_click") {
-            Serial.println("cave_click");
+            Serial.println(F("cave_click"));
           } else if (serial2Buffer == "cave_reset") {
-            Serial.println("cave_reset");
+            Serial.println(F("cave_reset"));
           } else if (serial2Buffer == "cave_repeat") {
-            Serial.println("cave_repeat");
+            Serial.println(F("cave_repeat"));
           } else if (serial2Buffer == "door_cave") {
-            Serial.println("door_cave");
+            Serial.println(F("door_cave"));
           } else if (serial2Buffer == "metal") {
             GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
             GoldStrip.show();
@@ -1595,11 +1599,11 @@ void HelpTowersHandler() {
             CauldronStrip.show();
             potionPulsation = 0;
 
-            Serial1.println("metal");
-            Serial.println("item_find:metal");
-            Serial3.println("item_find");
-            mySerial.println("item_find");
-            Serial2.println("item_find");  // Обязательно отвечаем башне
+            Serial1.println(F("metal"));
+            Serial.println(F("item_find:metal"));
+            Serial3.println(F("item_find"));
+            mySerial.println(F("item_find"));
+            Serial2.println(F("item_find"));  // Обязательно отвечаем башне
           }
         }
       }
@@ -1644,9 +1648,9 @@ void HelpTowersHandler() {
 
         // ДОБАВЛЕНО: Страховка на случай потери команды owl_end
         if (mySerialBuffer.startsWith("log:") && mySerialBuffer.indexOf("owls_complete") != -1) {
-          Serial.println("log:main:Ins:owl_end");
+          Serial.println(F("log:main:Ins:owl_end"));
           delay(10);
-          Serial.println("owl_end");
+          Serial.println(F("owl_end"));
         }
         // КОНЕЦ
 
@@ -1656,15 +1660,15 @@ void HelpTowersHandler() {
 
         // Свет вкл
         if (mySerialBuffer.indexOf("light") != -1 && mySerialBuffer.indexOf("light_off") == -1) {
-          Serial1.println("light_on");
-          Serial2.println("light_on");
-          Serial3.println("light_on");
+          Serial1.println(F("light_on"));
+          Serial2.println(F("light_on"));
+          Serial3.println(F("light_on"));
         }
         // Свет выкл
         else if (mySerialBuffer.indexOf("dark") != -1) {
-          Serial1.println("light_off");
-          Serial2.println("light_off");
-          Serial3.println("light_off");
+          Serial1.println(F("light_off"));
+          Serial2.println(F("light_off"));
+          Serial3.println(F("light_off"));
         }
 
         // Если чистая команда "help" потерялась, сработаем по логу
@@ -1865,7 +1869,7 @@ void StartDoor() {
 
   // ИСПРАВЛЕНИЕ: Используем isStartDoorOpenedGlobal вместо doorOpened
   if (startDoor.isRelease() && !isStartDoorOpenedGlobal) {
-    Serial.println("open_door");
+    Serial.println(F("open_door"));
     digitalWrite(HallLight, HIGH);
 
     // ВАЖНО: Ставим глобальный флаг в true, чтобы не срабатывало повторно
@@ -1907,7 +1911,7 @@ void StartDoor() {
   // Таймер для повтора подсказки дракона
   if (millis() - dragonTimer >= 120000) {
     if (!dragonFlag) {
-      Serial.println("dragon_crystal_repeat");
+      Serial.println(F("dragon_crystal_repeat"));
     }
     dragonTimer = millis();
   }
@@ -1918,7 +1922,7 @@ void StartDoor() {
     buff.trim();
 
     if (buff == "skip_start_door") {
-      Serial.println("open_door");  // Отправляем сигнал на сервер, будто дверь открыли руками
+      Serial.println(F("open_door"));  // Отправляем сигнал на сервер, будто дверь открыли руками
       digitalWrite(HallLight, HIGH);
       isStartDoorOpenedGlobal = true;
 
@@ -1966,7 +1970,7 @@ void ClockGame() {
 
   if (millis() - KayTimer >= 30000) {
     if (clockRepeat) {
-      Serial.println("kay_clockRepeat");
+      Serial.println(F("kay_clockRepeat"));
       clockRepeat = 0;
     }
   }
@@ -1984,7 +1988,7 @@ void ClockGame() {
 
   // 2. Если датчик АКТИВЕН (магнит есть) И (&&) курок взведен (!clockSwitchMustBeOffFirst)
   if (reading && !clockSwitchMustBeOffFirst) {
-    Serial.println("clock1");
+    Serial.println(F("clock1"));
     digitalWrite(UfHallLight, HIGH);
     digitalWrite(HallLight, LOW);
     clockRepeat = 0;
@@ -1999,7 +2003,7 @@ void ClockGame() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "first_clock") {
-      Serial.println("clock1");
+      Serial.println(F("clock1"));
       digitalWrite(UfHallLight, HIGH);
       digitalWrite(HallLight, LOW);
       level++;
@@ -2013,7 +2017,7 @@ void ClockGame() {
     }
     if (buff == "kay_clockRepeat") {
       clockRepeat = 1;
-      Serial.println("kay");
+      Serial.println(F("kay"));
       KayTimer = millis();
     }
     if (buff.indexOf("restart") != -1) {
@@ -2038,7 +2042,7 @@ void Clock2Game() {
   //clock3Button.tick();
   //if (clock3Button.isPress()) {
   if (!digitalReadExpander(2, board2)) {
-    Serial.println("clock2");
+    Serial.println(F("clock2"));
     if (!isUfBlinking) {  // Запускаем, только если еще не мигает
       isUfBlinking = true;
       ufBlinkCount = 0;
@@ -2054,7 +2058,7 @@ void Clock2Game() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "second_clock") {
-      Serial.println("clock2");
+      Serial.println(F("clock2"));
       //OpenLock(MansardDoor);
 
       // Добавлена логика мигания и выключения УФ-светодиода,
@@ -2119,7 +2123,7 @@ void GaletGame() {
   if (!galetStartSteps) galetStepsTimer = millis();
   if (millis() - galetStepsTimer >= 6000) {
     if (galetStartSteps) {
-      Serial.println("steps");  // Это запустит story_4 на сервере
+      Serial.println(F("steps"));  // Это запустит story_4 на сервере
       galetStartSteps = 0;
     }
   }
@@ -2132,7 +2136,7 @@ void GaletGame() {
 
       // 1. ОТЛАДКА: Показываем серверу, что именно пришло
       if (buff.length() > 0) {
-        Serial.print("log:debug:GaletGame_RX: ");
+        Serial.print(F("log:debug:GaletGame_RX: "));
         Serial.println(buff);
       }
 
@@ -2206,13 +2210,13 @@ void GaletGame() {
     galetInit4 = false;
 
     // Агрессивный опрос при старте
-    Serial1.println("check_state");
+    Serial1.println(F("check_state"));
     delay(20);
-    Serial2.println("check_state");
+    Serial2.println(F("check_state"));
     delay(20);
-    Serial3.println("check_state");
+    Serial3.println(F("check_state"));
     delay(20);
-    mySerial.println("check_state");
+    mySerial.println(F("check_state"));
     delay(20);
 
     galetSwitches.tick();
@@ -2237,14 +2241,14 @@ void GaletGame() {
   unsigned long refreshInterval = systemReady ? 20000 : 6000;
   if (!galetVictorySent && (millis() - galetRefreshTowerTimer > refreshInterval)) {
     galetRefreshTowerTimer = millis();
-    Serial1.println("check_state");
+    Serial1.println(F("check_state"));
     delay(10);
-    Serial2.println("check_state");
+    Serial2.println(F("check_state"));
     delay(10);
-    Serial3.println("check_state");
+    Serial3.println(F("check_state"));
     delay(10);
-    mySerial.println("check_state");
-    if (galetG5) Serial.println("galet1");
+    mySerial.println(F("check_state"));
+    if (galetG5) Serial.println(F("galet1"));
   }
 
   // 4. ЧТЕНИЕ ЛОКАЛЬНОГО ГАЛЕТНИКА
@@ -2252,8 +2256,8 @@ void GaletGame() {
   bool currentGalet5State = galetSwitches.state();
   if (currentGalet5State != galetG5) {
     galetG5 = currentGalet5State;
-    if (galetG5) Serial.println("galet1");
-    else Serial.println("galet1_off");
+    if (galetG5) Serial.println(F("galet1"));
+    else Serial.println(F("galet1_off"));
   }
 
   // 5. ЧТЕНИЕ УДАЛЕННЫХ БАШЕН
@@ -2267,11 +2271,11 @@ void GaletGame() {
     } else if (buf1 == "galet_on") {
       galetG1 = true;
       galetInit1 = true;
-      Serial.println("galet2");
+      Serial.println(F("galet2"));
     } else if (buf1 == "galet_off") {
       galetG1 = false;
       galetInit1 = true;
-      Serial.println("galet2_off");
+      Serial.println(F("galet2_off"));
     }
   }
   while (Serial2.available()) {  // Basket
@@ -2284,11 +2288,11 @@ void GaletGame() {
     } else if (buf2 == "galet_on") {
       galetG2 = true;
       galetInit2 = true;
-      Serial.println("galet3");
+      Serial.println(F("galet3"));
     } else if (buf2 == "galet_off") {
       galetG2 = false;
       galetInit2 = true;
-      Serial.println("galet3_off");
+      Serial.println(F("galet3_off"));
     }
   }
   while (Serial3.available()) {  // Dog
@@ -2301,11 +2305,11 @@ void GaletGame() {
     } else if (buf3 == "galet_on") {
       galetG3 = true;
       galetInit3 = true;
-      Serial.println("galet4");
+      Serial.println(F("galet4"));
     } else if (buf3 == "galet_off") {
       galetG3 = false;
       galetInit3 = true;
-      Serial.println("galet4_off");
+      Serial.println(F("galet4_off"));
     }
   }
   while (mySerial.available()) {  // Owls
@@ -2318,11 +2322,11 @@ void GaletGame() {
     } else if (buf4 == "galet_on" || buf4 == "owls_galet_on") {
       galetG4 = true;
       galetInit4 = true;
-      Serial.println("galet5");
+      Serial.println(F("galet5"));
     } else if (buf4 == "galet_off" || buf4 == "owls_galet_off") {
       galetG4 = false;
       galetInit4 = true;
-      Serial.println("galet5_off");
+      Serial.println(F("galet5_off"));
     }
   }
 
@@ -2338,7 +2342,7 @@ void GaletGame() {
     // ПОБЕДА: Только если 5 галетников И предохранитель снят
     if (activeGalets == 5 && galetGameReadyToWin && !galetVictorySent) {
       delay(200);
-      Serial.println("mansard_finish");
+      Serial.println(F("mansard_finish"));
       galetVictorySent = true;
     }
   }
@@ -2404,7 +2408,7 @@ void ThreeGame() {
     threeSafeFlag = 0;
     threeWolfFlag = 0;
     level++;
-    Serial.println("three_game_end");
+    Serial.println(F("three_game_end"));
   }
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
@@ -2451,10 +2455,10 @@ void Flags() {
       Serial.println(buf1);
     } else if (buf1 == "flag1_on") {
       FirstFlag = 1;
-      Serial.println("flag1_on");
+      Serial.println(F("flag1_on"));
     } else if (buf1 == "flag1_off") {
       FirstFlag = 0;
-      Serial.println("flag1_off");
+      Serial.println(F("flag1_off"));
     }
   }
 
@@ -2467,10 +2471,10 @@ void Flags() {
       Serial.println(buf2);
     } else if (buf2 == "flag2_on") {
       SecondFlag = 1;
-      Serial.println("flag2_on");
+      Serial.println(F("flag2_on"));
     } else if (buf2 == "flag2_off") {
       SecondFlag = 0;
-      Serial.println("flag2_off");
+      Serial.println(F("flag2_off"));
     }
   }
 
@@ -2483,10 +2487,10 @@ void Flags() {
       Serial.println(buf3);
     } else if (buf3 == "flag3_on") {
       ThirdFlag = 1;
-      Serial.println("flag3_on");
+      Serial.println(F("flag3_on"));
     } else if (buf3 == "flag3_off") {
       ThirdFlag = 0;
-      Serial.println("flag3_off");
+      Serial.println(F("flag3_off"));
     }
   }
 
@@ -2499,15 +2503,15 @@ void Flags() {
       Serial.println(buf4);
     } else if (buf4 == "flag4_on") {
       FourFlag = 1;
-      Serial.println("flag4_on");
+      Serial.println(F("flag4_on"));
     } else if (buf4 == "flag4_off") {
       FourFlag = 0;
-      Serial.println("flag4_off");
+      Serial.println(F("flag4_off"));
     }
   }
 
   if (FirstFlag && SecondFlag && ThirdFlag && FourFlag) {
-    Serial.println("flagsendmr");
+    Serial.println(F("flagsendmr"));
     level++;
   }
   while (Serial.available()) {
@@ -2517,7 +2521,7 @@ void Flags() {
       RunStudentHide();
     }
     if (buff == "m2lck") {
-      Serial.println("flagsendmr");
+      Serial.println(F("flagsendmr"));
       level++;
       //OpenLock(MansardStashDoor);
       // иногда приходится отправлять несколько раз иногда с первого раза не читает обязательно задержка в 1 с не знаю с чем связано
@@ -2575,7 +2579,7 @@ void MapGame() {
   // 1. Неблокирующий таймер для повторной отправки start_troll
   if (mapIsWaitingForTroll && (millis() - mapTrollWaitTimer >= 1000)) {
     mapIsWaitingForTroll = false;       // Сбрасываем флаг
-    Serial2.println("start_troll");  // Отправляем вторую команду
+    Serial2.println(F("start_troll"));  // Отправляем вторую команду
   }
 
   // 2. Неблокирующий таймер для завершения уровня (вместо delay)
@@ -2598,7 +2602,7 @@ void MapGame() {
     // bool reading1 = !digitalRead(21);
     bool reading1 = !digitalReadExpander(0, board1);
     if (reading1) {
-      Serial.println("door_witch");
+      Serial.println(F("door_witch"));
       isPotionDoorOpened = true;
       OpenLock(PotionsRoomDoor);
       mapActivePotionRoom = 1;
@@ -2629,10 +2633,10 @@ void MapGame() {
     if (reading) {
       if (!potionPulsation) {
         potionPulsation = 1;
-        Serial1.println("potion");
-        Serial.println("item_find");
-        Serial2.println("item_find");
-        Serial3.println("item_find");
+        Serial1.println(F("potion"));
+        Serial.println(F("item_find"));
+        Serial2.println(F("item_find"));
+        Serial3.println(F("item_find"));
       }
     }
   }
@@ -2650,7 +2654,7 @@ void MapGame() {
     isTrollEnd = 0;
     mapGame_g = "";
     helpsBankTimer = millis();
-    Serial.println("material_end");
+    Serial.println(F("material_end"));
 
     // --- Новая логика неблокирующего перехода ---
     mapIsFinishingMap = true;
@@ -2672,40 +2676,40 @@ void MapGame() {
 
     // 1. Дверь (Команда + Лог нажатия)
     if (buff.indexOf("door_owl") != -1 || buff.indexOf("Owl button pressed") != -1) {
-      Serial.println("door_owl");
+      Serial.println(F("door_owl"));
       isOwlDoorOpened = true;
     }
 
     // 2. Финал игры Сов
     if (buff.indexOf("owl_end") != -1) {
       if (!isOwlEnd) {
-        Serial.println("owl_end");
-        Serial1.println("light_off");
-        Serial2.println("light_off");
-        Serial3.println("light_off");
+        Serial.println(F("owl_end"));
+        Serial1.println(F("light_off"));
+        Serial2.println(F("light_off"));
+        Serial3.println(F("light_off"));
         isOwlEnd = 1;
       }
     }
 
     // 3. Промежуточный этап (сова улетела)
     if (buff.indexOf("owl_flew") != -1) {
-      Serial.println("owl_flew");
+      Serial.println(F("owl_flew"));
     }
 
     // 4. Управление светом (ВКЛ)
     // Ищем "light", но исключаем "light_off" (чтобы не сработало ложно)
     if (buff.indexOf("light") != -1 && buff.indexOf("light_off") == -1) {
-      Serial.println("light_on");
-      Serial1.println("light_on");
-      Serial2.println("light_on");
-      Serial3.println("light_on");
+      Serial.println(F("light_on"));
+      Serial1.println(F("light_on"));
+      Serial2.println(F("light_on"));
+      Serial3.println(F("light_on"));
     }
     // 5. Управление светом (ВЫКЛ) - ловим "dark" или "light_off"
     else if (buff.indexOf("dark") != -1 || buff.indexOf("light_off") != -1) {
-      Serial.println("light_off");
-      Serial1.println("light_off");
-      Serial2.println("light_off");
-      Serial3.println("light_off");
+      Serial.println(F("light_off"));
+      Serial1.println(F("light_off"));
+      Serial2.println(F("light_off"));
+      Serial3.println(F("light_off"));
     }
 
     // 6. Помощь
@@ -2729,14 +2733,14 @@ void MapGame() {
       // Страховка окончания игры по логу (ОБНОВЛЕНО ПОД КОРОТКИЕ ЛОГИ)
       // Теперь реагирует на новые логи WIN: Dog locked и FINISHED
       if (buff.indexOf("WIN: Dog locked") != -1 || buff.indexOf("FINISHED") != -1) {
-        Serial.println("dog_lock");
+        Serial.println(F("dog_lock"));
         isDogEnd = 1;
       }
 
       // Обновлено под короткий лог Padlock open
       if (buff.indexOf("door_dog") != -1 || buff.indexOf("Padlock open") != -1) {
         if (!isDogDoorOpened) {
-          Serial.println("door_dog");
+          Serial.println(F("door_dog"));
           isDogDoorOpened = true;
         }
       }
@@ -2746,23 +2750,23 @@ void MapGame() {
 
     // 2. ИСТОРИИ И КОМАНДЫ (Строгое сравнение == вместо calculateSimilarity)
     if (buff == "story_20_a") {
-      Serial.println("story_20_a");
+      Serial.println(F("story_20_a"));
     } else if (buff == "story_20_b") {
-      Serial.println("story_20_b");
+      Serial.println(F("story_20_b"));
     } else if (buff == "story_20_c") {
-      Serial.println("story_20_c");
+      Serial.println(F("story_20_c"));
     } else if (buff == "dog_lock") {
-      Serial.println("dog_lock");
+      Serial.println(F("dog_lock"));
       isDogEnd = 1;
     } else if (buff == "door_dog") {
       if (!isDogDoorOpened) {
-        Serial.println("door_dog");
+        Serial.println(F("door_dog"));
         isDogDoorOpened = true;
       }
     } else if (buff == "d_sleep") {
-      Serial.println("dog_sleep");  // Сервер ждет полную команду dog_sleep
+      Serial.println(F("dog_sleep"));  // Сервер ждет полную команду dog_sleep
     } else if (buff == "d_growl") {
-      Serial.println("dog_growl");  // Сервер ждет полную команду dog_growl
+      Serial.println(F("dog_growl"));  // Сервер ждет полную команду dog_growl
     } else if (buff == "help") {
       HelpHandler("knight");
     } else if (buff == "crystal") {
@@ -2773,11 +2777,11 @@ void MapGame() {
       CauldronStrip.show();
       potionPulsation = 0;
 
-      Serial1.println("crystal");
-      Serial.println("item_find:crystal");
-      Serial2.println("item_find");
-      mySerial.println("item_find");
-      Serial3.println("item_find");  // ВАЖНО: Отвечаем башне собаки, что предмет засчитан
+      Serial1.println(F("crystal"));
+      Serial.println(F("item_find:crystal"));
+      Serial2.println(F("item_find"));
+      mySerial.println(F("item_find"));
+      Serial3.println(F("item_find"));  // ВАЖНО: Отвечаем башне собаки, что предмет засчитан
     }
   }
 
@@ -2789,70 +2793,70 @@ void MapGame() {
     }
     if (buff == "key") {
       mapGame_g = "key";
-      mySerial.println("out");
-      Serial3.println("key");
+      mySerial.println(F("out"));
+      Serial3.println(F("key"));
     }
     if (buff == "train_active") {
       isTrainStarted = true;
     }
     if (buff == "train_end") {
       isTrainEnd = 1;
-      Serial2.println("start_troll");  // Отправляем первую команду
+      Serial2.println(F("start_troll"));  // Отправляем первую команду
       // --- Новая логика неблокирующей отправки ---
       mapIsWaitingForTroll = true;   // Взводим флаг таймера
       mapTrollWaitTimer = millis();  // Запускаем таймер
     }
     if (buff == "fish") {
       mapGame_g = "fish";
-      mySerial.println("out");
-      Serial3.println("out");
+      mySerial.println(F("out"));
+      Serial3.println(F("out"));
     }
     if (buff == "owl") {
       mapGame_g = "owl";
-      mySerial.println("owl");
-      Serial3.println("out");
+      mySerial.println(F("owl"));
+      Serial3.println(F("out"));
     }
 
     if (buff == "cave_search1") {
-      Serial2.println("cave_search1");
+      Serial2.println(F("cave_search1"));
       delay(1000);
-      Serial2.println("cave_search1");
+      Serial2.println(F("cave_search1"));
     }
     if (buff == "cave_search2") {
-      Serial2.println("cave_search2");
+      Serial2.println(F("cave_search2"));
       delay(1000);
-      Serial2.println("cave_search2");
+      Serial2.println(F("cave_search2"));
     }
     if (buff == "cave_search3") {
-      Serial2.println("cave_search3");
+      Serial2.println(F("cave_search3"));
       delay(1000);
-      Serial2.println("cave_search3");
+      Serial2.println(F("cave_search3"));
     }
 
     if (buff == "pedlock") {
-      Serial3.println("skip_padlock");
+      Serial3.println(F("skip_padlock"));
     }
 
     if (buff == "dog") {
-      Serial3.println("skip_dog");
+      Serial3.println(F("skip_dog"));
       isDogEnd = 1;
     }
 
     if (buff == "owl_door") {
-      mySerial.println("owl_door");
+      mySerial.println(F("owl_door"));
       isOwlDoorOpened = true;
     }
 
     if (buff == "owl_skip") {
-      mySerial.println("skip");
+      mySerial.println(F("skip"));
       isOwlEnd = 1;
-      Serial1.println("light_off");
-      Serial2.println("light_off");
-      Serial3.println("light_off");
+      Serial1.println(F("light_off"));
+      Serial2.println(F("light_off"));
+      Serial3.println(F("light_off"));
     }
 
     if (buff == "open_potions_stash") {
-      Serial.println("four_bottle");
+      Serial.println(F("four_bottle"));
       rainbow();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
@@ -2880,28 +2884,28 @@ void MapGame() {
     }
 
     if (buff == "mine") {
-      Serial2.println("start_troll");  // Сначала будим
+      Serial2.println(F("start_troll"));  // Сначала будим
       delay(100);
-      Serial2.println("mine");  // Потом открываем
+      Serial2.println(F("mine"));  // Потом открываем
     }
     // Корректная обработка СКИПА игры с троллем ---
     if (buff == "troll") {
-      Serial2.println("troll");
+      Serial2.println(F("troll"));
     }
 
     if (buff == "train") {
       mapGame_g = "";
-      mySerial.println("out");
-      Serial3.println("out");
+      mySerial.println(F("out"));
+      Serial3.println(F("out"));
       // Сообщаем башне тролля, что поезд пропущен!
       isTrainEnd = 1;
-      Serial2.println("start_troll");
+      Serial2.println(F("start_troll"));
     }
 
     if (buff == "out") {
       mapGame_g = "";
-      mySerial.println("out");
-      Serial3.println("out");
+      mySerial.println(F("out"));
+      Serial3.println(F("out"));
     }
     if (buff == "restart") {
       mapGame_g = "";
@@ -2914,20 +2918,20 @@ void MapGame() {
     }
     if (buff == "soundon") {
       flagSound = 0;
-      Serial2.println("soundon");  // Сообщаем башне Тролля, что звук НАЧАЛСЯ
+      Serial2.println(F("soundon"));  // Сообщаем башне Тролля, что звук НАЧАЛСЯ
     }
     if (buff == "soundoff") {
       flagSound = 1;
-      Serial2.println("soundoff");  // Сообщаем башне Тролля, что звук ЗАКОНЧИЛСЯ
+      Serial2.println(F("soundoff"));  // Сообщаем башне Тролля, что звук ЗАКОНЧИЛСЯ
     }
 
     if (buff == "skin") {
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
       CauldronStrip.show();
       potionPulsation = 0;
-      Serial1.println("skin");
-      Serial2.println("item_find");
-      Serial3.println("item_find");
+      Serial1.println(F("skin"));
+      Serial2.println(F("item_find"));
+      Serial3.println(F("item_find"));
     }
 
     // ВСТАВКА КОПИИ БЛОКА ПРОВЕРКИ ---
@@ -2936,7 +2940,7 @@ void MapGame() {
       mapActivePotionRoom = 0;
       mapGame_g = "";
       helpsBankTimer = millis();
-      Serial.println("material_end");
+      Serial.println(F("material_end"));
       // Теперь сбрасываем флаги
       isPotionEnd = 0;
       isDogEnd = 0;
@@ -2967,25 +2971,25 @@ void MapGame() {
 
     // 2. Игровая логика (Точное совпадение)
     if (buff == "aluminium") {
-      Serial.println("cave_search1");
-      Serial2.println("cave_search1");  // Ответ башне
+      Serial.println(F("cave_search1"));
+      Serial2.println(F("cave_search1"));  // Ответ башне
     } else if (buff == "bronze") {
-      Serial.println("cave_search2");
-      Serial2.println("cave_search2");
+      Serial.println(F("cave_search2"));
+      Serial2.println(F("cave_search2"));
     } else if (buff == "copper") {
-      Serial.println("cave_search3");
-      Serial2.println("cave_search3");
+      Serial.println(F("cave_search3"));
+      Serial2.println(F("cave_search3"));
     } else if (buff == "cave_end") {
-      Serial.println("cave_end");
+      Serial.println(F("cave_end"));
       isTrollEnd = 1;
     } else if (buff == "cave_click") {
-      Serial.println("cave_click");
+      Serial.println(F("cave_click"));
     } else if (buff == "cave_reset") {
-      Serial.println("cave_reset");
+      Serial.println(F("cave_reset"));
     } else if (buff == "cave_repeat") {
-      Serial.println("cave_repeat");
+      Serial.println(F("cave_repeat"));
     } else if (buff == "door_cave") {
-      Serial.println("door_cave");
+      Serial.println(F("door_cave"));
     } else if (buff == "help") {
       HelpHandler("troll");
     } else if (buff == "metal") {
@@ -2995,11 +2999,11 @@ void MapGame() {
       CauldronStrip.show();
       potionPulsation = 0;
 
-      Serial1.println("metal");
-      Serial.println("item_find:metal");
-      Serial3.println("item_find");
-      mySerial.println("item_find");
-      Serial2.println("item_find");  // Подтверждаем находку
+      Serial1.println(F("metal"));
+      Serial.println(F("item_find:metal"));
+      Serial3.println(F("item_find"));
+      mySerial.println(F("item_find"));
+      Serial2.println(F("item_find"));  // Подтверждаем находку
     }
   }
 }
@@ -3055,10 +3059,10 @@ void Oven() {
     buff.trim();
     if (buff.startsWith("log:")) { Serial.println(buff); continue; }
     if (buff == "crystal") {
-      Serial.println("item_find:crystal");
-      Serial1.println("crystal");
-      Serial2.println("item_find");
-      mySerial.println("item_find");
+      Serial.println(F("item_find:crystal"));
+      Serial1.println(F("crystal"));
+      Serial2.println(F("item_find"));
+      mySerial.println(F("item_find"));
     }
   }
   //digitalWrite(pinA, 0);
@@ -3069,11 +3073,11 @@ void Oven() {
   if (reading) {
     if (!potionPulsation) {
       potionPulsation = 1;
-      Serial1.println("potion");
-      Serial.println("item_find:potion");
-      Serial2.println("item_find");
-      Serial3.println("item_find");
-      mySerial.println("item_find");
+      Serial1.println(F("potion"));
+      Serial.println(F("item_find:potion"));
+      Serial2.println(F("item_find"));
+      Serial3.println(F("item_find"));
+      mySerial.println(F("item_find"));
       goldPulsation = 0;
     }
   }
@@ -3081,11 +3085,11 @@ void Oven() {
   if (goldButton.isPress()) {
     if (!goldPulsation) {
       goldPulsation = 1;
-      Serial1.println("gold");
-      Serial.println("item_find:gold");
-      Serial2.println("item_find");
-      Serial3.println("item_find");
-      mySerial.println("item_find");
+      Serial1.println(F("gold"));
+      Serial.println(F("item_find:gold"));
+      Serial2.println(F("item_find"));
+      Serial3.println(F("item_find"));
+      mySerial.println(F("item_find"));
       potionPulsation = 0;
     }
   }
@@ -3112,30 +3116,30 @@ void Oven() {
     if (buff == "help") {
       HelpHandler("workshop");
     } else if (buff == "fire1") {
-      Serial.println("fire1");
+      Serial.println(F("fire1"));
     } else if (buff == "fire2") {
-      Serial.println("fire2");
+      Serial.println(F("fire2"));
     } else if (buff == "fire3") {
-      Serial.println("fire3");
+      Serial.println(F("fire3"));
     } else if (buff == "fire0") {
-      Serial.println("fire0");
+      Serial.println(F("fire0"));
     } else if (buff == "item_add") {
-      Serial.println("item_add");
+      Serial.println(F("item_add"));
     } else if (buff == "broom") {
-      Serial.println("broom");
+      Serial.println(F("broom"));
     } else if (buff == "helmet") {
-      Serial.println("helmet");
+      Serial.println(F("helmet"));
     } else if (buff == "story_35") {
-      Serial.println("story_35");
-      Serial1.println("item_end");
-      Serial2.println("item_end");
-      Serial3.println("item_end");
-      mySerial.println("item_end");
+      Serial.println(F("story_35"));
+      Serial1.println(F("item_end"));
+      Serial2.println(F("item_end"));
+      Serial3.println(F("item_end"));
+      mySerial.println(F("item_end"));
       delay(1000);
-      Serial1.println("day_off");
-      Serial2.println("day_off");
-      Serial3.println("day_off");
-      mySerial.println("day_off");
+      Serial1.println(F("day_off"));
+      Serial2.println(F("day_off"));
+      Serial3.println(F("day_off"));
+      mySerial.println(F("day_off"));
       GoldStrip.setPixelColor(0, GoldStrip.Color(0, 0, 0));
       GoldStrip.show();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(0, 0, 0));
@@ -3174,21 +3178,21 @@ void Oven() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "open_workshop") {
-      Serial1.println("open_workshop");
+      Serial1.println(F("open_workshop"));
     }
     if (buff == "workshop") {
-      Serial1.println("skip");
+      Serial1.println(F("skip"));
       /*
-      Serial.println("story_35");
-      Serial1.println("item_end");
-      Serial2.println("item_end");
-      Serial3.println("item_end");
-      mySerial.println("item_end");
+      Serial.println(F("story_35"));
+      Serial1.println(F("item_end"));
+      Serial2.println(F("item_end"));
+      Serial3.println(F("item_end"));
+      mySerial.println(F("item_end"));
       delay(1000);
-      Serial1.println("day_off");
-      Serial2.println("day_off");
-      Serial3.println("day_off");
-      mySerial.println("day_off");
+      Serial1.println(F("day_off"));
+      Serial2.println(F("day_off"));
+      Serial3.println(F("day_off"));
+      mySerial.println(F("day_off"));
       GoldStrip.setPixelColor(0, GoldStrip.Color(0, 0, 0));
       GoldStrip.show();
       CauldronStrip.setPixelColor(0, CauldronStrip.Color(0, 0, 0));
@@ -3229,11 +3233,11 @@ void Oven() {
       CauldronStrip.show();
       goldPulsation = 0;
       potionPulsation = 0;
-      Serial1.println("skin");
-      Serial.println("item_find:skin");
-      Serial2.println("item_find");
-      Serial3.println("item_find");
-      mySerial.println("item_find");
+      Serial1.println(F("skin"));
+      Serial.println(F("item_find:skin"));
+      Serial2.println(F("item_find"));
+      Serial3.println(F("item_find"));
+      mySerial.println(F("item_find"));
     }
     if (buff == "restart") {
       goldPulsation = 0;
@@ -3265,10 +3269,10 @@ void Oven() {
       CauldronStrip.show();
       goldPulsation = 0;
       potionPulsation = 0;
-      Serial1.println("metal");
-      Serial.println("item_find:metal");
-      Serial3.println("item_find");
-      mySerial.println("item_find");
+      Serial1.println(F("metal"));
+      Serial.println(F("item_find:metal"));
+      Serial3.println(F("item_find"));
+      mySerial.println(F("item_find"));
     } else if (buff == "help") {
       HelpHandler("troll");
     }
@@ -3288,10 +3292,10 @@ void Oven() {
       CauldronStrip.show();
       goldPulsation = 0;
       potionPulsation = 0;
-      Serial1.println("crystal");
-      Serial.println("item_find:crystal");
-      Serial2.println("item_find");
-      mySerial.println("item_find");
+      Serial1.println(F("crystal"));
+      Serial.println(F("item_find:crystal"));
+      Serial2.println(F("item_find"));
+      mySerial.println(F("item_find"));
     } else if (buff == "help") {
       HelpHandler("knight");
     }
@@ -3347,7 +3351,7 @@ void FirstBottle() {
     }
     if (result) {
       if (FirstBottleTrue) {
-        Serial.println("second_bottle");
+        Serial.println(F("second_bottle"));
         CauldronTrueFire();
         FirstBottleTrue = 0;
       }
@@ -3361,7 +3365,7 @@ void FirstBottle() {
     } else {
       // Неправильная бутылка
       if (FirstBottleFalse) {
-        Serial.println("mistake_bottle");
+        Serial.println(F("mistake_bottle"));
         FirstBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;
@@ -3419,7 +3423,7 @@ void SecondBottle() {
     }
     if (result) {
       if (SecondBottleTrue) {
-        Serial.println("first_bottle");
+        Serial.println(F("first_bottle"));
         CauldronTrueFire();
         SecondBottleTrue = 0;
       }
@@ -3433,7 +3437,7 @@ void SecondBottle() {
     } else {
       // Неправильная бутылка
       if (SecondBottleFalse) {
-        Serial.println("mistake_bottle");
+        Serial.println(F("mistake_bottle"));
         SecondBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;
@@ -3491,7 +3495,7 @@ void ThirdBottle() {
     }
     if (result) {
       if (ThirdBottleTrue) {
-        Serial.println("third_bottle");
+        Serial.println(F("third_bottle"));
         CauldronTrueFire();
         ThirdBottleTrue = 0;
       }
@@ -3505,7 +3509,7 @@ void ThirdBottle() {
     } else {
       // Неправильная бутылка
       if (ThirdBottleFalse) {
-        Serial.println("mistake_bottle");
+        Serial.println(F("mistake_bottle"));
         ThirdBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;
@@ -3563,7 +3567,7 @@ void FourBottle() {
     }
     if (result) {
       if (FourBottleTrue) {
-        Serial.println("four_bottle");
+        Serial.println(F("four_bottle"));
         rainbow();
         CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
         CauldronStrip.show();
@@ -3577,7 +3581,7 @@ void FourBottle() {
     } else {
       // Неправильная бутылка
       if (FourBottleFalse) {
-        Serial.println("mistake_bottle");
+        Serial.println(F("mistake_bottle"));
         FourBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
         FirstBottleTrue = 1;
@@ -3623,7 +3627,7 @@ void FourBottle() {
 void BasketLesson() {
   if (isTrainBasket) {
     if (!basketLessonIsSend) {
-      Serial.println("story_59");
+      Serial.println(F("story_59"));
       basketLessonIsSend = 1;
     }
   }
@@ -3644,7 +3648,7 @@ void BasketLesson() {
         if (mainSerialBuffer.indexOf("restart") != -1) { 
           SendRestartToAll();
           delay(50); 
-          mySerial.println("open_door");
+          mySerial.println(F("open_door"));
           lessonSaluteActive = false;
           discoBallsActive = false;
           isGameBasketStarted = false;
@@ -3658,25 +3662,25 @@ void BasketLesson() {
           while(Serial.available()) Serial.read();
           return;
         }
-        else if (mainSerialBuffer.indexOf("start_lesson") != -1) { Serial2.println("start_lesson"); }
+        else if (mainSerialBuffer.indexOf("start_lesson") != -1) { Serial2.println(F("start_lesson")); }
         else if (mainSerialBuffer.indexOf("start_game_basket") != -1) { 
           if (!isGameBasketStarted) { 
-            Serial.println("DEBUG: Received start_game_basket");
+            Serial.println(F("DEBUG: Received start_game_basket"));
             isGameBasketStarted = true;
             lessonSaluteActive = false;
             digitalWrite(Fireworks, LOW);
             for (int s = 0; s < STRIPS; s++) { strips[s]->clear(); strips[s]->show(); } 
             snitchFlag = 0; enemyTimer = millis(); additionalTimer = millis();
-            Serial2.println("start_basket");
+            Serial2.println(F("start_basket"));
           }
         }
         else if (mainSerialBuffer.indexOf("force_win_bask") != -1) { 
           lessonSaluteActive = false; discoBallsActive = false; // ФИКС: не запускаем 8-сек таймер
           snitchFlag = 1; enemyFlag = 0;  // ФИКС: блокируем BasketEffect()
-          digitalWrite(Fireworks, HIGH); Serial.println("win"); Serial2.println("win");
-          strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); delay(1000); Serial.println("last_on");
-          Serial1.println("firework"); delay(500); Serial1.println("firework"); Serial2.println("firework"); delay(500); Serial2.println("firework");
-          Serial3.println("firework"); delay(500); Serial3.println("firework"); mySerial.println("firework"); delay(500); mySerial.println("firework");
+          digitalWrite(Fireworks, HIGH); Serial.println(F("win")); Serial2.println(F("win"));
+          strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); delay(1000); Serial.println(F("last_on"));
+          Serial1.println(F("firework")); delay(500); Serial1.println(F("firework")); Serial2.println(F("firework")); delay(500); Serial2.println(F("firework"));
+          Serial3.println(F("firework")); delay(500); Serial3.println(F("firework")); mySerial.println(F("firework")); delay(500); mySerial.println(F("firework"));
           level = 20; previousLevel = 0;
         }
         if (mainSerialBuffer.indexOf("soundon") != -1) flagSound = 0;
@@ -3695,11 +3699,11 @@ void BasketLesson() {
       if (serial2Buffer.length() > 0) {
         
         // РАСШИФРОВКА ТЕЛЕГРАФА
-        if (serial2Buffer == "C") { waitingForBasketConfirm = false; Serial.println("log:main:Bask WD OK"); }
-        else if (serial2Buffer == "I") { Serial.println("boy_in_lesson"); if (!isGameBasketStarted) lessonSaluteActive = true; } 
-        else if (serial2Buffer == "O") { Serial.println("boy_out_lesson"); lessonSaluteActive = false; snitchFlag = 1; isGameBasketStarted = false; digitalWrite(Fireworks, LOW); strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); } 
-        else if (serial2Buffer == "G") { Serial.println("lesson_goal"); lessonSaluteActive = false; discoBallsActive = true; discoBallsTimer = millis(); } 
-        else if (serial2Buffer == "D") { Serial.println("flying_ball"); lessonSaluteActive = false; discoBallsActive = false; digitalWrite(Fireworks, LOW); snitchFlag = 0; enemyTimer = millis(); additionalTimer = millis(); basketLessonIsSend = 0; level++; }
+        if (serial2Buffer == "C") { waitingForBasketConfirm = false; Serial.println(F("log:main:Bask WD OK")); }
+        else if (serial2Buffer == "I") { Serial.println(F("boy_in_lesson")); if (!isGameBasketStarted) lessonSaluteActive = true; } 
+        else if (serial2Buffer == "O") { Serial.println(F("boy_out_lesson")); lessonSaluteActive = false; snitchFlag = 1; isGameBasketStarted = false; digitalWrite(Fireworks, LOW); strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); } 
+        else if (serial2Buffer == "G") { Serial.println(F("lesson_goal")); lessonSaluteActive = false; discoBallsActive = true; discoBallsTimer = millis(); } 
+        else if (serial2Buffer == "D") { Serial.println(F("flying_ball")); lessonSaluteActive = false; discoBallsActive = false; digitalWrite(Fireworks, LOW); snitchFlag = 0; enemyTimer = millis(); additionalTimer = millis(); basketLessonIsSend = 0; level++; }
         
       }
       serial2Buffer = "";
@@ -3721,7 +3725,7 @@ void Basket() {
       if (mainSerialBuffer.length() > 0) {
         
         if (mainSerialBuffer.indexOf("restart") != -1) { 
-          SendRestartToAll(); delay(50); mySerial.println("open_door");
+          SendRestartToAll(); delay(50); mySerial.println(F("open_door"));
           lessonSaluteActive = false; discoBallsActive = false; digitalWrite(Fireworks, LOW);
           OpenAll(); isRestInitialized = false; level = 25; previousLevel = 0; mainSerialBuffer = "";
           while(Serial.available()) Serial.read();
@@ -3735,11 +3739,11 @@ void Basket() {
         
         else if (mainSerialBuffer.indexOf("play_win_salute") != -1) { 
           discoBallsActive = false; strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); delay(200);
-          Serial.println("last_on"); Serial1.println("firework"); delay(100); Serial2.println("firework"); delay(100);
-          Serial3.println("firework"); delay(100); mySerial.println("firework"); level = 20; previousLevel = 0;
+          Serial.println(F("last_on")); Serial1.println(F("firework")); delay(100); Serial2.println(F("firework")); delay(100);
+          Serial3.println(F("firework")); delay(100); mySerial.println(F("firework")); level = 20; previousLevel = 0;
         }
         else if (mainSerialBuffer.indexOf("force_win_bask") != -1) {
-          waitingForBasketConfirm = false; Serial.println("win"); Serial2.println("win");
+          waitingForBasketConfirm = false; Serial.println(F("win")); Serial2.println(F("win"));
           digitalWrite(Fireworks, HIGH); discoBallsActive = false;
           snitchFlag = 1; enemyFlag = 0;
           level = 20; previousLevel = 0;  // ФИКС: аналогично "3"
@@ -3753,7 +3757,7 @@ void Basket() {
         }
         if (mainSerialBuffer.indexOf("soundon") != -1) flagSound = 0;
         if (mainSerialBuffer.indexOf("soundoff") != -1) flagSound = 1;
-        if (mainSerialBuffer.indexOf("help") != -1) Serial.println("help_12");
+        if (mainSerialBuffer.indexOf("help") != -1) Serial.println(F("help_12"));
       }
       mainSerialBuffer = ""; // Очищаем
     } else if (c >= 32 && mainSerialBuffer.length() < 200) {
@@ -3768,28 +3772,28 @@ void Basket() {
       if (serial2Buffer.length() > 0) {
         
         // РАСШИФРОВКА ТЕЛЕГРАФА
-        if (serial2Buffer == "C") { waitingForBasketConfirm = false; Serial.println("log:main:Bask WD OK"); }
-        else if (serial2Buffer == "I") { snitchFlag = 0; enemyTimer = millis(); additionalTimer = millis(); Serial.println("boy_in_game"); } 
-        else if (serial2Buffer == "O") { snitchFlag = 1; discoBallsActive = false; digitalWrite(Fireworks, LOW); strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); enemyFlag = 0; Serial.println("boy_out_game"); } 
-        else if (serial2Buffer == "4") { BotScore = "1"; snitchFlag = 0; enemyTimer = millis(); enemyFlag = 0; Serial.println("goal_1_bot"); LooseSnitch(); } 
-        else if (serial2Buffer == "5") { BotScore = "2"; snitchFlag = 0; enemyTimer = millis(); enemyFlag = 0; Serial.println("goal_2_bot"); LooseSnitch(); } 
+        if (serial2Buffer == "C") { waitingForBasketConfirm = false; Serial.println(F("log:main:Bask WD OK")); }
+        else if (serial2Buffer == "I") { snitchFlag = 0; enemyTimer = millis(); additionalTimer = millis(); Serial.println(F("boy_in_game")); } 
+        else if (serial2Buffer == "O") { snitchFlag = 1; discoBallsActive = false; digitalWrite(Fireworks, LOW); strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); enemyFlag = 0; Serial.println(F("boy_out_game")); } 
+        else if (serial2Buffer == "4") { BotScore = "1"; snitchFlag = 0; enemyTimer = millis(); enemyFlag = 0; Serial.println(F("goal_1_bot")); LooseSnitch(); } 
+        else if (serial2Buffer == "5") { BotScore = "2"; snitchFlag = 0; enemyTimer = millis(); enemyFlag = 0; Serial.println(F("goal_2_bot")); LooseSnitch(); } 
         // ФИКС: При win сразу ставим level=20 чтобы BasketEffect() больше не вызывался.
         // Раньше level оставался 19, discoBallsActive таймер (8 сек) выключал Fireworks
         // и обнулял snitchFlag/enemyTimer → BasketEffect() перезапускал красный мяч.
         // Теперь не ждём play_win_salute от сервера — level=20 блокирует Basket() сразу.
         else if (serial2Buffer == "3") { 
           waitingForBasketConfirm = false; 
-          Serial.println("win"); 
+          Serial.println(F("win")); 
           digitalWrite(Fireworks, HIGH); 
           discoBallsActive = false;         // НЕ запускаем 8-сек таймер — салют бессрочный до play_win_salute
           snitchFlag = 1;                   // Блокируем BasketEffect() на всякий случай
           enemyFlag = 0;                    // Сбрасываем атаку бота
           level = 20; previousLevel = 0;    // Выходим из Basket() → case 20 (ожидание ready)
         } 
-        else if (serial2Buffer == "1") { enemyFlag = 0; Serial.println("goal_1_player"); discoBallsActive = true; discoBallsTimer = millis(); GreenWaveEffect(); } 
-        else if (serial2Buffer == "2") { enemyFlag = 0; Serial.println("goal_2_player"); discoBallsActive = true; discoBallsTimer = millis(); GreenWaveEffect(); } 
-        else if (serial2Buffer == "S") { snitchFlag = 0; enemyTimer = millis(); enemyFlag = 0; Serial.println("start_snitch"); } 
-        else if (serial2Buffer == "6") { Serial.println("win_robot"); discoBallsActive = false; digitalWrite(Fireworks, LOW); strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); snitchFlag = 1; }
+        else if (serial2Buffer == "1") { enemyFlag = 0; Serial.println(F("goal_1_player")); discoBallsActive = true; discoBallsTimer = millis(); GreenWaveEffect(); } 
+        else if (serial2Buffer == "2") { enemyFlag = 0; Serial.println(F("goal_2_player")); discoBallsActive = true; discoBallsTimer = millis(); GreenWaveEffect(); } 
+        else if (serial2Buffer == "S") { snitchFlag = 0; enemyTimer = millis(); enemyFlag = 0; Serial.println(F("start_snitch")); } 
+        else if (serial2Buffer == "6") { Serial.println(F("win_robot")); discoBallsActive = false; digitalWrite(Fireworks, LOW); strip1.clear(); strip2.clear(); strip1.show(); strip2.show(); snitchFlag = 1; }
         
       }
       serial2Buffer = "";
@@ -3804,7 +3808,7 @@ void Library() {
   switch (ghostState) {
     case 0:
       if (!digitalReadExpander(0, board2)) {
-        Serial.println("h_clock");
+        Serial.println(F("h_clock"));
         digitalWrite(UfHallLight, HIGH);
         digitalWrite(HallLight, LOW);
         ghostState++;
@@ -3812,7 +3816,7 @@ void Library() {
       break;
     case 1:
       if (!digitalReadExpander(6, board1)) {
-        Serial.println("uf_clock");
+        Serial.println(F("uf_clock"));
 
         // Вместо for/delay запускаем неблокирующий механизм
         isUfBlinking = true;
@@ -3829,7 +3833,7 @@ void Library() {
     case 5:
       // Ждем, пока игрок постучит по датчику
        if (analogRead(KnockSens) <= threshold) {
-        Serial.println("punch");  // Отправляем подтверждение стука на сервер
+        Serial.println(F("punch"));  // Отправляем подтверждение стука на сервер
         ghostState = 6;           // Теперь переходим к финальной загадке со стуком
         delay(300);               // Небольшая задержка для антидребезга датчика
       }
@@ -3848,7 +3852,7 @@ void Library() {
 
       // Проверка стука (убираем 'if (KnockState != 1)')
       if (analogRead(KnockSens) <= threshold) {
-        Serial.println("punch");
+        Serial.println(F("punch"));
         digitalWrite(KnockSol, LOW);  // Оставляем выключение, на всякий случай
         digitalWrite(LibraryLight, HIGH);
         libraryDoorTimer = millis();
@@ -3868,13 +3872,13 @@ void Library() {
       level++;
     }
     if (buff == "first_clock_2") {
-      Serial.println("h_clock");
+      Serial.println(F("h_clock"));
       digitalWrite(UfHallLight, HIGH);
       digitalWrite(HallLight, LOW);
       ghostState = 1;
     }
     if (buff == "second_clock_2") {
-      Serial.println("uf_clock");
+      Serial.println(F("uf_clock"));
       for (int i = 0; i < 3; i++) {
         digitalWrite(UfHallLight, HIGH);
         delay(500);
@@ -3892,7 +3896,7 @@ void Library() {
       return;
     }
     if (buff == "ghost_skip") {
-      Serial.println("punch");
+      Serial.println(F("punch"));
       digitalWrite(KnockSol, LOW);
       digitalWrite(LibraryLight, HIGH);
       libraryDoorTimer = millis();
@@ -3904,18 +3908,18 @@ void Library() {
     if (buff == "ghost") {
       //поезд
       if (ghostState == 2) {
-        Serial.println("story_40");
+        Serial.println(F("story_40"));
         //ghostState++;
       }
       // волк
       if (ghostState == 3) {
-        Serial.println("story_41");
+        Serial.println(F("story_41"));
         //ghostState++;
       }
       //поезд
       if (ghostState == 4) {
-        Serial.println("story_42");
-        Serial.println("ghost_knock");
+        Serial.println(F("story_42"));
+        Serial.println(F("ghost_knock"));
         ghostState = 6;
       }
       if (ghostState < 4)
@@ -3933,7 +3937,7 @@ void Library() {
 
 void LibraryGame() {
   if (digitalReadExpander(5, board3)) {
-    Serial.println("lib_door");
+    Serial.println(F("lib_door"));
     // Выключаем свет в библиотеке ---
     digitalWrite(LibraryLight, LOW);
 
@@ -3943,7 +3947,7 @@ void LibraryGame() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "skip_lib_door") {
-      Serial.println("lib_door");       // Сообщаем серверу, что дверь открыта
+      Serial.println(F("lib_door"));       // Сообщаем серверу, что дверь открыта
       digitalWrite(LibraryLight, LOW);  // Гасим свет
       level++;
     }
@@ -3952,7 +3956,7 @@ void LibraryGame() {
       digitalWrite(LibraryLight, HIGH);
     }
     if (buff == "ghost") {
-      Serial.println("star_hint");
+      Serial.println(F("star_hint"));
     }
     if (buff == "student_hide") {
       RunStudentHide();
@@ -3985,7 +3989,7 @@ void CentralTowerGame() {
       // Проверяем геркон камина
       if (!digitalReadExpander(3, board4)) {  // ГЕРКОН 1 (Камин) НАЖАТ
         if (!centralTowerFirePressed) {              // Если мы его еще не "защелкнули"
-          Serial.println("fire");             // Отправляем команду на звук
+          Serial.println(F("fire"));             // Отправляем команду на звук
           centralTowerFirePressed = true;            // "Защелкиваем" звук
           centralTowerCupFlag = 1;                           // "Защелкиваем" логику (теперь можно нажать кубок)
         }
@@ -4003,8 +4007,8 @@ void CentralTowerGame() {
 
       // Проверяем геркон кубка
       if (!digitalReadExpander(2, board4)) {  // ГЕРКОН 2 (Кубок) НАЖАТ
-        Serial2.println("opent_basket");
-        Serial.println("door_basket");
+        Serial2.println(F("opent_basket"));
+        Serial.println(F("door_basket"));
         fireFlag = 1;
         centralTowerState = 0;  // Сбрасываем всю логику
         centralTowerCupFlag = 0;
@@ -4016,7 +4020,7 @@ void CentralTowerGame() {
       // чтобы игрок мог нажимать его для звука, пока ждет.
       if (!digitalReadExpander(3, board4)) {  // ГЕРКОN 1 (Камин) НАЖАТ
         if (!centralTowerFirePressed) {
-          Serial.println("fire");
+          Serial.println(F("fire"));
           centralTowerFirePressed = true;
         }
       } else {  // ГЕРКОН 1 (Камин) ОТПУЩЕН
@@ -4043,7 +4047,7 @@ void CentralTowerGame() {
     }
 
     if (buff == "door_top") {
-      Serial1.println("day_on");
+      Serial1.println(F("day_on"));
       OpenLock(HightTowerDoor2);
       digitalWrite(LastTowerTopLight, HIGH);
       digitalWrite(MansardLight, HIGH);
@@ -4058,8 +4062,8 @@ void CentralTowerGame() {
       centralTowerCupFlag = 0;
     }
     if (buff == "cup") {
-      Serial2.println("opent_basket");
-      Serial.println("door_basket");
+      Serial2.println(F("opent_basket"));
+      Serial.println(F("door_basket"));
       fireFlag = 1;
       centralTowerState = 0;
       level++;
@@ -4098,7 +4102,7 @@ void CentralTowerGameDown() {
     if (buff == "spell") {
       OpenLock(HightTowerDoor);
       digitalWrite(TorchLight, HIGH);
-      Serial.println("door_spell");  // Исходное сообщение
+      Serial.println(F("door_spell"));  // Исходное сообщение
       level++;
       initialSwitchReleased_g = false;
       puzzleProgress_g = 0;
@@ -4161,28 +4165,28 @@ void CentralTowerGameDown() {
 
     case 1:                // WAIT_R
       if (rightPressed) {  // --- СВАЙП ВПРАВО (>) ---
-        Serial.println("swipe_r");
+        Serial.println(F("swipe_r"));
 
         if (puzzleProgress_g == 0 || puzzleProgress_g == 2 || puzzleProgress_g == 4) {
           puzzleProgress_g++;
 
           // Отправка шагов ---
-          if (puzzleProgress_g == 1) Serial.println("spell_step_1");
-          if (puzzleProgress_g == 3) Serial.println("spell_step_3");
+          if (puzzleProgress_g == 1) Serial.println(F("spell_step_1"));
+          if (puzzleProgress_g == 3) Serial.println(F("spell_step_3"));
           if (puzzleProgress_g == 5) {
-            Serial.println("spell_step_5");  // Это 5-й шаг (успех)
+            Serial.println(F("spell_step_5"));  // Это 5-й шаг (успех)
           }
           if (puzzleProgress_g == 5) {  // ПОБЕДА
             OpenLock(HightTowerDoor);
             digitalWrite(TorchLight, HIGH);
-            Serial.println("door_spell");
+            Serial.println(F("door_spell"));
             level++;
             puzzleProgress_g = 0;
           } else {  // Успешный шаг
           }
         } else {  // Неправильная последовательность
-          Serial.println("swipe_wrong_sequence");
-          Serial.println("spell_reset");
+          Serial.println(F("swipe_wrong_sequence"));
+          Serial.println(F("spell_reset"));
           puzzleProgress_g = 0;
         }
         swipeState_g = 3;  // Cooldown
@@ -4198,17 +4202,17 @@ void CentralTowerGameDown() {
 
     case 2:               // WAIT_L
       if (leftPressed) {  // --- СВАЙП ВЛЕВО (<) ---
-        Serial.println("swipe_l");
+        Serial.println(F("swipe_l"));
 
         if (puzzleProgress_g == 1 || puzzleProgress_g == 3) {
           puzzleProgress_g++;
 
           // Отправка шагов ---
-          if (puzzleProgress_g == 2) Serial.println("spell_step_2");
-          if (puzzleProgress_g == 4) Serial.println("spell_step_4");
+          if (puzzleProgress_g == 2) Serial.println(F("spell_step_2"));
+          if (puzzleProgress_g == 4) Serial.println(F("spell_step_4"));
         } else {  // Неправильная последовательность
-          Serial.println("swipe_wrong_sequence");
-          Serial.println("spell_reset");
+          Serial.println(F("swipe_wrong_sequence"));
+          Serial.println(F("spell_reset"));
           puzzleProgress_g = 0;
         }
         swipeState_g = 3;  // Cooldown
@@ -4257,13 +4261,13 @@ void OpenBank() {
     helpCounter = random(0, 3);  // (для 3-х вариантов a, b, c)
     switch (helpCounter) {
       case 0:
-        Serial.println("story_22_a");
+        Serial.println(F("story_22_a"));
         break;
       case 1:
-        Serial.println("story_22_b");
+        Serial.println(F("story_22_b"));
         break;
       case 2:
-        Serial.println("story_22_c");
+        Serial.println(F("story_22_c"));
         break;
     }
     // НЕ СБРАСЫВАЕМ ТАЙМЕР. Вместо этого, взводим флаг ожидания.
@@ -4276,7 +4280,7 @@ void OpenBank() {
   if (digitalRead(WindowSens)) {
     CandleStrip.setPixelColor(0, CandleStrip.Color(0, 0, 0));
     CandleStrip.show();
-    Serial.println("miror");
+    Serial.println(F("miror"));
     scrollNumber = -1;
     //digitalWrite(BankRoomLight, HIGH);
     //OpenLock(BankDoor);
@@ -4296,7 +4300,7 @@ void OpenBank() {
     } else if (buff == "open_bank_door") {
       CandleStrip.setPixelColor(0, CandleStrip.Color(0, 0, 0));
       CandleStrip.show();
-      Serial.println("miror");
+      Serial.println(F("miror"));
       scrollNumber = -1;
       //digitalWrite(BankRoomLight, HIGH);
       //OpenLock(BankDoor);
@@ -4343,7 +4347,7 @@ void Scrolls() {
       if (buff == "open_safe") {
         OpenLock(BankStashDoor);
       } else if (buff == "open_workshop") {
-        Serial1.println("open_workshop");
+        Serial1.println(F("open_workshop"));
       } else if (buff == "restart") {
         OpenAll();
         RestOn();
@@ -4391,7 +4395,7 @@ void Scrolls() {
     }
     if (buff == "safe") {
       scrollNumber = 5;
-      Serial.println("safe_end");
+      Serial.println(F("safe_end"));
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
       GoldStrip.show();
       safeTimer = millis();
@@ -4431,14 +4435,14 @@ void ScrollOne() {
   // --- Проверка ГЕРКОНА 1 (Правильный) ---
   if (!digitalReadExpander(2, board3)) {
     if (!Scroll1On && (millis() - code1Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll1On = 1;
       code1Timer = millis();
     }
     if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
       scrollNumber = 1;  // Успех, переход на шаг 2
-      Serial.println("safe_fix");
-      Serial.println("safe_step_1");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_step_1"));
       Scroll11On = 1;
     }
   } else {
@@ -4450,14 +4454,14 @@ void ScrollOne() {
   // --- Проверка ГЕРКОНА 2 (Ошибка) ---
   if (!digitalReadExpander(0, board3)) {
     if (!Scroll2On && (millis() - code2Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll2On = 1;
       code2Timer = millis();
     }
     if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll21On = 1;
     }
   } else {
@@ -4469,14 +4473,14 @@ void ScrollOne() {
   // --- Проверка ГЕРКОНА 3 (Ошибка) ---
   if (!digitalReadExpander(3, board3)) {
     if (!Scroll3On && (millis() - code3Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll3On = 1;
       code3Timer = millis();
     }
     if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll31On = 1;
     }
   } else {
@@ -4488,15 +4492,15 @@ void ScrollOne() {
   // --- Проверка ГЕРКОНА 4 (Ошибка) ---
   if (!digitalReadExpander(1, board3)) {
     if (!Scroll4On && (millis() - code4Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll4On = 1;
       code4Timer = millis();
     }
     if (millis() - code4Timer >= 2000) {
       if (!Scroll41On) {
         scrollNumber = 0;
-        Serial.println("safe_fix");
-        Serial.println("safe_reset");
+        Serial.println(F("safe_fix"));
+        Serial.println(F("safe_reset"));
         Scroll41On = 1;
       }
     }
@@ -4513,16 +4517,16 @@ void ScrollTwo() {
   // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
     if (!Scroll1On && (millis() - code1Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll1On = 1;
       code1Timer = millis();
     }
     if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
       Scroll11On = 1;
       scrollNumber = 1;  // Устанавливаем Шаг 1
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");   // Сначала сброс
-      Serial.println("safe_step_1");  // Потом засчитываем Шаг 1
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));   // Сначала сброс
+      Serial.println(F("safe_step_1"));  // Потом засчитываем Шаг 1
       Scroll1On = 0;
       code1Timer = millis();
     }
@@ -4535,14 +4539,14 @@ void ScrollTwo() {
   // --- Проверка ГЕРКОНА 2 (Правильный) ---
   if (!digitalReadExpander(0, board3)) {
     if (!Scroll2On && (millis() - code2Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll2On = 1;
       code2Timer = millis();
     }
     if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
       scrollNumber = 2;  // Успех, переход на шаг 3
-      Serial.println("safe_fix");
-      Serial.println("safe_step_2");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_step_2"));
       Scroll21On = 1;
     }
   } else {
@@ -4554,14 +4558,14 @@ void ScrollTwo() {
   // --- Проверка ГЕРКОНА 3 (Ошибка) ---
   if (!digitalReadExpander(3, board3)) {
     if (!Scroll3On && (millis() - code3Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll3On = 1;
       code3Timer = millis();
     }
     if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll31On = 1;
     }
   } else {
@@ -4573,14 +4577,14 @@ void ScrollTwo() {
   // --- Проверка ГЕРКОНА 4 (Ошибка) ---
   if (!digitalReadExpander(1, board3)) {
     if (!Scroll4On && (millis() - code4Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll4On = 1;
       code4Timer = millis();
     }
     if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll41On = 1;
     }
   } else {
@@ -4596,16 +4600,16 @@ void ScrollThree() {
   // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
     if (!Scroll1On && (millis() - code1Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll1On = 1;
       code1Timer = millis();
     }
     if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
       Scroll11On = 1;
       scrollNumber = 1;  // Устанавливаем Шаг 1
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
-      Serial.println("safe_step_1");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
+      Serial.println(F("safe_step_1"));
     }
   } else {
     Scroll11On = 0;
@@ -4616,14 +4620,14 @@ void ScrollThree() {
   // --- Проверка ГЕРКОНА 2 (Ошибка) ---
   if (!digitalReadExpander(0, board3)) {
     if (!Scroll2On && (millis() - code2Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll2On = 1;
       code2Timer = millis();
     }
     if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll21On = 1;
     }
   } else {
@@ -4635,14 +4639,14 @@ void ScrollThree() {
   // --- Проверка ГЕРКОНА 3 (Правильный) ---
   if (!digitalReadExpander(3, board3)) {
     if (!Scroll3On && (millis() - code3Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll3On = 1;
       code3Timer = millis();
     }
     if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
       scrollNumber = 3;  // Успех, переход на шаг 4
-      Serial.println("safe_fix");
-      Serial.println("safe_step_3");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_step_3"));
       Scroll31On = 1;
     }
   } else {
@@ -4654,14 +4658,14 @@ void ScrollThree() {
   // --- Проверка ГЕРКОНА 4 (Ошибка) ---
   if (!digitalReadExpander(1, board3)) {
     if (!Scroll4On && (millis() - code4Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll4On = 1;
       code4Timer = millis();
     }
     if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll41On = 1;
     }
   } else {
@@ -4677,16 +4681,16 @@ void ScrollFour() {
   // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
     if (!Scroll1On && (millis() - code1Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll1On = 1;
       code1Timer = millis();
     }
     if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
       Scroll11On = 1;
       scrollNumber = 1;  // Устанавливаем Шаг 1
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
-      Serial.println("safe_step_1");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
+      Serial.println(F("safe_step_1"));
     }
   } else {
     Scroll11On = 0;
@@ -4697,14 +4701,14 @@ void ScrollFour() {
   // --- Проверка ГЕРКОНА 2 (Правильный) ---
   if (!digitalReadExpander(0, board3)) {
     if (!Scroll2On && (millis() - code2Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll2On = 1;
       code2Timer = millis();
     }
     if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
       scrollNumber = 4;  // Успех, переход на шаг 5
-      Serial.println("safe_fix");
-      Serial.println("safe_step_4");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_step_4"));
       Scroll21On = 1;
     }
   } else {
@@ -4716,14 +4720,14 @@ void ScrollFour() {
   // --- Проверка ГЕРКОНА 3 (Ошибка) ---
   if (!digitalReadExpander(3, board3)) {
     if (!Scroll3On && (millis() - code3Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll3On = 1;
       code3Timer = millis();
     }
     if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll31On = 1;
     }
   } else {
@@ -4735,14 +4739,14 @@ void ScrollFour() {
   // --- Проверка ГЕРКОНА 4 (Ошибка) ---
   if (!digitalReadExpander(1, board3)) {
     if (!Scroll4On && (millis() - code4Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll4On = 1;
       code4Timer = millis();
     }
     if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll41On = 1;
     }
   } else {
@@ -4758,16 +4762,16 @@ void ScrollFive() {
   // --- ИЗМЕНЕНИЕ: Проверка ГЕРКОНА 1 (Сброс на Шаг 1) ---
   if (!digitalReadExpander(2, board3)) {
     if (!Scroll1On && (millis() - code1Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll1On = 1;
       code1Timer = millis();
     }
     if (Scroll1On && !Scroll11On && (millis() - code1Timer >= 2000)) {
       Scroll11On = 1;
       scrollNumber = 1;  // Устанавливаем Шаг 1
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
-      Serial.println("safe_step_1");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
+      Serial.println(F("safe_step_1"));
     }
   } else {
     Scroll11On = 0;
@@ -4778,14 +4782,14 @@ void ScrollFive() {
   // --- Проверка ГЕРКОНА 2 (Ошибка) ---
   if (!digitalReadExpander(0, board3)) {
     if (!Scroll2On && (millis() - code2Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll2On = 1;
       code2Timer = millis();
     }
     if (Scroll2On && !Scroll21On && (millis() - code2Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll21On = 1;
     }
   } else {
@@ -4797,14 +4801,14 @@ void ScrollFive() {
   // --- Проверка ГЕРКОНА 3 (Ошибка) ---
   if (!digitalReadExpander(3, board3)) {
     if (!Scroll3On && (millis() - code3Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll3On = 1;
       code3Timer = millis();
     }
     if (Scroll3On && !Scroll31On && (millis() - code3Timer >= 2000)) {
       scrollNumber = 0;
-      Serial.println("safe_fix");
-      Serial.println("safe_reset");
+      Serial.println(F("safe_fix"));
+      Serial.println(F("safe_reset"));
       Scroll31On = 1;
     }
   } else {
@@ -4816,13 +4820,13 @@ void ScrollFive() {
   // --- Проверка ГЕРКОНА 4 (Правильный - Финал) ---
   if (!digitalReadExpander(1, board3)) {
     if (!Scroll4On && (millis() - code4Timer >= 50)) {
-      Serial.println("safe_turn");
+      Serial.println(F("safe_turn"));
       Scroll4On = 1;
       code4Timer = millis();
     }
     if (Scroll4On && !Scroll41On && (millis() - code4Timer >= 2000)) {
       scrollNumber = 5;  // Успех, ФИНАЛ
-      Serial.println("safe_end");
+      Serial.println(F("safe_end"));
       GoldStrip.setPixelColor(0, GoldStrip.Color(255, 255, 0));
       GoldStrip.show();
       safeTimer = millis();
@@ -4839,7 +4843,7 @@ void SealSpace() {
   static unsigned long lastPress = 0;
   // Обработка геркона
   if (digitalReadExpander(4, board4) && (millis() - lastPress > 500)) {
-    Serial.println("cristal_up");
+    Serial.println(F("cristal_up"));
     OpenLock(MemoryRoomDoor);
     level++;
     lastPress = millis();
@@ -4851,7 +4855,7 @@ void SealSpace() {
     cmd.trim();
 
     if (cmd == "crystals") {
-      Serial.println("cristal_up");
+      Serial.println(F("cristal_up"));
       OpenLock(MemoryRoomDoor);
       level++;
     } else if (cmd == "restart") {
@@ -4862,10 +4866,10 @@ void SealSpace() {
       return;
     } else if (cmd == "soundon") {
       flagSound = 0;
-      Serial.println("Sound ON");
+      Serial.println(F("Sound ON"));
     } else if (cmd == "soundoff") {
       flagSound = 1;
-      Serial.println("Sound OFF");
+      Serial.println(F("Sound OFF"));
     }
   }
 
@@ -4882,7 +4886,7 @@ void MemoryRoom() {
     String preCheck = Serial.readStringUntil('\n');
     preCheck.trim();
     if (preCheck == "memory_room_end") {
-      Serial.println("memory_room_end");
+      Serial.println(F("memory_room_end"));
       for (long firstPixelHue = 0; firstPixelHue < 2 * 65536; firstPixelHue += 556) {
         if (Serial.available()) {
           String ub = Serial.readStringUntil('\n'); ub.trim();
@@ -4922,7 +4926,7 @@ void MemoryRoom() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "memory_room_end") {
-      Serial.println("memory_room_end");
+      Serial.println(F("memory_room_end"));
       for (long firstPixelHue = 0; firstPixelHue < 2 * 65536; firstPixelHue += 556) {
 
         // 1. Слушаем сервер даже во время радуги!
@@ -4974,7 +4978,7 @@ void CrimeHelp() {
 
   static bool flag = 0;
   if (millis() - crimeHelpTimer >= 20000) {
-    Serial.println("story_55");
+    Serial.println(F("story_55"));
     crimeHelpTimer = millis();
   }
   if (!digitalReadExpander(7, board1)) {
@@ -4982,10 +4986,10 @@ void CrimeHelp() {
   }
 
   if (digitalReadExpander(7, board1) && flag) {
-    Serial.println("crime_end");
-    //Serial2.println("start_lesson");
+    Serial.println(F("crime_end"));
+    //Serial2.println(F("start_lesson"));
     //delay(1000);
-    //Serial2.println("start_lesson");
+    //Serial2.println(F("start_lesson"));
     flag = 0;
     level++;
   }
@@ -4995,18 +4999,18 @@ void CrimeHelp() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
     if (buff == "basket") {
-      Serial.println("win");
+      Serial.println(F("win"));
       discoBallsActive = true;
       discoBallsTimer = millis();
-      Serial2.println("win");
+      Serial2.println(F("win"));
       level++;
     }
 
     if (buff == "crime") {
-      Serial.println("crime_end");
-      //Serial2.println("start_lesson");
+      Serial.println(F("crime_end"));
+      //Serial2.println(F("start_lesson"));
       //delay(1000);
-      //Serial2.println("start_lesson");
+      //Serial2.println(F("start_lesson"));
       flag = 0;
       level++;
     }
@@ -5081,7 +5085,7 @@ void handleLocks() {
       // --- Логика датчика для Тюрьмы (CrimeDoor) ---
       // Задача: Щелкать каждые 5 сек ТОЛЬКО если дверь закрыта.
       if (doors[i] == CrimeDoor) {
-        // Из PowerOn: if (digitalReadExpander(1, board2)) Serial.println("crime_open");
+        // Из PowerOn: if (digitalReadExpander(1, board2)) Serial.println(F("crime_open"));
         // Значит: HIGH (true) = Дверь открыта. LOW (false) = Дверь закрыта.
 
         bool isPhysicallyOpen = digitalReadExpander(1, board2);
@@ -5278,7 +5282,7 @@ void _presentation() {
   static bool flagMus = 0;
   if (!digitalRead(firstCrystal) && !digitalRead(secondCrystal) && !digitalRead(thirdCrystal) && !digitalRead(fourCrystal)) {
     if (!flagMus) {
-      Serial.println("start_crystal");
+      Serial.println(F("start_crystal"));
       flagMus = 1;
     }
     if (millis() - MemoryCheckInterval >= 700) {
@@ -5650,7 +5654,7 @@ void firstCaseLogic() {
     case 0:
       if (digitalRead(fourCrystal)) {
         if (millis() - MemoryItem4Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5660,7 +5664,7 @@ void firstCaseLogic() {
     case 1:
       if (digitalRead(secondCrystal)) {
         if (millis() - MemoryItem2Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5671,7 +5675,7 @@ void firstCaseLogic() {
     case 2:
       if (digitalRead(firstCrystal)) {
         if (millis() - MemoryItem1Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5703,7 +5707,7 @@ void firstCaseLogic() {
             memory_Led.show();
             delay(2);
           }
-          Serial.println("first_level");
+          Serial.println(F("first_level"));
 
           // --- НАЧАЛО ИЗМЕНЕНИЯ: Прямой переход на последний уровень (бывший 4-й) ---
           //_levels++; // Старый переход на следующий уровень
@@ -5726,7 +5730,7 @@ void secondCaseLogic() {
     case 0:
       if (digitalRead(thirdCrystal)) {
         if (millis() - MemoryItem3Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5736,7 +5740,7 @@ void secondCaseLogic() {
     case 1:
       if (digitalRead(fourCrystal)) {
         if (millis() - MemoryItem4Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5747,7 +5751,7 @@ void secondCaseLogic() {
     case 2:
       if (digitalRead(secondCrystal)) {
         if (millis() - MemoryItem2Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5769,7 +5773,7 @@ void secondCaseLogic() {
             memory_Led.show();
             delay(2);
           }
-          Serial.println("second_level");
+          Serial.println(F("second_level"));
           _levels++;
           _stages = 0;
           return;
@@ -5876,7 +5880,7 @@ void thirdCaseLogic() {
     case 0:
       if (digitalRead(thirdCrystal)) {
         if (millis() - MemoryItem3Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5886,7 +5890,7 @@ void thirdCaseLogic() {
     case 1:
       if (digitalRead(fourCrystal)) {
         if (millis() - MemoryItem4Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5897,7 +5901,7 @@ void thirdCaseLogic() {
     case 2:
       if (digitalRead(firstCrystal)) {
         if (millis() - MemoryItem1Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -5919,7 +5923,7 @@ void thirdCaseLogic() {
             memory_Led.show();
             delay(2);
           }
-          Serial.println("third_level");
+          Serial.println(F("third_level"));
           _levels++;
           _stages = 0;
           return;
@@ -6028,7 +6032,7 @@ void fourCaseLogic() {
     String skipBuff = Serial.readStringUntil('\n');
     skipBuff.trim();
     if (skipBuff == "memory_room_end") {
-      Serial.println("memory_room_end");
+      Serial.println(F("memory_room_end"));
       for (long h = 0; h < 2 * 65536; h += 556) {
         for (int i = 0; i < memory_Led.numPixels(); i++) {
           memory_Led.setPixelColor(i, memory_Led.gamma32(memory_Led.ColorHSV(h + (i * 65536L / memory_Led.numPixels()))));
@@ -6052,7 +6056,7 @@ void fourCaseLogic() {
     case 0:
       if (digitalRead(firstCrystal)) {
         if (millis() - MemoryItem1Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -6062,7 +6066,7 @@ void fourCaseLogic() {
     case 1:
       if (digitalRead(fourCrystal)) {
         if (millis() - MemoryItem4Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -6073,7 +6077,7 @@ void fourCaseLogic() {
     case 2:
       if (digitalRead(secondCrystal)) {
         if (millis() - MemoryItem2Interval >= 100) {
-          Serial.println("true_crystal");
+          Serial.println(F("true_crystal"));
           _stones++;
         }
       } else
@@ -6085,7 +6089,7 @@ void fourCaseLogic() {
       if (digitalRead(thirdCrystal)) {
         if (millis() - MemoryItem3Interval >= 100) {
           symbolBrightness = 0;
-          Serial.println("memory_room_end");
+          Serial.println(F("memory_room_end"));
           for (long firstPixelHue = 0; firstPixelHue < 2 * 65536; firstPixelHue += 556) {
             for (int i = 0; i < memory_Led.numPixels(); i++) {  // For each pixel in strip...
               int pixelHue = firstPixelHue + (i * 65536L / memory_Led.numPixels());
@@ -6212,7 +6216,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem1Interval = millis();
     } else {
       if (millis() - MemoryItem1Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6229,7 +6233,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
             delay(3);
           }
           if (l == 1) {
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             //_levels = 0;
             _stages = 0;
             return;
@@ -6243,7 +6247,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem2Interval = millis();
     } else {
       if (millis() - MemoryItem2Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6262,7 +6266,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6274,7 +6278,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem3Interval = millis();
     } else {
       if (millis() - MemoryItem3Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6293,7 +6297,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6305,7 +6309,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem4Interval = millis();
     } else {
       if (millis() - MemoryItem4Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6324,7 +6328,7 @@ void mistakeStones(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6340,7 +6344,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem1Interval = millis();
     } else {
       if (millis() - MemoryItem1Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6359,7 +6363,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6371,7 +6375,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem2Interval = millis();
     } else {
       if (millis() - MemoryItem2Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6390,7 +6394,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6402,7 +6406,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem3Interval = millis();
     } else {
       if (millis() - MemoryItem3Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6421,7 +6425,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6433,7 +6437,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
       MemoryItem4Interval = millis();
     } else {
       if (millis() - MemoryItem4Interval >= 100) {
-        Serial.println("mistake_crystal");
+        Serial.println(F("mistake_crystal"));
         for (int l = 0; l <= 1; l++) {
           for (int j = 0; j <= 250; j++) {
             for (int i = 0; i <= 31; i++) {
@@ -6452,7 +6456,7 @@ void mistakeStonesDown(bool _stone1, bool _stone2, bool _stone3, bool _stone4) {
           if (l == 1) {
             //_levels = 0;
             _stages = 0;
-            // Serial.println("mistake_crystal");
+            // Serial.println(F("mistake_crystal"));
             return;
           }
         }
@@ -6726,10 +6730,10 @@ void RestOn() {
       strip1.clear(); strip2.clear(); strip1.show(); strip2.show();
 
       ClearSatelliteBuffers();
-      Serial1.println("ready"); delay(10);
-      Serial2.println("ready"); delay(10);
-      Serial3.println("ready"); delay(10);
-      mySerial.println("ready"); delay(10);
+      Serial1.println(F("ready")); delay(10);
+      Serial2.println(F("ready")); delay(10);
+      Serial3.println(F("ready")); delay(10);
+      mySerial.println(F("ready")); delay(10);
 
       unsigned long startWait = millis();
       while (millis() - startWait < 1500) {
@@ -6737,24 +6741,24 @@ void RestOn() {
         delay(10);
       }
 
-      Serial1.println("start"); delay(10);
-      Serial2.println("start"); delay(10);
-      Serial3.println("start"); delay(10);
-      mySerial.println("start"); delay(10);
+      Serial1.println(F("start")); delay(10);
+      Serial2.println(F("start")); delay(10);
+      Serial3.println(F("start")); delay(10);
+      mySerial.println(F("start")); delay(10);
 
       // === 3. ИМИТАЦИЯ РЕАЛЬНОГО ПРОХОЖДЕНИЯ ===
-      Serial2.println("start_troll");
+      Serial2.println(F("start_troll"));
       delay(50);
-      Serial2.println("troll");
+      Serial2.println(F("troll"));
       delay(50);
-      Serial2.println("opent_basket");
+      Serial2.println(F("opent_basket"));
       delay(350);
-      Serial2.println("item_end");
+      Serial2.println(F("item_end"));
       delay(200);
       
       ClearSatelliteBuffers(); 
       
-      Serial.println("log:main:Jumped to Basket (Level 18)");
+      Serial.println(F("log:main:Jumped to Basket (Level 18)"));
       mainSerialBuffer = ""; // Очищаем склейки строк
       while(Serial.available()) Serial.read(); // Очищаем аппаратный буфер
       return;
@@ -6780,23 +6784,23 @@ void RestOn() {
       bugTimerScroll = 0;
       for (int i = 0; i < DOORS; i++) active[i] = false;
 
-      Serial1.println("ready");
+      Serial1.println(F("ready"));
       delay(20);
-      Serial2.println("ready");
+      Serial2.println(F("ready"));
       delay(20);
-      Serial3.println("ready");
+      Serial3.println(F("ready"));
       delay(20);
-      mySerial.println("ready");
+      mySerial.println(F("ready"));
       delay(50);
-      mySerial.println("ready");
+      mySerial.println(F("ready"));
 
-      if (digitalRead(startDoorPin)) Serial.println("open_door");
-      if (!digitalRead(galetSwitchesPin)) Serial.println("galet_on");
-      if (digitalReadExpander(4, board4)) Serial.println("cristal_up");
-      if (digitalReadExpander(7, board1)) Serial.println("boy_out");
-      if (digitalReadExpander(5, board3)) Serial.println("lib_door");
-      if (digitalReadExpander(1, board2)) Serial.println("crime_open");  // Концевик в замке (локере)
-      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println("safe_open");
+      if (digitalRead(startDoorPin)) Serial.println(F("open_door"));
+      if (!digitalRead(galetSwitchesPin)) Serial.println(F("galet_on"));
+      if (digitalReadExpander(4, board4)) Serial.println(F("cristal_up"));
+      if (digitalReadExpander(7, board1)) Serial.println(F("boy_out"));
+      if (digitalReadExpander(5, board3)) Serial.println(F("lib_door"));
+      if (digitalReadExpander(1, board2)) Serial.println(F("crime_open"));  // Концевик в замке (локере)
+      if (digitalReadExpander(3, board3) && digitalReadExpander(0, board3) && digitalReadExpander(1, board3) && digitalReadExpander(2, board3)) Serial.println(F("safe_open"));
 
       // Выключаем свет для проверки
       digitalWrite(MansardLight, LOW);
@@ -6825,18 +6829,18 @@ void RestOn() {
     else if (buff == "open_bank_door") OpenDoor(BankDoor);
     else if (buff == "open_potion_door") OpenDoor(PotionsRoomDoor);
     else if (buff == "open_owl_door") {
-      mySerial.println("open_door");
+      mySerial.println(F("open_door"));
       delay(50);
-      mySerial.println("open_door");
-    } else if (buff == "open_dog_door") Serial3.println("open_door");
+      mySerial.println(F("open_door"));
+    } else if (buff == "open_dog_door") Serial3.println(F("open_door"));
     else if (buff == "open_low_tower_door") OpenDoor(HightTowerDoor);
     else if (buff == "open_high_tower_door") OpenDoor(HightTowerDoor2);
     else if (buff == "open_library_door") OpenDoor(LibraryDoor);
-    else if (buff == "open_workshop_door") Serial1.println("open_door");
+    else if (buff == "open_workshop_door") Serial1.println(F("open_door"));
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
-    else if (buff == "open_basket_door") Serial2.println("open_door");
-    else if (buff == "open_mine_door") Serial2.println("open_mine_door");
+    else if (buff == "open_basket_door") Serial2.println(F("open_door"));
+    else if (buff == "open_mine_door") Serial2.println(F("open_mine_door"));
     // 2026-05-28: dg_on handler УДАЛЁН (DIAG mode убран).
     // === check_towers handler (rest state) ===
     else if (buff == "check_towers") {
@@ -6851,6 +6855,7 @@ void RestOn() {
       Serial.print(F(",owls="));
       Serial.println((lastSeenOwls && (now - lastSeenOwls) < w) ? 1 : 0);
     }
+    else if (handleStripTest(buff)) { /* тест ленты (RestOn) */ }
     else Unlocks(buff);
   }
 }
@@ -6883,7 +6888,7 @@ void ListenForReady() {
 
   // 1. Проверяем, не истекло ли время прослушивания
   if (millis() - readyListenTimer > READY_LISTEN_DURATION) {
-    Serial.println("ready_check_finished");
+    Serial.println(F("ready_check_finished"));
     level = 0;
     return;
   }
@@ -6896,8 +6901,8 @@ void ListenForReady() {
     buff.trim();
     if (buff.length() > 0) {
       // Подмена команд
-      if (buff == "galet_on") Serial.println("galet2");
-      else if (buff == "galet_off") Serial.println("galet2_off");
+      if (buff == "galet_on") Serial.println(F("galet2"));
+      else if (buff == "galet_off") Serial.println(F("galet2_off"));
       else Serial.println(buff);  // Остальное шлем как есть (логи)
     }
   }
@@ -6907,8 +6912,8 @@ void ListenForReady() {
     String buff = Serial2.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      if (buff == "galet_on") Serial.println("galet3");
-      else if (buff == "galet_off") Serial.println("galet3_off");
+      if (buff == "galet_on") Serial.println(F("galet3"));
+      else if (buff == "galet_off") Serial.println(F("galet3_off"));
       else Serial.println(buff);
     }
   }
@@ -6918,8 +6923,8 @@ void ListenForReady() {
     String buff = Serial3.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      if (buff == "galet_on") Serial.println("galet4");
-      else if (buff == "galet_off") Serial.println("galet4_off");
+      if (buff == "galet_on") Serial.println(F("galet4"));
+      else if (buff == "galet_off") Serial.println(F("galet4_off"));
       else Serial.println(buff);
     }
   }
@@ -6929,8 +6934,8 @@ void ListenForReady() {
     String buff = mySerial.readStringUntil('\n');
     buff.trim();
     if (buff.length() > 0) {
-      if (buff == "galet_on" || buff == "owls_galet_on") Serial.println("galet5");
-      else if (buff == "galet_off" || buff == "owls_galet_off") Serial.println("galet5_off");
+      if (buff == "galet_on" || buff == "owls_galet_on") Serial.println(F("galet5"));
+      else if (buff == "galet_off" || buff == "owls_galet_off") Serial.println(F("galet5_off"));
       else Serial.println(buff);
     }
   }
@@ -6955,9 +6960,9 @@ void handleIdleBoySensor() {
     // Если состояние изменилось
     if (currentBoyState != lastBoyState) {
       if (currentBoyState) {
-        Serial.println("boy_out");  // Мальчик ВЫНУТ (геркон разомкнут)
+        Serial.println(F("boy_out"));  // Мальчик ВЫНУТ (геркон разомкнут)
       } else {
-        Serial.println("boy_in");  // Мальчик ВСТАВЛЕН (геркон замкнут)
+        Serial.println(F("boy_in"));  // Мальчик ВСТАВЛЕН (геркон замкнут)
       }
       lastBoyState = currentBoyState;  // Сохраняем новое состояние
     }
@@ -6966,6 +6971,42 @@ void handleIdleBoySensor() {
 
 void Restart() {
 }
+// === 2026-05-29: тест адресных лент strip1/strip2 (ball-flight + кубок) ===
+// Возвращает true если команда обработана. НЕ broadcast на башни (не через Unlocks).
+// Вызывается только из PowerOn (level 0) и RestOn (level 25) — т.е. работает везде
+// кроме активной игры (level 1-19, "старт") и режима ready (level 26).
+bool handleStripTest(const String &buff) {
+  if (buff == "lt_all") {
+    for (int i = 0; i < (int)strip1.numPixels(); i++) strip1.setPixelColor(i, strip1.Color(40, 40, 40));
+    for (int i = 0; i < (int)strip2.numPixels(); i++) strip2.setPixelColor(i, strip2.Color(40, 40, 40));
+    strip1.show(); strip2.show();
+    Serial.println(F("log:main:lt_all"));
+    return true;
+  }
+  if (buff == "lt_off") {
+    strip1.clear(); strip2.clear(); strip1.show(); strip2.show();
+    Serial.println(F("log:main:lt_off"));
+    return true;
+  }
+  if (buff.startsWith("lt1:")) {
+    int n = buff.substring(4).toInt();
+    strip1.clear();
+    if (n >= 0 && n < (int)strip1.numPixels()) strip1.setPixelColor(n, strip1.Color(0, 255, 0));
+    strip1.show();
+    Serial.print(F("log:main:lt1 pixel ")); Serial.println(n);
+    return true;
+  }
+  if (buff.startsWith("lt2:")) {
+    int n = buff.substring(4).toInt();
+    strip2.clear();
+    if (n >= 0 && n < (int)strip2.numPixels()) strip2.setPixelColor(n, strip2.Color(0, 255, 0));
+    strip2.show();
+    Serial.print(F("log:main:lt2 pixel ")); Serial.println(n);
+    return true;
+  }
+  return false;
+}
+
 // метод для открытия дверей
 void Unlocks(String buff) {
   Serial1.println(buff);
@@ -6978,12 +7019,12 @@ void Unlocks(String buff) {
     Serial3.end();       // Отключаем аппаратный UART
     pinMode(14, INPUT);  // TX3 переводим в режим входа (Z-state)
     pinMode(15, INPUT);  // RX3 переводим в режим входа (Z-state)
-    Serial.println("log:main:Serial3 released (Z-state) for Dog flashing.");
+    Serial.println(F("log:main:Serial3 released (Z-state) for Dog flashing."));
     return;
   }
   if (buff == "restore_serial3") {
     Serial3.begin(9600);  // Включаем UART обратно
-    Serial.println("log:main:Serial3 restored.");
+    Serial.println(F("log:main:Serial3 restored."));
     return;
   }
 
@@ -7052,7 +7093,7 @@ void BasketEffect() {
     if (millis() - enemyTimer >= random(10000, 20000)) {
       if (!enemyFlag) {
         enemyFlag = 1;
-        Serial.println("red_ball");
+        Serial.println(F("red_ball"));
         interval = 15;
         additionalTimer = millis();
       }
@@ -7071,8 +7112,8 @@ void BasketEffect() {
       } else {
         // Игрок на платформе (snitchFlag == 0), но не поймал красный мяч.
         // Засчитываем гол боту!
-        Serial.println("goal_1_bot");           // звук
-        Serial2.println("start_basket_robot");  // Отправляем гол
+        Serial.println(F("goal_1_bot"));           // звук
+        Serial2.println(F("start_basket_robot"));  // Отправляем гол
         LooseSnitch();                          // Показываем красную вспышку
 
         // СБРАСЫВАЕМ ФЛАГИ (это было пропущено в оригинале)
@@ -7170,18 +7211,18 @@ void updateComet() {
         snitchFlag = 1;
         isTrainBasket = 1;
         if (enemyFlag) {
-          Serial.println("enemy_catch1");
+          Serial.println(F("enemy_catch1"));
         } else {
-          Serial.println("catch1");
+          Serial.println(F("catch1"));
         }
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
         if (level == 18 || level == 19) {
           basketWatchdogTimer = millis();
           waitingForBasketConfirm = true;
           basketRetryCount = 0;
         }
         CatchSnitch();
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
       }
     }
   } else {
@@ -7196,18 +7237,18 @@ void updateComet() {
         snitchFlag = 1;
         isTrainBasket = 1;
         if (enemyFlag) {
-          Serial.println("enemy_catch2");
+          Serial.println(F("enemy_catch2"));
         } else {
-          Serial.println("catch2");
+          Serial.println(F("catch2"));
         }
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
         if (level == 18 || level == 19) {
           basketWatchdogTimer = millis();
           waitingForBasketConfirm = true;
           basketRetryCount = 0;
         }
         CatchSnitch();
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
       }
     }
   } else {
@@ -7222,18 +7263,18 @@ void updateComet() {
         snitchFlag = 1;
         isTrainBasket = 1;
         if (enemyFlag) {
-          Serial.println("enemy_catch3");
+          Serial.println(F("enemy_catch3"));
         } else {
-          Serial.println("catch3");
+          Serial.println(F("catch3"));
         }
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
         if (level == 18 || level == 19) {
           basketWatchdogTimer = millis();
           waitingForBasketConfirm = true;
           basketRetryCount = 0;
         }
         CatchSnitch();
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
       }
     }
   } else {
@@ -7248,18 +7289,18 @@ void updateComet() {
         snitchFlag = 1;
         isTrainBasket = 1;
         if (enemyFlag) {
-          Serial.println("enemy_catch4");
+          Serial.println(F("enemy_catch4"));
         } else {
-          Serial.println("catch4");
+          Serial.println(F("catch4"));
         }
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
         if (level == 18 || level == 19) {
           basketWatchdogTimer = millis();
           waitingForBasketConfirm = true;
           basketRetryCount = 0;
         }
         CatchSnitch();
-        Serial2.println("start_basket");
+        Serial2.println(F("start_basket"));
       }
     }
   } else {
@@ -7436,13 +7477,13 @@ void GreenWaveEffect() {
 void SendRestartToAll() {
   // Отправляем команду 3 раза, чтобы "пробиться" через strip.show() на башнях
   for (int i = 0; i < 3; i++) {
-    Serial1.println("restart");
+    Serial1.println(F("restart"));
     delay(15);  // Workshop
-    Serial2.println("restart");
+    Serial2.println(F("restart"));
     delay(15);  // Basket/Troll
-    Serial3.println("restart");
+    Serial3.println(F("restart"));
     delay(15);  // Dog
-    mySerial.println("restart");
+    mySerial.println(F("restart"));
     delay(15);  // Owls
   }
 }
@@ -7450,7 +7491,7 @@ void SendRestartToAll() {
 // --- ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ СЕРВОПРИВОДОМ С ПОДТВЕРЖДЕНИЕМ ---
 
 void RunStudentHide() {
-  Serial.println("log:confirm:student_hide_start");  // Лог начала
+  Serial.println(F("log:confirm:student_hide_start"));  // Лог начала
   boyServo.attach(49, 500, 2500);
   digitalWrite(HallLight, HIGH);
   digitalWrite(MansardLight, HIGH);
@@ -7458,19 +7499,19 @@ void RunStudentHide() {
   smartDelay(1000);
 
   boyServo.detach();
-  Serial.println("log:confirm:student_hide_success");  // Ответ серверу
+  Serial.println(F("log:confirm:student_hide_success"));  // Ответ серверу
 }
 
 void RunStudentOpen() {
-  Serial1.println("servo");  // Команда башне (если нужно)
+  Serial1.println(F("servo"));  // Команда башне (если нужно)
   smartDelay(1000);
 
-  Serial.println("log:confirm:student_open_start");
+  Serial.println(F("log:confirm:student_open_start"));
   boyServo.attach(49, 500, 2500);
   boyServo.write(170);  // Поворот (открывается)
   smartDelay(1000);
 
   boyServo.detach();
-  Serial.println("log:confirm:student_open_success");  // ВАЖНО: Ответ серверу
+  Serial.println(F("log:confirm:student_open_success"));  // ВАЖНО: Ответ серверу
 }
 // 2026-05-28: processDgCmd() и sendDgSnap() УДАЛЕНЫ (DIAG mode убран).

@@ -1643,28 +1643,40 @@ def _auto_convert_audio_bitdepth(emit_progress=False):
     total = len(files)
     for i, fname in enumerate(files):
         path = os.path.join(scan_dir, fname)
+        # Определяем формат по raw-заголовку WAV (не через wave.open — он бросает
+        # исключение на IEEE-float audioFormat=3 и такие файлы раньше НЕ конвертились).
+        # audioFormat: PCM=1, IEEE float=3, extensible=0xFFFE; bitsPerSample @ 34:36.
+        audio_format = None
+        sampwidth = None  # в байтах
         try:
-            with wave_module.open(path, 'rb') as w:
-                sampwidth = w.getsampwidth()
+            with open(path, 'rb') as fh:
+                raw = fh.read(36)
+            if len(raw) >= 22:
+                audio_format = int.from_bytes(raw[20:22], 'little')
+            if len(raw) >= 36:
+                sampwidth = int.from_bytes(raw[34:36], 'little') // 8
         except Exception as e:
-            errors_list.append({'file': fname, 'error': f'wave read: {e}'})
+            errors_list.append({'file': fname, 'error': f'header read: {e}'})
             continue
         scanned += 1
-        if sampwidth == 2:
+        # 16-bit PCM уже годен для pygame — пропускаем
+        if audio_format == 1 and sampwidth == 2:
             skipped_list.append(fname)
             continue
+        bits = (sampwidth or 0) * 8
         if emit_progress:
             socketio.emit('audio_convert_progress',
                           {'phase': 'scan', 'current': i+1, 'total': total,
-                           'file': fname, 'bits': sampwidth*8}, to=None)
+                           'file': fname, 'bits': bits}, to=None)
+        # sox читает и float (fmt=3), и 24/32-bit PCM → пишем 16-bit signed PCM
         tmp = path + '.16bit.tmp.wav'
         try:
-            r = _sp.run(['sox', path, '-b', '16', tmp],
+            r = _sp.run(['sox', path, '-b', '16', '-e', 'signed-integer', tmp],
                         capture_output=True, timeout=60, text=True)
             if r.returncode == 0 and os.path.exists(tmp):
                 os.replace(tmp, path)
-                converted_list.append({'file': fname, 'from_bits': sampwidth*8})
-                logger.info(f"[AUDIO-CONVERT] {fname}: {sampwidth*8}-bit → 16-bit")
+                converted_list.append({'file': fname, 'from_bits': bits or f'fmt{audio_format}'})
+                logger.info(f"[AUDIO-CONVERT] {fname}: fmt={audio_format} {bits}-bit → 16-bit PCM")
             else:
                 if os.path.exists(tmp):
                     try: os.remove(tmp)
@@ -2315,6 +2327,26 @@ def tech_send_serial(data):
         logger.warning(f"[TECH-DIAG] rejected non-whitelisted cmd: {cmd}")
         return
     logger.info(f"[TECH-DIAG] sending {cmd} via Mega serial")
+    serial_write_queue.put(cmd)
+
+@socketio.on('tech_strip_test')
+def tech_strip_test(data):
+    """Тест адресных лент strip1/strip2 (ball-flight) через Mega RestOn.
+    lt_all / lt_off — все вкл/выкл; lt1:N / lt2:N — один зелёный пиксель.
+    Нужно для поиска индекса пикселя кубка (FireCup -> strip2 pixel 65)."""
+    cmd = (data or {}).get('cmd', '').strip()
+    if not cmd:
+        return
+    ok = False
+    if cmd in ('lt_all', 'lt_off'):
+        ok = True
+    elif cmd.startswith('lt1:') or cmd.startswith('lt2:'):
+        idx = cmd.split(':', 1)[1]
+        ok = idx.isdigit() and int(idx) < 200
+    if not ok:
+        logger.warning(f"[TECH-STRIP] rejected cmd: {cmd}")
+        return
+    logger.info(f"[TECH-STRIP] sending {cmd} via Mega serial")
     serial_write_queue.put(cmd)
 
 @socketio.on('tech_diag_command')
