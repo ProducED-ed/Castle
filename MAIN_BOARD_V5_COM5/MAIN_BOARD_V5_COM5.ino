@@ -133,12 +133,9 @@ unsigned long lastSeenBasket   = 0;
 unsigned long lastSeenDog      = 0;
 unsigned long lastSeenOwls     = 0;
 
-// DIAG mode declarations (dormant — dgActive не может стать true без dg_on,
-// который мы НЕ добавляем в Step 2)
-bool dgActive = false;
-unsigned long dgLastSnap = 0;
-void processDgCmd(const String& cmd);
-void sendDgSnap();
+// 2026-05-28: DIAG mode УДАЛЁН (не используется — нет UI для Mega/башен).
+// Облегчение loop + устранение if(dgActive) early-return который мог влиять
+// на тайминг NeoPixel (strip2 FireCup пиксель кубка не загорался).
 //----------------RFID
 OneWire myRFID(13);  // рфидка на котле в комнате зельеварения
 byte addr[8];
@@ -879,16 +876,7 @@ void smartDelay(unsigned long ms) {
 }
 
 void loop() {
-  // === Step 6g: + inline dg_off comparison (no function call) ===
-  if (dgActive) {
-    while (Serial.available()) {
-      String b = Serial.readStringUntil('\n');
-      b.trim();
-      if (b == "dg_off") dgActive = false;  // INLINED, без processDgCmd
-    }
-    return;
-  }
-  // === END Step 6g ===
+  // 2026-05-28: DIAG mode early-return УДАЛЁН (облегчение loop).
 
   // === Step 5: passive heartbeat poll + HB log ===
   // Просто отмечаем что от башни приходят данные (не читаем — байты остаются в буфере).
@@ -1409,18 +1397,8 @@ void PowerOn() {
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println("open_door");
     else if (buff == "open_mine_door") Serial2.println("open_mine_door");
-    // === Step 2: DIAG entry handler (idle state) ===
-    else if (buff == "dg_on") {
-      dgActive = true;
-      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
-      digitalWrite(Fireworks, LOW);
-      Serial.println(F("dg:ack:on"));
-      while(Serial.available()) Serial.read();
-      return;
-    }
-    // === Step 2: check_towers handler ===
-    // Возвращает все нули в Step 2 (lastSeen* нигде не обновляются).
-    // В Step 3 добавим tracking — тогда статус будет реальный.
+    // 2026-05-28: dg_on handler УДАЛЁН (DIAG mode убран).
+    // === check_towers handler ===
     else if (buff == "check_towers") {
       const unsigned long w = 30000UL;
       unsigned long now = millis();
@@ -6859,16 +6837,8 @@ void RestOn() {
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println("open_door");
     else if (buff == "open_mine_door") Serial2.println("open_mine_door");
-    // === Step 2: DIAG entry handler (rest state, level=25) ===
-    else if (buff == "dg_on") {
-      dgActive = true;
-      for (int i = 0; i < DOORS; i++) { digitalWrite(doors[i], LOW); active[i] = false; }
-      digitalWrite(Fireworks, LOW);
-      Serial.println(F("dg:ack:on"));
-      while(Serial.available()) Serial.read();
-      return;
-    }
-    // === Step 2: check_towers handler (rest state) ===
+    // 2026-05-28: dg_on handler УДАЛЁН (DIAG mode убран).
+    // === check_towers handler (rest state) ===
     else if (buff == "check_towers") {
       const unsigned long w = 30000UL;
       unsigned long now = millis();
@@ -7503,47 +7473,4 @@ void RunStudentOpen() {
   boyServo.detach();
   Serial.println("log:confirm:student_open_success");  // ВАЖНО: Ответ серверу
 }
-
-// ====================================================================
-// === Step 2 (2026-05-27): DIAG MODE function implementations ===
-// processDgCmd() и sendDgSnap() добавлены для compile-completeness.
-// В Step 2 они НЕ вызываются (no caller).
-// ====================================================================
-
-void processDgCmd(const String& c) {
-  if (c == "dg_off") {
-    dgActive = false;
-    Serial.println(F("dg:ack:off"));
-    return;
-  }
-  if (c == "dg_d1") { OpenDoor(MansardDoor);    return; }
-  if (c == "dg_d2") { OpenDoor(PotionsRoomDoor); return; }
-  if (c == "dg_d3") { OpenDoor(LibraryDoor);     return; }
-  if (c == "dg_d4") { OpenDoor(BankDoor);        return; }
-  if (c == "dg_d5") { OpenDoor(HightTowerDoor);  return; }
-  if (c == "dg_d6") { OpenDoor(HightTowerDoor2); return; }
-  if (c == "dg_d7") { OpenDoor(MemoryRoomDoor);  return; }
-  if (c == "dg_d8") { OpenDoor(CrimeDoor);       return; }
-  if (c == "dg_d9") { OpenDoor(BankStashDoor);   return; }
-  if (c == "dg_fw") {
-    digitalWrite(Fireworks, !digitalRead(Fireworks));
-    return;
-  }
-  if (c == "dg_sn") {
-    sendDgSnap();
-    return;
-  }
-}
-
-void sendDgSnap() {
-  Serial.print(F("dgs:"));
-  Serial.print(digitalRead(firstCrystal));   Serial.print(',');
-  Serial.print(digitalRead(secondCrystal));  Serial.print(',');
-  Serial.print(digitalRead(thirdCrystal));   Serial.print(',');
-  Serial.print(digitalRead(fourCrystal));    Serial.print(',');
-  Serial.print(analogRead(WindowSens) > 500 ? 1 : 0); Serial.print(',');
-  Serial.print(digitalRead(crimeDoorPin));   Serial.print(',');
-  Serial.print(digitalRead(startDoorPin));   Serial.print(',');
-  Serial.print(analogRead(voltagePin));      Serial.print(',');
-  Serial.println(millis() / 1000UL);
-}
+// 2026-05-28: processDgCmd() и sendDgSnap() УДАЛЕНЫ (DIAG mode убран).
