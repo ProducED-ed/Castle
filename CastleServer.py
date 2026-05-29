@@ -612,21 +612,11 @@ def gather_system_status():
     except Exception:
         pass
 
-    # Per-port присутствие USB-CH340 башен на хабе.
-    # 2026-05-29 ВАЖНО: проверяем ТОЛЬКО наличие порта через os.path.exists, БЕЗ os.open.
-    # Раньше делали os.open+tcgetattr (детект "залипшего" CH340 / -110), НО открытие+закрытие
-    # USB-порта башни дёргает DTR → РЕСЕТ Arduino этой башни каждые 5 сек (когда USB воткнут).
-    # Это ломало игру: башня Баскетбол (USB 1.2.3) перезагружалась раз в ~6с, теряла стейт
-    # (например, прогресс вращения тролля в пещере). USB башни нужен только для прошивки,
-    # игровая связь идёт по UART — поэтому достаточно проверки наличия порта.
-    tower_usb_paths = {
-        'usb_owls':     '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0',
-        'usb_dog':      '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0',
-        'usb_basket':   '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0',
-        'usb_workshop': '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0',
-    }
-    for key, path in tower_usb_paths.items():
-        usb[key] = os.path.exists(path)
+    # 2026-05-29: per-port USB-статус башен УБРАН полностью.
+    # На тех-пульте нет иконок для него (показываются только USB-аудио / Wi-Fi-донгл /
+    # USB-хаб с башнями / Mega), а сам опрос через os.open дёргал DTR и ресетил Arduino
+    # башни (Баскетбол перезагружалась раз в ~6с, теряла игровой стейт). Связь с башнями
+    # идёт по UART, USB нужен только для прошивки. Статус хаба (s.usb.hub) остаётся.
 
     return {
         'esp32':     esp32,
@@ -644,7 +634,6 @@ _prev_status_state = {
     'tower_main': None, 'tower_owls': None, 'tower_basket': None, 'tower_workshop': None, 'tower_dog': None,
     'network_castle_ap': None, 'network_client_wifi': None, 'network_tailscale': None, 'network_internet': None,
     'usb_audio': None, 'usb_wifi_dongle': None, 'usb_hub': None, 'usb_mega_main': None,
-    'usb_usb_owls': None, 'usb_usb_basket': None, 'usb_usb_workshop': None, 'usb_usb_dog': None,
 }
 
 # Имена для логов: показываем понятные русские/английские лейблы вместо ключей.
@@ -653,7 +642,6 @@ _status_labels = {
     'tower_main': 'Main Board', 'tower_owls': 'Tower Owls', 'tower_basket': 'Tower Basket', 'tower_workshop': 'Tower Workshop', 'tower_dog': 'Tower Dog',
     'network_castle_ap': 'Castle AP', 'network_client_wifi': 'Client WiFi', 'network_tailscale': 'Tailscale', 'network_internet': 'Internet',
     'usb_audio': 'USB Audio', 'usb_wifi_dongle': 'USB WiFi-dongle', 'usb_hub': 'USB Hub', 'usb_mega_main': 'USB Mega-main',
-    'usb_usb_owls': 'USB Owls (1.2.1)', 'usb_usb_basket': 'USB Basket (1.2.3)', 'usb_usb_workshop': 'USB Workshop (1.2.4)', 'usb_usb_dog': 'USB Dog (1.2.2)',
 }
 
 
