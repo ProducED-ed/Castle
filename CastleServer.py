@@ -612,12 +612,13 @@ def gather_system_status():
     except Exception:
         pass
 
-    # Per-port проверка для USB-CH340 башен: если CH340 на хабе "залип"
-    # (errcode -110 на USB control transfer), tcgetattr вернёт EIO. Используем
-    # неблокирующий os.open + termios — намного быстрее чем subprocess stty,
-    # и не блокирует eventlet loop.
-    import termios as _termios
-    import fcntl as _fcntl
+    # Per-port присутствие USB-CH340 башен на хабе.
+    # 2026-05-29 ВАЖНО: проверяем ТОЛЬКО наличие порта через os.path.exists, БЕЗ os.open.
+    # Раньше делали os.open+tcgetattr (детект "залипшего" CH340 / -110), НО открытие+закрытие
+    # USB-порта башни дёргает DTR → РЕСЕТ Arduino этой башни каждые 5 сек (когда USB воткнут).
+    # Это ломало игру: башня Баскетбол (USB 1.2.3) перезагружалась раз в ~6с, теряла стейт
+    # (например, прогресс вращения тролля в пещере). USB башни нужен только для прошивки,
+    # игровая связь идёт по UART — поэтому достаточно проверки наличия порта.
     tower_usb_paths = {
         'usb_owls':     '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0',
         'usb_dog':      '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0',
@@ -625,20 +626,7 @@ def gather_system_status():
         'usb_workshop': '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0',
     }
     for key, path in tower_usb_paths.items():
-        fd = -1
-        try:
-            if not os.path.exists(path):
-                usb[key] = False
-                continue
-            fd = os.open(path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
-            _termios.tcgetattr(fd)  # USB control transfer — EIO если CH340 не отвечает
-            usb[key] = True
-        except Exception:
-            usb[key] = False
-        finally:
-            if fd >= 0:
-                try: os.close(fd)
-                except: pass
+        usb[key] = os.path.exists(path)
 
     return {
         'esp32':     esp32,
