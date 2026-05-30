@@ -648,13 +648,25 @@ _status_labels = {
 _status_fail_counter = {}  # key -> сколько последовательных fail'ов
 OFFLINE_FAIL_THRESHOLD = 2  # 2026-05-27: ALERT только после 2 подряд неудачных проверок (~10s)
 
+# Устройства, для которых OFFLINE — НОРМАЛЬНОЕ состояние, не повод для WARNING.
+# usb_hub: рабочий поток — хаб с башнями держится отключенным от Pi для стабильности
+# USB-шины Pi 4 (один контроллер VIA Labs VL813 на 4 порта; шум от хаба + 4 CH340
+# валит USB-WiFi-донгл на той же шине, см. memory [clc-usb-hub-underpowered]).
+# Хаб клиент втыкает горячей вставкой ТОЛЬКО на время прошивки башен, потом вынимает.
+# Все игровые шины (Mega 1-1.1, WiFi 1-1.3, Audio 1-1.4) сидят на собственных портах Pi
+# и работают независимо от хаба. Поэтому usb_hub OFFLINE — ожидаемо.
+EXPECTED_ABSENT = {'usb_hub'}
+
 def _log_status_changes(status):
     """Сравнивает текущий статус с предыдущим и пишет ALERT/OK в лог
     только при изменении. Это убирает спам и оставляет только важные события.
 
     2026-05-27: добавлен fail-counter — ALERT только после OFFLINE_FAIL_THRESHOLD
     подряд неудачных проверок. Защита от ложных alert'ов из-за транзитных
-    потерь пакетов / WiFi reconnect (Pi RTL8189FS бывает шумит)."""
+    потерь пакетов / WiFi reconnect (Pi RTL8189FS бывает шумит).
+
+    2026-05-30: устройства из EXPECTED_ABSENT (usb_hub) при OFFLINE логируются на
+    уровне INFO вместо WARNING — это рабочий сценарий, не ошибка."""
     flat = {}
     for k, v in status.get('esp32', {}).items():     flat[f'esp32_{k}'] = bool(v)
     for k, v in status.get('towers', {}).items():    flat[f'tower_{k}'] = bool(v)
@@ -680,6 +692,9 @@ def _log_status_changes(status):
             label = _status_labels.get(key, key)
             if effective_current:
                 logger.info(f'STATUS OK: {label} restored to ONLINE')
+            elif key in EXPECTED_ABSENT:
+                # OFFLINE для этого устройства — ожидаемо (рабочий сценарий), не алерт.
+                logger.info(f'STATUS INFO: {label} went OFFLINE ({_status_fail_counter.get(key, 0)} consecutive fails) — ожидаемо')
             else:
                 logger.warning(f'STATUS ALERT: {label} went OFFLINE ({_status_fail_counter.get(key, 0)} consecutive fails)')
             _prev_status_state[key] = effective_current
