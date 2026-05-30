@@ -648,6 +648,8 @@ void loop() {
         Serial.println("FALLBACK: 29B timeout — сцена завершена");
         sendLogToServer("{\"log\":\"Safe FALLBACK step3→4 by timer (sequence done)\"}");
         gameWonSequenceStep = 4;
+        hintFlag = 1;  // 2026-05-30: разрешаем HINT_3 после окончания 29B
+        hintPlayedAt = 0;
       }
       if (digitalRead(REED_SWITCH_2_PIN) == LOW && gameWonSequenceStep >= 4 && (millis() - lastDebounceTime_2) > debounceDelay) {
         if (hintFlag){
@@ -676,7 +678,8 @@ void loop() {
               sendLogToServer("{\"log\":\"Safe: Playing Hint 3 (PL)\"}");
             }
             hintFlag=0;
-        } 
+            hintPlayedAt = millis();  // 2026-05-30: для time-based re-arm (повтор HINT_3)
+        }
         lastDebounceTime_2 = millis();
       }
       if(millis()-doorTimer>=3000 && gameWonSequenceStep > 2){
@@ -811,6 +814,8 @@ void handlePlayerQueries() {
           if (isTrack29B) {
             gameWonSequenceStep = 4;
             stepEnteredAt = millis();
+            hintFlag = 1;  // 2026-05-30: разрешаем HINT_3 после окончания 29B
+            hintPlayedAt = 0;
             Serial.println("Сцена победы полностью завершена.");
           }
         }
