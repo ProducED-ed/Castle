@@ -2,8 +2,11 @@
 *.eep
 *.elf
 *.hex
+*.map
 *.with_bootloader.bin
 *.with_bootloader.hex
+*.bootloader.bin
+*.partitions.bin
 build/
 */build/
 */*/build/
