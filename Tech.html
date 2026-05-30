@@ -956,8 +956,9 @@
         function restartServer() {
             if(confirm("Сервер будет перезапущен (сработает скрипт и звук запуска). Продолжить?")) {
                 socket.emit('tech_restart_server');
-                document.body.innerHTML = '<h1 style="text-align:center; margin-top:20%; color:orange;">Перезапуск сервера... Пожалуйста, подождите.</h1>';
-                setTimeout(() => { location.reload(); }, 5000);
+                document.body.innerHTML = '<h1 style="text-align:center; margin-top:20%; color:orange;">Перезапуск сервера...<br><small style="font-size:0.5em; color:#aaa;">~1 минута: остановка процесса + run_server.sh + audio init + on.wav</small></h1>';
+                // 60c — реальный цикл systemctl stop (eventlet может тянуться ~30-90c) + start + connect
+                setTimeout(() => { location.reload(); }, 60000);
             }
         }
 		

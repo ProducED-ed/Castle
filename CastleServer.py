@@ -2154,13 +2154,19 @@ def stop_live_logs():
 # --- ПЕРЕЗАПУСК СЕРВЕРА ---
 @socketio.on('tech_restart_server')
 def tech_restart_server():
+    """Полный перезапуск сервиса через systemd (Restart=always).
+    SIGTERM → выход Python → systemd запускает run_server.sh с нуля:
+    свежий pulseaudio setup + fresh python3 + все fd с нуля (включая
+    ttyUSB_MAIN — лечит "stale fd" после прошивки Mega).
+    Раньше тут был os.execv — он перечитывал код, НО держал тот же PID
+    (визуально 'не рестартанулось') + наследовал fd + не перевыполнял
+    run_server.sh. Тот же паттерн используется после прошивки Main Board
+    в handle_flash (см. ниже)."""
     def restart():
-        eventlet.sleep(1) # Даем секунду, чтобы кнопка в браузере успела отжаться
-        import sys
-        # Идеальный перезапуск скрипта в той же среде
-        os.chdir('/home/pi/New')
-        os.execv(sys.executable, ['python3', 'CastleServer.py'])
-        
+        eventlet.sleep(1)  # даём кнопке в браузере успеть отжаться
+        import signal
+        os.kill(os.getpid(), signal.SIGTERM)
+
     socketio.start_background_task(target=restart)
 
 @socketio.on('tech_jump_basket')
