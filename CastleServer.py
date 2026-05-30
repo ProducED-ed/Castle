@@ -2155,17 +2155,22 @@ def stop_live_logs():
 @socketio.on('tech_restart_server')
 def tech_restart_server():
     """Полный перезапуск сервиса через systemd (Restart=always).
-    SIGTERM → выход Python → systemd запускает run_server.sh с нуля:
-    свежий pulseaudio setup + fresh python3 + все fd с нуля (включая
-    ttyUSB_MAIN — лечит "stale fd" после прошивки Mega).
+    os._exit(0) → systemd видит выход → запускает run_server.sh с нуля:
+    свежий pulseaudio + fresh python3 + все fd с нуля (включая ttyUSB_MAIN
+    — лечит "stale fd" после прошивки Mega).
+
+    Почему _exit, а не SIGTERM: под eventlet-greenlet'ом SIGTERM
+    перехватывается hub'ом и игнорируется (проверено 2026-05-30 — кнопка
+    с SIGTERM не работала). _exit обходит все signal handlers и обработчики
+    Python, делает immediate exit на уровне libc. Тот же паттерн на строке
+    ~2096 (handle_dog_flash) с подробным комментарием.
+
     Раньше тут был os.execv — он перечитывал код, НО держал тот же PID
     (визуально 'не рестартанулось') + наследовал fd + не перевыполнял
-    run_server.sh. Тот же паттерн используется после прошивки Main Board
-    в handle_flash (см. ниже)."""
+    run_server.sh."""
     def restart():
-        eventlet.sleep(1)  # даём кнопке в браузере успеть отжаться
-        import signal
-        os.kill(os.getpid(), signal.SIGTERM)
+        eventlet.sleep(1)  # даём emit-у улететь до клиента и кнопке отжаться
+        os._exit(0)
 
     socketio.start_background_task(target=restart)
 

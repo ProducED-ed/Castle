@@ -954,12 +954,43 @@
 
         // --- ПЕРЕЗАПУСК СЕРВЕРА ---
         function restartServer() {
-            if(confirm("Сервер будет перезапущен (сработает скрипт и звук запуска). Продолжить?")) {
-                socket.emit('tech_restart_server');
-                document.body.innerHTML = '<h1 style="text-align:center; margin-top:20%; color:orange;">Перезапуск сервера...<br><small style="font-size:0.5em; color:#aaa;">~1 минута: остановка процесса + run_server.sh + audio init + on.wav</small></h1>';
-                // 60c — реальный цикл systemctl stop (eventlet может тянуться ~30-90c) + start + connect
-                setTimeout(() => { location.reload(); }, 60000);
-            }
+            if(!confirm("Сервер будет перезапущен (сработает скрипт и звук запуска). Продолжить?")) return;
+            socket.emit('tech_restart_server');
+            // Сразу разрываем сокет — сервер всё равно ляжет, иначе socket.io будет долго пытаться переподключиться по своему алгоритму.
+            try { socket.disconnect(); } catch (e) {}
+
+            // UI: статус + счётчик попыток. Реальный цикл рестарта: eventlet shutdown ~30-90с
+            // + systemd start + run_server.sh (pulseaudio init) + on.wav. Пробуем каждые 5с.
+            document.body.innerHTML = '<div style="text-align:center; margin-top:15%; color:#fff; font-family:sans-serif;">' +
+                '<h1 style="color:orange;">Перезапуск сервера...</h1>' +
+                '<p style="color:#aaa;">Жду возврата (попыток: <span id="restart-attempt">0</span>)</p>' +
+                '<p style="color:#666; font-size:0.85em;">Должен заиграть on.wav. Если за 2-3 минуты не вернётся — обнови страницу руками или напиши Глебу.</p>' +
+                '</div>';
+
+            let attempt = 0;
+            const intervalMs = 3000;
+            const checkAlive = () => {
+                attempt++;
+                document.getElementById('restart-attempt').textContent = attempt;
+                // HEAD /login — сервер отдаёт login-страницу когда жив, без авторизации.
+                // cache:no-store — никаких 304-кэшей.
+                const controller = new AbortController();
+                const tid = setTimeout(() => controller.abort(), 2500); // 2.5с таймаут на одну попытку
+                fetch('/login', { method: 'HEAD', cache: 'no-store', signal: controller.signal })
+                    .then(r => {
+                        clearTimeout(tid);
+                        // Сервер живой — перезагружаем страницу (соединение с socket.io пересоздастся)
+                        location.reload();
+                    })
+                    .catch(() => {
+                        clearTimeout(tid);
+                        // Ещё лежит — пробуем снова через intervalMs
+                        setTimeout(checkAlive, intervalMs);
+                    });
+            };
+            // Первая проверка — через 3с. Под os._exit(0) сервер встаёт за ~5-10с
+            // (без долгого eventlet shutdown'а — _exit делает immediate exit на уровне libc).
+            setTimeout(checkAlive, 3000);
         }
 		
 		// --- ТЕСТОВЫЙ ПРЫЖОК ---
