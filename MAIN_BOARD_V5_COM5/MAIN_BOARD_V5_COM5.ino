@@ -689,17 +689,22 @@ void setup() {
   mySerial.begin(9600);  // rear left
   mySerial.setTimeout(10);
 
-  // 2026-06-03: усиленный WS2812 wake-up для COLD-BOOT случая.
-  // Bootloader Mega держит пины 8 и 2 в high-Z ~2 сек → шум на DI первого LED
-  // → WS2812 защёлкивается в латче. strip.begin()+5×show оказалось МАЛО:
-  // на cold boot после 30 мин обесточивания подтверждено CLC3 2026-06-03 (Эдуард).
-  // Решение: ДО strip.begin() явно прижимаем пины к GND на 100мс — это длинный
-  // reset для WS2812 (>50µs нужно, 100 мс с огромным запасом). Затем 10 циклов
-  // clear+show с длинной паузой 100мс. Hardware-страховка: pull-down 10кΩ на
-  // DATA→GND у входа ленты (см. [[production-hardware-checklist]]).
+  // 2026-06-03: МАКСИМАЛЬНО АГРЕССИВНЫЙ WS2812 wake-up для COLD-BOOT.
+  // На CLC3 невозможно подлезть к ленте для установки hardware pull-down 10кΩ
+  // (см. [[production-hardware-checklist]]). Делаем software-only максимум:
+  // 1) Прижимаем пины 8 и 2 к GND на 500мс — длинный гарантированный reset
+  //    state-machine WS2812 (нужно >50µs, делаем 500мс с тысячным запасом).
+  // 2) Ждём 1 сек — даём 5В питанию ленты полностью стабилизироваться
+  //    после cold-boot ramp-up.
+  // 3) После strip.begin() — 30 циклов clear/show с паузой 100мс = 3 сек
+  //    непрерывных reset-фреймов. По статистике WS2812 чипы которые залипли
+  //    выходят из латча за <10 фреймов; 30 — с большим запасом.
+  // Если не помогло — кнопка «Разбудить ленту» на /tech (handleStripTest 'lt_wake').
   pinMode(8, OUTPUT); digitalWrite(8, LOW);  // strip1 (полёт мяча) data pin
   pinMode(2, OUTPUT); digitalWrite(2, LOW);  // strip2 (кубок) data pin
-  delay(100);  // длинный reset — выводит залипший первый LED из латча
+  delay(500);  // длинный hold LOW — гарантированный reset
+
+  delay(1000); // ждём стабилизации 5В после cold boot
 
   strip1.begin();
   strip1.setBrightness(100);
@@ -709,8 +714,8 @@ void setup() {
   strip2.setBrightness(100);
   strip2.show();
 
-  // Серия чистых фреймов (10×100мс) — гарантирует выход из любого state-machine
-  for (int i = 0; i < 10; i++) {
+  // 30 циклов clear/show по 100мс = 3 сек wake-up
+  for (int i = 0; i < 30; i++) {
     strip1.clear(); strip1.show();
     strip2.clear(); strip2.show();
     delay(100);
@@ -6992,6 +6997,23 @@ void Restart() {
 // Вызывается только из PowerOn (level 0) и RestOn (level 25) — т.е. работает везде
 // кроме активной игры (level 1-19, "старт") и режима ready (level 26).
 bool handleStripTest(const String &buff) {
+  if (buff == "lt_wake") {
+    // 2026-06-03: ON-DEMAND wake-up для залипшей WS2812 (заменяет физический
+    // power-cycle понижайки когда подлезть нельзя). Тот же сиквенс что в setup()
+    // но БЕЗ задержки 1 сек на стабилизацию питания — здесь питание уже стабильно.
+    pinMode(8, OUTPUT); digitalWrite(8, LOW);
+    pinMode(2, OUTPUT); digitalWrite(2, LOW);
+    delay(500);  // длинный hold LOW
+    strip1.begin();
+    strip2.begin();
+    for (int i = 0; i < 30; i++) {
+      strip1.clear(); strip1.show();
+      strip2.clear(); strip2.show();
+      delay(100);
+    }
+    Serial.println(F("log:main:lt_wake done"));
+    return true;
+  }
   if (buff == "lt_all") {
     for (int i = 0; i < (int)strip1.numPixels(); i++) strip1.setPixelColor(i, strip1.Color(40, 40, 40));
     for (int i = 0; i < (int)strip2.numPixels(); i++) strip2.setPixelColor(i, strip2.Color(40, 40, 40));
