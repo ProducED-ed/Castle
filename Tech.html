@@ -638,7 +638,11 @@
                 strip_hint: "Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.",
                 strip_all: "Вся лента (бел.)", strip_off: "Выключить",
                 strip_pixel: "Пиксель №", strip_s2: "Лента 2 (кубок)", strip_s1: "Лента 1",
-                strip_range: "Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)"
+                strip_range: "Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)",
+                restart_confirm: "Сервер будет перезапущен. Квест продолжит работать (Mega не сбрасывается). Продолжить?",
+                restart_title: "Перезапуск сервера...",
+                restart_attempts: "Жду возврата. Попыток:",
+                restart_hint: "Страница вернётся автоматически когда сервер поднимется (~5–15 сек). Если за 2 минуты нет — обнови страницу вручную или напиши Глебу."
             },
             en: {
                 title: "Technical Firmware Dashboard",
@@ -673,7 +677,11 @@
                 strip_hint: "Works in rest/restart mode. lt2:N lights a single strip-2 pixel green — use it to find the cup's pixel index.",
                 strip_all: "Whole strip (white)", strip_off: "Turn off",
                 strip_pixel: "Pixel #", strip_s2: "Strip 2 (cup)", strip_s1: "Strip 1",
-                strip_range: "Ranges: Strip 1 — pixels 0–151 · Strip 2 — pixels 0–100 (cup = #65)"
+                strip_range: "Ranges: Strip 1 — pixels 0–151 · Strip 2 — pixels 0–100 (cup = #65)",
+                restart_confirm: "The server will restart. The quest keeps running (Mega is not reset). Continue?",
+                restart_title: "Restarting server...",
+                restart_attempts: "Awaiting return. Attempts:",
+                restart_hint: "The page will reconnect automatically once the server is back (~5–15 sec). If nothing happens within 2 minutes — refresh manually or contact Gleb."
             }
         };
         let currentLang = localStorage.getItem('techLang') || 'ru';
@@ -954,17 +962,18 @@
 
         // --- ПЕРЕЗАПУСК СЕРВЕРА ---
         function restartServer() {
-            if(!confirm("Сервер будет перезапущен (сработает скрипт и звук запуска). Продолжить?")) return;
+            if(!confirm(T('restart_confirm'))) return;
             socket.emit('tech_restart_server');
             // Сразу разрываем сокет — сервер всё равно ляжет, иначе socket.io будет долго пытаться переподключиться по своему алгоритму.
             try { socket.disconnect(); } catch (e) {}
 
-            // UI: статус + счётчик попыток. Реальный цикл рестарта: eventlet shutdown ~30-90с
-            // + systemd start + run_server.sh (pulseaudio init) + on.wav. Пробуем каждые 5с.
+            // UI: статус + счётчик попыток. Под os._exit(0) сервер встаёт за ~5-15с.
+            // Mega НЕ ресетится (HUPCL-off + boot-watchdog active probe) — игра и
+            // лента продолжают жить, поэтому on.wav нет. Пробуем каждые 3с.
             document.body.innerHTML = '<div style="text-align:center; margin-top:15%; color:#fff; font-family:sans-serif;">' +
-                '<h1 style="color:orange;">Перезапуск сервера...</h1>' +
-                '<p style="color:#aaa;">Жду возврата (попыток: <span id="restart-attempt">0</span>)</p>' +
-                '<p style="color:#666; font-size:0.85em;">Должен заиграть on.wav. Если за 2-3 минуты не вернётся — обнови страницу руками или напиши Глебу.</p>' +
+                '<h1 style="color:orange;">' + T('restart_title') + '</h1>' +
+                '<p style="color:#aaa;">' + T('restart_attempts') + ' <span id="restart-attempt">0</span></p>' +
+                '<p style="color:#666; font-size:0.85em; max-width:480px; margin:0 auto;">' + T('restart_hint') + '</p>' +
                 '</div>';
 
             let attempt = 0;
