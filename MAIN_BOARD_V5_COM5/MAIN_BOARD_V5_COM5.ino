@@ -6997,6 +6997,26 @@ void Restart() {
 // Вызывается только из PowerOn (level 0) и RestOn (level 25) — т.е. работает везде
 // кроме активной игры (level 1-19, "старт") и режима ready (level 26).
 bool handleStripTest(const String &buff) {
+  if (buff == "lt_probe") {
+    // 2026-06-03: ДИАГНОСТИКА. Медленно дёргает пины 8 (strip1) и 2 (strip2)
+    // — 10 циклов по 500мс HIGH / 500мс LOW = 10 сек total. Эдуард мерит
+    // мультиметром напряжение на DATA-проводе. Скачет → Mega работает,
+    // проблема в железе ленты. НЕ скачет → Mega пин дохлый/не настроен.
+    // Команда блокирующая (10 сек), вызывается только когда квест в покое.
+    Serial.println(F("log:main:lt_probe START — 10 циклов HIGH/LOW по 1сек"));
+    pinMode(8, OUTPUT);
+    pinMode(2, OUTPUT);
+    for (int i = 0; i < 10; i++) {
+      digitalWrite(8, HIGH); digitalWrite(2, HIGH);
+      Serial.print(F("log:main:lt_probe cycle ")); Serial.print(i+1); Serial.println(F(" HIGH"));
+      delay(500);
+      digitalWrite(8, LOW); digitalWrite(2, LOW);
+      Serial.print(F("log:main:lt_probe cycle ")); Serial.print(i+1); Serial.println(F(" LOW"));
+      delay(500);
+    }
+    Serial.println(F("log:main:lt_probe done"));
+    return true;
+  }
   if (buff == "lt_wake") {
     // 2026-06-03: ON-DEMAND wake-up для залипшей WS2812 (заменяет физический
     // power-cycle понижайки когда подлезть нельзя). Тот же сиквенс что в setup()

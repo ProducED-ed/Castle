@@ -2372,7 +2372,7 @@ def tech_strip_test(data):
     if not cmd:
         return
     ok = False
-    if cmd in ('lt_all', 'lt_off', 'lt_wake'):
+    if cmd in ('lt_all', 'lt_off', 'lt_wake', 'lt_probe'):
         ok = True
     elif cmd.startswith('lt1:') or cmd.startswith('lt2:'):
         idx = cmd.split(':', 1)[1]
