@@ -819,8 +819,23 @@ def mega_boot_watchdog():
             eventlet.sleep(0.5)
         return False
 
-    # Шаг 0: начальное ожидание нормального boot
-    if _wait_or_done(25):
+    # Шаг 0a (2026-06-03): active probe. С фиксом HUPCL-off рестарт сервера
+    # НЕ ресетит Mega — она остаётся alive, QUEST_SYSTEM_READY заново не шлёт.
+    # Шлём check_towers, если придёт tower_status: (handler выставит флаг) или
+    # QUEST_SYSTEM_READY (от настоящего boot) — выходим без DTR pulse и on.wav.
+    # См. [[reference_ws2812_stuck_after_reset]].
+    eventlet.sleep(3)  # дать serial reader-у запуститься
+    try:
+        ser.write(b'check_towers\n')
+        logger.info("MEGA BOOT WATCHDOG: probe — check_towers (HUPCL-off skip case)")
+    except Exception as e:
+        logger.warning(f"MEGA BOOT WATCHDOG: probe write failed: {e}")
+    if _wait_or_done(5):
+        logger.info("MEGA BOOT WATCHDOG: Mega уже alive (HUPCL-off — рестарт без reset) ✅")
+        return
+
+    # Шаг 0: начальное ожидание нормального boot (оставшиеся ~22 сек после probe)
+    if _wait_or_done(22):
         return
 
     # Шаг 1: DTR pulse 0.5 сек
@@ -4662,6 +4677,11 @@ def serial():
                                if tower in parts:
                                    _tower_status_snapshot[tower] = (parts[tower].strip() == '1')
                            globals()['_tower_status_updated_at'] = time.time()
+                           # 2026-06-03: Mega отвечает → она alive. Сигнал boot-watchdog'у,
+                           # актуально после фикса HUPCL-off: рестарт сервера НЕ ресетит
+                           # Mega, QUEST_SYSTEM_READY заново не приходит, но tower_status
+                           # на probe из watchdog подтверждает её жизнь.
+                           globals()['mega_initial_boot_received'] = True
                            # Логируем raw snapshot на DEBUG (детальная диагностика);
                            # пользовательские ALERT'ы о состоянии каждой башни уже
                            # эмитятся в _log_status_changes() с понятными лейблами.
