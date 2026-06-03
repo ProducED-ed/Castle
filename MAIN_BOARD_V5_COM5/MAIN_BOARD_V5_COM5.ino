@@ -697,6 +697,16 @@ void setup() {
   strip2.setBrightness(100);
   strip2.show();
 
+  // 2026-06-03: WS2812 wake-up. После Mega reset (DTR от сервера или brownout)
+  // первый LED ленты иногда «залипает» — игнорирует все последующие команды
+  // до физического power-cycle питания ленты. 5x clear+show с паузой обычно
+  // разбуживает залипший LED. Не помогает если первый LED физически сгорел.
+  for (int i = 0; i < 5; i++) {
+    strip1.clear(); strip1.show();
+    strip2.clear(); strip2.show();
+    delay(50);
+  }
+
   //// инициализация лент
   GoldStrip.begin();
   GoldStrip.setBrightness(255);

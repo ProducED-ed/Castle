@@ -167,6 +167,7 @@ from engineio.payload import Payload
 import serial
 from serial import Serial
 import serial.tools.list_ports
+import termios
 # библиотека для работы со звуками и графикой в нашем случае используется только музыка но тоже может пригодится почтай на досуге там не много
 import pygame
 import pygame.mixer
@@ -861,7 +862,8 @@ def mega_boot_watchdog():
             ser.close()
         except: pass
         eventlet.sleep(1)
-        ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1)
+        ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1, dsrdtr=False, rtscts=False)
+        _arduino_no_reset_on_close(ser)
     except Exception as e:
         logger.error(f"MEGA BOOT WATCHDOG: USB power-cycle failed: {e}")
     if _wait_or_done(25):
@@ -1345,11 +1347,26 @@ effectLevel = a2
 phoneLevel = float(a1)
 story_fade_active = False
 
+# 2026-06-03: при close() на ttyUSB ядро по умолчанию роняет DTR (cflag & HUPCL),
+# что физически ресетит Mega. Это глитчит data-пин адресных лент (strip1/strip2)
+# → первый WS2812 «залипает», лечится только power-cycle питания ленты. Снимаем
+# HUPCL — DTR держится высоко через любые close(), Mega не ребутится при рестарте
+# сервера (кнопка «Перезапуск» на /tech и т.п.). См. [[reference_ws2812_stuck_after_reset]].
+def _arduino_no_reset_on_close(ser_obj):
+    try:
+        attrs = termios.tcgetattr(ser_obj.fileno())
+        attrs[2] &= ~termios.HUPCL  # cflag &= ~HUPCL
+        termios.tcsetattr(ser_obj.fileno(), termios.TCSANOW, attrs)
+        logger.info(f"Mega serial: HUPCL disabled — server restart will NOT reset Mega")
+    except Exception as e:
+        logger.warning(f"Could not disable HUPCL on Mega serial: {e}")
+
 # Убираем автопоиск и жёстко прописываем порт Arduino
 try:
     # Указываем порт, найденный через утилиту serial.tools.list_ports
     ARDUINO_PORT = '/dev/ttyUSB_MAIN'
-    ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1)
+    ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1, dsrdtr=False, rtscts=False)
+    _arduino_no_reset_on_close(ser)
     logger.info(f"Successfully connected to Arduino on port {ARDUINO_PORT}")
 except serial.SerialException as e:
     logger.critical(f"Could not open serial port {ARDUINO_PORT}. Error: {e}")
@@ -6672,7 +6689,8 @@ def serial():
               
               # Пытаемся открыть порт заново
               try:
-                  ser = Serial('/dev/ttyUSB_MAIN', 115200, timeout=1)
+                  ser = Serial('/dev/ttyUSB_MAIN', 115200, timeout=1, dsrdtr=False, rtscts=False)
+                  _arduino_no_reset_on_close(ser)
                   logger.info("УСПЕХ: Связь с Arduino восстановлена!")
               except Exception as reconn_e:
                   logger.error(f"ОШИБКА: Не удалось переподключиться. Проверьте USB кабель! ({reconn_e})")
