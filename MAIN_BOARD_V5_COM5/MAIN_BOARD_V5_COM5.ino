@@ -689,6 +689,18 @@ void setup() {
   mySerial.begin(9600);  // rear left
   mySerial.setTimeout(10);
 
+  // 2026-06-03: усиленный WS2812 wake-up для COLD-BOOT случая.
+  // Bootloader Mega держит пины 8 и 2 в high-Z ~2 сек → шум на DI первого LED
+  // → WS2812 защёлкивается в латче. strip.begin()+5×show оказалось МАЛО:
+  // на cold boot после 30 мин обесточивания подтверждено CLC3 2026-06-03 (Эдуард).
+  // Решение: ДО strip.begin() явно прижимаем пины к GND на 100мс — это длинный
+  // reset для WS2812 (>50µs нужно, 100 мс с огромным запасом). Затем 10 циклов
+  // clear+show с длинной паузой 100мс. Hardware-страховка: pull-down 10кΩ на
+  // DATA→GND у входа ленты (см. [[production-hardware-checklist]]).
+  pinMode(8, OUTPUT); digitalWrite(8, LOW);  // strip1 (полёт мяча) data pin
+  pinMode(2, OUTPUT); digitalWrite(2, LOW);  // strip2 (кубок) data pin
+  delay(100);  // длинный reset — выводит залипший первый LED из латча
+
   strip1.begin();
   strip1.setBrightness(100);
   strip1.show();
@@ -697,14 +709,11 @@ void setup() {
   strip2.setBrightness(100);
   strip2.show();
 
-  // 2026-06-03: WS2812 wake-up. После Mega reset (DTR от сервера или brownout)
-  // первый LED ленты иногда «залипает» — игнорирует все последующие команды
-  // до физического power-cycle питания ленты. 5x clear+show с паузой обычно
-  // разбуживает залипший LED. Не помогает если первый LED физически сгорел.
-  for (int i = 0; i < 5; i++) {
+  // Серия чистых фреймов (10×100мс) — гарантирует выход из любого state-machine
+  for (int i = 0; i < 10; i++) {
     strip1.clear(); strip1.show();
     strip2.clear(); strip2.show();
-    delay(50);
+    delay(100);
   }
 
   //// инициализация лент
