@@ -3196,11 +3196,12 @@ def Remote(check):
              if 'owl' in socklist:
                   logger.debug("Игнорируем повторный manual 'owl' — уже было.")
              else:
-                  # 1) Активация совы на карте (как было раньше)
+                  # 1) Активация совы на карте (как было раньше).
+                  # 2026-06-04: map_click.wav УБРАН — Эдуард: этот звук таймера
+                  # подходит только когда физически кликнули по карте, а не на пульте.
                   serial_write_queue.put('owl')
                   send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
                   send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
-                  play_effect(map_click)
                   eventlet.sleep(0.3)
                   # 2) Физическое открытие двери совы (как в door_owl handler)
                   serial_write_queue.put('open_owl_door')
@@ -3284,7 +3285,7 @@ def Remote(check):
              socketio.emit('level', 'active_troll',to=None)
              socklist.append('active_troll')
         if check == 'troll':
-             #-----отправка клиенту 
+             #-----отправка клиенту
              socketio.emit('level', 'troll',to=None)
              #-----добавить в историю
              socklist.append('troll')
@@ -3292,10 +3293,14 @@ def Remote(check):
              socklist.append('cave_end')
              #----отправить на мегу
              serial_write_queue.put('troll')
-             name = "story_2" 
+             # 2026-06-04: Эдуард — после skip Troll LED совы/тролля на карте Train
+             # не гас. В real-flow (cave_end event на line 5911) шлётся troll_finish.
+             # Дублируем здесь для симметрии skip-кнопки с реальным прохождением.
+             send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
+             name = "story_2"
 
         if check == 'safe':
-             #-----отправка клиенту 
+             #-----отправка клиенту
              socketio.emit('level', 'safe',to=None)
              #-----добавить в историю
              socklist.append('safe')
@@ -3305,11 +3310,21 @@ def Remote(check):
              socklist.append('safe_end')
              #----отправить на мегу
              serial_write_queue.put('safe')
-             name = "story_2"     
-             eventlet.sleep(1) 
+             name = "story_2"
+             eventlet.sleep(1)
+             # 2026-06-04: Эдуард — после skip Safe дверь Workshop не открывалась,
+             # пользователь застревал. В real-flow (flag=="safe_end" на line 5980-5985)
+             # сервер шлёт door_workshop effect + open_workshop ДВАЖДЫ в Mega.
+             # Дублируем здесь для skip-симметрии. Длинные истории story_25/31/32
+             # опускаем — skip предполагает быстрое прохождение.
+             send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
+             play_effect(door_workshop)
+             serial_write_queue.put('open_workshop')
+             eventlet.sleep(0.5)
+             serial_write_queue.put('open_workshop')
              #-----активируем блок
-             #socketio.emit('level', 'active_workshop',to=None)
-             #socklist.append('active_workshop')
+             socketio.emit('level', 'active_workshop',to=None)
+             socklist.append('active_workshop')
         if check == 'workshop':
              #-----отправка клиенту 
              socketio.emit('level', 'workshop',to=None)
