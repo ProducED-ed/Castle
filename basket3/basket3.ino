@@ -299,13 +299,24 @@ void HandleMessagges(String message) {
     strip.setPixelColor(2, strip.Color(0, 0, 255)); strip.show();
     state = 4; 
   }
-  // --- ВАЖНЫЙ ФИКС ДЛЯ ДВЕРИ ---
-  else if (message == "mine" || message == "open_mine_door") {
+  // 2026-06-05 (Эдуард): разделил mine vs open_mine_door:
+  //   - "mine" (game-mode, server check=='mine' в go==1) → game-state переход,
+  //     trollLed, door_cave event, state=3 (начало троль-этапа).
+  //   - "open_mine_door" (rest/skip mode, server check=='mine' в go==0/2/3) →
+  //     ТОЛЬКО открыть дверь + 8-сек keep-alive. БЕЗ state=3, БЕЗ door_cave,
+  //     БЕЗ trollLed. Иначе в режиме restart DoorDefender видит state>=3
+  //     и пульсирует SHERIF_EM1 каждые 3 сек бесконечно (баг).
+  else if (message == "mine") {
     OpenLock(SHERIF_EM1);
-    manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;  // 2026-05-28 sustained-открытие
+    manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;
     digitalWrite(trollLed, HIGH);
     Serial1.println("door_cave");
     if (state < 3) state = 3;
+  }
+  else if (message == "open_mine_door") {
+    // Только manual open. БЕЗ side-effects.
+    OpenLock(SHERIF_EM1);
+    manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;
   }
   else if (message == "start_troll") {
      if (state < 1) state = 1;

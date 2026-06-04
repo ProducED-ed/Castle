@@ -3213,11 +3213,15 @@ def Remote(check):
                   #    реальный door_owl handler (line 5586) — без owl_finish.
                   #    owl_finish нужен только при полном skip (check=='owls').
                   send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
-                  # 5) Короткая история (story_13 — про то что дверь сов открылась)
+                  # 5) Истории как в real door_owl flow (line 5591-5598): story_13
+                  #    (если ещё не играли) + story_14_a после.
                   eventlet.sleep(1.0)
                   if story13Flag == 0:
                        story13Flag = 1
                        play_localized_audio("story_13")
+                       while channel3.get_busy()==True and go == 1:
+                            eventlet.sleep(0.1)
+                  play_localized_audio("story_14_a")
         if check == 'owls':
              #-----отправка клиенту 
              socketio.emit('level', 'owls',to=None)
