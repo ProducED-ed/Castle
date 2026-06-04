@@ -689,23 +689,6 @@ void setup() {
   mySerial.begin(9600);  // rear left
   mySerial.setTimeout(10);
 
-  // 2026-06-03: МАКСИМАЛЬНО АГРЕССИВНЫЙ WS2812 wake-up для COLD-BOOT.
-  // На CLC3 невозможно подлезть к ленте для установки hardware pull-down 10кΩ
-  // (см. [[production-hardware-checklist]]). Делаем software-only максимум:
-  // 1) Прижимаем пины 8 и 2 к GND на 500мс — длинный гарантированный reset
-  //    state-machine WS2812 (нужно >50µs, делаем 500мс с тысячным запасом).
-  // 2) Ждём 1 сек — даём 5В питанию ленты полностью стабилизироваться
-  //    после cold-boot ramp-up.
-  // 3) После strip.begin() — 30 циклов clear/show с паузой 100мс = 3 сек
-  //    непрерывных reset-фреймов. По статистике WS2812 чипы которые залипли
-  //    выходят из латча за <10 фреймов; 30 — с большим запасом.
-  // Если не помогло — кнопка «Разбудить ленту» на /tech (handleStripTest 'lt_wake').
-  pinMode(8, OUTPUT); digitalWrite(8, LOW);  // strip1 (полёт мяча) data pin
-  pinMode(2, OUTPUT); digitalWrite(2, LOW);  // strip2 (кубок) data pin
-  delay(500);  // длинный hold LOW — гарантированный reset
-
-  delay(1000); // ждём стабилизации 5В после cold boot
-
   strip1.begin();
   strip1.setBrightness(100);
   strip1.show();
@@ -713,13 +696,6 @@ void setup() {
   strip2.begin();
   strip2.setBrightness(100);
   strip2.show();
-
-  // 30 циклов clear/show по 100мс = 3 сек wake-up
-  for (int i = 0; i < 30; i++) {
-    strip1.clear(); strip1.show();
-    strip2.clear(); strip2.show();
-    delay(100);
-  }
 
   //// инициализация лент
   GoldStrip.begin();
@@ -2866,6 +2842,14 @@ void MapGame() {
     if (buff == "owl_door") {
       mySerial.println(F("owl_door"));
       isOwlDoorOpened = true;
+    }
+
+    // 2026-06-04: фикс архитектурного bug'а (memory clc-owl-door-open-2026-05-26).
+    // Server.py шлёт `open_owl_door` когда от Owls приходит `door_owl` (нажат геркон)
+    // ИЛИ когда оператор жмёт «Open Door» в разделе Owl на /pult. До этого фикса
+    // в MapGame не было handler'а → команда терялась, физическая дверь не открывалась.
+    if (buff == "open_owl_door") {
+      mySerial.println(F("open_door"));
     }
 
     if (buff == "owl_skip") {
@@ -6997,43 +6981,6 @@ void Restart() {
 // Вызывается только из PowerOn (level 0) и RestOn (level 25) — т.е. работает везде
 // кроме активной игры (level 1-19, "старт") и режима ready (level 26).
 bool handleStripTest(const String &buff) {
-  if (buff == "lt_probe") {
-    // 2026-06-03: ДИАГНОСТИКА. Медленно дёргает пины 8 (strip1) и 2 (strip2)
-    // — 10 циклов по 500мс HIGH / 500мс LOW = 10 сек total. Эдуард мерит
-    // мультиметром напряжение на DATA-проводе. Скачет → Mega работает,
-    // проблема в железе ленты. НЕ скачет → Mega пин дохлый/не настроен.
-    // Команда блокирующая (10 сек), вызывается только когда квест в покое.
-    Serial.println(F("log:main:lt_probe START — 10 циклов HIGH/LOW по 1сек"));
-    pinMode(8, OUTPUT);
-    pinMode(2, OUTPUT);
-    for (int i = 0; i < 10; i++) {
-      digitalWrite(8, HIGH); digitalWrite(2, HIGH);
-      Serial.print(F("log:main:lt_probe cycle ")); Serial.print(i+1); Serial.println(F(" HIGH"));
-      delay(500);
-      digitalWrite(8, LOW); digitalWrite(2, LOW);
-      Serial.print(F("log:main:lt_probe cycle ")); Serial.print(i+1); Serial.println(F(" LOW"));
-      delay(500);
-    }
-    Serial.println(F("log:main:lt_probe done"));
-    return true;
-  }
-  if (buff == "lt_wake") {
-    // 2026-06-03: ON-DEMAND wake-up для залипшей WS2812 (заменяет физический
-    // power-cycle понижайки когда подлезть нельзя). Тот же сиквенс что в setup()
-    // но БЕЗ задержки 1 сек на стабилизацию питания — здесь питание уже стабильно.
-    pinMode(8, OUTPUT); digitalWrite(8, LOW);
-    pinMode(2, OUTPUT); digitalWrite(2, LOW);
-    delay(500);  // длинный hold LOW
-    strip1.begin();
-    strip2.begin();
-    for (int i = 0; i < 30; i++) {
-      strip1.clear(); strip1.show();
-      strip2.clear(); strip2.show();
-      delay(100);
-    }
-    Serial.println(F("log:main:lt_wake done"));
-    return true;
-  }
   if (buff == "lt_all") {
     for (int i = 0; i < (int)strip1.numPixels(); i++) strip1.setPixelColor(i, strip1.Color(40, 40, 40));
     for (int i = 0; i < (int)strip2.numPixels(); i++) strip2.setPixelColor(i, strip2.Color(40, 40, 40));

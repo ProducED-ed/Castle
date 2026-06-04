@@ -630,13 +630,20 @@ void BasketLesson() {
   
   while (Serial1.available()) {
     String buff = Serial1.readStringUntil('\n'); buff.trim();
-    if (buff == "start_basket"){ 
-        digitalWrite(basketLed, HIGH); lessonIsStarted = 1; 
+    if (buff == "start_basket"){
+        digitalWrite(basketLed, HIGH); lessonIsStarted = 1;
+        // 2026-06-04: при старте требуем чистый IR-луч перед первым голом.
+        // Если что-то уже в кольце / фигурка перекрыла луч / датчик
+        // мисалайнен → не срабатывает false-goal на старте.
+        basket_ir_read_F = 1;
         Serial1.println("C"); // ШИФР: confirm_start
     }
-    else if (buff == "start_lesson") { 
+    else if (buff == "start_lesson") {
         if (!lessonIsStarted) { // <--- ЗАЩИТА ОТ ДВОЙНОЙ ОТПРАВКИ С СЕРВЕРА
-            lessonIsStarted = 1; 
+            lessonIsStarted = 1;
+            // 2026-06-04: см. start_basket выше — защита от false-goal на старте.
+            // Эдуард 4 июня: поставил фигурку → сразу lesson_goal без броска.
+            basket_ir_read_F = 1;
             if (digitalRead(28) == LOW) {
                Serial1.println("I"); // ШИФР: boy_in_lesson
                delay(50);

@@ -179,11 +179,7 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
                 <button class="ui green small button" onclick="stripTest('lt_all')"><i class="lightbulb icon"></i> <span data-i18n="strip_all">Вся лента (бел.)</span></button>
                 <button class="ui grey small button" onclick="stripTest('lt_off')"><i class="power off icon"></i> <span data-i18n="strip_off">Выключить</span></button>
-                <button class="ui orange small button" onclick="stripTest('lt_wake')" title="Wake up stuck strip (4 sec)"><i class="bolt icon"></i> <span data-i18n="strip_wake">Разбудить ленту</span></button>
-                <button class="ui red small button" onclick="stripTest('lt_probe')" title="Diagnostic: slow pin toggle (10 sec)"><i class="wrench icon"></i> <span data-i18n="strip_probe">DIAG: пин-тест</span></button>
             </div>
-            <div style="color:#e67e22; font-size:0.82em; margin-bottom:4px;" data-i18n="strip_wake_hint">Если лента не светится после cold-boot — жми «Разбудить» (заменяет power-cycle понижайки, занимает ~4 сек).</div>
-            <div style="color:#c0392b; font-size:0.82em; margin-bottom:4px;" data-i18n="strip_probe_hint">DIAG-кнопка: 10с медленно дёргает пины strip1/strip2 (1Гц). Мерь мультиметром на DATA-проводе — скачет 0↔5В, значит Mega работает.</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                 <span style="color:#fff;" data-i18n="strip_pixel">Пиксель №</span>
                 <input type="number" id="strip-pixel" value="65" min="0" max="199" style="width:80px; padding:6px; border-radius:4px; border:1px solid #555; background:#222; color:#fff;"/>
@@ -640,10 +636,7 @@
                 lbl_modified: "Изменен:", lbl_flashed: "Прошит:",
                 strip_title: "Тест адресной ленты (кубок / полёт мяча)",
                 strip_hint: "Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.",
-                strip_all: "Вся лента (бел.)", strip_off: "Выключить", strip_wake: "Разбудить ленту",
-                strip_wake_hint: "Если лента не светится после cold-boot — жми «Разбудить» (заменяет power-cycle понижайки, занимает ~4 сек).",
-                strip_probe: "DIAG: пин-тест",
-                strip_probe_hint: "DIAG-кнопка: 10с медленно дёргает пины strip1/strip2 (1Гц). Мерь мультиметром на DATA-проводе — скачет 0↔5В, значит Mega работает.",
+                strip_all: "Вся лента (бел.)", strip_off: "Выключить",
                 strip_pixel: "Пиксель №", strip_s2: "Лента 2 (кубок)", strip_s1: "Лента 1",
                 strip_range: "Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)",
                 restart_confirm: "Сервер будет перезапущен. Квест продолжит работать (Mega не сбрасывается). Продолжить?",
@@ -682,10 +675,7 @@
                 lbl_modified: "Modified:", lbl_flashed: "Flashed:",
                 strip_title: "Addressable strip test (cup / ball flight)",
                 strip_hint: "Works in rest/restart mode. lt2:N lights a single strip-2 pixel green — use it to find the cup's pixel index.",
-                strip_all: "Whole strip (white)", strip_off: "Turn off", strip_wake: "Wake strip up",
-                strip_wake_hint: "If the strip doesn't light up after cold-boot — press «Wake up» (replaces 5V power-cycle, ~4 sec).",
-                strip_probe: "DIAG: pin test",
-                strip_probe_hint: "DIAG: 10 sec slow toggle on strip1/strip2 data pins (1Hz). Measure voltage on DATA wire — if it swings 0↔5V, Mega is healthy.",
+                strip_all: "Whole strip (white)", strip_off: "Turn off",
                 strip_pixel: "Pixel #", strip_s2: "Strip 2 (cup)", strip_s1: "Strip 1",
                 strip_range: "Ranges: Strip 1 — pixels 0–151 · Strip 2 — pixels 0–100 (cup = #65)",
                 restart_confirm: "The server will restart. The quest keeps running (Mega is not reset). Continue?",
