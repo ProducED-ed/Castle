@@ -3273,19 +3273,29 @@ def Remote(check):
              socketio.emit('level', 'active_troll',to=None)
              socklist.append('active_troll')
         if check == 'troll':
-             #-----отправка клиенту
-             socketio.emit('level', 'troll',to=None)
-             #-----добавить в историю
-             socklist.append('troll')
-             socketio.emit('level', 'cave_end', to=None)
-             socklist.append('cave_end')
-             #----отправить на мегу
-             serial_write_queue.put('troll')
-             # 2026-06-04: Эдуард — после skip Troll LED совы/тролля на карте Train
-             # не гас. В real-flow (cave_end event на line 5911) шлётся troll_finish.
-             # Дублируем здесь для симметрии skip-кнопки с реальным прохождением.
-             send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
-             name = "story_2"
+             # 2026-06-04 v2 (Эдуард): тот же принцип что у Owl — буквально
+             # имитируем real cave_end flow (line 5901-5914). Точечно гасим
+             # только troll-LED (через troll_finish), не трогаем другие LEDs.
+             if 'cave_end' in socklist:
+                  logger.debug("Игнорируем повторный manual 'troll' — уже было.")
+             else:
+                  #-----отправка клиенту + socklist (метим cave_end чтобы real
+                  #    handler пропустил при echo от Mega/Basket)
+                  socketio.emit('level', 'troll',to=None)
+                  socklist.append('troll')
+                  socketio.emit('level', 'cave_end', to=None)
+                  socklist.append('cave_end')
+                  #----отправить на мегу для game-state advance
+                  serial_write_queue.put('troll')
+                  name = "story_2"
+                  #----Звук закрытия пещеры (как в real flag=='cave_end')
+                  play_effect(cave_end)
+                  #----Точечное гашение troll-LED на карте Train
+                  send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
+                  while effects_are_busy() and go == 1:
+                       eventlet.sleep(0.1)
+                  #----Короткая история (как в real flow)
+                  play_localized_audio("story_30")
 
         if check == 'safe':
              # 2026-06-04: Эдуард — Safe Open skip теперь делает ПОЛНУЮ имитацию
