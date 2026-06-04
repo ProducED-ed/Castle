@@ -3185,50 +3185,38 @@ def Remote(check):
              eventlet.sleep(1) 
              name = "story_2"
         if check == 'owl':
-             # 2026-06-04: Эдуард — поведение симметрично check == 'pedlock' (выше).
-             # Раньше кнопка «Open Door» в разделе Owl делала ТОЛЬКО активацию совы
-             # (требовала ручной нажатия геркона на башне). UX-несимметрия с другими
-             # «Open Door» кнопками → пользователь жаловался. Теперь кнопка СРАЗУ
-             # открывает дверь сов: то же что приходит после реального door_owl.
-             # Защита от двойного срабатывания — через socklist 'owl' (как в
-             # door_owl handler ниже на line ~5516).
-             logger.debug("Remote 'owl' triggered (manual door open, симметрично pedlock).")
+             # 2026-06-04 v3 (Эдуард): следую паттерну check=='owls' (skip)
+             # и check=='cat' — НИКАКОГО map_disable_clicks (он валил все
+             # ClickLeds в Future/белый и они зависали). Вместо этого ТОЧЕЧНО
+             # гашу owl-LED на карте через owl_open + owl_finish.
+             # Структура — как Dog/Cat Open Door: активация + физ. открытие
+             # двери + целевое гашение LED + короткая история.
+             logger.debug("Remote 'owl' triggered (manual door open, чистый паттерн).")
              if 'owl' in socklist:
                   logger.debug("Игнорируем повторный manual 'owl' — уже было.")
              else:
-                  # 1) Активация совы на карте (как было раньше).
-                  # 2026-06-04: map_click.wav УБРАН — Эдуард: этот звук таймера
-                  # подходит только когда физически кликнули по карте, а не на пульте.
+                  # 1) Активация совы (Mega → Owls tower выходит из idle)
                   serial_write_queue.put('owl')
-                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
-                  send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
-                  eventlet.sleep(0.3)
-                  # 2) Физическое открытие двери совы (как в door_owl handler)
+                  eventlet.sleep(0.5)
+                  # 2) Физическое открытие лока на башне сов
                   serial_write_queue.put('open_owl_door')
+                  # 3) Эффект двери + UI индикаторы
                   play_effect(door_owl)
-                  # 3) Маркируем 'owl' в socklist — при последующем door_owl
-                  #    от реального геркона он не дублирует sounds/story (см. line ~5516).
                   socketio.emit('level', 'owl', to=None)
                   socklist.append('owl')
-                  # 4) Прогресс-бар + кнопка-индикатор в зелёный
                   socketio.emit('level', 'active_owls', to=None)
                   if 'active_owls' not in socklist:
                        socklist.append('active_owls')
-                  eventlet.sleep(2.0)
-                  # 5) Истории как при настоящем door_owl flow
+                  # 4) ТОЧЕЧНОЕ гашение owl-LED на карте (паттерн check=='owls'
+                  #    line 3243-3244). НЕ трогаем train/key LEDs — они должны
+                  #    остаться clickable + shimmer blue.
+                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
+                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
+                  # 5) Короткая история (story_13 — про то что дверь сов открылась)
+                  eventlet.sleep(1.0)
                   if story13Flag == 0:
                        story13Flag = 1
                        play_localized_audio("story_13")
-                       while channel3.get_busy()==True and go == 1:
-                            eventlet.sleep(0.1)
-                  play_localized_audio("story_14_a")
-                  def _after_story_14a_manual():
-                       while channel3.get_busy() and go == 1:
-                            eventlet.sleep(0.1)
-                       send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
-                       socketio.emit('level', 'active_owls', to=None)
-                       socklist.append('active_owls')
-                  socketio.start_background_task(_after_story_14a_manual)
         if check == 'owls':
              #-----отправка клиенту 
              socketio.emit('level', 'owls',to=None)
