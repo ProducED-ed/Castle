@@ -3300,28 +3300,45 @@ def Remote(check):
              name = "story_2"
 
         if check == 'safe':
-             #-----отправка клиенту
+             # 2026-06-04: Эдуард — Safe Open skip теперь делает ПОЛНУЮ имитацию
+             # real safe_end flow (line 5952-5989) — звук, истории, музыка, всё.
+             # Защита от дубликата: real safe_end handler ниже проверяет
+             # 'safe_end' in socklist и пропускает если уже было (мы тут добавим).
+             #-----UI events + socklist (метим первым, чтобы real handler пропустил)
              socketio.emit('level', 'safe',to=None)
-             #-----добавить в историю
              socklist.append('safe')
-             # --- Добавляем событие 100% для прогресс-бара ---
-             # (Команда 'safe_end' уже обрабатывается в scripts.js для 100%)
              socketio.emit('level', 'safe_end', to=None)
              socklist.append('safe_end')
-             #----отправить на мегу
+             #----отправить на мегу (Mega при level 9 эхом ответит safe_end —
+             #    real handler пропустит работу благодаря socklist guard)
              serial_write_queue.put('safe')
              name = "story_2"
-             eventlet.sleep(1)
-             # 2026-06-04: Эдуард — после skip Safe дверь Workshop не открывалась,
-             # пользователь застревал. В real-flow (flag=="safe_end" на line 5980-5985)
-             # сервер шлёт door_workshop effect + open_workshop ДВАЖДЫ в Mega.
-             # Дублируем здесь для skip-симметрии. Длинные истории story_25/31/32
-             # опускаем — skip предполагает быстрое прохождение.
+             #----Train ESP32 stage update
              send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
+             #----Звук открытия сейфа
+             play_effect(safe_end)
+             while effects_are_busy() and go == 1:
+                  eventlet.sleep(0.1)
+             #----История 25 (полная имитация, Эдуард 4 июня выбрал включать)
+             play_localized_audio("story_25")
+             while channel3.get_busy()==True and go == 1:
+                  eventlet.sleep(0.1)
+             eventlet.sleep(1.1)
+             #----История 31
+             play_localized_audio("story_31")
+             while channel3.get_busy()==True and go == 1:
+                  eventlet.sleep(0.1)
+             #----Звук + открытие двери Workshop
              play_effect(door_workshop)
              serial_write_queue.put('open_workshop')
              eventlet.sleep(0.5)
              serial_write_queue.put('open_workshop')
+             #----Смена фоновой музыки на fon9 (Workshop этап)
+             play_background_music("fon9.mp3", loops=-1)
+             while effects_are_busy() and go == 1:
+                  eventlet.sleep(0.1)
+             #----История 32 (завершающая для Workshop вступления)
+             play_localized_audio("story_32")
              #-----активируем блок
              socketio.emit('level', 'active_workshop',to=None)
              socklist.append('active_workshop')
@@ -5964,46 +5981,53 @@ def serial():
                               play_effect(safe_turn)
                               socklist.append('safe_turn')
                          if flag=="safe_end":
-                              socketio.emit('level', 'safe_end', to=None)
-                              socklist.append('safe_end')
-                              
-                              # Вся остальная логика 'safe_end', которая у вас уже была
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
-                              play_effect(safe_end)
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-                              serial_write_queue.put('open_safe')
-                              
-                              while not serial_write_queue.empty():
-                                  try:
-                                      message_to_send = serial_write_queue.get_nowait()
-                                      ser.write(str.encode(message_to_send + '\n'))
-                                  except eventlet.queue.Empty:
-                                      break 
-                                  eventlet.sleep(0.01) 
-                                  
-                              play_localized_audio("story_25")
+                              # 2026-06-04: guard от дубликата. Если /pult-skip
+                              # check=='safe' уже отработал полный flow и добавил
+                              # 'safe_end' в socklist — пропускаем (иначе при echo
+                              # safe_end от Mega всё проиграется второй раз).
+                              if 'safe_end' in socklist:
+                                  logger.debug("Игнорируем повторный safe_end (skip уже отработал)")
+                              else:
+                                  socketio.emit('level', 'safe_end', to=None)
+                                  socklist.append('safe_end')
 
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)  
-                              eventlet.sleep(1.1)
-                              play_localized_audio("story_31")
-                                  
-                              while channel3.get_busy()==True and go == 1: 
-                                  eventlet.sleep(0.1)
-                              play_effect(door_workshop)
-                              serial_write_queue.put('open_workshop')
-                              process_serial_queue()
-                              eventlet.sleep(0.5)
-                              serial_write_queue.put('open_workshop')
-                              process_serial_queue()
-                              play_background_music("fon9.mp3", loops=-1)
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)
-                              play_localized_audio("story_32")
-                              
-                              socketio.emit('level', 'safe',to=None)
-                              socklist.append('safe')
+                                  # Вся остальная логика 'safe_end', которая у вас уже была
+                                  send_esp32_command(ESP32_API_TRAIN_URL, "stage_5")
+                                  play_effect(safe_end)
+                                  while effects_are_busy() and go == 1:
+                                      eventlet.sleep(0.1)
+                                  serial_write_queue.put('open_safe')
+
+                                  while not serial_write_queue.empty():
+                                      try:
+                                          message_to_send = serial_write_queue.get_nowait()
+                                          ser.write(str.encode(message_to_send + '\n'))
+                                      except eventlet.queue.Empty:
+                                          break
+                                      eventlet.sleep(0.01)
+
+                                  play_localized_audio("story_25")
+
+                                  while channel3.get_busy()==True and go == 1:
+                                      eventlet.sleep(0.1)
+                                  eventlet.sleep(1.1)
+                                  play_localized_audio("story_31")
+
+                                  while channel3.get_busy()==True and go == 1:
+                                      eventlet.sleep(0.1)
+                                  play_effect(door_workshop)
+                                  serial_write_queue.put('open_workshop')
+                                  process_serial_queue()
+                                  eventlet.sleep(0.5)
+                                  serial_write_queue.put('open_workshop')
+                                  process_serial_queue()
+                                  play_background_music("fon9.mp3", loops=-1)
+                                  while effects_are_busy() and go == 1:
+                                      eventlet.sleep(0.1)
+                                  play_localized_audio("story_32")
+
+                                  socketio.emit('level', 'safe',to=None)
+                                  socklist.append('safe')
                          
                          # Список ВСЕХ команд, которые управляют шкалой сейфа
                          safe_commands_list = ['safe_step_1', 'safe_step_2', 'safe_step_3', 'safe_step_4', 'safe_end', 'safe_reset']
