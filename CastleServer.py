@@ -3207,11 +3207,12 @@ def Remote(check):
                   socketio.emit('level', 'active_owls', to=None)
                   if 'active_owls' not in socklist:
                        socklist.append('active_owls')
-                  # 4) ТОЧЕЧНОЕ гашение owl-LED на карте (паттерн check=='owls'
-                  #    line 3243-3244). НЕ трогаем train/key LEDs — они должны
-                  #    остаться clickable + shimmer blue.
+                  # 4) Только owl_open — гасит ClickLed-радугу совы и зажигает
+                  #    ActiveLed[10]=19 (жёлтый «активной башни сов»). НЕ шлём
+                  #    owl_finish — он гасил бы жёлтый индикатор. Так делает
+                  #    реальный door_owl handler (line 5586) — без owl_finish.
+                  #    owl_finish нужен только при полном skip (check=='owls').
                   send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
-                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
                   # 5) Короткая история (story_13 — про то что дверь сов открылась)
                   eventlet.sleep(1.0)
                   if story13Flag == 0:

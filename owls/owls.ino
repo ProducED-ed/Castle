@@ -197,9 +197,19 @@ void processOwlCommand(String command) {
   // если придёт — игнорируем. Правильный flow: команда "owl" → ждём геркон.
 
   if (command == "open_door") {
+    // 2026-06-05 (Эдуард): импульс 100мс → 500мс. Физически дверь не успевала
+    // открыться за 100мс при /pult Open Door — Эдуард видел что только после
+    // физ. касания геркона (когда controlLocker начинал пульсировать 500мс
+    // каждые 8 сек) дверь открывалась.
+    // ALSO: state = 1 — чтобы /pult Open Door симулировал реальный геркон-touch:
+    // в loop() switch case 1 включает PIN_LED_ROOM (line 638) + (state > 0) →
+    // controlLocker() пульсирует door каждые 8 сек как и при физ. прохождении.
+    // В реальном flow геркон-touch УЖЕ ставит state=1 (line ~365), здесь
+    // дублируем — no-op для real-flow, но критично для /pult skip.
     digitalWrite(PIN_LOKER_DOOR, HIGH);
-    delay(100); // Этот delay(100) здесь - зло, но он короткий и для редкой команды
+    delay(500);
     digitalWrite(PIN_LOKER_DOOR, LOW);
+    state = 1;
   }
 
   if (command == "firework") {
