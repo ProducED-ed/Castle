@@ -301,11 +301,13 @@ void HandleMessagges(String message) {
   }
   // 2026-06-05 (Эдуард): разделил mine vs open_mine_door:
   //   - "mine" (game-mode, server check=='mine' в go==1) → game-state переход,
-  //     trollLed, door_cave event, state=3 (начало троль-этапа).
+  //     trollLed, door_cave event, state=3 (начало троль-этапа, нужна
+  //     пульсация SHERIF_EM1 каждые 3 сек через DoorDefender пока state 3-7).
   //   - "open_mine_door" (rest/skip mode, server check=='mine' в go==0/2/3) →
   //     ТОЛЬКО открыть дверь + 8-сек keep-alive. БЕЗ state=3, БЕЗ door_cave,
   //     БЕЗ trollLed. Иначе в режиме restart DoorDefender видит state>=3
-  //     и пульсирует SHERIF_EM1 каждые 3 сек бесконечно (баг).
+  //     и пульсирует SHERIF_EM1 каждые 3 сек бесконечно (Эдуард 2026-06-05
+  //     подтвердил: норма только для START-режима, не для restart).
   else if (message == "mine") {
     OpenLock(SHERIF_EM1);
     manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;
@@ -314,9 +316,10 @@ void HandleMessagges(String message) {
     if (state < 3) state = 3;
   }
   else if (message == "open_mine_door") {
-    // Только manual open. БЕЗ side-effects.
+    // 2026-06-05 (Эдуард): в restart жмёшь Open Door → строго ОДИН раз
+    // открывается. Нажмёшь ещё — ещё ОДИН раз. БЕЗ 8-сек keep-alive
+    // (manualEM1Until убран — он давал 2-3 пульса за 8 сек через DoorDefender).
     OpenLock(SHERIF_EM1);
-    manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;
   }
   else if (message == "start_troll") {
      if (state < 1) state = 1;
