@@ -70,6 +70,15 @@ bool recurringLockActive = false;
 unsigned long lastRecurringLockOpenTime = 0;
 const unsigned long RECURRING_LOCK_INTERVAL = 10000;
 
+// 2026-06-04: manual-hold таймер для open_door/restart (тех-пульт). Аналог
+// manualEMxUntil в basket3.ino (commit a2761a8). Одиночный 500мс импульс
+// в open_door не пробивает соленоид без keep-alive (recurringLockActive
+// сбрасывается в restart/ready и пульсирование останавливается). С этим
+// таймером manageLock() пульсирует locker ещё MANUAL_LOCK_HOLD_MS после
+// открытия с пульта. См. memory [[clc-basket-door-restart-fix-2026-05-28]].
+unsigned long manualLockUntil = 0;
+const unsigned long MANUAL_LOCK_HOLD_MS = 8000;
+
 bool floorLedsOn = false;
 
 int workbenchMode = 0;
@@ -758,6 +767,9 @@ void handleUartCommands() {
       delay(100);
       digitalWrite(LOCK_PIN, LOW);
       digitalWrite(LED_FLOOR2_PIN, HIGH);
+      // 2026-06-04: keep-alive 8 сек — чтобы при restart с пульта дверь
+      // workshop точно открылась (одиночный 100мс импульс не пробивает соленоид).
+      manualLockUntil = millis() + MANUAL_LOCK_HOLD_MS;
       workbenchMode = 0;
       workbenchStrip.clear();
       workbenchStrip.show();
@@ -789,6 +801,8 @@ void handleUartCommands() {
     }
 
     else if (command == "open_door") {
+      // 2026-06-04: keep-alive 8 сек чтобы соленоид точно открылся.
+      manualLockUntil = millis() + MANUAL_LOCK_HOLD_MS;
       digitalWrite(LOCK_PIN, HIGH);
       delay(500);
       digitalWrite(LOCK_PIN, LOW);
@@ -849,7 +863,11 @@ void manageLock() {
     lockOpen = false;
   }
 
-  if (recurringLockActive && !lockOpen && (millis() - lastRecurringLockOpenTime >= RECURRING_LOCK_INTERVAL)) {
+  // 2026-06-04: пульсируем locker если recurringLockActive ИЛИ manual-hold
+  // не истёк. Manual-hold взводится open_door/restart с пульта (8 сек),
+  // чтобы одиночный импульс не залип в закрытом состоянии.
+  bool shouldRecur = recurringLockActive || (millis() < manualLockUntil);
+  if (shouldRecur && !lockOpen && (millis() - lastRecurringLockOpenTime >= RECURRING_LOCK_INTERVAL)) {
     digitalWrite(LOCK_PIN, HIGH);
     lockOpen = true;
     lockOpenTime = millis();
