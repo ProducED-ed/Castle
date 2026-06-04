@@ -3185,21 +3185,49 @@ def Remote(check):
              eventlet.sleep(1) 
              name = "story_2"
         if check == 'owl':
-             # 2026-05-25: Remote('owl') теперь делает только активацию совы на карте —
-             # то же что клик на карте Train (data['map'] == 'owl'). Раньше тут был
-             # auto-skip: шёл owl_door + auto-play door_owl/story_13/14_a, что
-             # создавало баг "дверь сов открывается сама". Стандартный flow:
-             # клик активирует совы (owlCommandReceived=true в owls.ino) → игроки в
-             # течение таймера нажимают геркон на башне → door_owl event → проигрыш
-             # эффекта + историй + физическое открытие лока (см. door_owl handler).
-             # Для полного skip этапа есть отдельная кнопка Remote('owls').
-             logger.debug("Remote 'owl' triggered (manual map activation).")
-             serial_write_queue.put('owl')
-             send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
-             send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
-             play_effect(map_click)
-             # active_owls indicator (UI прогресс-бар) ставится только когда придёт
-             # door_owl event от геркона — см. door_owl handler ниже.
+             # 2026-06-04: Эдуард — поведение симметрично check == 'pedlock' (выше).
+             # Раньше кнопка «Open Door» в разделе Owl делала ТОЛЬКО активацию совы
+             # (требовала ручной нажатия геркона на башне). UX-несимметрия с другими
+             # «Open Door» кнопками → пользователь жаловался. Теперь кнопка СРАЗУ
+             # открывает дверь сов: то же что приходит после реального door_owl.
+             # Защита от двойного срабатывания — через socklist 'owl' (как в
+             # door_owl handler ниже на line ~5516).
+             logger.debug("Remote 'owl' triggered (manual door open, симметрично pedlock).")
+             if 'owl' in socklist:
+                  logger.debug("Игнорируем повторный manual 'owl' — уже было.")
+             else:
+                  # 1) Активация совы на карте (как было раньше)
+                  serial_write_queue.put('owl')
+                  send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
+                  send_esp32_command(ESP32_API_TRAIN_URL, "map_disable_clicks")
+                  play_effect(map_click)
+                  eventlet.sleep(0.3)
+                  # 2) Физическое открытие двери совы (как в door_owl handler)
+                  serial_write_queue.put('open_owl_door')
+                  play_effect(door_owl)
+                  # 3) Маркируем 'owl' в socklist — при последующем door_owl
+                  #    от реального геркона он не дублирует sounds/story (см. line ~5516).
+                  socketio.emit('level', 'owl', to=None)
+                  socklist.append('owl')
+                  # 4) Прогресс-бар + кнопка-индикатор в зелёный
+                  socketio.emit('level', 'active_owls', to=None)
+                  if 'active_owls' not in socklist:
+                       socklist.append('active_owls')
+                  eventlet.sleep(2.0)
+                  # 5) Истории как при настоящем door_owl flow
+                  if story13Flag == 0:
+                       story13Flag = 1
+                       play_localized_audio("story_13")
+                       while channel3.get_busy()==True and go == 1:
+                            eventlet.sleep(0.1)
+                  play_localized_audio("story_14_a")
+                  def _after_story_14a_manual():
+                       while channel3.get_busy() and go == 1:
+                            eventlet.sleep(0.1)
+                       send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
+                       socketio.emit('level', 'active_owls', to=None)
+                       socklist.append('active_owls')
+                  socketio.start_background_task(_after_story_14a_manual)
         if check == 'owls':
              #-----отправка клиенту 
              socketio.emit('level', 'owls',to=None)
