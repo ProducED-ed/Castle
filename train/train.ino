@@ -1467,12 +1467,23 @@ void loop() {
   }
   // === END DIAG ===
 
-  if (!INPUTS.digitalRead(1)) {
-      trainSensorLatched = true; // Запоминаем, что нажатие было
+  // 2026-06-05: edge-detect диагностика projector-геркона на сервер.
+  // Логируем ТОЛЬКО при переходе HIGH→LOW (момент касания), а не каждую
+  // итерацию loop — иначе спам в логе. Эдуард: тест projector через /pult,
+  // ожидаем видеть {"log":"Train: projector pin LOW"} при касании геркона.
+  static bool prevPin1State = true;  // HIGH = не нажат
+  bool currPin1State = INPUTS.digitalRead(1);  // 0=LOW=нажат, 1=HIGH=не нажат
+  if (!currPin1State && prevPin1State) {
+      // Транзишен HIGH→LOW — геркон только что коснулись
+      SendData("{\"log\":\"Train: projector pin LOW (INPUTS.1 геркон сработал)\"}");
   }
-  // Читаем датчик постоянно
-  if (!INPUTS.digitalRead(1)) {
-      trainSensorLatched = true;
+  if (!currPin1State && prevPin1State == false) {
+      // Уже было нажато — просто молчим, не спамим
+  }
+  prevPin1State = currPin1State;
+
+  if (!currPin1State) {
+      trainSensorLatched = true; // Запоминаем, что нажатие было
   }
   handlePlayerQueries();
   MapGerkon();
