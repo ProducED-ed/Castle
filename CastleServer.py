@@ -1944,8 +1944,16 @@ def handle_flash(board_id):
     commands = {
         'main': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN -b 115200 -D -U flash:w:/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex:i',
         'owls': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
-        'basket': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
-        'workshop': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
+        # 2026-06-05 (Эдуард): хаб-порты Workshop и Basket физически перепутаны
+        # на CLC3 (доказано тестом «втыкай по одному»):
+        #   - кабель к башне Workshop → хаб-порт 1.2.3
+        #   - кабель к башне Basket   → хаб-порт 1.2.4
+        # Раньше basket был 1.2.3, workshop 1.2.4 — «Прошить Workshop» уходило
+        # физически на Basket и наоборот. Поэтому flash тихо «успешен» но
+        # башня вела себя странно (basket думала что workshop и т.д.).
+        # Маппинг ИСПРАВЛЕН под физическую реальность CLC3.
+        'basket': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
+        'workshop': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
         'train': 'cd /home/pi/New && python3 espota.py -i 192.168.4.202 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/train/train.ino.bin',
         'chest': 'cd /home/pi/New && python3 espota.py -i 192.168.4.203 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/chest/chest.ino.bin',
         'safe': 'cd /home/pi/New && python3 espota.py -i 192.168.4.204 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/safe/safe.ino.bin',
