@@ -3604,7 +3604,7 @@ def handle_data():
         # DEBUG для всех остальных (рутинные ready/playing-сообщения, не для скан-листа).
         if 'log' in data:
              msg = str(data.get('log', ''))
-             important = any(kw in msg for kw in ('FALLBACK', 'ERROR', 'ALERT', 'ВНИМАНИЕ', 'Error', 'fail', 'Fail'))
+             important = any(kw in msg for kw in ('FALLBACK', 'ERROR', 'ALERT', 'ВНИМАНИЕ', 'Error', 'fail', 'Fail', 'DIAG'))
              if important:
                  logging.info(f"RECEIVED [ESP32 Log]: {msg}")
              else:

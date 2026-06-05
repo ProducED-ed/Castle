@@ -1467,23 +1467,46 @@ void loop() {
   }
   // === END DIAG ===
 
-  // 2026-06-05: edge-detect диагностика projector-геркона на сервер.
-  // Логируем ТОЛЬКО при переходе HIGH→LOW (момент касания), а не каждую
-  // итерацию loop — иначе спам в логе. Эдуард: тест projector через /pult,
-  // ожидаем видеть {"log":"Train: projector pin LOW"} при касании геркона.
+  // 2026-06-05 v2: РАСШИРЕННАЯ диагностика projector-геркона на сервер.
+  // Логируем BOTH transitions (HIGH→LOW и LOW→HIGH) + периодически
+  // текущее состояние pin (раз в 3 сек). Также логируем set/reset латча
+  // и срабатывание condition. Цель: понять почему авто-триггер
+  // {'projector':'end'} происходит сразу при касании map (Эдуард 5 июня).
   static bool prevPin1State = true;  // HIGH = не нажат
-  bool currPin1State = INPUTS.digitalRead(1);  // 0=LOW=нажат, 1=HIGH=не нажат
+  bool currPin1State = INPUTS.digitalRead(1);
   if (!currPin1State && prevPin1State) {
-      // Транзишен HIGH→LOW — геркон только что коснулись
-      SendData("{\"log\":\"Train: projector pin LOW (INPUTS.1 геркон сработал)\"}");
+      SendData("{\"log\":\"Train DIAG: pin1 HIGH→LOW (магнит поднесли)\"}");
   }
-  if (!currPin1State && prevPin1State == false) {
-      // Уже было нажато — просто молчим, не спамим
+  if (currPin1State && !prevPin1State) {
+      SendData("{\"log\":\"Train DIAG: pin1 LOW→HIGH (магнит убрали)\"}");
   }
   prevPin1State = currPin1State;
 
+  // Периодически логируем текущее состояние pin1 (раз в 3 сек)
+  static unsigned long lastPin1Periodic = 0;
+  if (millis() - lastPin1Periodic > 3000) {
+      lastPin1Periodic = millis();
+      if (!currPin1State) {
+          SendData("{\"log\":\"Train DIAG: pin1 PERIODIC = LOW (геркон замкнут)\"}");
+      } else {
+          // Не логируем HIGH периодически — это норма, спам в логе
+      }
+  }
+
+  // Set/reset latch с логированием
+  static bool prevLatchState = false;
   if (!currPin1State) {
-      trainSensorLatched = true; // Запоминаем, что нажатие было
+      if (!trainSensorLatched) {
+          // Latch только что стал true
+          SendData("{\"log\":\"Train DIAG: trainSensorLatched = TRUE (pin1 LOW)\"}");
+      }
+      trainSensorLatched = true;
+  }
+  if (prevLatchState != trainSensorLatched) {
+      if (!trainSensorLatched) {
+          SendData("{\"log\":\"Train DIAG: trainSensorLatched reset = FALSE\"}");
+      }
+      prevLatchState = trainSensorLatched;
   }
   handlePlayerQueries();
   MapGerkon();
@@ -1767,9 +1790,21 @@ void loop() {
         }
         // -------------------------------------
 
-        // Проверяем Latch вместо Pin и запускаем Retry Loop
-        if ((!INPUTS.digitalRead(1) || trainSensorLatched) && mapState == "train" && !isStartTrain) {
-          
+        // 2026-06-05 (Эдуард 5 июня): УБРАН latch trainSensorLatched.
+        // Раньше условие было: `(!digitalRead(1) || latch) && map="train" && !isStartTrain`.
+        // Проблема: латч ставился в TRUE при любом spike LOW (шум, network glitch,
+        // rebrooot и т.д.), оставался TRUE навсегда до consumption. Игрок касался
+        // map → mapState="train" → авто-trigger projector:end СРАЗУ без касания
+        // projector. Симптом стабильно воспроизводился у Эдуарда даже после
+        // отключения провода projector и обратного подключения.
+        //
+        // Фикс: требуем pin1 LIVE LOW в момент check'a. Игрок должен физически
+        // ДЕРЖАТЬ магнит на projector-герконе в момент когда case 1 проверяет.
+        // Это правильный flow: коснулся map → дошёл до башни Train (5-10 сек) →
+        // коснулся projector → condition fires в этот момент.
+        if (!INPUTS.digitalRead(1) && mapState == "train" && !isStartTrain) {
+          // DIAG: подтверждаем что pin1 LIVE LOW в момент срабатывания
+          SendData("{\"log\":\"Train DIAG: CONDITION FIRED — pin1=LOW (live), mapState=train, isStartTrain=0\"}");
           Serial.println("Train click detected!");
           myMP3.playMp3Folder(TRACK_TRAIN_ON);
           
@@ -1916,6 +1951,15 @@ void MapGerkon() {
     }
 
     if (!INPUTS.digitalRead(4) && trainLedActive && !isTrainClick) {
+      // 2026-06-05 DIAG: логируем состояние pin1 в момент map-касания
+      {
+          String diagMsg = "{\"log\":\"Train DIAG: MAP train touched — pin1=";
+          diagMsg += INPUTS.digitalRead(1) ? "HIGH" : "LOW";
+          diagMsg += ", latch BEFORE reset=";
+          diagMsg += trainSensorLatched ? "TRUE" : "FALSE";
+          diagMsg += "\"}";
+          SendData(diagMsg);
+      }
       ResetTimer();
 	  trainSensorLatched = false; // Сброс памяти
       isSendOut = 0;
