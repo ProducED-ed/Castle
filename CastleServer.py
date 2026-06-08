@@ -395,19 +395,43 @@ last_owl_flew_time = 0
 last_lesson_goal_time = 0
 arduino_level = 0
 # --- ДЛЯ BLUETOOTH ---
-# 2026-05-27: определяем реальное начальное состояние Bluetooth через bluetoothctl,
-# а не просто False. Иначе после рестарта сервера toggle на пульте показывает OFF
-# хотя устройство ещё подключено по BT.
-def _detect_bluetooth_state():
-    # Проверяем ТОЛЬКО Powered: yes — после старта сервера BT-адаптер может быть
-    # включён но НЕ discoverable (телефон уже спарен раньше). Это всё ещё значит
-    # что BT "активен" с точки зрения пользователя.
+# 2026-06-07: запоминаем ПОЛЬЗОВАТЕЛЬСКИЙ выбор в файле, а не читаем физическое
+# состояние адаптера. На Pi OS по умолчанию AutoEnable=true в bluez → адаптер
+# всегда ON после boot Pi, поэтому раньше toggle всегда показывал ON независимо
+# от того что нажимал пользователь.
+BT_PREF_FILE = '/var/lib/castle_bluetooth_pref'
+
+def _load_bt_preference():
+    """Читает сохранённое намерение пользователя. Дефолт — False (OFF)."""
     try:
-        result = subprocess.run("bluetoothctl show", shell=True, capture_output=True, text=True, timeout=5)
-        return "Powered: yes" in result.stdout
-    except Exception:
+        with open(BT_PREF_FILE) as f:
+            return f.read().strip() == '1'
+    except FileNotFoundError:
         return False
-bluetooth_active = _detect_bluetooth_state()
+    except Exception as e:
+        logger.error(f"BT pref read error: {e}")
+        return False
+
+def _save_bt_preference(state):
+    try:
+        with open(BT_PREF_FILE, 'w') as f:
+            f.write('1' if state else '0')
+    except Exception as e:
+        logger.error(f"BT pref save error: {e}")
+
+def _apply_initial_bt_state():
+    """При старте сервера физически приводим адаптер к сохранённому намерению."""
+    pref = _load_bt_preference()
+    try:
+        if pref:
+            subprocess.run("bluetoothctl power on", shell=True, check=False, timeout=5)
+        else:
+            subprocess.run("bluetoothctl power off", shell=True, check=False, timeout=5)
+    except Exception as e:
+        logger.error(f"BT initial apply error: {e}")
+    return pref
+
+bluetooth_active = _apply_initial_bt_state()
 
 def set_bluetooth_state(state):
     """Функция жесткого включения/выключения Bluetooth"""
@@ -6881,7 +6905,11 @@ def process_serial_queue():
 @socketio.on('toggle_bluetooth')
 def handle_bluetooth_toggle(is_checked):
     global starts # starts == 2 это режим RESTART
-    
+
+    # Запоминаем НАМЕРЕНИЕ пользователя — это явный клик.
+    # Автоматические set_bluetooth_state(False) на start/ready pref не трогают.
+    _save_bt_preference(bool(is_checked))
+
     # Разрешаем включать ТОЛЬКО в режиме Restart
     if starts == 2 and is_checked:
         set_bluetooth_state(True)
