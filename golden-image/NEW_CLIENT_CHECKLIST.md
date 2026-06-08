@@ -1,0 +1,200 @@
+# CLC: чек-лист нового клиента (за ~час сборки + установки)
+
+> Распечатай этот файл и держи рядом при сборке/отгрузке. Каждый шаг — галочка `[ ]`.
+
+---
+
+## Что должно быть готово ДО начала (склад/производство)
+
+- [ ] **Золотой образ** `clc-golden-YYYYMMDD.img` (или `.img.xz`) — последний рабочий
+- [ ] **Чистая SD-карта** ≥ 16GB (Sandisk Industrial или аналог)
+- [ ] **Raspberry Pi 4** (с радиатором/охлаждением) + БП MEAN WELL DDR-15G-5 или EDR-75-5
+- [ ] **Mega 2560** + USB-кабель + CH340 драйвер
+- [ ] **4 башни** — Workshop / Basket3 / Dog / Owls (каждая = Arduino Nano + соленоид + датчики)
+- [ ] **4-5 ESP32** — Train / Wolf / Safe / Chest (+ Suitcases если в комплекте)
+- [ ] **Powered USB hub** (Defender Quadro Power или аналог с БП 5V ≥ 2A)
+- [ ] **USB-WiFi донгл** для wlan1 (Wi-Fi роутера клиента) — TL-WN727N или аналог
+- [ ] **USB sound card** + динамики + микрофон (если в этой ревизии)
+- [ ] **Реквизит**: соленоиды, NeoPixel ленты, MAX4466 микрофоны, реле, DFPlayer-модули, etc.
+- [ ] **Запасная Mega** (на случай выхода из строя — см. [hardware-failures])
+
+---
+
+## Часть 1. ПРОШИВКА ЖЕЛЕЗА (производство, перед сборкой)
+
+### 1.1. Прошить все Arduino/ESP32 с актуальных исходников
+
+С Pi-эталона или локальной git-копии. Файлы лежат в:
+```
+~/Castle/
+  ├ MAIN_BOARD_V5_COM5/main.ino       → Mega 2560
+  ├ workshop/workshop.ino              → Tower Workshop (Nano)
+  ├ basket3/basket3.ino                → Tower Basket3 (Nano)
+  ├ dog/dog.ino                        → Tower Dog (Nano)
+  ├ owls/owls.ino                      → Tower Owls (Nano)
+  ├ train/train.ino                    → ESP32 Train
+  ├ wolf/wolf.ino                      → ESP32 Wolf
+  ├ safe/safe.ino                      → ESP32 Safe
+  └ chest/chest.ino                    → ESP32 Chest
+```
+
+- [ ] `git pull` в локальной копии — взять последние правки
+- [ ] **Mega 2560**: `arduino-cli compile && upload --fqbn arduino:avr:mega` (USB-кабель прямо в ПК)
+- [ ] **Каждая башня** (Nano): прошить `.ino` через CH340 (по очереди)
+- [ ] **Каждый ESP32**: прошить через USB-Serial (NodeMCU/DevKit)
+- [ ] **Sanity-check** перед сборкой: каждое устройство при подаче питания → видно в Serial Monitor нормальный boot-вывод
+
+### 1.2. Записать золотой образ на SD клиента
+
+С Windows ПК через Win32DiskImager:
+- [ ] Вставить чистую SD клиента в card-reader
+- [ ] Win32DiskImager → **Image File**: `clc-golden-YYYYMMDD.img` → **Device**: буква SD → **Write**
+- [ ] Дважды проверь что НЕ выбран системный диск!
+- [ ] После записи — НЕ извлекать SD до следующего шага
+
+### 1.3. (опционально) Задать hostname заранее
+
+После записи Windows видит boot-партицию SD как диск (F: или G:). В корне создай файл:
+- [ ] `clc-hostname.txt` с одной строкой имени, например:
+  ```
+  clc-04-russia
+  ```
+  Формат: `clc-NN-страна`, только латиница a-z 0-9 дефис, БЕЗ заглавных, БЕЗ подчёркиваний. Тогда `first-boot-clc.sh` не будет спрашивать.
+
+---
+
+## Часть 2. СБОРКА (производство)
+
+- [ ] Вставить SD в Pi
+- [ ] Mega → USB-порт **1-1.1 Pi 4** (физический порт, важно — udev rule `/dev/ttyUSB_MAIN`)
+- [ ] Powered USB hub → отдельный порт Pi
+- [ ] 4 башни (CH340) → в хаб
+- [ ] USB sound card → в хаб
+- [ ] USB-WiFi донгл → отдельный порт Pi (1-1.3)
+- [ ] Антенна Castle WiFi (Pi встроенный wlan0)
+- [ ] БП Pi отдельный, БП Mega отдельный, БП хаба отдельный — **не делить!** (см. [tech-problems-registry] / Power)
+
+### 2.1. Первое включение
+
+- [ ] Включить питание
+- [ ] Дождаться ~60 сек — на телефоне появилась сеть **Castle**
+- [ ] Подключиться к Castle → `http://192.168.4.1:3000` → пульт открылся ✓
+
+### 2.2. First-boot скрипт (если hostname не задан в шаге 1.3)
+
+Подключиться через SSH (Castle WiFi → `pi@192.168.4.1`, пароль `questquest`):
+- [ ] `sudo bash /usr/local/sbin/first-boot-clc.sh`
+- [ ] Ввести имя `clc-NN-страна` → подтвердить
+
+### 2.3. Маппинг USB-хаба (КРИТИЧНО — каждый замок индивидуален!)
+
+⚠️ Хабы дешёвые, порядок физических портов **может не совпадать** с кодом. Если не проверишь — две башни поменяются местами (как было на CLC3 со swap Workshop↔Basket).
+
+Метод: **по одной башне втыкай в хаб, смотри какой путь появился:**
+```bash
+ssh pi@192.168.4.1
+ls /dev/serial/by-path/
+# Втыкаешь Workshop → появится платформа-path
+# Втыкаешь Basket → ещё одна
+# и т.д.
+```
+- [ ] Записать: Workshop → `1.2.X`, Basket → `1.2.Y`, Dog → `1.2.Z`, Owls → `1.2.W`
+- [ ] Сравнить с `CastleServer.py` (search "usb-0:1.2"). Если **отличается** — поправить код перед отгрузкой (как на CLC3 commit 423d8da)
+
+### 2.4. Проверка через /tech панель
+
+- [ ] Open `http://192.168.4.1:3000/tech` → пароль `questquest`
+- [ ] Все башни зелёные?
+- [ ] Все ESP32 зелёные?
+- [ ] Mega System Ready в логе?
+- [ ] **Звук**: нажать «Проверить аудио» — все .wav валидны
+- [ ] **Адресные ленты**: кнопки `lt_all`/`lt_off` — проверить что лента карты + лента кубка отвечают
+- [ ] **Bluetooth**: toggle в режиме Restart — включается? (после первого включения создаст `/var/lib/castle_bluetooth_pref`)
+
+### 2.5. Тестовый прогон квеста
+
+- [ ] Старт квеста через пульт
+- [ ] Пройти **физически** ключевые точки каждой башни:
+  - Workshop: галетник pin 30 → реакция? Соленоид открывает?
+  - Basket3: мина → реакция?
+  - Dog: NeoPixel-индикатор? Дверь открывается?
+  - Owls: геркон сов → дверь сов?
+  - Train: маг.карта → projector-геркон → запуск игры?
+  - Wolf/Safe/Chest: открытие?
+- [ ] Завершить — кубок зажигается?
+
+Если что-то не так — фиксить здесь, а не у клиента!
+
+---
+
+## Часть 3. ПОДКЛЮЧЕНИЕ К СЕТИ КЛИЕНТА (опционально, на месте)
+
+Если у клиента есть Wi-Fi и он хочет поддержку через Tailscale:
+
+### 3.1. Подключение wlan1 к роутеру клиента
+
+- [ ] Узнать SSID/пароль роутера клиента
+- [ ] ⚠️ **Если WPA3** — донгл MT7601U слеп (см. [mt7601u-wpa3-blind]). Спросить у клиента **парную WPA2-сеть** или перевести роутер в WPA2-mode.
+- [ ] На Pi: добавить сеть через wpa_supplicant конфиг (или nmcli если NetworkManager)
+- [ ] Проверить: `ip a show wlan1` — получил IP от роутера клиента?
+
+### 3.2. Tailscale up
+
+- [ ] `sudo systemctl enable --now tailscaled`
+- [ ] `sudo tailscale up`
+- [ ] URL в выводе → открыть в браузере → авторизовать
+- [ ] В админке https://login.tailscale.com/admin/machines найти ноду
+- [ ] ⚠️ **ОБЯЗАТЕЛЬНО**: меню `⋯` → **Disable key expiry** (иначе через 6 мес. потеряет IP!)
+
+### 3.3. Проверка удалённого доступа
+
+- [ ] С твоего ноутбука (или VPS): `ssh pi@<новый-tailscale-ip>` → работает?
+- [ ] `http://<tailscale-ip>:3000/tech` — пульт открывается?
+
+---
+
+## Часть 4. ДОКУМЕНТАЦИЯ (после сдачи)
+
+Записать в **`~/produced-office/data/clients_inventory.md`** (через VS Code на VPS):
+
+- [ ] **Имя**: `clc-NN-страна`
+- [ ] **Tailscale IP**: 100.X.X.X
+- [ ] **Country**: страна, город
+- [ ] **Дата сдачи**: 2026-MM-DD
+- [ ] **Маппинг USB-хаба** (из шага 2.3):
+  - Workshop → 1.2.X
+  - Basket → 1.2.Y
+  - Dog → 1.2.Z
+  - Owls → 1.2.W
+- [ ] **Нестандартные замены**: если ставил резервную Mega / другой ESP32 / другую модель донгла
+- [ ] **WiFi клиента**: SSID, тип (WPA2/WPA3), нестандартные настройки
+- [ ] **Контакты клиента**: имя, телефон, email
+
+Сделать **фотографии**:
+- [ ] Общий вид внутри корпуса (для удалённой диагностики «где что»)
+- [ ] USB-хаб с подписанными портами
+- [ ] Mega с подписанными разъёмами (boyServo, гирлянды, реле)
+
+---
+
+## Известные ловушки (быстрый чек на случай «что-то не работает»)
+
+| Симптом | Первая проверка |
+|---|---|
+| Лента WS2812 «залипла» на cold-boot | PSU понижайки (см. [psu-swap-solved-ws2812]) |
+| Башни не прошиваются через /tech | USB-хаб underpowered? Mega bootloader умер? |
+| ESP32 offline cycles | hostapd channel collision (см. [wifi-channel-audit]) |
+| Bluetooth toggle залип | `cat /var/lib/castle_bluetooth_pref` |
+| Tailscale через 6 мес. отвалился | Забыли Disable key expiry в админке |
+| Workshop/Basket прошился но молчит | Маппинг USB-хаба свапнут (см. шаг 2.3) |
+| `Powered: yes` в bluetoothctl при OFF | AutoEnable=true в bluez — это норма, не баг |
+| WLAN1 пропадает | watchdog в CastleServer.py сам перезапустит через 30с |
+
+---
+
+## Связано
+
+- [README.md](README.md) — основной workflow подготовки золотого образа
+- [hardware-failures](../.claude/projects/-home-claude-dev-CLC--Chronicles-of-the-Living-Castle-/memory/reference_clc_hardware_failures.md) — БД физических поломок
+- [clients_inventory.md](~/produced-office/data/clients_inventory.md) — реестр клиентов
+- [tech_problems_registry.md](~/produced-office/data/tech_problems_registry.md) — реестр всех известных проблем CLC/WC
