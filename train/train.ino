@@ -2026,10 +2026,20 @@ void MapGerkon() {
 
   if (!INPUTS.digitalRead(4) && trainLedActive) {
     if (!isTrainClick) {
+      // 2026-06-26: добавлены state=1 + isStartTrain=0 для симметрии с веткой
+      // выше (line ~1969). Без них при ПЕРВОМ касании map (когда таймер ещё
+      // не активен) state остаётся 0 → case 1 в loop не выполняется →
+      // condition projector (line ~1805) недостижим → касание projector-
+      // геркона на башне не приводит к {"projector":"end"}. Симптом у клиента
+      // 26 июня: касается карты, потом projector, ничего не происходит, через
+      // 11 сек map:out. Скип через /pult выручил.
       mapState = "train";
       isSendOut = 0;
       isStartTimer = true;
       SendData("{\"map\":\"train\"}");
+      state = 1;
+      isStartTrain = 0;
+      trainSensorLatched = false;
       isFishClick = false;
       isOwlClick = false;
       isKeyClick = false;

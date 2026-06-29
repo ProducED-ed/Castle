@@ -5831,7 +5831,9 @@ def serial():
                          if flag=="dog_lock":
                               # Защита от двойного срабатывания
                               if 'dog_end_processed' in socklist:
-                                  logger.debug("Игнорируем повторный dog_lock")
+                                  # 2026-06-26: было logger.debug → не видно в castle.log,
+                                  # а это критичная диагностика «почему игра не пошла дальше»
+                                  logger.info(f"DIAG: Игнорируем dog_lock — dog_end_processed уже в socklist (size={len(socklist)})")
                               else:
                                   socklist.append('dog_end_processed') # Ставим метку
                                   # FIX: Останавливаем зацикленный dog_growl перед эффектом победы
