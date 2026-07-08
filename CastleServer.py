@@ -399,7 +399,9 @@ arduino_level = 0
 # состояние адаптера. На Pi OS по умолчанию AutoEnable=true в bluez → адаптер
 # всегда ON после boot Pi, поэтому раньше toggle всегда показывал ON независимо
 # от того что нажимал пользователь.
-BT_PREF_FILE = '/var/lib/castle_bluetooth_pref'
+# 2026-07-08: путь сменён /var/lib → /home/pi. Сервер работает от юзера pi,
+# в /var/lib записи падали с Permission denied — pref никогда не сохранялся.
+BT_PREF_FILE = '/home/pi/castle_bluetooth_pref'
 
 def _load_bt_preference():
     """Читает сохранённое намерение пользователя. Дефолт — False (OFF)."""
@@ -440,7 +442,7 @@ bluetooth_active = _apply_initial_bt_state()
 # ALSA дублирует моно-поток на оба выхода USB-карты. Паттерн pref-файла тот же
 # что у Bluetooth (см. выше). Переключение требует РЕСТАРТА сервера (mixer
 # нельзя пересоздать на лету — все Sound-объекты уже загружены).
-MONO_PREF_FILE = '/var/lib/castle_mono_pref'
+MONO_PREF_FILE = '/home/pi/castle_mono_pref'
 
 def _load_mono_preference():
     """Дефолт — False (stereo)."""

@@ -164,6 +164,8 @@ rm -f "$MNT/var/lib/clc-first-boot-done"
 
 # Сбросить Bluetooth pref — на новой Pi пользователь сам решит
 rm -f "$MNT/var/lib/castle_bluetooth_pref" 2>/dev/null || true
+# 2026-07-08: pref-файлы переехали в /home/pi (Permission denied в /var/lib от юзера pi)
+rm -f "$MNT/home/pi/castle_bluetooth_pref" "$MNT/home/pi/castle_mono_pref" 2>/dev/null || true
 
 # ───── ПРОВЕРКА ЧТО ВАЖНОЕ СОХРАНЕНО ─────
 
