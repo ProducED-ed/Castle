@@ -2027,6 +2027,29 @@ $('.ui.dropdown')
 				}
 			});
 			// ----------------------------------------------------
+
+			// --- (Инициализация Mono sound toggle, 2026-07-08) ---
+			// Флаг: пока true, onChange НЕ шлёт emit (изменение пришло ОТ сервера).
+			// Иначе mono_state → set checked → onChange → повторный emit → лишний рестарт.
+			let monoStateSyncing = false;
+			$('#mono-toggle-container').checkbox({
+				onChange: function() {
+					if (monoStateSyncing) return;
+					let isChecked = $('#mono-checkbox').is(':checked');
+					socket.emit('toggle_mono_sound', isChecked);
+				}
+			});
+
+			socket.on('mono_state', function(state) {
+				monoStateSyncing = true;
+				if (state) {
+					$('#mono-toggle-container').checkbox('set checked');
+				} else {
+					$('#mono-toggle-container').checkbox('set unchecked');
+				}
+				monoStateSyncing = false;
+			});
+			// ----------------------------------------------------
 			
 			// --- Инициализация переключателя музыки Ready ---
 			$('#ready-music-toggle-container').checkbox({

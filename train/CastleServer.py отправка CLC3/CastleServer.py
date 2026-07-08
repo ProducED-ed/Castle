@@ -433,36 +433,6 @@ def _apply_initial_bt_state():
 
 bluetooth_active = _apply_initial_bt_state()
 
-# --- ДЛЯ MONO/STEREO ЗВУКА ---
-# 2026-07-08: переключатель на пульте «Моно звук». Клиент CLC3 попросил чтобы
-# оба стерео-канала играли на одном динамике. Реализация: pygame.mixer
-# инициализируется с channels=1 → pygame сводит все звуки в моно при загрузке,
-# ALSA дублирует моно-поток на оба выхода USB-карты. Паттерн pref-файла тот же
-# что у Bluetooth (см. выше). Переключение требует РЕСТАРТА сервера (mixer
-# нельзя пересоздать на лету — все Sound-объекты уже загружены).
-MONO_PREF_FILE = '/var/lib/castle_mono_pref'
-
-def _load_mono_preference():
-    """Дефолт — False (stereo)."""
-    try:
-        with open(MONO_PREF_FILE) as f:
-            return f.read().strip() == '1'
-    except FileNotFoundError:
-        return False
-    except Exception as e:
-        logger.error(f"Mono pref read error: {e}")
-        return False
-
-def _save_mono_preference(state):
-    try:
-        with open(MONO_PREF_FILE, 'w') as f:
-            f.write('1' if state else '0')
-    except Exception as e:
-        logger.error(f"Mono pref save error: {e}")
-
-mono_sound_active = _load_mono_preference()
-# -------------------------------
-
 def set_bluetooth_state(state):
     """Функция жесткого включения/выключения Bluetooth"""
     global bluetooth_active
@@ -1036,13 +1006,9 @@ def system_status_loop():
 # -------------------------------
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-# 2026-07-08: channels=1 (mono) если включён переключатель «Моно звук» на пульте.
-# pygame сведёт стерео-файлы в моно при загрузке, оба выхода карты получат
-# одинаковый сигнал.
-pygame.mixer.pre_init(44100, -16, 1 if mono_sound_active else 2, 2048)
+pygame.mixer.pre_init(44100, -16, 2, 2048)
 pygame.init()
 pygame.mixer.init()
-logger.info(f"AUDIO: pygame.mixer в режиме {'MONO' if mono_sound_active else 'STEREO'}")
 
 # === Layer 3: pygame audio safety monkey-patch (2026-05-27) ===
 # pygame.mixer.Sound() и music.load() поддерживают ТОЛЬКО 16-bit PCM WAV.
@@ -2545,8 +2511,6 @@ def handle_connect():
         logger.warning(f"[TEST-AUDIO] sync on connect failed: {e}")
     # 2026-05-27: текущее состояние Bluetooth toggle (фикс: ранее не синкалось → залипало OFF)
     socketio.emit('bt_state', bluetooth_active, to=request.sid)
-    # 2026-07-08: текущее состояние Mono toggle
-    socketio.emit('mono_state', mono_sound_active, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
@@ -6952,28 +6916,6 @@ def handle_bluetooth_toggle(is_checked):
     else:
         # Во всех остальных случаях (или если сняли галочку) - выключаем
         set_bluetooth_state(False)
-# ---------------------------------------------------------------
-
-# --- Обработчик переключателя Mono звука с пульта (2026-07-08) ---
-@socketio.on('toggle_mono_sound')
-def handle_mono_sound_toggle(is_checked):
-    """Переключение mono/stereo. Требует рестарта сервера — pygame.mixer
-    инициализирован при старте, все Sound-объекты загружены под текущий
-    режим. Сохраняем pref → уведомляем пульты → рестарт через os._exit(0)
-    (systemd Restart=always поднимет сервер, init подхватит новый pref)."""
-    global mono_sound_active
-    new_state = bool(is_checked)
-    if new_state == mono_sound_active:
-        return  # ничего не изменилось (например повторный emit при reconnect)
-    _save_mono_preference(new_state)
-    mono_sound_active = new_state
-    logger.info(f"AUDIO: Переключение звука в {'MONO' if new_state else 'STEREO'} — рестарт сервера…")
-    socketio.emit('mono_state', new_state, to=None)
-    # Даём сокету время доставить событие пультам, затем рестарт
-    def _restart_for_mono():
-        eventlet.sleep(1.5)
-        os._exit(0)  # тот же паттерн что tech_restart_server (eventlet перехватывает SIGTERM)
-    socketio.start_background_task(_restart_for_mono)
 # ---------------------------------------------------------------
 
 # --- Обработчик переключателя музыки Ready с пульта ---
