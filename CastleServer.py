@@ -180,6 +180,7 @@ from subprocess import call
 import os
 import requests
 from requests.exceptions import RequestException
+from hue_lights import HueClient
 import eventlet.queue
 import random
 
@@ -347,6 +348,19 @@ ESP32_API_WOLF_URL = f"http://{ESP32_IP_WOLF}/data"
 ESP32_API_TRAIN_URL = f"http://{ESP32_IP_TRAIN}/data"
 ESP32_API_SUITCASE_URL = f"http://{ESP32_IP_SUITCASE}/data"
 ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
+
+# Philips Hue — управление светом клиента (лампы в его локалке, доступны через wlan1).
+# Весь конфиг (IP бриджа, app_key, вкл/выкл, сцены FULL/OFF) — в hue_config.json,
+# настраивается через /tech. IP не хардкодим — у каждого клиента свой бридж.
+HUE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hue_config.json")
+hue = HueClient(HUE_CONFIG_PATH, default_ip="192.168.1.141", default_group="2")
+
+def hue_light_async(on, bri_pct=100):
+    """Fire-and-forget: свет вкл на яркости bri_pct% (on=True) или выкл (on=False).
+    Молча ничего не делает если фича выключена или бридж не спарен."""
+    if not hue.is_enabled() or not hue.is_paired():
+        return
+    eventlet.spawn_n(lambda: hue.set_light(on, bri_pct))
 
 # Маппинг device_id (используется на /tech диагностической вкладке) -> ESP32 URL
 DIAG_DEVICE_URLS = {
@@ -2483,6 +2497,76 @@ def tech_diag_log_request(data):
         logger.warning(f"[DIAG] log read failed: {e}")
         socketio.emit('tech_diag_log_data', {'device': device, 'lines': [f"[ERROR] {e}"]})
 
+# ===== Philips Hue: настройка/pairing/тест для /tech =====
+@socketio.on('hue_status')
+def hue_status_req():
+    """UI запрашивает текущий статус (IP, paired, enabled, сцены)."""
+    socketio.emit('hue_status', hue.status())
+
+@socketio.on('hue_set_ip')
+def hue_set_ip(data):
+    """Смена IP бриджа. Сбрасывает старый app_key (привязан к бриджу)."""
+    ip = (data or {}).get('ip', '')
+    hue.set_bridge_ip(ip)
+    logger.info(f"[HUE] bridge IP set to {ip}")
+    socketio.emit('hue_status', hue.status())
+
+@socketio.on('hue_set_enable')
+def hue_set_enable(data):
+    """Общий тумблер управления светом."""
+    on = bool((data or {}).get('on', False))
+    hue.set_enabled(on)
+    logger.info(f"[HUE] feature enabled={on}")
+    socketio.emit('hue_status', hue.status())
+
+@socketio.on('hue_set_group')
+def hue_set_group(data):
+    """Выбрать группу Hue для управления: {'group_id': '2'}."""
+    gid = (data or {}).get('group_id')
+    hue.set_group(gid)
+    logger.info(f"[HUE] group set to {gid}")
+    socketio.emit('hue_status', hue.status())
+
+@socketio.on('hue_pair_start')
+def hue_pair_start():
+    """60-секундный цикл pairing. Клиент жмёт кнопку на бридже, мы ловим app_key."""
+    if hue.is_paired():
+        socketio.emit('hue_pair_done', {'success': True, 'message': 'already paired'})
+        return
+    def _pair_loop():
+        max_attempts = 30  # 30 × 2 сек = 60 сек
+        for i in range(max_attempts):
+            ok, msg = hue.try_pair_once()
+            socketio.emit('hue_pair_progress',
+                          {'attempt': i + 1, 'max': max_attempts, 'message': msg})
+            logger.info(f"[HUE] pair {i+1}/{max_attempts}: ok={ok} msg={msg}")
+            if ok:
+                socketio.emit('hue_pair_done', {'success': True, 'message': 'paired'})
+                socketio.emit('hue_status', hue.status())
+                return
+            eventlet.sleep(2)
+        socketio.emit('hue_pair_done',
+                      {'success': False,
+                       'message': 'timeout: кнопка на бридже не была нажата за 60с'})
+    eventlet.spawn_n(_pair_loop)
+
+@socketio.on('hue_test')
+def hue_test(data):
+    """Тест из /tech: {'on': true/false, 'bri': 100} → set_light()."""
+    d = data or {}
+    on = bool(d.get('on', False))
+    bri = int(d.get('bri', 100))
+    result = hue.set_light(on, bri)
+    socketio.emit('hue_test_result', {'on': on, 'bri': bri, 'success': result})
+
+@socketio.on('hue_list')
+def hue_list():
+    """Список групп/ламп из бриджа для выбора группы в /tech."""
+    socketio.emit('hue_list_data', {
+        'lights': hue.get_lights(),
+        'groups': hue.get_groups(),
+    })
+
 #декоратор работы socket отвечает за настройки wifi
 @socketio.on('WLAN')
 def WLAN(ssid):
@@ -3917,6 +4001,7 @@ def tmr(res):
                   ch.unpause() 
               #----отправим на клиента
               socketio.emit('level', 'start_game',to=None)
+              hue_light_async(False)  # HUE: гасим свет на старте квеста
               logger.debug("State changed: Game unpaused.")
         #----если была в рестарте       
         if go == 3 and starts==3:
@@ -3931,6 +4016,7 @@ def tmr(res):
              serial_write_queue.put('start')
              serial_write_queue.put('start')
              serial_write_queue.put('start')
+             hue_light_async(False)  # HUE: гасим свет на старте квеста из ready
              go=1
              starts = 1
              logger.debug("State changed: Game started from 'ready' state.")
@@ -3960,6 +4046,7 @@ def tmr(res):
          send_esp32_command(ESP32_API_TRAIN_URL, "restart")
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
          send_esp32_command(ESP32_API_SAFE_URL, "restart")
+         hue_light_async(True, 100)  # HUE: свет на 100% на рестарте
          # 2026-05-28 (Вариант C): на рестарте авто-открываем двери башни Basket
          # (троль + баскет). basket3 открывает локеры только на manual-команды,
          # а пульт-Restart шлёт башням "ready" (сброс, без открытия). Поэтому
@@ -4065,6 +4152,7 @@ def tmr(res):
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
+               hue_light_async(False)  # HUE: гасим свет в режиме ready
 
                # 3. Ждем
                eventlet.sleep(5.5)
@@ -5124,6 +5212,15 @@ def serial():
                          # ОПТИМИЗИРОВАНО
                          play_localized_audio("story_2_a")
 
+                         # HUE: после окончания story_2_a поднимаем свет на 40%.
+                         # Фоновый поток — не блокируем Serial пока играет история.
+                         def _hue_after_story_2a():
+                             while channel3.get_busy() and go == 1:
+                                 eventlet.sleep(0.1)
+                             if go == 1:
+                                 hue_light_async(True, 40)
+                         socketio.start_background_task(_hue_after_story_2a)
+
                    #---режим для событий в ресте показывает что нужно вернуть на свои места
                    
                    # Добавляем проверку для "грязных" сообщений выключения
@@ -5259,6 +5356,7 @@ def serial():
                                     socklist.remove('close_door_puzzle')
                               socketio.emit('level', 'open_door_puzzle',to=None)
                               socklist.append('open_door_puzzle')
+                              hue_light_async(True, 100)  # HUE: свет на 100% при открытии двери библиотеки
 
                          if flag=="lib_door_in":
                               if 'Check Library' in devices:
@@ -5417,8 +5515,9 @@ def serial():
                               while channel3.get_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               # --- Разрешаем Arduino начать игру ---
-                              serial_write_queue.put('start_galet_logic') 
+                              serial_write_queue.put('start_galet_logic')
                               logger.info("SENT [Main Board]: start_galet_logic (Story 4 finished)")
+                              hue_light_async(True, 100)  # HUE: свет на 100% на Attic Room (галетники)
 
                               #-----изменяем переменную
                          if flag == "kay_repeat":
@@ -6282,7 +6381,8 @@ def serial():
                               
                               socketio.emit('level', 'workshop',to=None)
                               socklist.append('workshop')
-                              send_esp32_command(ESP32_API_TRAIN_URL, "item_end") 
+                              hue_light_async(True, 40)  # HUE: свет на 40% как Workshop пройден
+                              send_esp32_command(ESP32_API_TRAIN_URL, "item_end")
                               send_esp32_command(ESP32_API_TRAIN_URL, "stage_6") 
                               play_localized_audio("story_35")
 
@@ -6747,6 +6847,7 @@ def serial():
                               # --- ФИНАЛ: ЗАПУСКАЕМ САЛЮТ И ЗВУК ПОБЕДЫ ОДНОВРЕМЕННО ---
                               serial_write_queue.put('play_win_salute') # Сигнал для Главной платы (Сменить волну на салют)
                               play_effect(win)                          # Звук победы (win.wav)
+                              hue_light_async(False)  # HUE: гасим свет в момент win+салюта
                               
                               # Отправляем салют на внешние ESP32 синхронно с аудио
                               send_esp32_command(ESP32_API_WOLF_URL, "firework")
@@ -7175,6 +7276,20 @@ if __name__ == '__main__':
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
         socketio.start_background_task(target=tailscale_watchdog)  # Авто-восстановление Tailscale (logged out / DNS fail)
         socketio.start_background_task(target=mega_boot_watchdog)  # Авто-DTR-reset если Mega молчит после cold-boot
+        # HUE: прогреваем кэш имён групп, чтобы в логах писать 'Castle', а не id.
+        # Ретраи — т.к. wlan1 (сеть клиента) после рестарта поднимается не сразу.
+        def _hue_warm_group_cache():
+            if not hue.is_paired():
+                return
+            for _ in range(8):  # до ~4 минут ожидания сети
+                eventlet.sleep(30)
+                groups = hue.get_groups()
+                if groups:
+                    logger.info(f"HUE: кэш имён групп прогрет ({len(groups)} групп)")
+                    return
+            logger.warning("HUE: не удалось прогреть кэш групп (сеть клиента недоступна) — "
+                           "имена в логах будут по id, подтянутся при открытии /tech")
+        socketio.start_background_task(target=_hue_warm_group_cache)
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
         socketio.run(app, port=3000, host='0.0.0.0')
     except OSError as e:

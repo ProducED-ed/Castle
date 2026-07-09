@@ -261,7 +261,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td><h4 data-i18n="board_train">Поезд</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><h4 data-i18n="board_train">Поезд</h4><span class="board-type" style="color: #4dc0b5;" data-i18n="board_ota">ESP32 (По воздуху)</span></td>
                     <td><button class="ui teal fluid button" onclick="flash('train', this)"><span data-i18n="btn_flash">Прошить</span></button></td>
                     <td>
                         <div class="path-link">\\Castle.local\New\Sketches\train</div>
@@ -270,7 +270,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td><h4 data-i18n="board_suitcases">Чемоданы</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><h4 data-i18n="board_suitcases">Чемоданы</h4><span class="board-type" style="color: #4dc0b5;" data-i18n="board_ota">ESP32 (По воздуху)</span></td>
                     <td><button class="ui teal fluid button" onclick="flash('chest', this)"><span data-i18n="btn_flash">Прошить</span></button></td>
                     <td>
                         <div class="path-link">\\Castle.local\New\Sketches\chest</div>
@@ -279,7 +279,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td><h4 data-i18n="board_safe">Сейф</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><h4 data-i18n="board_safe">Сейф</h4><span class="board-type" style="color: #4dc0b5;" data-i18n="board_ota">ESP32 (По воздуху)</span></td>
                     <td><button class="ui teal fluid button" onclick="flash('safe', this)"><span data-i18n="btn_flash">Прошить</span></button></td>
                     <td>
                         <div class="path-link">\\Castle.local\New\Sketches\safe</div>
@@ -288,7 +288,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td><h4 data-i18n="board_wolf">Волк</h4><span class="board-type" style="color: #4dc0b5;">ESP32 (По воздуху)</span></td>
+                    <td><h4 data-i18n="board_wolf">Волк</h4><span class="board-type" style="color: #4dc0b5;" data-i18n="board_ota">ESP32 (По воздуху)</span></td>
                     <td><button class="ui teal fluid button" onclick="flash('wolf', this)"><span data-i18n="btn_flash">Прошить</span></button></td>
                     <td>
                         <div class="path-link">\\Castle.local\New\Sketches\wolf</div>
@@ -595,6 +595,55 @@
         </div>
         <!-- ============ /ДИАГНОСТИКА ============ -->
 
+        <!-- ============ УМНОЕ ОСВЕЩЕНИЕ HUE ============ -->
+        <div class="ui inverted segment" style="margin-top: 30px;">
+            <h3><i class="lightbulb icon"></i> <span data-i18n="hue_title">Умное освещение (Philips Hue)</span></h3>
+            <ol style="color:#bbb; padding-left:20px; line-height:1.6;">
+                <li data-i18n="hue_step1">Впиши IP бриджа Hue и нажми «Сохранить IP».</li>
+                <li data-i18n="hue_step2">Включи тумблер «Включить управление светом».</li>
+                <li data-i18n="hue_step3">Попроси клиента нажать большую круглую кнопку на Hue Bridge.</li>
+                <li data-i18n="hue_step4">В течение 60 секунд после этого нажми «Pair HUE Bridge».</li>
+                <li data-i18n="hue_step5">Выбери сцены для «свет ВКЛ» и «свет ВЫКЛ», нажми «Сохранить сцены».</li>
+                <li data-i18n="hue_step6">Проверь кнопками «Свет ВКЛ / ВЫКЛ (тест)» — лампы должны сработать.</li>
+            </ol>
+
+            <div class="ui toggle checkbox" style="margin-bottom:14px;">
+                <input type="checkbox" id="hue-enable" onchange="hueSetEnable(this.checked)">
+                <label style="color:#ddd;" data-i18n="hue_enable">Включить управление светом</label>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                <span style="color:#ddd;" data-i18n="hue_bridge_ip">IP бриджа:</span>
+                <input type="text" id="hue-ip" style="width:150px; padding:5px;" placeholder="192.168.1.141">
+                <button class="ui small button" onclick="hueSaveIp()"><span data-i18n="hue_save_ip">Сохранить IP</span></button>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                <span style="color:#ddd;" data-i18n="hue_status_label">Статус:</span>
+                <span id="hue-status" class="ui label">—</span>
+                <button class="ui blue button" id="hue-pair-btn" onclick="huePairStart()">
+                    <i class="link icon"></i> <span data-i18n="hue_pair">Pair HUE Bridge</span>
+                </button>
+            </div>
+
+            <div id="hue-group-row" style="display:none; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                <span style="color:#ddd;" data-i18n="hue_group">Группа для управления:</span>
+                <select id="hue-group" style="padding:5px;"></select>
+                <button class="ui small button" onclick="hueSaveGroup()"><span data-i18n="hue_save_group">Сохранить группу</span></button>
+            </div>
+
+            <div id="hue-test-row" style="display:none; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <button class="ui green button" onclick="hueTest(true,100)"><span data-i18n="hue_test_100">Свет 100% (тест)</span></button>
+                <button class="ui olive button" onclick="hueTest(true,40)"><span data-i18n="hue_test_40">Свет 40% (тест)</span></button>
+                <button class="ui red button" onclick="hueTest(false,0)"><span data-i18n="hue_test_off">Свет ВЫКЛ (тест)</span></button>
+                <button class="ui basic inverted button" onclick="hueList()"><span data-i18n="hue_refresh">Обновить список групп</span></button>
+            </div>
+
+            <div id="hue-progress" style="margin-top:10px; color:#ffd54a; font-family:monospace; display:none;"></div>
+            <div id="hue-list" style="margin-top:10px; color:#ddd; font-family:monospace; font-size:12px; display:none; max-height:180px; overflow-y:auto;"></div>
+        </div>
+        <!-- ============ /HUE ============ -->
+
         <a href="/" class="ui inverted basic button" style="margin-top: 20px;"><i class="arrow left icon"></i> <span data-i18n="back_to_pult">Вернуться к пульту</span></a>
     </div>
 
@@ -700,7 +749,29 @@
                 ta_to_full: "Восстановление игровых звуков...",
                 ta_stub_pre: "⚠ Тестовые заглушки (", ta_stub_post: " файлов)",
                 ta_err: "Ошибка: ",
-                log_empty: "(лог пуст)"
+                log_empty: "(лог пуст)",
+                board_ota: "ESP32 (По воздуху)",
+                hue_title: "Умное освещение (Philips Hue)",
+                hue_step1: "Впиши IP бриджа Hue и нажми «Сохранить IP».",
+                hue_step2: "Включи тумблер «Включить управление светом».",
+                hue_step3: "Нажми большую круглую кнопку на Hue Bridge.",
+                hue_step4: "В течение 60 секунд после этого нажми «Pair HUE Bridge».",
+                hue_step5: "Выбери группу «Castle» и нажми «Сохранить группу».",
+                hue_step6: "Проверь кнопками «Свет ВКЛ / ВЫКЛ (тест)» — лампы должны сработать.",
+                hue_enable: "Включить управление светом",
+                hue_bridge_ip: "IP бриджа:",
+                hue_save_ip: "Сохранить IP",
+                hue_status_label: "Статус:",
+                hue_pair: "Pair HUE Bridge",
+                hue_group: "Группа для управления:",
+                hue_save_group: "Сохранить группу",
+                hue_test_100: "Свет 100% (тест)",
+                hue_test_40: "Свет 40% (тест)",
+                hue_test_off: "Свет ВЫКЛ (тест)",
+                hue_refresh: "Обновить список групп",
+                hue_paired: "Подключён",
+                hue_not_paired: "Не подключён",
+                hue_pairing: "Ожидание кнопки на бридже..."
             },
             en: {
                 title: "Technical Firmware Dashboard",
@@ -798,7 +869,29 @@
                 ta_to_full: "Restoring full game audio...",
                 ta_stub_pre: "⚠ Test stubs (", ta_stub_post: " files)",
                 ta_err: "Error: ",
-                log_empty: "(log is empty)"
+                log_empty: "(log is empty)",
+                board_ota: "ESP32 (Over the air)",
+                hue_title: "Smart lighting (Philips Hue)",
+                hue_step1: "Enter the Hue Bridge IP and click 'Save IP'.",
+                hue_step2: "Turn on the 'Enable light control' toggle.",
+                hue_step3: "Press the large round button on the Hue Bridge.",
+                hue_step4: "Within 60 seconds click 'Pair HUE Bridge'.",
+                hue_step5: "Pick the 'Castle' group and click 'Save group'.",
+                hue_step6: "Test with the 'Lights ON / OFF (test)' buttons — the lamps should react.",
+                hue_enable: "Enable light control",
+                hue_bridge_ip: "Bridge IP:",
+                hue_save_ip: "Save IP",
+                hue_status_label: "Status:",
+                hue_pair: "Pair HUE Bridge",
+                hue_group: "Group to control:",
+                hue_save_group: "Save group",
+                hue_test_100: "Lights 100% (test)",
+                hue_test_40: "Lights 40% (test)",
+                hue_test_off: "Lights OFF (test)",
+                hue_refresh: "Refresh group list",
+                hue_paired: "Connected",
+                hue_not_paired: "Not connected",
+                hue_pairing: "Waiting for bridge button..."
             }
         };
         let currentLang = localStorage.getItem('techLang') || 'ru';
@@ -1771,6 +1864,102 @@
                 $('#diag-safe-vol-val').text(s.vol);
             }
         });
+
+        // ============ Philips Hue ============
+        function huePairStart() {
+            $('#hue-progress').show().css('color', '#ffd54a').text(T('hue_pairing'));
+            $('#hue-pair-btn').addClass('loading disabled');
+            socket.emit('hue_pair_start');
+        }
+        function hueSetEnable(on) { socket.emit('hue_set_enable', { on: on }); }
+        function hueSaveIp() {
+            const ip = $('#hue-ip').val().trim();
+            if (ip) socket.emit('hue_set_ip', { ip: ip });
+        }
+        function hueTest(on, bri) { socket.emit('hue_test', { on: on, bri: bri }); }
+        function hueList() {
+            socket.emit('hue_list');
+            $('#hue-list').show().text('...');
+        }
+        function hueSaveGroup() {
+            socket.emit('hue_set_group', { group_id: $('#hue-group').val() });
+        }
+        let _lastHueStatus = null;
+        function hueRenderStatus(s) {
+            _lastHueStatus = s;
+            if (document.activeElement.id !== 'hue-ip') $('#hue-ip').val(s.bridge_ip || '');
+            $('#hue-enable').prop('checked', !!s.enabled);
+            const label = $('#hue-status');
+            if (s.paired) {
+                label.removeClass('red').addClass('green')
+                     .text(T('hue_paired') + ' (' + (s.app_key_short || '') + ')');
+                $('#hue-pair-btn').addClass('disabled').removeClass('loading')
+                                  .html('<i class="check icon"></i>');
+                $('#hue-group-row').css('display', 'flex');
+                $('#hue-test-row').css('display', 'flex');
+            } else {
+                label.removeClass('green').addClass('red').text(T('hue_not_paired'));
+                $('#hue-pair-btn').removeClass('disabled loading')
+                                  .html('<i class="link icon"></i> ' + T('hue_pair'));
+                $('#hue-group-row').hide();
+                $('#hue-test-row').hide();
+            }
+            // запомним какая группа выбрана — применим когда придёт список групп
+            $('#hue-group').data('sel', s.group_id || '');
+            // Авто-подгрузка списка групп если подключены, а выпадашка ещё пустая
+            // (например после перезагрузки страницы). Однократно, пока не заполнено.
+            if (s.paired && $('#hue-group option').length < 1) {
+                socket.emit('hue_list');
+            }
+        }
+        function hueFillGroupSelect(groups) {
+            const $sel = $('#hue-group');
+            const chosen = $sel.data('sel') || '';
+            $sel.empty();
+            for (const [id, info] of Object.entries(groups)) {
+                const selAttr = (id === chosen) ? ' selected' : '';
+                $sel.append('<option value="' + id + '"' + selAttr + '>' +
+                            info.name + ' (' + (info.lights || []).length + ')</option>');
+            }
+        }
+        socket.on('hue_status', hueRenderStatus);
+        socket.on('hue_pair_progress', function(d) {
+            $('#hue-progress').text(T('hue_pairing') + ' ' + d.attempt + '/' + d.max + ' — ' + d.message);
+        });
+        socket.on('hue_pair_done', function(d) {
+            $('#hue-pair-btn').removeClass('loading');
+            if (d.success) {
+                $('#hue-progress').css('color', '#7eff7e').text('✓ ' + T('hue_paired'));
+                socket.emit('hue_list');  // сразу подтянем группы для выпадашки
+            } else {
+                $('#hue-progress').css('color', '#ff7e7e').text('✗ ' + d.message);
+                $('#hue-pair-btn').removeClass('disabled');
+            }
+        });
+        socket.on('hue_test_result', function(d) {
+            const what = d.on ? (d.bri + '%') : T('hue_test_off');
+            const msg = what + ': ' + (d.success ? 'OK' : 'FAIL');
+            $('#hue-progress').show().css('color', d.success ? '#7eff7e' : '#ff7e7e').text(msg);
+        });
+        socket.on('hue_list_data', function(d) {
+            hueFillGroupSelect(d.groups || {});
+            let html = '<b>Groups:</b><br>';
+            for (const [id, info] of Object.entries(d.groups || {}))
+                html += '&nbsp;&nbsp;[' + id + '] ' + info.name + ' (' + (info.lights || []).length + ')<br>';
+            html += '<br><b>Lights:</b><br>';
+            for (const [id, name] of Object.entries(d.lights || {})) html += '&nbsp;&nbsp;[' + id + '] ' + name + '<br>';
+            $('#hue-list').show().html(html);
+        });
+        socket.on('connect', function() { setTimeout(function() { socket.emit('hue_status'); }, 500); });
+        if (socket.connected) socket.emit('hue_status');
+        // При смене языка — перерисовать HUE-статус/кнопку (они ставятся из JS, не через data-i18n)
+        if (typeof applyI18n === 'function') {
+            const _origApplyI18n = applyI18n;
+            applyI18n = function() {
+                _origApplyI18n();
+                if (_lastHueStatus) hueRenderStatus(_lastHueStatus);
+            };
+        }
     </script>
 </body>
 </html>
