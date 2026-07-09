@@ -5356,7 +5356,6 @@ def serial():
                                     socklist.remove('close_door_puzzle')
                               socketio.emit('level', 'open_door_puzzle',to=None)
                               socklist.append('open_door_puzzle')
-                              hue_light_async(True, 100)  # HUE: свет на 100% при открытии двери библиотеки
 
                          if flag=="lib_door_in":
                               if 'Check Library' in devices:
@@ -6455,9 +6454,10 @@ def serial():
                               socklist.append('punch') # Добавляем флаг для UI
                               play_localized_audio("story_43")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while channel3.get_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               serial_write_queue.put('open_library')
+                              hue_light_async(True, 100)  # HUE: свет на 100% когда открылся локер двери библиотеки
                               #send_esp32_command(ESP32_API_TRAIN_URL, #"ghost_game_end")
                               #send_esp32_command(ESP32_API_WOLF_URL, "ghost_game_end")
                               eventlet.sleep(2.0)
@@ -6819,7 +6819,7 @@ def serial():
                                   basket_timeout_timer.cancel()
                                   basket_timeout_timer = None
                                   
-                              play_background_music("fon19.mp3", loops=-1)    
+                              play_background_music("fon19.mp3", loops=-1)
                               play_localized_audio("story_66")
 
                               # Отправляем команды для UI
@@ -6848,6 +6848,15 @@ def serial():
                               serial_write_queue.put('play_win_salute') # Сигнал для Главной платы (Сменить волну на салют)
                               play_effect(win)                          # Звук победы (win.wav)
                               hue_light_async(False)  # HUE: гасим свет в момент win+салюта
+                              # HUE: после окончания победной истории story_66 поднимаем свет на 100%.
+                              # Спавним ПОСЛЕ гашения выше — гарантия что 100% ляжет после OFF,
+                              # даже если story_66 короче салютных пауз. Ждём окончания channel3.
+                              def _hue_after_story_66():
+                                  while channel3.get_busy() and go == 1:
+                                      eventlet.sleep(0.1)
+                                  if go == 1:
+                                      hue_light_async(True, 100)
+                              socketio.start_background_task(_hue_after_story_66)
                               
                               # Отправляем салют на внешние ESP32 синхронно с аудио
                               send_esp32_command(ESP32_API_WOLF_URL, "firework")
