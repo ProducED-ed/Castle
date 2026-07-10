@@ -2391,6 +2391,7 @@ def tech_jump_basket():
     pygame.mixer.music.stop()
     stop_all_effects()
     channel3.stop() # Глушим любые истории, которые могли застрять
+    story_audio_queue.clear()  # и очередь Mine Door историй
 
     # Отправляем спец-команду на Ардуино
     for _ in range(3):
@@ -3243,10 +3244,16 @@ def Remote(check):
              mansard_galets.update(['g1', 'g2', 'g3', 'g4', 'g5']) # Имитируем, что все 5 включены
              last_mansard_count = 5 # Устанавливаем счетчик на 5
              
+             # 2026-07-10: ждём окончания текущей истории (например story_3_b после
+             # clock2) — Remote-хендлер живёт в отдельном greenlet и раньше перебивал
+             # рассказ на полуслове (лог 2026-06-04 16:14: story_3_b оборван story_5).
+             while channel3.get_busy() and go == 1:
+                 eventlet.sleep(0.1)
+
              # 2. Добавляем всю пропущенную логику из 'if flag=="galet_on":'
              play_background_music("fon6.mp3", loops=-1)
              play_effect(door_attic) # Эффект открытия
-             
+
              # 3. Воспроизводим истории (ОПТИМИЗИРОВАНО)
              play_localized_audio("story_5")
 
@@ -3275,6 +3282,7 @@ def Remote(check):
              name = "story_2" 
              send_esp32_command(ESP32_API_SUITCASE_URL, "skip")
              send_esp32_command(ESP32_API_TRAIN_URL, "case_finish")
+             check_three_games_day_off()
         if check=='animals':
              #-----отправка клиенту 
              socketio.emit('level', 'animals',to=None)
@@ -3285,6 +3293,7 @@ def Remote(check):
              name = "story_2"  
              send_esp32_command(ESP32_API_SAFE_URL, "skip")
              send_esp32_command(ESP32_API_TRAIN_URL, "safe_finish")
+             check_three_games_day_off()
         if check == 'wolf':
              #-----отправка клиенту 
              socketio.emit('level', 'wolf',to=None)
@@ -3295,6 +3304,7 @@ def Remote(check):
              name = "story_2"  
              send_esp32_command(ESP32_API_WOLF_URL, "skip")
              send_esp32_command(ESP32_API_TRAIN_URL, "wolf_finish")
+             check_three_games_day_off()
         #-----нажали пропустить флаги     
         if check=='open_mansard_stash':
              #----отправка на клиента 
@@ -3834,6 +3844,7 @@ def handle_data():
           socketio.emit('level', 'suitcase',to=None)
           socklist.append('suitcase')
           send_esp32_command(ESP32_API_SUITCASE_URL, "confirm_suitcase_end")
+          check_three_games_day_off()
           ack_response = jsonify({"confirm": True, "event": "suitcase_end"})
         if 'safe' in data and data['safe'] == 'end':
           logger.debug("'safe: end' logic triggered.")
@@ -3842,6 +3853,7 @@ def handle_data():
           socketio.emit('level', 'animals',to=None)
           socklist.append('animals')
           send_esp32_command(ESP32_API_SAFE_URL, "confirm_safe_end")
+          check_three_games_day_off()
           ack_response = jsonify({"confirm": True, "event": "safe_end"})
         if 'wolf' in data and data['wolf'] == 'end':
           logger.debug("'wolf: end' logic triggered.")
@@ -3850,6 +3862,7 @@ def handle_data():
           socketio.emit('level', 'wolf',to=None)
           socklist.append('wolf')
           send_esp32_command(ESP32_API_WOLF_URL, "confirm_wolf_end")
+          check_three_games_day_off()
           ack_response = jsonify({"confirm": True, "event": "wolf_end"})
         if ack_response is not None:
           return ack_response
@@ -3872,7 +3885,12 @@ def handle_data():
           play_effect(map_click)
           #while effects_are_busy() and go == 1: 
           #     eventlet.sleep(0.1) 
-          if mapClickHints == 0:
+          # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
+          # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
+          # занят — hint просто пропускается, игрок услышит на следующем клике.
+          if channel3.get_busy():
+               logger.debug("map click hint пропущен — channel3 занят историей")
+          elif mapClickHints == 0:
                mapClickHints = 1
                play_localized_audio("story_12_a")
           elif mapClickHints == 1:
@@ -3886,7 +3904,12 @@ def handle_data():
           play_effect(map_click)
           #while effects_are_busy() and go == 1: 
           #     eventlet.sleep(0.1) 
-          if mapClickHints == 0:
+          # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
+          # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
+          # занят — hint просто пропускается, игрок услышит на следующем клике.
+          if channel3.get_busy():
+               logger.debug("map click hint пропущен — channel3 занят историей")
+          elif mapClickHints == 0:
                mapClickHints = 1
                play_localized_audio("story_12_a")
           elif mapClickHints == 1:
@@ -3900,7 +3923,12 @@ def handle_data():
           play_effect(map_click)
           #while effects_are_busy() and go == 1: 
           #     eventlet.sleep(0.1) 
-          if mapClickHints == 0:
+          # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
+          # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
+          # занят — hint просто пропускается, игрок услышит на следующем клике.
+          if channel3.get_busy():
+               logger.debug("map click hint пропущен — channel3 занят историей")
+          elif mapClickHints == 0:
                mapClickHints = 1
                play_localized_audio("story_12_a")
           elif mapClickHints == 1:
@@ -3911,7 +3939,12 @@ def handle_data():
           logger.debug("'map: train' logic triggered.")
           eventlet.sleep(0.5)
           play_effect(map_click)
-          if mapClickHints == 0:
+          # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
+          # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
+          # занят — hint просто пропускается, игрок услышит на следующем клике.
+          if channel3.get_busy():
+               logger.debug("map click hint пропущен — channel3 занят историей")
+          elif mapClickHints == 0:
                mapClickHints = 1
                play_localized_audio("story_12_a")
           elif mapClickHints == 1:
@@ -4131,7 +4164,8 @@ def tmr(res):
          socklist.append('50')
          flag=""
          go=2
-         channel3.stop() 
+         channel3.stop()
+         story_audio_queue.clear()  # очередь Mine Door историй (2026-07-10) 
          stop_all_effects()
          pygame.mixer.music.stop()
          #pygame.mixer.music.unload()
@@ -4258,7 +4292,8 @@ def tmr(res):
                     go=3 
                     starts = 3
                     socklist.append('ready')
-                    channel3.stop() 
+                    channel3.stop()
+                    story_audio_queue.clear()  # очередь Mine Door историй (2026-07-10) 
                     stop_all_effects()
                     pygame.mixer.music.stop()
                     global play_ready_music
@@ -4618,7 +4653,34 @@ def send_esp32_command(api_url, command, debounce=False, delay=0.5):
     t_debouncer.daemon = True
     device_timers[api_url] = t_debouncer
     t_debouncer.start()
-                
+
+# 2026-07-10: после прохождения всех Трёх Игр (Suitcase='suitcase',
+# Golden Safe='animals', Wolf='wolf' в socklist) гасим подсветку этих трёх
+# ESP32 командой day_off (state=0 в прошивках) до самого restart.
+# Train не трогаем. Вызывается из real- и skip-хендлеров каждого финиша;
+# guard 'three_games_day_off' защищает от повторной отправки.
+def check_three_games_day_off():
+    if ('suitcase' in socklist and 'animals' in socklist and 'wolf' in socklist
+            and 'three_games_day_off' not in socklist):
+        socklist.append('three_games_day_off')
+        send_esp32_command(ESP32_API_WOLF_URL, "day_off")
+        send_esp32_command(ESP32_API_SUITCASE_URL, "day_off")
+        send_esp32_command(ESP32_API_SAFE_URL, "day_off")
+        logger.info("THREE GAMES DONE: day_off → Wolf/Suitcases/Safe (подсветка выключена до restart)")
+
+# 2026-07-10: очередь историй для этапа Mine Door / тролля.
+# story_26 → story_27_a → story_27_b → story_27_c играют СТРОГО по очереди,
+# каждая ждёт окончания предыдущей. Serial-цикл НЕ блокируется (истории
+# ставятся в очередь мгновенно, играет их фоновый worker). Раньше быстрый
+# игрок находил второй металл пока 27_a ещё звучала — 27_b обрывала её.
+story_audio_queue = []
+
+def story_queue_worker():
+    while True:
+        if story_audio_queue and not channel3.get_busy() and go == 1:
+            play_localized_audio(story_audio_queue.pop(0))
+        eventlet.sleep(0.2)
+
 def play_background_music(music_file, volume_file='1.txt', loops=-1):
     # --- ИЗМЕНЕНО: Улучшено логирование фоновой музыки ---
     try:
@@ -4875,7 +4937,10 @@ def serial():
               #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
               eventlet.sleep(0.01)
               if pygame.mixer.music.get_busy() == False:
-                   if nextTrack == 1:
+                   # 2026-07-10: + not channel3.get_busy() — story_11 запускается
+                   # когда fon7 доиграл, но story_10 может ещё звучать (fon7 короче).
+                   # Ждём освобождения канала историй, иначе story_10 обрывался.
+                   if nextTrack == 1 and not channel3.get_busy():
                         play_background_music("fon8.mp3", loops=-1)
                         # ОПТИМИЗИРОВАНО
                         play_localized_audio("story_11")
@@ -6101,14 +6166,8 @@ def serial():
                               #     eventlet.sleep(0.1)
                               # Добавляем фиксированную задержку 2 секунды
                               eventlet.sleep(2.0)
-                              play_localized_audio("story_26")
-
-                              # ФИКС: фоновый поток — Serial не блокируется.
-                              # Бутылки и другие события обрабатываются мгновенно.
-                              def _after_story_26():
-                                  while channel3.get_busy() and go == 1:
-                                      eventlet.sleep(0.1)
-                              socketio.start_background_task(_after_story_26)
+                              # 2026-07-10: через очередь — не перебивается и не перебивает
+                              story_audio_queue.append("story_26")
                          if flag=="cave_search1":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -6116,10 +6175,8 @@ def serial():
                               socklist.append('cave_search1')
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
-                              play_localized_audio("story_27_a")
-
-                              # ФИКС: убрана блокировка Serial во время story_27_a
-                              eventlet.sleep(0.1)
+                              # 2026-07-10: очередь — 27_a ждёт окончания предыдущей истории
+                              story_audio_queue.append("story_27_a")
                          if flag=="cave_search2":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -6127,10 +6184,8 @@ def serial():
                               socklist.append('cave_search2')
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
-                              play_localized_audio("story_27_b")
-
-                              # ФИКС: убрана блокировка Serial во время story_27_b
-                              eventlet.sleep(0.1)
+                              # 2026-07-10: очередь — 27_b ждёт окончания предыдущей истории
+                              story_audio_queue.append("story_27_b")
                          if flag=="cave_search3":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -6138,10 +6193,8 @@ def serial():
                               socklist.append('cave_search3')
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
-                              play_localized_audio("story_27_c")
-
-                              # ФИКС: убрана блокировка Serial во время story_27_c
-                              eventlet.sleep(0.1)
+                              # 2026-07-10: очередь — 27_c ждёт окончания предыдущей истории
+                              story_audio_queue.append("story_27_c")
                          if flag=="cave_end":
                               if 'cave_end' in socklist:
                                   logger.debug("Игнорируем повторный cave_end")
@@ -6155,8 +6208,8 @@ def serial():
                                   send_esp32_command(ESP32_API_TRAIN_URL, "troll_finish")
                                   while effects_are_busy() and go == 1: 
                                       eventlet.sleep(0.1)
-                                  play_localized_audio("story_30")
-                                  # ФИКС: убрана блокировка — story_30 играет параллельно с Serial
+                                  # 2026-07-10: через очередь — не обрывает 27_x если игрок быстрый
+                                  story_audio_queue.append("story_30")
 
                          if flag=="material_end":
                               #----играем эффект
@@ -7325,6 +7378,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
+        socketio.start_background_task(target=story_queue_worker)  # Очередь историй Mine Door/тролль (2026-07-10)
         socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
         socketio.start_background_task(target=tailscale_watchdog)  # Авто-восстановление Tailscale (logged out / DNS fail)
