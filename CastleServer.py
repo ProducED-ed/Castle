@@ -3492,6 +3492,9 @@ def Remote(check):
              # 2026-06-04 v2 (Эдуард): тот же принцип что у Owl — буквально
              # имитируем real cave_end flow (line 5901-5914). Точечно гасим
              # только troll-LED (через troll_finish), не трогаем другие LEDs.
+             # 2026-07-10: чистим очередь историй тролля — отложенные
+             # after_serial (cave_searchN) не должны стрелять после скипа.
+             story_audio_queue.clear()
              if 'cave_end' in socklist:
                   logger.debug("Игнорируем повторный manual 'troll' — уже было.")
              else:
@@ -4673,12 +4676,26 @@ def check_three_games_day_off():
 # каждая ждёт окончания предыдущей. Serial-цикл НЕ блокируется (истории
 # ставятся в очередь мгновенно, играет их фоновый worker). Раньше быстрый
 # игрок находил второй металл пока 27_a ещё звучала — 27_b обрывала её.
+#
+# 2026-07-10 v2: элемент очереди — dict {'story': имя, 'after_serial': cmd}.
+# after_serial отправляется на Mega ПОСЛЕ окончания story — так СЛЕДУЮЩИЙ
+# ЭТАП тролля (LED + активация металла на basket3) не начинается, пока
+# рассказ не доиграл. Требует Mega-прошивку где убран мгновенный
+# Serial2-форвард cave_searchN (Mega ждёт команду от сервера).
 story_audio_queue = []
 
 def story_queue_worker():
     while True:
         if story_audio_queue and not channel3.get_busy() and go == 1:
-            play_localized_audio(story_audio_queue.pop(0))
+            item = story_audio_queue.pop(0)
+            play_localized_audio(item['story'])
+            # ждём окончания именно этой истории
+            while channel3.get_busy() and go == 1:
+                eventlet.sleep(0.1)
+            after = item.get('after_serial')
+            if after and go == 1:
+                logger.info(f"STORY QUEUE: '{item['story']}' доиграла → открываю этап ({after})")
+                serial_write_queue.put(after)
         eventlet.sleep(0.2)
 
 def play_background_music(music_file, volume_file='1.txt', loops=-1):
@@ -6167,7 +6184,7 @@ def serial():
                               # Добавляем фиксированную задержку 2 секунды
                               eventlet.sleep(2.0)
                               # 2026-07-10: через очередь — не перебивается и не перебивает
-                              story_audio_queue.append("story_26")
+                              story_audio_queue.append({'story': "story_26"})
                          if flag=="cave_search1":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -6176,7 +6193,7 @@ def serial():
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
                               # 2026-07-10: очередь — 27_a ждёт окончания предыдущей истории
-                              story_audio_queue.append("story_27_a")
+                              story_audio_queue.append({'story': "story_27_a", 'after_serial': 'cave_search1'})
                          if flag=="cave_search2":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -6185,7 +6202,7 @@ def serial():
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
                               # 2026-07-10: очередь — 27_b ждёт окончания предыдущей истории
-                              story_audio_queue.append("story_27_b")
+                              story_audio_queue.append({'story': "story_27_b", 'after_serial': 'cave_search2'})
                          if flag=="cave_search3":
                               #----играем эффект 
                               play_effect(cave_search)
@@ -6194,7 +6211,7 @@ def serial():
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
                               # 2026-07-10: очередь — 27_c ждёт окончания предыдущей истории
-                              story_audio_queue.append("story_27_c")
+                              story_audio_queue.append({'story': "story_27_c", 'after_serial': 'cave_search3'})
                          if flag=="cave_end":
                               if 'cave_end' in socklist:
                                   logger.debug("Игнорируем повторный cave_end")
@@ -6209,7 +6226,7 @@ def serial():
                                   while effects_are_busy() and go == 1: 
                                       eventlet.sleep(0.1)
                                   # 2026-07-10: через очередь — не обрывает 27_x если игрок быстрый
-                                  story_audio_queue.append("story_30")
+                                  story_audio_queue.append({'story': "story_30"})
 
                          if flag=="material_end":
                               #----играем эффект

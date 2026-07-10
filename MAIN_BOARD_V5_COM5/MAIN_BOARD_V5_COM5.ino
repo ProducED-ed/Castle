@@ -1571,13 +1571,14 @@ void HelpTowersHandler() {
         if (level == 7) {
           if (serial2Buffer == "aluminium") {
             Serial.println(F("cave_search1"));
-            Serial2.println(F("cave_search1"));  // Открываем следующий этап
+            // 2026-07-10: НЕ открываем следующий этап сразу. Сервер пришлёт
+            // команду cave_search1 ПОСЛЕ окончания story_27_a — тогда buff-
+            // handler ниже сделает Serial2.println и этап откроется.
+            // Так LED/активация следующего металла ждут конца рассказа.
           } else if (serial2Buffer == "bronze") {
             Serial.println(F("cave_search2"));
-            Serial2.println(F("cave_search2"));
           } else if (serial2Buffer == "copper") {
             Serial.println(F("cave_search3"));
-            Serial2.println(F("cave_search3"));
           } else if (serial2Buffer == "cave_end") {
             Serial.println(F("cave_end"));
             isTrollEnd = 1;
