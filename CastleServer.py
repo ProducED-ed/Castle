@@ -362,6 +362,53 @@ def hue_light_async(on, bri_pct=100):
         return
     eventlet.spawn_n(lambda: hue.set_light(on, bri_pct))
 
+def hue_single_lamp_async(bri_pct=100, index=0):
+    """Fire-and-forget: включить ТОЛЬКО одну лампу группы (по индексу) на bri_pct%.
+    Остальные лампы не трогаем. Для сцены «горит только 1 лампа»."""
+    if not hue.is_enabled() or not hue.is_paired():
+        return
+    def _go():
+        ids = hue.get_group_light_ids()
+        if ids and index < len(ids):
+            hue.set_single_light(ids[index], True, bri_pct)
+            logger.info(f"HUE: одна лампа id={ids[index]} → {bri_pct}%")
+    eventlet.spawn_n(_go)
+
+# Светомузыка на время звучания fon7.mp3 (игра с флагами пройдена).
+# НЕ анализ звука — заранее заданная цветовая анимация под темп трека (120 BPM → 0.5с/бит):
+# каждая из 3 ламп по отдельности перебирает цвета палитры, меняясь на каждый бит.
+# По окончании fon7 возвращаем лампы в нейтральный белый 40%.
+HUE_LIGHTSHOW_BEAT_SEC = 0.5   # 120 BPM = 0.5с на бит
+# Палитра (hue 0..65535, sat): красный, оранжевый, жёлтый, зелёный, голубой, синий, фиолетовый, розовый
+HUE_LIGHTSHOW_PALETTE = [
+    (0, 254), (6000, 254), (12000, 254), (25500, 254),
+    (39000, 254), (46920, 254), (52000, 254), (56100, 254),
+]
+def hue_flags_lightshow_async():
+    """Запускает светомузыку в фоне на время пока играет pygame.mixer.music (fon7)."""
+    if not hue.is_enabled() or not hue.is_paired():
+        return
+    def _show():
+        ids = hue.get_group_light_ids()
+        if not ids:
+            return
+        logger.info(f"HUE: старт светомузыки на {len(ids)} лампах (fon7)")
+        n = len(HUE_LIGHTSHOW_PALETTE)
+        step = 0
+        # transition ~ бит, чтобы переход был плавным но попадал в темп
+        tms = int(HUE_LIGHTSHOW_BEAT_SEC * 1000 * 0.6)
+        while pygame.mixer.music.get_busy() and go == 1:
+            for idx, lid in enumerate(ids):
+                huev, sat = HUE_LIGHTSHOW_PALETTE[(step + idx * 3) % n]
+                hue.set_light_color(lid, huev, sat, 100, transition_ms=tms)
+            step += 1
+            eventlet.sleep(HUE_LIGHTSHOW_BEAT_SEC)
+        # финал: вернуть лампы в нейтральный белый 40%
+        for lid in ids:
+            hue.set_light_color(lid, 0, 0, 40, transition_ms=600)
+        logger.info("HUE: светомузыка завершена (fon7 закончился)")
+    eventlet.spawn_n(_show)
+
 # Маппинг device_id (используется на /tech диагностической вкладке) -> ESP32 URL
 DIAG_DEVICE_URLS = {
     'train':     ESP32_API_TRAIN_URL,
@@ -4001,7 +4048,7 @@ def tmr(res):
                   ch.unpause() 
               #----отправим на клиента
               socketio.emit('level', 'start_game',to=None)
-              hue_light_async(False)  # HUE: гасим свет на старте квеста
+              hue_light_async(True, 10)  # HUE: свет 10% на старте квеста
               logger.debug("State changed: Game unpaused.")
         #----если была в рестарте       
         if go == 3 and starts==3:
@@ -4016,7 +4063,7 @@ def tmr(res):
              serial_write_queue.put('start')
              serial_write_queue.put('start')
              serial_write_queue.put('start')
-             hue_light_async(False)  # HUE: гасим свет на старте квеста из ready
+             hue_light_async(True, 10)  # HUE: свет 10% на старте квеста из ready
              go=1
              starts = 1
              logger.debug("State changed: Game started from 'ready' state.")
@@ -4152,7 +4199,7 @@ def tmr(res):
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
-               hue_light_async(False)  # HUE: гасим свет в режиме ready
+               hue_light_async(True, 10)  # HUE: свет 10% в режиме ready
 
                # 3. Ждем
                eventlet.sleep(5.5)
@@ -5211,15 +5258,7 @@ def serial():
                          send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
                          # ОПТИМИЗИРОВАНО
                          play_localized_audio("story_2_a")
-
-                         # HUE: после окончания story_2_a поднимаем свет на 40%.
-                         # Фоновый поток — не блокируем Serial пока играет история.
-                         def _hue_after_story_2a():
-                             while channel3.get_busy() and go == 1:
-                                 eventlet.sleep(0.1)
-                             if go == 1:
-                                 hue_light_async(True, 40)
-                         socketio.start_background_task(_hue_after_story_2a)
+                         hue_single_lamp_async(100, 0)  # HUE: 1 лампа на 100% с началом story_2_a
 
                    #---режим для событий в ресте показывает что нужно вернуть на свои места
                    
@@ -5420,6 +5459,7 @@ def serial():
                          if flag == "dragon_crystal":
                               #----играем историю (ОПТИМИЗИРОВАНО)
                               play_localized_audio("story_2_b")
+                              hue_light_async(True, 40)  # HUE: все лампы 40% (коснулись геркона дракона)
 
                          if flag == "dragon_crystal_repeat":
                               #----играем историю (ОПТИМИЗИРОВАНО)
@@ -5430,6 +5470,7 @@ def serial():
                               socketio.emit('level', 'open_door',to=None)
                               #-----добавили в список
                               socklist.append('open_door')
+                              hue_light_async(True, 40)  # HUE: все лампы 40% (открыта стартовая дверь)
                               play_background_music("fon3.mp3", loops=-1)
                               #----играем эффект
                               play_effect(door_act)
@@ -5735,7 +5776,8 @@ def serial():
                                   send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
                                   while effects_are_busy() and go == 1: 
                                       eventlet.sleep(0.1)
-                                  play_background_music("fon7.mp3", loops=0) 
+                                  play_background_music("fon7.mp3", loops=0)
+                                  hue_flags_lightshow_async()  # HUE: светомузыка на время fon7 (флаги пройдены)
                                   # ОПТИМИЗИРОВАНО
                                   play_localized_audio("story_10")
 
@@ -6117,17 +6159,19 @@ def serial():
                                   # ФИКС: убрана блокировка — story_30 играет параллельно с Serial
 
                          if flag=="material_end":
-                              #----играем эффект 
+                              #----играем эффект
                               socketio.emit('level', 'active_open_bank_door',to=None)
                               socklist.append('active_open_bank_door')
+                              hue_light_async(True, 40)  # HUE: все лампы 40% (активация уровня банкира/Mirror)
                               send_esp32_command(ESP32_API_TRAIN_URL, "stage_4")
                          if flag=="miror":
                               socketio.emit('level', 'open_bank_door',to=None)
                               socklist.append('open_bank_door')
                               play_effect(door_bank)
-                              while effects_are_busy() and go == 1: 
+                              while effects_are_busy() and go == 1:
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_23")
+                              hue_light_async(True, 100)  # HUE: все лампы 100% (заиграл story_23)
 
                               while channel3.get_busy()==True and go == 1:
                                   eventlet.sleep(0.1)

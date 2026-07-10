@@ -35,7 +35,8 @@ class HueClient:
         self.app_key = None
         self.enabled = False
         self.group_id = default_group
-        self._group_names = {}  # кэш {id: name} для читаемых логов
+        self._group_names = {}       # кэш {id: name} для читаемых логов
+        self._group_light_ids = []   # кэш id ламп в текущей группе
         self.load()
 
     # ---------- persistence ----------
@@ -193,3 +194,48 @@ class HueClient:
         logger.info(f"HUE: свет ВКЛючить {pct}% (группа '{self._group_name()}') "
                     f"→ {'OK' if ok else 'ОШИБКА'}")
         return ok
+
+    # ---------- per-lamp (для «1 лампа» и светомузыки) ----------
+    def get_group_light_ids(self):
+        """Список id ламп в текущей группе (напр. ['3','4','5']). Кэшируется."""
+        if self._group_light_ids:
+            return self._group_light_ids
+        groups = self.get_groups()  # побочно кэширует имена групп
+        info = groups.get(str(self.group_id))
+        if info:
+            self._group_light_ids = info.get("lights", [])
+        return self._group_light_ids
+
+    def _put_light_state(self, light_id, body):
+        if not self.app_key:
+            return False
+        try:
+            r = requests.put(
+                f"http://{self.bridge_ip}/api/{self.app_key}/lights/{light_id}/state",
+                json=body,
+                timeout=DEFAULT_TIMEOUT,
+            )
+            return r.status_code == 200
+        except Exception as e:
+            logger.warning(f"HUE light {light_id} {body} failed: {e}")
+            return False
+
+    def _bri_from_pct(self, bri_pct):
+        pct = max(1, min(100, int(bri_pct)))
+        return max(1, min(254, round(pct / 100 * 254)))
+
+    def set_single_light(self, light_id, on, bri_pct=100):
+        """Одна конкретная лампа вкл/выкл (для сцены «горит только 1 лампа»)."""
+        if not on:
+            return self._put_light_state(light_id, {"on": False})
+        return self._put_light_state(light_id, {"on": True, "bri": self._bri_from_pct(bri_pct)})
+
+    def set_light_color(self, light_id, hue_val, sat, bri_pct=100, transition_ms=200):
+        """Цвет одной лампы (для светомузыки). hue 0..65535, sat 0..254."""
+        return self._put_light_state(light_id, {
+            "on": True,
+            "hue": int(hue_val) % 65536,
+            "sat": max(0, min(254, int(sat))),
+            "bri": self._bri_from_pct(bri_pct),
+            "transitiontime": max(0, int(transition_ms / 100)),
+        })
