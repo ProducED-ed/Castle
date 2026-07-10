@@ -3055,6 +3055,12 @@ def Remote(check):
      global star
      global socklist
      global mansard_galets, last_mansard_count
+     # 2026-07-10: без этого global присваивание story13Flag=1 в check=='owl'
+     # делало переменную локальной → чтение `if story13Flag == 0` роняло хендлер
+     # UnboundLocalError ПЕРЕД play story_14_a (жалоба клиента: нет фразы при
+     # открытии двери сов через Owl Open Door). Traceback был только в journald.
+     global story13Flag
+     global train_stage_2_active
      b = 0
      с = 0
      #------переключаем языки
