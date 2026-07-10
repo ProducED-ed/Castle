@@ -5584,8 +5584,11 @@ def serial():
                               #----играем эффект
                               play_effect(h_clock)
                               #-----ждем окончания эффекта
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1) 
+                              while effects_are_busy() and go == 1:
+                                  eventlet.sleep(0.1)
+                              # 2026-07-10: + ждём окончания текущей истории (не перебивать)
+                              while channel3.get_busy()==True and go == 1:
+                                  eventlet.sleep(0.1)
                               #----играем историю (ОПТИМИЗИРОВАНО)
                               play_localized_audio("story_3_a")
 
@@ -5595,6 +5598,11 @@ def serial():
                               socketio.emit('level', 'active_second_clock',to=None)
                               socklist.append('active_second_clock') 
                          if flag == "clock2":
+                              # 2026-07-10: ждём окончания story_3_a (этап clock1) —
+                              # игрок крутит второй галетник быстро, и вся цепочка clock2
+                              # (uf_clock + story_3_b) обрывала рассказ на полуслове.
+                              while channel3.get_busy()==True and go == 1:
+                                  eventlet.sleep(0.1)
                               #----шлем на клиента
                               play_background_music("fon4.mp3", loops=-1)
                               send_esp32_command(ESP32_API_TRAIN_URL, "train_uf_light_on")
