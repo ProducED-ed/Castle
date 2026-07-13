@@ -191,6 +191,21 @@
                     <i class="sync icon"></i> <span data-i18n="audio_files_refresh">Обновить</span>
                 </button>
                 <span id="audio-files-count" style="color:#aaa; font-size:13px;"></span>
+                <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                    <span style="color:#aaa; font-size:13px;" data-i18n="audio_preview_lbl">Слушать через:</span>
+                    <div class="ui buttons mini">
+                        <button class="ui button active" id="preview-mode-pc" onclick="setPreviewMode('pc')" data-i18n="audio_preview_pc">ПК</button>
+                        <button class="ui button" id="preview-mode-castle" onclick="setPreviewMode('castle')" data-i18n="audio_preview_castle">Замок</button>
+                    </div>
+                </div>
+            </div>
+            <div id="castle-preview-wrap" style="display:none; margin-bottom:10px; padding:8px; background:#0a0a0a; border-radius:4px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <i class="volume up icon" style="color:#e67e22;"></i>
+                    <span style="color:#e67e22; font-size:13px;" data-i18n="audio_preview_on_castle">Играет на динамиках замка:</span>
+                    <span id="castle-preview-name" style="color:#fff; font-family:monospace;"></span>
+                    <button class="ui mini red button" onclick="stopCastlePreview()"><i class="stop icon"></i> Stop</button>
+                </div>
             </div>
             <div id="audio-player-wrap" style="display:none; margin-bottom:10px; padding:8px; background:#0a0a0a; border-radius:4px;">
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -730,6 +745,9 @@
                 audio_files_add_prompt: "Введите имя файла (включая расширение .mp3/.wav/.ogg)",
                 audio_files_add_hint: "Например: story_3_b_fr.wav, hint_5_a_de.wav, fon9.mp3",
                 audio_files_add_bad_ext: "Расширение должно быть .mp3, .wav или .ogg",
+                audio_preview_lbl: "Слушать через:", audio_preview_pc: "ПК",
+                audio_preview_castle: "Замок",
+                audio_preview_on_castle: "Играет на динамиках замка:",
                 btn_flash: "Прошить",
                 test_audio_label: "Тест. звуки RU",
                 test_audio_status_full: "Игровые звуки (полные)",
@@ -868,6 +886,9 @@
                 audio_files_add_prompt: "Enter file name (with extension .mp3/.wav/.ogg)",
                 audio_files_add_hint: "For example: story_3_b_fr.wav, hint_5_a_de.wav, fon9.mp3",
                 audio_files_add_bad_ext: "Extension must be .mp3, .wav or .ogg",
+                audio_preview_lbl: "Listen via:", audio_preview_pc: "PC",
+                audio_preview_castle: "Castle",
+                audio_preview_on_castle: "Playing on castle speakers:",
                 btn_flash: "Flash",
                 test_audio_label: "Test audio RU",
                 test_audio_status_full: "Game audio (full)",
@@ -2103,7 +2124,34 @@
             }).join('');
             $tbody.html(rows);
         }
+        // Режим прослушивания: 'pc' (браузер) | 'castle' (динамики замка)
+        var audioPreviewMode = localStorage.getItem('audioPreviewMode') || 'pc';
+        function setPreviewMode(m) {
+            audioPreviewMode = m;
+            localStorage.setItem('audioPreviewMode', m);
+            $('#preview-mode-pc').toggleClass('active', m === 'pc');
+            $('#preview-mode-castle').toggleClass('active', m === 'castle');
+            if (m === 'pc') { stopCastlePreview(); } else { closeAudioPlayer(); }
+        }
+        function stopCastlePreview() {
+            socket.emit('tech_audio_preview_stop');
+        }
+        socket.on('tech_audio_preview_state', function(st) {
+            if (st && st.playing) {
+                $('#castle-preview-wrap').show();
+                $('#castle-preview-name').text(st.name || '');
+            } else {
+                $('#castle-preview-wrap').hide();
+                if (st && st.error) {
+                    $('#audio-upload-status').css('color', '#e74c3c').text('Preview: ' + st.error);
+                }
+            }
+        });
         function playAudio(name) {
+            if (audioPreviewMode === 'castle') {
+                socket.emit('tech_audio_preview_play', { name: name });
+                return;
+            }
             $('#audio-player-wrap').show();
             $('#audio-player-name').text(name);
             var $p = $('#audio-player');
@@ -2164,6 +2212,11 @@
             _uploadAudio(file, target);
         });
         $(document).on('input', '#audio-files-search', function(){ renderAudioFiles(); });
+        // применить сохранённый режим прослушивания к кнопкам
+        document.addEventListener('DOMContentLoaded', function(){
+            $('#preview-mode-pc').toggleClass('active', audioPreviewMode === 'pc');
+            $('#preview-mode-castle').toggleClass('active', audioPreviewMode === 'castle');
+        });
         // ===== /АУДИО-МЕНЕДЖЕР =====
     </script>
 </body>

@@ -1959,6 +1959,45 @@ def audio_upload():
     except Exception as e:
         logger.error(f"audio_upload save error: {e}")
         return jsonify({'ok': False, 'error': str(e)}), 500
+# --- Прослушивание трека через ДИНАМИКИ ЗАМКА (2026-07-13) ---
+# Toggle на /tech: слушать через ПК (HTML5) или через квест (pygame, тот же
+# тракт что в игре: pulse → EQ → USB-карта → усилители). Отдельный канал 6 —
+# не трогает истории/эффекты. Громкость — из 3.txt (как у историй).
+@socketio.on('tech_audio_preview_play')
+def tech_audio_preview_play(data):
+    name = (data or {}).get('name', '')
+    if not _is_audio_filename(name):
+        socketio.emit('tech_audio_preview_state', {'playing': False, 'error': 'bad name'}, to=request.sid)
+        return
+    path = os.path.join(AUDIO_DIR, name)
+    if not os.path.isfile(path):
+        socketio.emit('tech_audio_preview_state', {'playing': False, 'error': 'not found'}, to=request.sid)
+        return
+    try:
+        snd = pygame.mixer.Sound(path)
+        try:
+            with open('3.txt', 'r') as vf:
+                vol = float(vf.read(4))
+        except Exception:
+            vol = 0.7
+        ch = pygame.mixer.Channel(6)
+        ch.play(snd)
+        ch.set_volume(vol, vol)
+        logger.info(f"AUDIO-MGR: preview на динамиках замка: {name} (vol={vol})")
+        socketio.emit('tech_audio_preview_state', {'playing': True, 'name': name}, to=None)
+    except Exception as e:
+        logger.error(f"AUDIO-MGR preview error: {e}")
+        socketio.emit('tech_audio_preview_state', {'playing': False, 'error': str(e)}, to=request.sid)
+
+@socketio.on('tech_audio_preview_stop')
+def tech_audio_preview_stop():
+    try:
+        pygame.mixer.Channel(6).stop()
+    except Exception as e:
+        logger.warning(f"AUDIO-MGR preview stop error: {e}")
+    socketio.emit('tech_audio_preview_state', {'playing': False}, to=None)
+# --- /Прослушивание через замок ---
+
 # === /АУДИО-МЕНЕДЖЕР ===
 
 @socketio.on('start_audio_check')
