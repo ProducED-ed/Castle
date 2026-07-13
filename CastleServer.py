@@ -530,6 +530,68 @@ def _save_mono_preference(state):
         logger.error(f"Mono pref save error: {e}")
 
 mono_sound_active = _load_mono_preference()
+
+# 2026-07-14 MONO v2: mono-сведение на уровне PulseAudio.
+# module-remap-sink channels=1 поверх USB-карты: pulse сводит stereo→mono
+# во float (0.5/0.5, без клиппинга) и дублирует на оба физических выхода.
+# stream-restore запоминает последний sink потока pygame — после move
+# рестарты сервера сами попадают на нужный sink (имя mono_out стабильно).
+PULSE_USB_SINK = "alsa_output.usb-Solid_State_System_Co._Ltd._USB_PnP_Audio_Device_000000000000-00.analog-stereo"
+PULSE_MONO_SINK = "mono_out"
+
+def _pactl(*args, timeout=10):
+    env = dict(os.environ)
+    env.setdefault('XDG_RUNTIME_DIR', '/run/user/1000')
+    return subprocess.run(['pactl'] + list(args), capture_output=True, text=True,
+                          timeout=timeout, env=env)
+
+def _pulse_move_quest_streams(target_sink):
+    """Переместить все клиентские потоки (pygame/ffplay) на target_sink."""
+    r = _pactl('list', 'short', 'sink-inputs')
+    for line in r.stdout.strip().split('\n'):
+        if not line or 'protocol-native' not in line:
+            continue
+        input_id = line.split('\t')[0]
+        mr = _pactl('move-sink-input', input_id, target_sink)
+        if mr.returncode != 0:
+            logger.warning(f"MONO: move-sink-input {input_id} -> {target_sink} failed: {mr.stderr.strip()}")
+
+def apply_mono_output(enable):
+    """Включить/выключить mono-выход. Мгновенно, без рестарта."""
+    try:
+        if enable:
+            r = _pactl('list', 'short', 'sinks')
+            if PULSE_MONO_SINK not in r.stdout:
+                lr = _pactl('load-module', 'module-remap-sink',
+                            f'sink_name={PULSE_MONO_SINK}',
+                            f'master={PULSE_USB_SINK}',
+                            'channels=1', 'channel_map=mono', 'remix=yes',
+                            'sink_properties=device.description=Mono_Out')
+                if lr.returncode != 0:
+                    logger.error(f"MONO: load-module failed: {lr.stderr.strip()}")
+                    return False
+            _pactl('set-default-sink', PULSE_MONO_SINK)
+            _pulse_move_quest_streams(PULSE_MONO_SINK)
+            logger.info("AUDIO: MONO-выход ВКЛючён (pulse remap-sink, без клиппинга)")
+        else:
+            _pactl('set-default-sink', PULSE_USB_SINK)
+            _pulse_move_quest_streams(PULSE_USB_SINK)
+            r = _pactl('list', 'short', 'modules')
+            for line in r.stdout.strip().split('\n'):
+                if 'module-remap-sink' in line and PULSE_MONO_SINK in line:
+                    _pactl('unload-module', line.split('\t')[0])
+            logger.info("AUDIO: MONO-выход ВЫКЛючен (stereo напрямую)")
+        return True
+    except Exception as e:
+        logger.error(f"MONO apply error: {e}")
+        return False
+
+def _apply_mono_on_boot():
+    """При старте сервера: поднять mono-sink если pref включён.
+    Задержка — дать pulse/USB-карте подняться после ребута Pi."""
+    eventlet.sleep(6)
+    if mono_sound_active:
+        apply_mono_output(True)
 # -------------------------------
 
 def set_bluetooth_state(state):
@@ -1105,13 +1167,16 @@ def system_status_loop():
 # -------------------------------
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-# 2026-07-08: channels=1 (mono) если включён переключатель «Моно звук» на пульте.
-# pygame сведёт стерео-файлы в моно при загрузке, оба выхода карты получат
-# одинаковый сигнал.
-pygame.mixer.pre_init(44100, -16, 1 if mono_sound_active else 2, 2048)
+# 2026-07-14 MONO v2: pygame ВСЕГДА stereo. Панорамирование звуков по
+# колонкам (L-only/R-only треки) — дизайн квеста. Старый mono (channels=1)
+# заставлял SDL суммировать L+R БЕЗ деления при загрузке → клиппинг на
+# громких местах дуал-моно треков = щелчки/хрип (кейс клиента июль 2026).
+# Теперь mono делается в PulseAudio (remap-sink, float 0.5/0.5 — без клипа),
+# см. apply_mono_output(). Переключение мгновенное, без рестарта.
+pygame.mixer.pre_init(44100, -16, 2, 2048)
 pygame.init()
 pygame.mixer.init()
-logger.info(f"AUDIO: pygame.mixer в режиме {'MONO' if mono_sound_active else 'STEREO'}")
+logger.info(f"AUDIO: pygame.mixer STEREO; mono-выход: {'ON (pulse remap)' if mono_sound_active else 'OFF'}")
 
 # === Layer 3: pygame audio safety monkey-patch (2026-05-27) ===
 # pygame.mixer.Sound() и music.load() поддерживают ТОЛЬКО 16-bit PCM WAV.
@@ -7391,13 +7456,10 @@ def handle_mono_sound_toggle(is_checked):
         return  # ничего не изменилось (например повторный emit при reconnect)
     _save_mono_preference(new_state)
     mono_sound_active = new_state
-    logger.info(f"AUDIO: Переключение звука в {'MONO' if new_state else 'STEREO'} — рестарт сервера…")
+    # 2026-07-14 MONO v2: мгновенно через pulse, БЕЗ рестарта сервера
+    ok = apply_mono_output(new_state)
+    logger.info(f"AUDIO: toggle mono -> {'MONO' if new_state else 'STEREO'} ({'ok' if ok else 'FAIL'})")
     socketio.emit('mono_state', new_state, to=None)
-    # Даём сокету время доставить событие пультам, затем рестарт
-    def _restart_for_mono():
-        eventlet.sleep(1.5)
-        os._exit(0)  # тот же паттерн что tech_restart_server (eventlet перехватывает SIGTERM)
-    socketio.start_background_task(_restart_for_mono)
 # ---------------------------------------------------------------
 
 # --- Обработчик переключателя музыки Ready с пульта ---
@@ -7594,6 +7656,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=timer)
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
         socketio.start_background_task(target=story_queue_worker)  # Очередь историй Mine Door/тролль (2026-07-10)
+        socketio.start_background_task(target=_apply_mono_on_boot)  # MONO v2: поднять pulse mono-sink по pref (2026-07-14)
         socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
         socketio.start_background_task(target=tailscale_watchdog)  # Авто-восстановление Tailscale (logged out / DNS fail)
