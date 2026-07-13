@@ -1974,7 +1974,23 @@ def tech_audio_preview_play(data):
         socketio.emit('tech_audio_preview_state', {'playing': False, 'error': 'not found'}, to=request.sid)
         return
     try:
-        snd = pygame.mixer.Sound(path)
+        # 2026-07-14: pygame.mixer.Sound НЕ читает MP3 (в игре фоны идут через
+        # mixer.music — он занят квестом). Для preview конвертим mp3 → tmp WAV
+        # через ffmpeg (~1-2 сек на fon-трек).
+        play_path = path
+        if name.lower().endswith('.mp3'):
+            tmp_wav = f"/tmp/preview_{os.getpid()}.wav"
+            import subprocess as _sp
+            r = _sp.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path,
+                         '-acodec', 'pcm_s16le', '-ar', '44100', tmp_wav],
+                        capture_output=True, timeout=30)
+            if r.returncode != 0 or not os.path.exists(tmp_wav):
+                socketio.emit('tech_audio_preview_state',
+                              {'playing': False, 'error': 'mp3 convert failed'}, to=request.sid)
+                logger.warning(f"AUDIO-MGR: ffmpeg mp3 convert failed: {r.stderr[:150]}")
+                return
+            play_path = tmp_wav
+        snd = pygame.mixer.Sound(play_path)
         try:
             with open('3.txt', 'r') as vf:
                 vol = float(vf.read(4))
@@ -1986,11 +2002,14 @@ def tech_audio_preview_play(data):
         logger.info(f"AUDIO-MGR: preview на динамиках замка: {name} (vol={vol})")
         socketio.emit('tech_audio_preview_state', {'playing': True, 'name': name}, to=None)
         # 2026-07-14: вотчер окончания — гасим плашку на /tech когда трек доиграл
-        def _preview_watcher(watch_name):
+        def _preview_watcher(watch_name, tmp_file):
             while pygame.mixer.Channel(6).get_busy():
                 eventlet.sleep(0.3)
             socketio.emit('tech_audio_preview_state', {'playing': False, 'ended': watch_name}, to=None)
-        socketio.start_background_task(_preview_watcher, name)
+            if tmp_file != path and os.path.exists(tmp_file):
+                try: os.remove(tmp_file)
+                except Exception: pass
+        socketio.start_background_task(_preview_watcher, name, play_path)
     except Exception as e:
         logger.error(f"AUDIO-MGR preview error: {e}")
         socketio.emit('tech_audio_preview_state', {'playing': False, 'error': str(e)}, to=request.sid)
