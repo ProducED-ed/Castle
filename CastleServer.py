@@ -354,6 +354,9 @@ ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
 # настраивается через /tech. IP не хардкодим — у каждого клиента свой бридж.
 HUE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hue_config.json")
 hue = HueClient(HUE_CONFIG_PATH, default_ip="192.168.1.141", default_group="2")
+# Единый логгер для всех HUE-сообщений (чтобы в логах было одинаково 'hue_lights - INFO',
+# а не вперемешку 'root' из хелперов CastleServer и 'hue_lights' из модуля).
+hue_logger = logging.getLogger("hue_lights")
 
 def hue_light_async(on, bri_pct=100):
     """Fire-and-forget: свет вкл на яркости bri_pct% (on=True) или выкл (on=False).
@@ -377,7 +380,7 @@ def hue_single_lamp_async(bri_pct=100, index=0):
             else:
                 hue.set_single_light(lid, False)  # остальные — выкл
         chosen = ids[index] if index < len(ids) else '?'
-        logger.info(f"HUE: только лампа id={chosen} → {bri_pct}%, остальные off")
+        hue_logger.info(f"HUE: только лампа id={chosen} → {bri_pct}%, остальные off")
     eventlet.spawn_n(_go)
 
 # Светомузыка на время звучания fon7.mp3 (игра с флагами пройдена).
@@ -398,7 +401,7 @@ def hue_flags_lightshow_async():
         ids = hue.get_group_light_ids()
         if not ids:
             return
-        logger.info(f"HUE: старт светомузыки на {len(ids)} лампах (fon7)")
+        hue_logger.info(f"HUE: старт светомузыки на {len(ids)} лампах (fon7)")
         n = len(HUE_LIGHTSHOW_PALETTE)
         step = 0
         # transition ~ бит, чтобы переход был плавным но попадал в темп
@@ -412,7 +415,7 @@ def hue_flags_lightshow_async():
         # финал: вернуть лампы в нейтральный белый 40%
         for lid in ids:
             hue.set_light_color(lid, 0, 0, 40, transition_ms=600)
-        logger.info("HUE: светомузыка завершена (fon7 закончился)")
+        hue_logger.info("HUE: светомузыка завершена (fon7 закончился)")
     eventlet.spawn_n(_show)
 
 # Маппинг device_id (используется на /tech диагностической вкладке) -> ESP32 URL
@@ -2805,7 +2808,7 @@ def hue_set_ip(data):
     """Смена IP бриджа. Сбрасывает старый app_key (привязан к бриджу)."""
     ip = (data or {}).get('ip', '')
     hue.set_bridge_ip(ip)
-    logger.info(f"[HUE] bridge IP set to {ip}")
+    hue_logger.info(f"[HUE] bridge IP set to {ip}")
     socketio.emit('hue_status', hue.status())
 
 @socketio.on('hue_set_enable')
@@ -2813,7 +2816,7 @@ def hue_set_enable(data):
     """Общий тумблер управления светом."""
     on = bool((data or {}).get('on', False))
     hue.set_enabled(on)
-    logger.info(f"[HUE] feature enabled={on}")
+    hue_logger.info(f"[HUE] feature enabled={on}")
     socketio.emit('hue_status', hue.status())
 
 @socketio.on('hue_set_group')
@@ -2821,7 +2824,7 @@ def hue_set_group(data):
     """Выбрать группу Hue для управления: {'group_id': '2'}."""
     gid = (data or {}).get('group_id')
     hue.set_group(gid)
-    logger.info(f"[HUE] group set to {gid}")
+    hue_logger.info(f"[HUE] group set to {gid}")
     socketio.emit('hue_status', hue.status())
 
 @socketio.on('hue_pair_start')
@@ -2836,7 +2839,7 @@ def hue_pair_start():
             ok, msg = hue.try_pair_once()
             socketio.emit('hue_pair_progress',
                           {'attempt': i + 1, 'max': max_attempts, 'message': msg})
-            logger.info(f"[HUE] pair {i+1}/{max_attempts}: ok={ok} msg={msg}")
+            hue_logger.info(f"[HUE] pair {i+1}/{max_attempts}: ok={ok} msg={msg}")
             if ok:
                 socketio.emit('hue_pair_done', {'success': True, 'message': 'paired'})
                 socketio.emit('hue_status', hue.status())
@@ -7671,9 +7674,9 @@ if __name__ == '__main__':
                 eventlet.sleep(30)
                 groups = hue.get_groups()
                 if groups:
-                    logger.info(f"HUE: кэш имён групп прогрет ({len(groups)} групп)")
+                    hue_logger.info(f"HUE: кэш имён групп прогрет ({len(groups)} групп)")
                     return
-            logger.warning("HUE: не удалось прогреть кэш групп (сеть клиента недоступна) — "
+            hue_logger.warning("HUE: не удалось прогреть кэш групп (сеть клиента недоступна) — "
                            "имена в логах будут по id, подтянутся при открытии /tech")
         socketio.start_background_task(target=_hue_warm_group_cache)
         logger.info("Starting Flask-SocketIO server on http://0.0.0.0:3000")
