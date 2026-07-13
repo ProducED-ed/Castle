@@ -363,15 +363,21 @@ def hue_light_async(on, bri_pct=100):
     eventlet.spawn_n(lambda: hue.set_light(on, bri_pct))
 
 def hue_single_lamp_async(bri_pct=100, index=0):
-    """Fire-and-forget: включить ТОЛЬКО одну лампу группы (по индексу) на bri_pct%.
-    Остальные лампы не трогаем. Для сцены «горит только 1 лампа»."""
+    """Fire-and-forget: включить ТОЛЬКО одну лампу группы (по индексу) на bri_pct%,
+    ОСТАЛЬНЫЕ лампы группы выключить. Для сцены «горит только 1 лампа»."""
     if not hue.is_enabled() or not hue.is_paired():
         return
     def _go():
         ids = hue.get_group_light_ids()
-        if ids and index < len(ids):
-            hue.set_single_light(ids[index], True, bri_pct)
-            logger.info(f"HUE: одна лампа id={ids[index]} → {bri_pct}%")
+        if not ids:
+            return
+        for i, lid in enumerate(ids):
+            if i == index:
+                hue.set_single_light(lid, True, bri_pct)
+            else:
+                hue.set_single_light(lid, False)  # остальные — выкл
+        chosen = ids[index] if index < len(ids) else '?'
+        logger.info(f"HUE: только лампа id={chosen} → {bri_pct}%, остальные off")
     eventlet.spawn_n(_go)
 
 # Светомузыка на время звучания fon7.mp3 (игра с флагами пройдена).
@@ -4420,7 +4426,7 @@ def tmr(res):
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
-               hue_light_async(True, 10)  # HUE: свет 10% в режиме ready
+               hue_light_async(False)  # HUE: гасим все лампы в режиме ready
 
                # 3. Ждем
                eventlet.sleep(5.5)
@@ -5524,7 +5530,7 @@ def serial():
                          send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
                          # ОПТИМИЗИРОВАНО
                          play_localized_audio("story_2_a")
-                         hue_single_lamp_async(100, 0)  # HUE: 1 лампа на 100% с началом story_2_a
+                         hue_single_lamp_async(10, 0)  # HUE: только 1 лампа на 10% с началом story_2_a (остальные off)
 
                    #---режим для событий в ресте показывает что нужно вернуть на свои места
                    
@@ -6424,7 +6430,7 @@ def serial():
                               #----играем эффект
                               socketio.emit('level', 'active_open_bank_door',to=None)
                               socklist.append('active_open_bank_door')
-                              hue_light_async(True, 40)  # HUE: все лампы 40% (активация уровня банкира/Mirror)
+                              hue_light_async(True, 10)  # HUE: все лампы 10% (активация уровня банкира/Mirror)
                               send_esp32_command(ESP32_API_TRAIN_URL, "stage_4")
                          if flag=="miror":
                               socketio.emit('level', 'open_bank_door',to=None)
