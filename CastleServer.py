@@ -1974,22 +1974,35 @@ def tech_audio_preview_play(data):
         socketio.emit('tech_audio_preview_state', {'playing': False, 'error': 'not found'}, to=request.sid)
         return
     try:
-        # 2026-07-14: pygame.mixer.Sound НЕ читает MP3 (в игре фоны идут через
-        # mixer.music — он занят квестом). Для preview конвертим mp3 → tmp WAV
-        # через ffmpeg (~1-2 сек на fon-трек).
-        play_path = path
+        # 2026-07-14 v2: MP3 играем НАПРЯМУЮ через ffplay (стриминг в тот же
+        # pulse-тракт замка) — без конверсий и без загрузки в ОЗУ. Файл на
+        # диске не изменяется. WAV — по-прежнему через pygame Channel(6).
+        global _preview_ffplay_proc
         if name.lower().endswith('.mp3'):
-            tmp_wav = f"/tmp/preview_{os.getpid()}.wav"
             import subprocess as _sp
-            r = _sp.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', path,
-                         '-acodec', 'pcm_s16le', '-ar', '44100', tmp_wav],
-                        capture_output=True, timeout=30)
-            if r.returncode != 0 or not os.path.exists(tmp_wav):
-                socketio.emit('tech_audio_preview_state',
-                              {'playing': False, 'error': 'mp3 convert failed'}, to=request.sid)
-                logger.warning(f"AUDIO-MGR: ffmpeg mp3 convert failed: {r.stderr[:150]}")
-                return
-            play_path = tmp_wav
+            try:
+                with open('3.txt', 'r') as vf:
+                    vol = float(vf.read(4))
+            except Exception:
+                vol = 0.7
+            try:
+                if _preview_ffplay_proc and _preview_ffplay_proc.poll() is None:
+                    _preview_ffplay_proc.kill()
+            except Exception:
+                pass
+            pygame.mixer.Channel(6).stop()
+            _preview_ffplay_proc = _sp.Popen(
+                ['ffplay', '-nodisp', '-autoexit', '-loglevel', 'quiet',
+                 '-volume', str(max(0, min(100, int(vol * 100)))), path])
+            logger.info(f"AUDIO-MGR: preview mp3 через ffplay: {name} (vol={vol})")
+            socketio.emit('tech_audio_preview_state', {'playing': True, 'name': name}, to=None)
+            def _ffplay_watcher(watch_name, proc):
+                while proc.poll() is None:
+                    eventlet.sleep(0.3)
+                socketio.emit('tech_audio_preview_state', {'playing': False, 'ended': watch_name}, to=None)
+            socketio.start_background_task(_ffplay_watcher, name, _preview_ffplay_proc)
+            return
+        play_path = path
         snd = pygame.mixer.Sound(play_path)
         try:
             with open('3.txt', 'r') as vf:
@@ -2002,24 +2015,29 @@ def tech_audio_preview_play(data):
         logger.info(f"AUDIO-MGR: preview на динамиках замка: {name} (vol={vol})")
         socketio.emit('tech_audio_preview_state', {'playing': True, 'name': name}, to=None)
         # 2026-07-14: вотчер окончания — гасим плашку на /tech когда трек доиграл
-        def _preview_watcher(watch_name, tmp_file):
+        def _preview_watcher(watch_name):
             while pygame.mixer.Channel(6).get_busy():
                 eventlet.sleep(0.3)
             socketio.emit('tech_audio_preview_state', {'playing': False, 'ended': watch_name}, to=None)
-            if tmp_file != path and os.path.exists(tmp_file):
-                try: os.remove(tmp_file)
-                except Exception: pass
-        socketio.start_background_task(_preview_watcher, name, play_path)
+        socketio.start_background_task(_preview_watcher, name)
     except Exception as e:
         logger.error(f"AUDIO-MGR preview error: {e}")
         socketio.emit('tech_audio_preview_state', {'playing': False, 'error': str(e)}, to=request.sid)
 
+_preview_ffplay_proc = None
+
 @socketio.on('tech_audio_preview_stop')
 def tech_audio_preview_stop():
+    global _preview_ffplay_proc
     try:
         pygame.mixer.Channel(6).stop()
     except Exception as e:
         logger.warning(f"AUDIO-MGR preview stop error: {e}")
+    try:
+        if _preview_ffplay_proc and _preview_ffplay_proc.poll() is None:
+            _preview_ffplay_proc.kill()
+    except Exception:
+        pass
     socketio.emit('tech_audio_preview_state', {'playing': False}, to=None)
 # --- /Прослушивание через замок ---
 
