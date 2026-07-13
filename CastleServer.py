@@ -4339,7 +4339,7 @@ def tmr(res):
                   ch.unpause() 
               #----отправим на клиента
               socketio.emit('level', 'start_game',to=None)
-              hue_light_async(True, 10)  # HUE: свет 10% на старте квеста
+              hue_light_async(False)  # HUE: гасим все лампы на старте квеста
               logger.debug("State changed: Game unpaused.")
         #----если была в рестарте       
         if go == 3 and starts==3:
@@ -4354,7 +4354,7 @@ def tmr(res):
              serial_write_queue.put('start')
              serial_write_queue.put('start')
              serial_write_queue.put('start')
-             hue_light_async(True, 10)  # HUE: свет 10% на старте квеста из ready
+             hue_light_async(False)  # HUE: гасим все лампы на старте квеста из ready
              go=1
              starts = 1
              logger.debug("State changed: Game started from 'ready' state.")
@@ -4491,7 +4491,7 @@ def tmr(res):
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
                serial_write_queue.put('ready')
-               hue_light_async(False)  # HUE: гасим все лампы в режиме ready
+               # HUE: гашение НЕ здесь — только после УСПЕШНОЙ проверки устройств (см. 'Ready: OK')
 
                # 3. Ждем
                eventlet.sleep(5.5)
@@ -4538,6 +4538,7 @@ def tmr(res):
                if len(devices) == 0:
                     # --- ВСЕ В ПОРЯДКЕ ---
                     logger.info("Ready: OK")
+                    hue_light_async(False)  # HUE: гасим все лампы — проверка ready ПРОЙДЕНА
                     socklist.clear()
                     socketio.emit('level', 'modal_end', to=None)
                     socketio.emit('level', 'ready',to=None)
