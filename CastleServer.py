@@ -153,7 +153,7 @@ EVENT_DESCRIPTIONS = {
 
 #импорт библиотек  flask фреймворк для работы с сервером так же дополнение socketIO 
 from datetime import timedelta
-from flask import Flask, send_file, request, jsonify, session, redirect, url_for, render_template_string
+from flask import Flask, send_file, request, jsonify, session, redirect, url_for, render_template_string, send_from_directory
 from flask import render_template, request
 from flask_socketio import SocketIO 
 # билиотека для работы с потоками прочти документацию по ней возможно пригодится
@@ -1865,6 +1865,102 @@ def handle_test_audio_set(data):
             pass
 
 # --- ПРОВЕРКА АУДИОФАЙЛОВ (с прогрессом через WebSocket) ---
+# === АУДИО-МЕНЕДЖЕР (2026-07-13, портировано из WC Tech-пульта) ===
+# Список/прослушивание/замена/добавление аудиофайлов через /tech.
+# Замена делает бэкап в audio_backups/, WAV 24/32-bit автоконвертируется
+# в 16-bit (pygame читает только 16-bit PCM), sox -G защищает от клиппинга
+# горячих float-экспортов из Audacity.
+AUDIO_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_MAX_SIZE = 60 * 1024 * 1024  # 60MB на файл
+AUDIO_BACKUP_DIR = os.path.join(AUDIO_DIR, 'audio_backups')
+
+def _is_audio_filename(name):
+    if not name or '/' in name or '\\' in name or name.startswith('.'):
+        return False
+    return name.lower().endswith(('.mp3', '.wav', '.ogg'))
+
+@app.route('/api/audio/list')
+def audio_list():
+    try:
+        items = []
+        for f in os.listdir(AUDIO_DIR):
+            if not _is_audio_filename(f):
+                continue
+            full = os.path.join(AUDIO_DIR, f)
+            if os.path.isfile(full):
+                items.append({'name': f, 'size': os.path.getsize(full),
+                              'mtime': int(os.path.getmtime(full))})
+        items.sort(key=lambda x: x['name'].lower())
+        return jsonify(items)
+    except Exception as e:
+        logger.error(f"audio_list error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/audio/file/<path:filename>')
+def audio_get(filename):
+    if not _is_audio_filename(filename):
+        return ('forbidden', 403)
+    return send_from_directory(AUDIO_DIR, filename)
+
+@app.route('/api/audio/upload', methods=['POST'])
+def audio_upload():
+    f = request.files.get('file')
+    target = (request.form.get('target') or (f.filename if f else '') or '').strip()
+    if not f:
+        return jsonify({'ok': False, 'error': 'no file'}), 400
+    if not _is_audio_filename(target):
+        return jsonify({'ok': False, 'error': 'bad filename or extension'}), 400
+    f.stream.seek(0, os.SEEK_END); size = f.stream.tell(); f.stream.seek(0)
+    if size > AUDIO_MAX_SIZE:
+        return jsonify({'ok': False, 'error': f'too large ({size} > {AUDIO_MAX_SIZE})'}), 400
+    target_path = os.path.join(AUDIO_DIR, target)
+    if os.path.exists(target_path):
+        try:
+            os.makedirs(AUDIO_BACKUP_DIR, exist_ok=True)
+            ts = datetime.now().strftime('%Y%m%d_%H%M%S')  # from datetime import datetime (line ~1685)
+            backup_path = os.path.join(AUDIO_BACKUP_DIR, f"{ts}_{target}")
+            with open(target_path, 'rb') as src, open(backup_path, 'wb') as dst:
+                dst.write(src.read())
+        except Exception as e:
+            logger.warning(f"audio backup failed for {target}: {e}")
+    try:
+        f.save(target_path)
+        logger.info(f"AUDIO-MGR: файл записан: {target} ({size} bytes)")
+        converted = False
+        if target.lower().endswith('.wav'):
+            try:
+                import wave as _wave
+                with _wave.open(target_path, 'rb') as w:
+                    sampwidth = w.getsampwidth()  # 2=16bit, 3=24bit, 4=32bit
+                if sampwidth != 2:
+                    import shutil as _sh, subprocess as _sp
+                    if _sh.which('sox'):
+                        tmp = target_path + '.16bit.tmp.wav'
+                        # -G (guard) — авто-подгон уровня против клиппинга
+                        r = _sp.run(['sox', '-G', target_path, '-b', '16', tmp],
+                                    capture_output=True, timeout=60)
+                        if r.returncode == 0 and os.path.exists(tmp):
+                            os.replace(tmp, target_path)
+                            new_size = os.path.getsize(target_path)
+                            logger.info(f"AUDIO-MGR: автоконвертация в 16-bit: {target} "
+                                        f"(был {sampwidth*8}-bit, {size}B -> {new_size}B)")
+                            size = new_size
+                            converted = True
+                        else:
+                            logger.warning(f"AUDIO-MGR: sox conversion failed for {target}: "
+                                           f"rc={r.returncode} stderr={r.stderr[:200]}")
+                    else:
+                        logger.warning(f"AUDIO-MGR: {target} is {sampwidth*8}-bit, sox отсутствует")
+            except Exception as e:
+                logger.warning(f"AUDIO-MGR: WAV bit-depth check failed for {target}: {e}")
+        return jsonify({'ok': True, 'name': target, 'size': size,
+                        'mtime': int(os.path.getmtime(target_path)),
+                        'converted_to_16bit': converted})
+    except Exception as e:
+        logger.error(f"audio_upload save error: {e}")
+        return jsonify({'ok': False, 'error': str(e)}), 500
+# === /АУДИО-МЕНЕДЖЕР ===
+
 @socketio.on('start_audio_check')
 def handle_audio_check():
     def run_check():
