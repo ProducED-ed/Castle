@@ -1985,6 +1985,12 @@ def tech_audio_preview_play(data):
         ch.set_volume(vol, vol)
         logger.info(f"AUDIO-MGR: preview на динамиках замка: {name} (vol={vol})")
         socketio.emit('tech_audio_preview_state', {'playing': True, 'name': name}, to=None)
+        # 2026-07-14: вотчер окончания — гасим плашку на /tech когда трек доиграл
+        def _preview_watcher(watch_name):
+            while pygame.mixer.Channel(6).get_busy():
+                eventlet.sleep(0.3)
+            socketio.emit('tech_audio_preview_state', {'playing': False, 'ended': watch_name}, to=None)
+        socketio.start_background_task(_preview_watcher, name)
     except Exception as e:
         logger.error(f"AUDIO-MGR preview error: {e}")
         socketio.emit('tech_audio_preview_state', {'playing': False, 'error': str(e)}, to=request.sid)
