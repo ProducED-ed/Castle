@@ -316,6 +316,39 @@ $('.ui.dropdown')
              confirmButtonText: 'OK'
         });
     });
+
+    // Главная плата не отозвалась при старте сервера (degraded-режим).
+    // Раньше в этой ситуации сервер просто падал в цикле и пульт не
+    // открывался вовсе — клиент видел пустую страницу и не понимал причины,
+    // а reboot не помогает (при нём питание с USB не снимается).
+    socket.on('show_mega_error', function() {
+        console.log("Получена команда 'show_mega_error'");
+
+        var megaErrorHtml = `
+            <p style="font-size: 1.1em; margin-bottom: 20px;">
+                The <b>main board</b> is not responding. The control panel is
+                available, but <b>the game will not work</b>.
+            </p>
+            <p style="font-size: 1.1em; margin-bottom: 10px;">
+                Please <b>fully power off</b> the quest for 20 seconds, then turn it on again.
+            </p>
+            <p style="font-size: 1em; color: #d9534f; margin-bottom: 20px;">
+                The <b>Restart</b> button will not help in this case &mdash;
+                only a complete power cycle.
+            </p>
+            <p style="font-size: 0.9em; color: grey;">
+                <i>If the problem persists, check the USB cable between the
+                main board and the Raspberry Pi on both ends.</i>
+            </p>
+        `;
+
+        swal.fire({
+             title: "Main board not connected",
+             icon: "error",
+             html: megaErrorHtml,
+             confirmButtonText: 'OK'
+        });
+    });
     //тут начинается логика которую можно менять первые 3 метода сокетов принимают данные от сервера по уровню громкости каналов
     //настройка для канала с голосом
     socket.on('volume2', function (v) {

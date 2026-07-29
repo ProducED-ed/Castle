@@ -779,11 +779,28 @@ def gather_system_status():
     networks['internet'] = _check_tcp('1.1.1.1', 53, timeout=1.5)
 
     # USB устройства (по VID:PID в /sys/bus/usb/devices/)
+    # 2026-07-29: у разных комплектов стоят РАЗНЫЕ модели аудио-карт, WiFi-донглов
+    # и хабов. Раньше здесь была одна пара VID:PID (под железо CLC3) — на CLC2
+    # индикаторы «USB Audio» и «USB WiFi-dongle» горели красным вечно, хотя
+    # устройства физически на месте. Теперь на каждую категорию список кандидатов:
+    # достаточно совпадения с ЛЮБЫМ из них. При появлении нового комплекта с другой
+    # моделью — просто добавить пару сюда (lsusb на Pi покажет VID:PID).
     usb_targets = {
-        'audio':       ('0c76', '1676'),   # JMTek USB PnP Audio Device
-        'wifi_dongle': ('2357', '0111'),   # TP-Link USB-WiFi
-        'hub':         ('214b', '7250'),   # Huasheng USB-hub (башни)
-        'mega_main':   ('1a86', '7523'),   # CH340 (Mega главная)
+        'audio': [
+            ('0c76', '1676'),   # JMTek USB PnP Audio Device (CLC3)
+            ('31b2', '5075'),   # KTMicro KT USB Audio (CLC2 Канада)
+        ],
+        'wifi_dongle': [
+            ('2357', '0111'),   # TP-Link USB-WiFi (CLC3)
+            ('148f', '7601'),   # MediaTek MT7601U (CLC2 Канада)
+            ('0bda', '8179'),   # Realtek RTL8188EUS (CLC1 Оман)
+        ],
+        'hub': [
+            ('214b', '7250'),   # Huasheng USB-hub с башнями (CLC3)
+        ],
+        'mega_main': [
+            ('1a86', '7523'),   # CH340 (Mega главная) — одинаково на всех комплектах
+        ],
     }
     usb = {k: False for k in usb_targets}
     try:
@@ -794,8 +811,8 @@ def gather_system_status():
             pid = _read_text(f'/sys/bus/usb/devices/{dev}/idProduct')
             if not vid or not pid:
                 continue
-            for name, (tvid, tpid) in usb_targets.items():
-                if vid == tvid and pid == tpid:
+            for name, candidates in usb_targets.items():
+                if (vid, pid) in candidates:
                     usb[name] = True
                     break
     except Exception:
@@ -1571,17 +1588,178 @@ def _arduino_no_reset_on_close(ser_obj):
     except Exception as e:
         logger.warning(f"Could not disable HUPCL on Mega serial: {e}")
 
-# Убираем автопоиск и жёстко прописываем порт Arduino
-try:
-    # Указываем порт, найденный через утилиту serial.tools.list_ports
-    ARDUINO_PORT = '/dev/ttyUSB_MAIN'
-    ser = serial.Serial(ARDUINO_PORT, 115200, timeout=1, dsrdtr=False, rtscts=False)
-    _arduino_no_reset_on_close(ser)
-    logger.info(f"Successfully connected to Arduino on port {ARDUINO_PORT}")
-except serial.SerialException as e:
-    logger.critical(f"Could not open serial port {ARDUINO_PORT}. Error: {e}")
-    logger.critical("HINT: Check connection and port name. Make sure you have permissions (sudo usermod -a -G dialout pi).")
-    exit() # Завершаем работу, если не удалось подключиться
+# === ПОДКЛЮЧЕНИЕ К ГЛАВНОЙ MEGA: RETRY + АВТОВОССТАНОВЛЕНИЕ ===
+#
+# Инцидент CLC2 (ночь 28→29 июля 2026): CH340 главной Mega завис и перестал
+# отвечать на USB-энумерацию — /dev/ttyUSB_MAIN не создавался. Старый код делал
+# ОДНУ попытку открыть порт и вызывал exit(). systemd (Restart=always) поднимал
+# сервер снова каждые 5 сек — 209 перезапусков за одну загрузку. Снаружи это
+# выглядело как «сеть Castle есть, а пульт не грузится»: hostapd работает
+# независимо, а веб-сервер просто не успевал стартовать.
+#
+# Клиент в такой ситуации жмёт reboot по многу раз — и это НЕ помогает, потому
+# что при reboot питание с USB-портов Pi не снимается, и зависший CH340 остаётся
+# зависшим. Помогает только полное обесточивание. См. [[reboot-does-not-reset-usb]].
+#
+# Что делает новая логика (5 попыток, ~25 сек максимум):
+#   попытка 1  — обычное открытие порта (99% случаев: успех, никто ничего не заметил)
+#   попытка 2  — повтор через 3 сек (покрывает «udev не успел создать symlink»)
+#   попытка 3  — ПОСЛЕ USB power-cycle authorized=0→1: перезагрузка драйвера
+#                устройства, программный эквивалент передёргиванию кабеля.
+#                Именно это оживляет зависший CH340 — то, чего не делает reboot.
+#   попытка 4  — повтор
+#   попытка 5  — ПОСЛЕ второго power-cycle, последний шанс
+#
+# Если все 5 провалились — сервер НЕ падает, а стартует в degraded-режиме:
+# веб-пульт поднимается и показывает клиенту понятную причину вместо немого
+# «страница недоступна». Обращения к ser уходят в заглушку и ничего не роняют.
+
+ARDUINO_PORT = '/dev/ttyUSB_MAIN'
+_MEGA_USB_AUTHORIZED = '/sys/bus/usb/devices/1-1.1/authorized'
+
+# Флаг для баннера в UI. Ставится только если исчерпаны все попытки.
+mega_connect_failed = False
+
+
+class _DeadSerial:
+    """Заглушка вместо serial.Serial когда Mega не отвечает.
+
+    Нужна чтобы сервер мог подняться в degraded-режиме: игровая логика
+    обращается к ser примерно в 30 местах, и без заглушки первое же
+    обращение уронило бы процесс с AttributeError на None. Здесь все
+    операции — безопасные no-op, чтение отдаёт пустоту.
+
+    Чтобы не засорять журнал (serial() опрашивает порт в цикле), запись
+    логируется не чаще раза в 60 секунд."""
+
+    def __init__(self):
+        self._last_warn = 0.0
+
+    def _warn(self, what):
+        now = time.time()
+        if now - self._last_warn > 60:
+            self._last_warn = now
+            logger.error(f"Mega недоступна — обращение '{what}' проигнорировано (degraded-режим)")
+
+    def write(self, *a, **kw):
+        self._warn('write')
+        return 0
+
+    def read(self, *a, **kw):
+        return b''
+
+    def readline(self, *a, **kw):
+        return b''
+
+    def flush(self, *a, **kw):
+        pass
+
+    def close(self, *a, **kw):
+        pass
+
+    def open(self, *a, **kw):
+        self._warn('open')
+
+    def reset_input_buffer(self, *a, **kw):
+        pass
+
+    def reset_output_buffer(self, *a, **kw):
+        pass
+
+    @property
+    def in_waiting(self):
+        return 0
+
+    @property
+    def out_waiting(self):
+        return 0
+
+    @property
+    def is_open(self):
+        return False
+
+    # dtr читается и пишется в watchdog'ах — принимаем молча
+    @property
+    def dtr(self):
+        return True
+
+    @dtr.setter
+    def dtr(self, v):
+        pass
+
+
+def _mega_usb_power_cycle():
+    """USB power-cycle порта Mega: authorized=0 → пауза → authorized=1.
+
+    Отключает и заново подключает kernel-драйвер устройства. Для зависшего
+    CH340 это единственный программный способ вернуть его к жизни — reboot
+    не помогает, т.к. не снимает питание с USB. После вызова нужно дать
+    ~5 сек на re-enumeration, чтобы udev успел пересоздать symlink."""
+    try:
+        subprocess.run(['sudo', 'sh', '-c', f'echo 0 > {_MEGA_USB_AUTHORIZED}'],
+                       check=False, timeout=5)
+        time.sleep(2)
+        subprocess.run(['sudo', 'sh', '-c', f'echo 1 > {_MEGA_USB_AUTHORIZED}'],
+                       check=False, timeout=5)
+        return True
+    except Exception as e:
+        logger.error(f"MEGA CONNECT: USB power-cycle не удался: {e}")
+        return False
+
+
+def _connect_mega_with_retry(max_attempts=5):
+    """Пытается открыть порт Mega, между попытками восстанавливая USB.
+
+    Возвращает serial.Serial при успехе или _DeadSerial если все попытки
+    исчерпаны (тогда сервер идёт в degraded-режим, а не падает)."""
+    global mega_connect_failed
+
+    for attempt in range(1, max_attempts + 1):
+        # Перед power-cycle'ом (шаги 3 и 5) сначала чиним USB, потом пробуем
+        if attempt in (3, 5):
+            logger.warning(f"MEGA CONNECT: попытка {attempt}/{max_attempts} — "
+                           f"USB power-cycle порта Mega (authorized=0/1)")
+            _mega_usb_power_cycle()
+            time.sleep(5)  # даём udev пересоздать /dev/ttyUSB_MAIN
+
+        if not os.path.exists(ARDUINO_PORT):
+            logger.warning(f"MEGA CONNECT: попытка {attempt}/{max_attempts} — "
+                           f"{ARDUINO_PORT} отсутствует (Mega не видна на USB)")
+        else:
+            try:
+                s = serial.Serial(ARDUINO_PORT, 115200, timeout=1,
+                                  dsrdtr=False, rtscts=False)
+                _arduino_no_reset_on_close(s)
+                if attempt == 1:
+                    logger.info(f"Successfully connected to Arduino on port {ARDUINO_PORT}")
+                else:
+                    logger.info(f"MEGA CONNECT: соединение установлено с попытки "
+                                f"{attempt}/{max_attempts} ✅")
+                return s
+            except serial.SerialException as e:
+                logger.warning(f"MEGA CONNECT: попытка {attempt}/{max_attempts} — "
+                               f"порт есть, но не открывается: {e}")
+
+        if attempt < max_attempts:
+            time.sleep(3)
+
+    # Все попытки исчерпаны — degraded-режим вместо падения
+    mega_connect_failed = True
+    logger.critical("=" * 70)
+    logger.critical("MEGA CONNECT: главная плата НЕ ОТВЕЧАЕТ после "
+                    f"{max_attempts} попыток (включая 2 USB power-cycle).")
+    logger.critical("Сервер поднимается в DEGRADED-режиме: пульт откроется, "
+                    "но игра работать не будет.")
+    logger.critical("ЧТО ДЕЛАТЬ: полностью обесточить квест на 20 секунд и "
+                    "включить снова. Кнопка reboot НЕ помогает — при ней "
+                    "питание с USB не снимается.")
+    logger.critical("Если не помогло — проверить USB-кабель между главной "
+                    "платой и Raspberry с обеих сторон.")
+    logger.critical("=" * 70)
+    return _DeadSerial()
+
+
+ser = _connect_mega_with_retry()
 
 # === MEGA BOOT WATCHDOG ===
 # При cold power-on квеста ~50% случаев Mega остаётся в halfway state и не
@@ -2907,6 +3085,14 @@ def handle_connect():
         # Отправляем команду на показ модального окна ТОЛЬКО этому клиенту
         socketio.emit('show_shutdown_warning', to=request.sid)
         show_improper_shutdown_warning = False
+
+    # Degraded-режим: главная плата не отозвалась при старте (см. блок
+    # _connect_mega_with_retry). Флаг НЕ сбрасываем — предупреждение должно
+    # висеть для каждого, кто откроет пульт, пока квест не перезапустят
+    # по питанию. Иначе клиент видит «пульт вроде открылся» и не понимает,
+    # почему ничего не работает.
+    if mega_connect_failed:
+        socketio.emit('show_mega_error', to=request.sid)
         # Мы НЕ сбрасываем флаг. Он останется активным,
         # пока сервер не будет перезапущен ПОСЛЕ корректного выключения.
     current_client_sid = request.sid
