@@ -102,6 +102,19 @@ bool story28_played = false;
 int hint_counter = 0;
 int gameWonSequenceStep = 0;
 unsigned long lastDebounceTime_1 = 0;
+
+// ЗАЩИТА ОТ ЛОЖНОГО ЗАСЧЁТА ШАРИКА (2026-07-29, запрос клиента CLC2).
+// Проблема: после срабатывания геркона REED_SWITCH_1_PIN шарик лабиринта
+// иногда в полёте задевал BALL_SENSOR_PIN, и это засчитывалось как
+// прохождение, хотя игрок ничего не прошёл.
+// Решение: датчик шарика игнорируется BALL_SENSOR_LOCKOUT_MS после
+// КАЖДОГО срабатывания геркона 1 (не только первого — блок story_28
+// ниже отрабатывает единожды из-за флага story28_played, поэтому
+// взвод таймера вынесен в отдельную проверку).
+const unsigned long BALL_SENSOR_LOCKOUT_MS = 5000;
+unsigned long reed1TriggeredAt = 0;          // millis() последнего срабатывания геркона 1
+unsigned long lastReed1LockoutDebounce = 0;  // отдельный дебаунс для взвода таймера
+unsigned long lastBallIgnoreLog = 0;         // троттлинг лога игнорирования
 unsigned long lastDebounceTime_2 = 0;
 unsigned long debounceDelay = 200;
 const char* ssid = "Castle";
@@ -299,6 +312,7 @@ void setup() {
         currentState = AWAIT_GAME;
 		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
         stageFinished = false;     // новая игра — снимаем защиту от гонки
+        reed1TriggeredAt = 0;      // новая игра — блокировка датчика шарика снята
       }
       if(body == "\"restart\""){
         ledOn();
@@ -308,6 +322,7 @@ void setup() {
         currentState = IDLE;
 		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
         stageFinished = false;     // новая игра — снимаем защиту от гонки
+        reed1TriggeredAt = 0;      // новая игра — блокировка датчика шарика снята
       }
       if(body == "\"ready\""){
         ledOff();
@@ -315,6 +330,7 @@ void setup() {
         currentState = IDLE;
 		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
         stageFinished = false;     // новая игра — снимаем защиту от гонки
+        reed1TriggeredAt = 0;      // новая игра — блокировка датчика шарика снята
       }
       if(body == "\"game\""){
         // Этап уже пройден — опоздавший "game" из-за асинхронной доставки.
@@ -613,10 +629,36 @@ void loop() {
         lastDebounceTime_2 = millis();
       }
 
+      // Взводим блокировку датчика шарика при КАЖДОМ срабатывании геркона 1.
+      // Отдельная проверка (а не блок story_28 выше), потому что тот
+      // ограничен флагом story28_played и срабатывает лишь один раз за игру.
+      if (digitalRead(REED_SWITCH_1_PIN) == HIGH &&
+          (millis() - lastReed1LockoutDebounce) > debounceDelay) {
+        reed1TriggeredAt = millis();
+        lastReed1LockoutDebounce = millis();
+        Serial.println("Геркон 1: датчик шарика заблокирован на 5 сек.");
+        sendLogToServer("{\"log\":\"Safe: reed1 triggered - ball sensor locked for 5s\"}");
+      }
+
       // --- ИЗМЕНЕНИЕ ---
       if (digitalRead(BALL_SENSOR_PIN) == HIGH) {
-        Serial.println("Датчик пересечения сработал! Переход в GAME_WON.");
-        startGameWonSequence();
+        // Шарик мог просто задеть датчик в полёте сразу после геркона —
+        // в течение окна блокировки такое срабатывание не засчитываем.
+        bool lockoutActive = (reed1TriggeredAt != 0) &&
+                             (millis() - reed1TriggeredAt < BALL_SENSOR_LOCKOUT_MS);
+        if (lockoutActive) {
+          if (millis() - lastBallIgnoreLog > 1000) {   // не засоряем журнал
+            lastBallIgnoreLog = millis();
+            unsigned long leftMs = BALL_SENSOR_LOCKOUT_MS - (millis() - reed1TriggeredAt);
+            Serial.print("Датчик шарика проигнорирован (блокировка ещё ");
+            Serial.print(leftMs);
+            Serial.println(" мс).");
+            sendLogToServer("{\"log\":\"Safe: ball sensor IGNORED - lockout after reed1 still active\"}");
+          }
+        } else {
+          Serial.println("Датчик пересечения сработал! Переход в GAME_WON.");
+          startGameWonSequence();
+        }
       }
       break;
     case GAME_WON:
