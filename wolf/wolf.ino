@@ -179,6 +179,15 @@ bool storyFlag1;
 bool storyFlag2;
 bool storyFlag3;
 bool ghostFlag = 0;
+
+// ЗАЩИТА ОТ ГОНКИ КОМАНД (2026-07-29). Сервер шлёт команды на ESP32
+// АСИНХРОННО — каждую в отдельном потоке с retry (см. send_esp32_command()
+// в CastleServer.py), поэтому порядок доставки НЕ гарантирован. При быстром
+// скипе уровней с пульта "game" может прийти ПОСЛЕ "skip" и откатить
+// состояние назад — фоновая музыка запустится заново и будет играть до
+// конца квеста. Флаг снимается только при старте новой игры.
+// Аналогичная защита стоит в chest.ino (там баг и проявился у клиента CLC2).
+bool stageFinished = false;
 bool CloudFlag = 0;
 bool MP3Flag = 1;
 bool TRACK_Flag = 1;
@@ -583,6 +592,12 @@ void setup() {
       // === END DIAG ===
 
       if (body == "\"game\"") {
+        // Этап уже пройден — опоздавший "game" из-за асинхронной доставки.
+        if (stageFinished) {
+          sendLogToServer("{\"log\":\"Wolf: 'game' IGNORED - stage already finished (race guard)\"}");
+          server.send(200, "application/json", "{\"status\":\"ignored_finished\"}");
+          return;
+        }
         state = 1;
         doorRepeatActive = false;
         myMP3.playMp3Folder(TRACK_FON_WOLF);
@@ -626,6 +641,7 @@ void setup() {
         cloudFiPlaying = false;
         fireworkActive = false;
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if (body == "\"start\"") {
         state = 0;
@@ -633,12 +649,14 @@ void setup() {
         hintFlag = 1;
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if (body == "\"ready\"") {
         state = 0;
         doorRepeatActive = false;
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if (body == "\"volume_up\"") {
         value = value + 1;
@@ -699,6 +717,7 @@ void setup() {
         state = 6;
       }
       if (body == "\"skip\"") {
+        stageFinished = true;   // этап закрыт — не давать "game" откатить состояние
         myMP3.stop();
         OUTPUTS.digitalWrite(moonLed, HIGH);
         OUTPUTS.digitalWrite(leftCloudLed, HIGH);
@@ -1350,6 +1369,7 @@ void WolfGame() {
     }
     
     state = 5; // Переходим в состояние отправки данных о победе 
+    stageFinished = true;   // этап закрыт — не давать "game" откатить состояние
     wolfEndSendTimer = millis(); // Готовимся к отправке
     
     // Сбрасываем флаги, чтобы не мешать следующему состоянию

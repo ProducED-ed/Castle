@@ -77,6 +77,22 @@ const unsigned long HINT_POLL_DELAY_MS = 2000UL;     // не опрашиват�
 unsigned long hintWentZeroAt = 0;
 unsigned long hintPollNext = 0;
 bool chestEndConfirmed = false;      // Флаг подтверждения от сервера
+
+// ЗАЩИТА ОТ ГОНКИ КОМАНД (2026-07-29, жалоба клиента CLC2).
+// Сервер шлёт команды на ESP32 АСИНХРОННО — каждую в отдельном потоке
+// с retry (4 попытки, backoff 1→2→4с), см. send_esp32_command() в
+// CastleServer.py. Поэтому порядок доставки НЕ гарантирован.
+//
+// Симптом: клиент быстро скипает уровни с пульта. Активация уровня 5
+// шлёт "game", скип Чемоданов шлёт "skip". Если "game" задержался или
+// ушёл в retry, он приходит ПОСЛЕ "skip" и откатывает state 3→1.
+// Фон TRACK_FON_SUITCASE запускается заново и крутится вечно, потому
+// что при state==1 он сам себя перезапускает по событию «трек кончился».
+//
+// stageFinished ставится при завершении этапа (победа или скип) и
+// снимается только при старте новой игры (ready/start/restart).
+// Пока он true — "game" игнорируется, состояние назад не откатывается.
+bool stageFinished = false;
 unsigned long chestEndSendTimer = 0; // Таймер для периодической отправки
 
 // === DIAG MODE (см. [[clc-tech-pult-diag-panel]]) ===
@@ -384,6 +400,14 @@ void setup() {
       // === END DIAG ===
 
       if(body == "\"game\""){
+        // Этап уже пройден (победа или скип) — это опоздавший/повторный
+        // "game" из-за асинхронной доставки. Игнорируем, иначе фон
+        // запустится заново и будет играть до конца квеста.
+        if (stageFinished) {
+          sendLogToServer("{\"log\":\"Chest: 'game' IGNORED - stage already finished (race guard)\"}");
+          server.send(200, "application/json", "{\"status\":\"ignored_finished\"}");
+          return;
+        }
         state = 1;
         myMP3.playMp3Folder(TRACK_FON_SUITCASE);
         sendLogToServer("{\"log\":\"Chest: Playing Fon Suitcase sound\"}");
@@ -412,6 +436,7 @@ void setup() {
         digitalWrite(insideLed, HIGH);
         OpenLock(SHERIF_EM2);
         chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"ready\""){
         state = 0;
@@ -422,6 +447,7 @@ void setup() {
         myMP3.stop();
         digitalWrite(insideLed, LOW);
         chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       // Добавляем обработку подтверждения от сервера
       if (body == "\"confirm_suitcase_end\"") {
@@ -492,6 +518,7 @@ void setup() {
         myMP3.stop();
         hintFlag = 1;
         chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"language_1\""){
         language = 1;
@@ -517,6 +544,7 @@ void setup() {
       }
       if(body == "\"skip\""){
         //OpenLock(SHERIF_EM2);
+        stageFinished = true;   // этап закрыт — не давать "game" откатить состояние
         timerEndLed = millis();
         timerEndLock = millis();
         flagTrack = 0; 
@@ -848,6 +876,7 @@ void SymbolEye() {
       // Вместо одиночной отправки, переходим в состояние 3 и позволяем loop() отправлять данные
       if (state != 3) { // Переходим в состояние 3 только один раз
           Serial.println("wineye");
+          stageFinished = true;   // этап закрыт — не давать "game" откатить состояние
           myMP3.pause();
           delay(50);
           myMP3.playMp3Folder(TRACK_SUITCASE_END);

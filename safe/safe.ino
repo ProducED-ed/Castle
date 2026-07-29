@@ -88,6 +88,15 @@ const int TRACK_SAFE_END = 6;
 enum GameState { IDLE, AWAIT_GAME, GAME_ACTIVE, GAME_WON };
 GameState currentState = IDLE;
 
+// ЗАЩИТА ОТ ГОНКИ КОМАНД (2026-07-29). Сервер шлёт команды на ESP32
+// АСИНХРОННО — каждую в отдельном потоке с retry (см. send_esp32_command()
+// в CastleServer.py), поэтому порядок доставки НЕ гарантирован. При быстром
+// скипе уровней с пульта "game" может прийти ПОСЛЕ "skip" и откатить
+// состояние назад — фоновая музыка запустится заново и будет играть до
+// конца квеста. Флаг снимается только при старте новой игры.
+// Аналогичная защита стоит в chest.ino (там баг и проявился у клиента CLC2).
+bool stageFinished = false;
+
 // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 bool story28_played = false;
 int hint_counter = 0;
@@ -289,6 +298,7 @@ void setup() {
         Serial.println("Команда 'start': подсветка выключена.");
         currentState = AWAIT_GAME;
 		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"restart\""){
         ledOn();
@@ -297,14 +307,22 @@ void setup() {
        
         currentState = IDLE;
 		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"ready\""){
         ledOff();
         myDFPlayer.stop();
         currentState = IDLE;
 		safeEndConfirmed = false; safeEndSendAttempts = 0; // Сбрасываем флаг + счётчик попыток
+        stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"game\""){
+        // Этап уже пройден — опоздавший "game" из-за асинхронной доставки.
+        if (stageFinished) {
+          sendLogToServer("{\"log\":\"Safe: 'game' IGNORED - stage already finished (race guard)\"}");
+          server.send(200, "application/json", "{\"status\":\"ignored_finished\"}");
+          return;
+        }
         ledOn();
         story28_played = false;
         hint_counter = 0;
@@ -829,6 +847,7 @@ void startGameWonSequence() {
   if (currentState == GAME_WON) return; // Защита от повторного запуска
 
   currentState = GAME_WON;
+  stageFinished = true;   // этап закрыт — не давать "game" откатить состояние
   gameWonSequenceStep = 1;
   stepEnteredAt = millis();
   myDFPlayer.stop();
