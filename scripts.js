@@ -2083,6 +2083,33 @@ $('.ui.dropdown')
 				monoStateSyncing = false;
 			});
 			// ----------------------------------------------------
+
+			// --- Переключатель этапа Spell (2026-07-29) ---
+			// Выключенный тумблер прячет раздел Spell с пульта; сам этап
+			// пропускается сценарием (сервер сам открывает дверь после story_50).
+			// На уже идущую игру НЕ влияет — сервер фиксирует настройку на
+			// старте квеста, поэтому переключать безопасно в любой момент.
+			let spellStateSyncing = false;
+			$('#spell-toggle-container').checkbox({
+				onChange: function() {
+					if (spellStateSyncing) return;   // изменение пришло ОТ сервера
+					let isChecked = $('#spell-checkbox').is(':checked');
+					socket.emit('toggle_spell_stage', isChecked);
+				}
+			});
+
+			socket.on('spell_stage_state', function(state) {
+				spellStateSyncing = true;
+				if (state) {
+					$('#spell-toggle-container').checkbox('set checked');
+					$('#spell_section').show();
+				} else {
+					$('#spell-toggle-container').checkbox('set unchecked');
+					$('#spell_section').hide();
+				}
+				spellStateSyncing = false;
+			});
+			// ----------------------------------------------------
 			
 			// --- Инициализация переключателя музыки Ready ---
 			$('#ready-music-toggle-container').checkbox({

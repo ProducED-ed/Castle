@@ -188,6 +188,13 @@
 											 <div class="ui tiny header "style="color: white;">Mono sound<br>(L+R to one speaker, instant)</div>
 										 </div>
                                      </div>
+
+									 <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+										 <div class="ui toggle checkbox" id="spell-toggle-container" style="margin-top: 15px;">
+											 <input type="checkbox" id="spell-checkbox">
+											 <div class="ui tiny header "style="color: white;">Spell stage<br>(off = stage is skipped, applies from next start)</div>
+										 </div>
+                                     </div>
 									 
 									 <div class="ui clearing inverted segment" style="border: 2px #D3D3D3 solid; border-radius: 10px;">
     <button class="ui inverted labeled icon button" style="width: 100%;" id="toggle_wifi">
@@ -473,7 +480,7 @@
                                             <button class="ui right floated small inverted button door_check" id="cup"><i class="icon" id="cup_indic"></i>Skip | Open</button> 
                                     </div>
 
-                                    <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
+                                    <div class="ui inverted clearing  segment" id="spell_section" style="border: #737373 1px solid;">
                                             <h3 class="ui left floated header">Spell</h3>
                                             <button class="ui right floated small inverted button door_check" id="spell"><i class="icon" id="spell_indic"></i>Open Door</button>
                                         

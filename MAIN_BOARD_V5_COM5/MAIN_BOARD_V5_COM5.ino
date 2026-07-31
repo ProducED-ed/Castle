@@ -1396,6 +1396,10 @@ void PowerOn() {
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println(F("open_door"));
+    // 2026-07-29: открытие двери на балкон (этап Баскетбола). Раньше слалось
+    // сразу по геркону кубка; теперь сервер присылает эту команду после того
+    // как доиграла story_56 (after_serial в очереди историй).
+    else if (buff == "basket_stage_open") Serial2.println(F("opent_basket"));
     else if (buff == "open_mine_door") Serial2.println(F("open_mine_door"));
     // 2026-05-28: dg_on handler УДАЛЁН (DIAG mode убран).
     // === check_towers handler ===
@@ -4013,7 +4017,13 @@ void CentralTowerGame() {
 
       // Проверяем геркон кубка
       if (!digitalReadExpander(2, board4)) {  // ГЕРКОН 2 (Кубок) НАЖАТ
-        Serial2.println(F("opent_basket"));
+        // 2026-07-29: открытие двери Баскетбола перенесено отсюда на момент
+        // окончания story_56 (после прохождения Crime). Сервер присылает
+        // basket_stage_open по after_serial из очереди историй.
+        // ВАЖНО: door_basket ниже ОСТАЁТСЯ здесь — это не про дверь, а сигнал
+        // серверу «Кубок пройден», который запускает story_50 и активацию
+        // этапа Spell. Если перенести и его, цепочка Spell→Crystals→Crime
+        // не запустится, story_56 не прозвучит и дверь не откроется никогда.
         Serial.println(F("door_basket"));
         fireFlag = 1;
         centralTowerState = 0;  // Сбрасываем всю логику
@@ -4068,7 +4078,8 @@ void CentralTowerGame() {
       centralTowerCupFlag = 0;
     }
     if (buff == "cup") {
-      Serial2.println(F("opent_basket"));
+      // 2026-07-29: см. комментарий у геркона кубка — открытие двери
+      // Баскетбола переехало на окончание story_56 (basket_stage_open).
       Serial.println(F("door_basket"));
       fireFlag = 1;
       centralTowerState = 0;
@@ -6846,6 +6857,10 @@ void RestOn() {
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println(F("open_door"));
+    // 2026-07-29: открытие двери на балкон (этап Баскетбола). Раньше слалось
+    // сразу по геркону кубка; теперь сервер присылает эту команду после того
+    // как доиграла story_56 (after_serial в очереди историй).
+    else if (buff == "basket_stage_open") Serial2.println(F("opent_basket"));
     else if (buff == "open_mine_door") Serial2.println(F("open_mine_door"));
     // 2026-05-28: dg_on handler УДАЛЁН (DIAG mode убран).
     // === check_towers handler (rest state) ===

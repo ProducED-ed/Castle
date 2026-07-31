@@ -534,6 +534,40 @@ def _save_mono_preference(state):
 
 mono_sound_active = _load_mono_preference()
 
+# === ЭТАП SPELL: ВКЛ/ВЫКЛ (2026-07-29, запрос Эдуарда) ===
+# Переключатель в Settings на пульте. Когда выключен:
+#   - раздел Spell вместе с кнопкой пропадает с пульта;
+#   - по сценарию этап пропускается: после story_50 сервер сразу шлёт на Mega
+#     команду 'spell', которая открывает дверь, включает факел и рапортует
+#     door_spell — то есть результат ровно как при честном прохождении.
+#     Все сопровождающие звуки и активация Кристаллов остаются штатными.
+# Pref в /home/pi — юзер pi не имеет прав на запись в /var/lib (см. коммит bc2e66c).
+SPELL_PREF_FILE = '/home/pi/castle_spell_pref'
+
+def _load_spell_preference():
+    """Дефолт — True (этап включён, обычный сценарий квеста)."""
+    try:
+        with open(SPELL_PREF_FILE) as f:
+            return f.read().strip() != '0'
+    except FileNotFoundError:
+        return True
+    except Exception as e:
+        logger.error(f"Spell pref read error: {e}")
+        return True
+
+def _save_spell_preference(state):
+    try:
+        with open(SPELL_PREF_FILE, 'w') as f:
+            f.write('1' if state else '0')
+    except Exception as e:
+        logger.error(f"Spell pref save error: {e}")
+
+# Сохранённая настройка (что показывать в UI) и её снимок на текущую игру.
+# Снимок обновляется только на restart/ready — переключение посреди игры
+# не должно менять поведение уже идущего прохождения (решение Эдуарда).
+spell_stage_enabled = _load_spell_preference()
+spell_stage_enabled_runtime = spell_stage_enabled
+
 # 2026-07-14 MONO v2: mono-сведение на уровне PulseAudio.
 # module-remap-sink channels=1 поверх USB-карты: pulse сводит stereo→mono
 # во float (0.5/0.5, без клиппинга) и дублирует на оба физических выхода.
@@ -2822,6 +2856,13 @@ def tech_jump_basket():
     stop_all_effects()
     channel3.stop() # Глушим любые истории, которые могли застрять
     story_audio_queue.clear()  # и очередь Mine Door историй
+    # 2026-07-29: фиксируем настройку этапа Spell на новую игру. Переключение
+    # в Settings посреди прохождения не должно менять уже идущий сценарий,
+    # поэтому сценарий читает именно этот snapshot, а не сам pref.
+    global spell_stage_enabled_runtime
+    spell_stage_enabled_runtime = spell_stage_enabled
+    logger.info(f"SPELL: этап на эту игру — "
+                f"{'ВКЛЮЧЁН' if spell_stage_enabled_runtime else 'ВЫКЛЮЧЕН'}")
 
     # Отправляем спец-команду на Ардуино
     for _ in range(3):
@@ -3119,6 +3160,8 @@ def handle_connect():
     socketio.emit('bt_state', bluetooth_active, to=request.sid)
     # 2026-07-08: текущее состояние Mono toggle
     socketio.emit('mono_state', mono_sound_active, to=request.sid)
+    # 2026-07-29: состояние переключателя этапа Spell (скрывает раздел на пульте)
+    socketio.emit('spell_stage_state', spell_stage_enabled, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
@@ -6837,8 +6880,17 @@ def serial():
                                       eventlet.sleep(0.1)
                                   play_localized_audio("story_50")
                                   play_effect(lose1)
-                                  socketio.emit('level', 'active_spell',to=None)
-                                  socklist.append('active_spell')
+                                  if spell_stage_enabled_runtime:
+                                      socketio.emit('level', 'active_spell',to=None)
+                                      socklist.append('active_spell')
+                                  else:
+                                      # Этап Spell отключён в настройках — пропускаем его.
+                                      # 'spell' на Mega: открывает дверь, включает факел и
+                                      # присылает door_spell, поэтому звук двери и активация
+                                      # Кристаллов отработают штатно, как при прохождении.
+                                      logger.info("SPELL: этап отключён в настройках — "
+                                                  "пропускаем, открываем дверь автоматически")
+                                      serial_write_queue.put('spell')
                               
                          if flag == "swipe_r":
                               play_effect(swipe_r)
@@ -6846,12 +6898,20 @@ def serial():
                               play_effect(swipe_l)
                                   
                          if flag=="door_spell":
-                              socketio.emit('level', 'spell',to=None)
-                              socklist.append('spell')
-                              #----играем эффект 
-                              play_effect(door_spell) 
-                              socketio.emit('level', 'active_crystals',to=None)
-                              socklist.append('active_crystals')
+                              # 2026-07-29: защита от повторного срабатывания. При отключённом
+                              # этапе Spell дверь открывается автоматически, но сама головоломка
+                              # физически остаётся — если игроки её всё же покрутят, Mega
+                              # пришлёт door_spell второй раз. Без guard'а звук двери и
+                              # активация Кристаллов сыграли бы дважды.
+                              if 'spell' in socklist:
+                                  logger.debug("Игнорируем повторный door_spell")
+                              else:
+                                  socketio.emit('level', 'spell',to=None)
+                                  socklist.append('spell')
+                                  #----играем эффект 
+                                  play_effect(door_spell) 
+                                  socketio.emit('level', 'active_crystals',to=None)
+                                  socklist.append('active_crystals')
                          if flag=="spell_step_1":
                               socketio.emit('level', 'spell_step_1', to=None) 
                               socklist.append('spell_step_1')
@@ -7227,7 +7287,14 @@ def serial():
                               socketio.emit('level', 'active_basket',to=None)
                               socklist.append('active_basket')
                               play_background_music("fon17.mp3", loops=-1)
-                              play_localized_audio("story_56")
+                              # 2026-07-29: дверь на балкон (этап Баскетбола) раньше открывалась
+                              # сразу по геркону кубка — задолго до этого момента. Теперь ставим
+                              # story_56 в очередь с after_serial: Mega получит basket_stage_open
+                              # ТОЛЬКО после того как рассказ доиграл.
+                              # Работает и при честном прохождении Crime, и при скипе с пульта —
+                              # оба пути дают flag crime_end.
+                              story_audio_queue.append({'story': "story_56",
+                                                        'after_serial': 'basket_stage_open'})
 
                          if flag=="lesson_goal":
                               if time.time() - last_lesson_goal_time > 3.0: # <--- ЗАЩИТА ОТ ДВОЙНОГО ЗВУКА
@@ -7632,6 +7699,29 @@ def handle_bluetooth_toggle(is_checked):
         # Во всех остальных случаях (или если сняли галочку) - выключаем
         set_bluetooth_state(False)
 # ---------------------------------------------------------------
+
+# --- Обработчик переключателя этапа Spell (2026-07-29) ---
+@socketio.on('toggle_spell_stage')
+def handle_spell_stage_toggle(is_checked):
+    """Включение/выключение этапа Spell.
+
+    Сохраняем pref и сразу рассылаем новое состояние всем пультам (чтобы
+    раздел Spell спрятался/появился у всех открытых вкладок).
+
+    ВАЖНО: на уже идущую игру переключение НЕ влияет — сценарий смотрит на
+    snapshot spell_stage_enabled_runtime, который обновляется только на
+    restart/ready. Иначе поведение посреди прохождения было бы
+    непредсказуемым (решение Эдуарда 29.07.2026)."""
+    global spell_stage_enabled
+    new_state = bool(is_checked)
+    if new_state == spell_stage_enabled:
+        return  # ничего не изменилось (например повторный emit при reconnect)
+    _save_spell_preference(new_state)
+    spell_stage_enabled = new_state
+    logger.info(f"SPELL: этап {'ВКЛЮЧЁН' if new_state else 'ВЫКЛЮЧЕН'} "
+                f"(применится со следующего запуска квеста)")
+    socketio.emit('spell_stage_state', new_state, to=None)
+
 
 # --- Обработчик переключателя Mono звука с пульта (2026-07-08) ---
 @socketio.on('toggle_mono_sound')
