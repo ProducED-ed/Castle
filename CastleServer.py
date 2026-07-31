@@ -568,6 +568,41 @@ def _save_spell_preference(state):
 spell_stage_enabled = _load_spell_preference()
 spell_stage_enabled_runtime = spell_stage_enabled
 
+# === СЛОЖНОСТЬ ЭТАПА ВОЛКА (2026-07-31, запрос Эдуарда) ===
+# Переключатель в Settings на пульте.
+#   НОРМАЛЬНЫЙ (по умолчанию) — отпустили луну, ничего не происходит,
+#     собранный прогресс сохраняется (в прошивке откат не запускается вовсе);
+#   СЛОЖНЫЙ — луна отпущена дольше 5 сек, этап гаснет и откатывается.
+# В обоих режимах у облаков есть grace 400 мс на микро-разрыв.
+# Состояние живёт в pref и рассылается на ESP32 при переключении и при
+# старте квеста — чтобы пережить рестарт ESP32 или сервера.
+WOLF_PREF_FILE = '/home/pi/castle_wolf_hard_pref'
+
+def _load_wolf_hard_preference():
+    """Дефолт — False (нормальный режим)."""
+    try:
+        with open(WOLF_PREF_FILE) as f:
+            return f.read().strip() == '1'
+    except FileNotFoundError:
+        return False
+    except Exception as e:
+        logger.error(f"Wolf pref read error: {e}")
+        return False
+
+def _save_wolf_hard_preference(state):
+    try:
+        with open(WOLF_PREF_FILE, 'w') as f:
+            f.write('1' if state else '0')
+    except Exception as e:
+        logger.error(f"Wolf pref save error: {e}")
+
+def _push_wolf_mode():
+    """Отправить текущий режим на ESP32 Волка."""
+    cmd = "wolf_mode_hard" if wolf_hard_mode else "wolf_mode_normal"
+    send_esp32_command(ESP32_API_WOLF_URL, cmd)
+
+wolf_hard_mode = _load_wolf_hard_preference()
+
 # 2026-07-14 MONO v2: mono-сведение на уровне PulseAudio.
 # module-remap-sink channels=1 поверх USB-карты: pulse сводит stereo→mono
 # во float (0.5/0.5, без клиппинга) и дублирует на оба физических выхода.
@@ -2861,6 +2896,8 @@ def tech_jump_basket():
     # поэтому сценарий читает именно этот snapshot, а не сам pref.
     global spell_stage_enabled_runtime
     spell_stage_enabled_runtime = spell_stage_enabled
+    # Досылаем режим сложности Волка — ESP32 могла перезагрузиться и забыть его
+    _push_wolf_mode()
     logger.info(f"SPELL: этап на эту игру — "
                 f"{'ВКЛЮЧЁН' if spell_stage_enabled_runtime else 'ВЫКЛЮЧЕН'}")
 
@@ -3162,6 +3199,8 @@ def handle_connect():
     socketio.emit('mono_state', mono_sound_active, to=request.sid)
     # 2026-07-29: состояние переключателя этапа Spell (скрывает раздел на пульте)
     socketio.emit('spell_stage_state', spell_stage_enabled, to=request.sid)
+    # 2026-07-31: состояние переключателя сложности Волка
+    socketio.emit('wolf_hard_state', wolf_hard_mode, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
@@ -7699,6 +7738,25 @@ def handle_bluetooth_toggle(is_checked):
         # Во всех остальных случаях (или если сняли галочку) - выключаем
         set_bluetooth_state(False)
 # ---------------------------------------------------------------
+
+# --- Обработчик переключателя сложности Волка (2026-07-31) ---
+@socketio.on('toggle_wolf_hard')
+def handle_wolf_hard_toggle(is_checked):
+    """Включение/выключение сложного режима этапа Волка.
+
+    В отличие от переключателя Spell, применяется СРАЗУ — режим влияет
+    только на реакцию прошивки при отпускании луны, а не на ветвление
+    сценария, поэтому смена посреди игры безопасна."""
+    global wolf_hard_mode
+    new_state = bool(is_checked)
+    if new_state == wolf_hard_mode:
+        return  # повторный emit при reconnect
+    _save_wolf_hard_preference(new_state)
+    wolf_hard_mode = new_state
+    _push_wolf_mode()
+    logger.info(f"WOLF: режим {'СЛОЖНЫЙ (откат луны 5с)' if new_state else 'НОРМАЛЬНЫЙ (без отката)'}")
+    socketio.emit('wolf_hard_state', new_state, to=None)
+
 
 # --- Обработчик переключателя этапа Spell (2026-07-29) ---
 @socketio.on('toggle_spell_stage')

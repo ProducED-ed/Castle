@@ -2098,6 +2098,29 @@ $('.ui.dropdown')
 				}
 			});
 
+			// --- Переключатель сложности этапа Волка (2026-07-31) ---
+			// Применяется сразу: режим влияет только на реакцию прошивки при
+			// отпускании луны, ветвление сценария не затрагивает.
+			let wolfHardSyncing = false;
+			$('#wolf-hard-toggle-container').checkbox({
+				onChange: function() {
+					if (wolfHardSyncing) return;   // изменение пришло ОТ сервера
+					let isChecked = $('#wolf-hard-checkbox').is(':checked');
+					socket.emit('toggle_wolf_hard', isChecked);
+				}
+			});
+
+			socket.on('wolf_hard_state', function(state) {
+				wolfHardSyncing = true;
+				if (state) {
+					$('#wolf-hard-toggle-container').checkbox('set checked');
+				} else {
+					$('#wolf-hard-toggle-container').checkbox('set unchecked');
+				}
+				wolfHardSyncing = false;
+			});
+			// ----------------------------------------------------
+
 			socket.on('spell_stage_state', function(state) {
 				spellStateSyncing = true;
 				if (state) {

@@ -188,6 +188,24 @@ bool ghostFlag = 0;
 // конца квеста. Флаг снимается только при старте новой игры.
 // Аналогичная защита стоит в chest.ino (там баг и проявился у клиента CLC2).
 bool stageFinished = false;
+
+// === СЛОЖНОСТЬ ЭТАПА ВОЛКА (2026-07-31, запрос Эдуарда) ===
+// Переключатель в Settings на пульте. Сервер присылает wolf_mode_normal /
+// wolf_mode_hard, состояние переживает рестарт (сервер шлёт его при старте).
+//
+// НОРМАЛЬНЫЙ (по умолчанию): отпустили луну — НИЧЕГО не происходит, прогресс
+//   сохраняется. Таймер отката не запускается вовсе.
+// СЛОЖНЫЙ: отпустили луну — через MOON_RELEASE_TIMEOUT_MS всё гаснет и этап
+//   откатывается в state=1. Вернули луну раньше — таймер сбрасывается.
+bool wolfHardMode = false;
+const unsigned long MOON_RELEASE_TIMEOUT_MS = 5000;   // только в сложном режиме
+
+// GRACE ДЛЯ ОБЛАКОВ (оба режима). Раньше разрыв цепи облаков в WolfGame()
+// откатывал этап МГНОВЕННО — хватало микро-дрожания руки в момент касания
+// геркона волка, и всё собиралось заново. Теперь разрыв должен продержаться
+// дольше CLOUD_GRACE_MS, иначе он игнорируется.
+const unsigned long CLOUD_GRACE_MS = 400;
+unsigned long cloudBrokenSince = 0;   // 0 = цепь целая
 bool CloudFlag = 0;
 bool MP3Flag = 1;
 bool TRACK_Flag = 1;
@@ -716,6 +734,22 @@ void setup() {
         OpenLock(SH1);
         state = 6;
       }
+      // Режим сложности этапа (2026-07-31). Сервер шлёт при переключении
+      // тумблера и при старте квеста, чтобы состояние пережило рестарт ESP32.
+      if (body == "\"wolf_mode_normal\"") {
+        wolfHardMode = false;
+        delayActive = false;               // снимаем возможный отсчёт отката
+        sendLogToServer("{\"log\":\"Wolf: difficulty = NORMAL (no moon rollback)\"}");
+        server.send(200, "application/json", "{\"status\":\"wolf_mode_normal\"}");
+        return;
+      }
+      if (body == "\"wolf_mode_hard\"") {
+        wolfHardMode = true;
+        sendLogToServer("{\"log\":\"Wolf: difficulty = HARD (moon rollback 5s)\"}");
+        server.send(200, "application/json", "{\"status\":\"wolf_mode_hard\"}");
+        return;
+      }
+
       if (body == "\"skip\"") {
         stageFinished = true;   // этап закрыт — не давать "game" откатить состояние
         myMP3.stop();
@@ -1187,21 +1221,23 @@ void CloudGame() {
   FastLED.show();
 
   if (!moonGerk.isHold()) {
+    // Луна отпущена. В НОРМАЛЬНОМ режиме откат не запускается вообще —
+    // гасим только индикатор, прогресс этапа сохраняется.
     if (!delayActive) {
       OUTPUTS.digitalWrite(moonLed, LOW);
-      // Начинаем отсчет 2 секунд
       delayStartTime = millis();
       delayActive = true;
-      Serial.println("Moon released - 2s delay started");
+      Serial.println(wolfHardMode ? "Moon released - hard mode timer started"
+                                  : "Moon released - normal mode, no rollback");
     }
 
-    // Проверяем прошло ли 2 секунды
-    if (delayActive && millis() - delayStartTime >= 2000) {
+    if (wolfHardMode && delayActive &&
+        millis() - delayStartTime >= MOON_RELEASE_TIMEOUT_MS) {
       OUTPUTS.digitalWrite(moonLed, HIGH);
       OUTPUTS.digitalWrite(rightCloudLed, HIGH);
       state = 1;
       delayActive = false;
-      Serial.println("2s delay completed - state = 1");
+      Serial.println("Hard mode: moon timeout - state = 1");
     }
   } else {
     // MoonGerk снова нажат - сбрасываем таймер
@@ -1239,21 +1275,23 @@ void LeftCloudGame() {
     state = 2;
   }
   if (!moonGerk.isHold()) {
+    // Луна отпущена. В НОРМАЛЬНОМ режиме откат не запускается вообще —
+    // гасим только индикатор, прогресс этапа сохраняется.
     if (!delayActive) {
       OUTPUTS.digitalWrite(moonLed, LOW);
-      // Начинаем отсчет 2 секунд
       delayStartTime = millis();
       delayActive = true;
-      Serial.println("Moon released - 2s delay started");
+      Serial.println(wolfHardMode ? "Moon released - hard mode timer started"
+                                  : "Moon released - normal mode, no rollback");
     }
 
-    // Проверяем прошло ли 2 секунды
-    if (delayActive && millis() - delayStartTime >= 2000) {
+    if (wolfHardMode && delayActive &&
+        millis() - delayStartTime >= MOON_RELEASE_TIMEOUT_MS) {
       OUTPUTS.digitalWrite(moonLed, HIGH);
       OUTPUTS.digitalWrite(rightCloudLed, HIGH);
       state = 1;
       delayActive = false;
-      Serial.println("2s delay completed - state = 1");
+      Serial.println("Hard mode: moon timeout - state = 1");
     }
   } else {
     // MoonGerk снова нажат - сбрасываем таймер
@@ -1323,14 +1361,27 @@ void WolfGame() {
   lightCircut2 = !leftCloudGerk.isHold();
   
   if ((lightCircut1 || lightCircut2)) {
-    Serial.println("Circuit broken! Resetting to State 1");
-    
-    state = 1; // Сбрасываем этап
-    
-    // Важно: Сбрасываем флаги, чтобы аудио не блокировало логику
-    cloudFiPlaying = false; 
-    TRACK_Flag = 1; // Чтобы при возврате история могла начаться заново (по желанию)
-    return; // Выходим из функции немедленно
+    // 2026-07-31: не откатываем мгновенно. Микро-разрыв (дрожание руки в
+    // момент касания геркона волка) не должен обнулять собранную цепь —
+    // ждём CLOUD_GRACE_MS непрерывного разрыва.
+    if (cloudBrokenSince == 0) {
+      cloudBrokenSince = millis();
+      Serial.println("Cloud circuit broken - grace period started");
+    }
+    if (millis() - cloudBrokenSince >= CLOUD_GRACE_MS) {
+      Serial.println("Circuit broken! Resetting to State 1");
+
+      state = 1; // Сбрасываем этап
+      cloudBrokenSince = 0;
+
+      // Важно: Сбрасываем флаги, чтобы аудио не блокировало логику
+      cloudFiPlaying = false;
+      TRACK_Flag = 1; // Чтобы при возврате история могла начаться заново (по желанию)
+      return; // Выходим из функции немедленно
+    }
+    // Разрыв ещё в пределах grace — продолжаем, победу засчитываем как обычно
+  } else {
+    cloudBrokenSince = 0;   // цепь восстановлена
   }
   // -----------------------------------------------------------------------
 
