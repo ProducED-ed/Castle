@@ -68,7 +68,13 @@ const unsigned long lockOpenDuration = 500;
 
 bool recurringLockActive = false;
 unsigned long lastRecurringLockOpenTime = 0;
-const unsigned long RECURRING_LOCK_INTERVAL = 10000;
+// 2026-07-31: было 10000 — БАГ. Keep-alive manualLockUntil = 8000 мс, то есть
+// окно закрывалось РАНЬШЕ, чем наступал повторный импульс, и одиночный 500мс
+// импульс так и не пробивал соленоид (жалоба клиента CLC2: дверь Workshop не
+// открылась ни по игровой команде, ни с пульта — помогло только физически).
+// В basket3.ino та же схема работает с интервалом 3000 при keep-alive 8000 —
+// за окно умещается 2-3 импульса. Приводим к тому же соотношению.
+const unsigned long RECURRING_LOCK_INTERVAL = 3000;
 
 // 2026-06-04: manual-hold таймер для open_door/restart (тех-пульт). Аналог
 // manualEMxUntil в basket3.ino (commit a2761a8). Одиночный 500мс импульс
@@ -806,6 +812,11 @@ void handleUartCommands() {
       digitalWrite(LOCK_PIN, HIGH);
       delay(500);
       digitalWrite(LOCK_PIN, LOW);
+      // 2026-07-31: выравниваем счётчик повторов от момента этой команды —
+      // иначе первый повтор мог прийти в произвольный момент (или не прийти
+      // вовсе, пока интервал был больше keep-alive).
+      lastRecurringLockOpenTime = millis();
+      lockOpen = false;
     } else if (command == "day_on") {
       digitalWrite(LED_FLOOR1_PIN, HIGH);
       digitalWrite(LED_FLOOR2_PIN, LOW);
