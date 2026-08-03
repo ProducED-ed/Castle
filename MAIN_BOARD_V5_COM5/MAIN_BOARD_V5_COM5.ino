@@ -3672,6 +3672,13 @@ void BasketLesson() {
           while(Serial.available()) Serial.read();
           return;
         }
+        // 2026-08-03 ФИКС: обработчик basket_stage_open был добавлен только в
+        // PowerOn() и RestOn() — то есть в состояния ВНЕ игры (там же лежат
+        // кнопки открытия дверей с пульта). Команда же приходит по ходу игры,
+        // когда Mega находится здесь, в BasketLesson() (level 18), и молча
+        // игнорировалась: дверь на балкон не открывалась ни после story_56,
+        // ни по скипу с пульта. Жалоба клиента CLC2.
+        else if (mainSerialBuffer.indexOf("basket_stage_open") != -1) { Serial2.println(F("opent_basket")); }
         else if (mainSerialBuffer.indexOf("start_lesson") != -1) { Serial2.println(F("start_lesson")); }
         else if (mainSerialBuffer.indexOf("start_game_basket") != -1) { 
           if (!isGameBasketStarted) { 

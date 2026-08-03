@@ -6720,7 +6720,18 @@ def serial():
                               eventlet.sleep(2.0)
                               # 2026-07-10: через очередь — не перебивается и не перебивает
                               story_audio_queue.append({'story': "story_26"})
+                         # 2026-08-03: guard от ПОВТОРНОГО cave_searchN (жалоба клиента CLC2:
+                         # у тролля зациклился звук, шкала застряла на 75%).
+                         # Механизм петли: история доигрывает → сервер шлёт cave_searchN на
+                         # Mega → та передаёт башне → башня по этой команде снимает блокировку
+                         # isTrollFixed, чтобы разрешить поиск СЛЕДУЮЩЕГО предмета. При дребезге
+                         # контакта металл уходил повторно, сервер снова ставил ту же историю в
+                         # очередь — и так по кругу каждые ~12 сек, до cave_end дело не доходило.
+                         # Тот же guard уже стоял у соседнего cave_end.
                          if flag=="cave_search1":
+                              if 'cave_search1' in socklist:
+                                  logger.debug("Игнорируем повторный cave_search1")
+                                  continue
                               #----играем эффект 
                               play_effect(cave_search)
                               socketio.emit('level', 'cave_search1', to=None)
@@ -6730,6 +6741,9 @@ def serial():
                               # 2026-07-10: очередь — 27_a ждёт окончания предыдущей истории
                               story_audio_queue.append({'story': "story_27_a", 'after_serial': 'cave_search1'})
                          if flag=="cave_search2":
+                              if 'cave_search2' in socklist:
+                                  logger.debug("Игнорируем повторный cave_search2")
+                                  continue
                               #----играем эффект 
                               play_effect(cave_search)
                               socketio.emit('level', 'cave_search2', to=None)
@@ -6739,6 +6753,9 @@ def serial():
                               # 2026-07-10: очередь — 27_b ждёт окончания предыдущей истории
                               story_audio_queue.append({'story': "story_27_b", 'after_serial': 'cave_search2'})
                          if flag=="cave_search3":
+                              if 'cave_search3' in socklist:
+                                  logger.debug("Игнорируем повторный cave_search3")
+                                  continue
                               #----играем эффект 
                               play_effect(cave_search)
                               socketio.emit('level', 'cave_search3', to=None)
