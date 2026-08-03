@@ -601,9 +601,31 @@ void loop() {
   }
   // === END DIAG ===
 
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-    delay(2000);
+  // 2026-08-03: watchdog потери WiFi (перенесён из safe.ino, где работает в
+  // проде). Раньше здесь был голый reconnect + delay(2000): если переподключение
+  // не удавалось, устройство висело в этом цикле бесконечно и само не
+  // восстанавливалось — требовалось снятие питания башни вручную (кейс Волка
+  // 29.07 и Поезда 03.08). Плюс delay(2000) блокировал loop целиком.
+  // Теперь: попытка reconnect не чаще раза в 10 сек, а если связи нет дольше
+  // 60 сек — перезагружаем ESP32, она поднимется и подключится заново.
+  {
+    static unsigned long lastReconnectAttempt = 0;
+    static unsigned long wifiDownSince = 0;
+    if (WiFi.status() != WL_CONNECTED) {
+      if (wifiDownSince == 0) wifiDownSince = millis();
+      if (millis() - lastReconnectAttempt > 10000UL) {
+        lastReconnectAttempt = millis();
+        Serial.println("WiFi lost — reconnecting");
+        WiFi.reconnect();
+      }
+      if (millis() - wifiDownSince > 60000UL) {
+        Serial.println("WiFi down >60s — restarting ESP32");
+        delay(500);
+        ESP.restart();
+      }
+    } else {
+      wifiDownSince = 0;   // соединение в порядке
+    }
   }
   handlePlayerQueries();
 
