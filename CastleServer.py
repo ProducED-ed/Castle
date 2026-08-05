@@ -1853,10 +1853,27 @@ mega_initial_boot_received = False
 # мы накапливаем байты в буфере и обрабатываем только полные строки (по \n).
 serial_buffer = ""
 
-def serial_read_lines():
-    """Читает доступные байты из serial, добавляет в буфер, возвращает список полных строк."""
-    global serial_buffer
+# 2026-08-05: строки от Mega, прочитанные хендшейком, но адресованные не ему.
+# Раньше они просто выбрасывались в лог как "RECEIVED [During Wait]" и терялись
+# насовсем: на CLC2 так пропали story_40 и story_41 — рассказы не прозвучали,
+# а кнопки Ghost остались серыми. Теперь копятся здесь и уходят в общий
+# обработчик следующим тактом.
+deferred_serial_lines = []
+
+def serial_read_lines(include_deferred=True):
+    """Читает доступные байты из serial, добавляет в буфер, возвращает список полных строк.
+
+    include_deferred: отдать ли сначала строки, отложенные хендшейком.
+    Хендшейк вызывает с False, чтобы не забирать обратно то, что сам отложил
+    (иначе он крутил бы их по кругу до конца своего ожидания).
+    """
+    global serial_buffer, deferred_serial_lines
     lines = []
+    if include_deferred and deferred_serial_lines:
+        # Строки, прочитанные хендшейком не для себя. Отдаём их первыми —
+        # они пришли раньше всего, что лежит в буфере сейчас.
+        lines.extend(deferred_serial_lines)
+        deferred_serial_lines = []
     try:
         if ser.in_waiting > 0:
             raw = ser.read(ser.in_waiting)
@@ -4192,10 +4209,28 @@ def Remote(check):
              #----отправить на мегу
              serial_write_queue.put('cup')
              name = "story_2"
-             eventlet.sleep(5) 
+             eventlet.sleep(5)
              #-----активируем блок
-             socketio.emit('level', 'active_spell',to=None)
-             socklist.append('active_spell')  
+             # 2026-08-05: при выключенном этапе Spell скип Кубка должен
+             # вести себя так же, как честное прохождение — сразу открывать
+             # дверь Кристаллов. Раньше здесь безусловно активировался блок
+             # Spell, но при выключенном этапе он на пульте скрыт, и игра
+             # упиралась в тупик: дверь заперта, нажать нечего.
+             #
+             # Ветку door_basket (где эта логика уже была) скип не проходит:
+             # Mega в ответ на 'cup' присылает door_basket, но обработчик
+             # отбрасывает его по guard'у 'cup' in socklist — а 'cup' сюда
+             # добавлен строкой выше. Поэтому решение дублируется здесь.
+             if spell_stage_enabled_runtime:
+                 socketio.emit('level', 'active_spell',to=None)
+                 socklist.append('active_spell')
+             else:
+                 logger.info("SPELL: этап отключён в настройках — при скипе Кубка "
+                             "открываем дверь Кристаллов автоматически")
+                 # Mega на 'spell' откроет дверь, включит факел и пришлёт
+                 # door_spell → обработчик сам покрасит кнопку и активирует
+                 # Кристаллы, ровно как при честном прохождении.
+                 serial_write_queue.put('spell')
         if check == 'spell':
              #-----отправка клиенту 
              socketio.emit('level', 'spell',to=None)
@@ -5369,9 +5404,12 @@ def send_command_with_confirmation(command, success_log_part, max_retries=3):
                 logging.info(f"HANDSHAKE ABORTED mid-wait: game stopped (go={go})")
                 return False
 
-            lines = serial_read_lines()
-            for line in lines:
+            lines = serial_read_lines(include_deferred=False)
+            for idx, line in enumerate(lines):
                 if success_log_part in line:
+                    # Всё, что Mega успела прислать после нашего подтверждения,
+                    # тоже отдаём общему обработчику — иначе потеряется.
+                    globals()['deferred_serial_lines'].extend(lines[idx + 1:])
                     logging.info(f"HANDSHAKE SUCCESS: Arduino confirmed '{command}' (Log: {line})")
                     return True
                 if not got_start and start_log_part in line:
@@ -5380,7 +5418,11 @@ def send_command_with_confirmation(command, success_log_part, max_retries=3):
                     got_start = True
                     wait_limit = 10.0
                     logging.info(f"HANDSHAKE START ACK: '{command}_start' received, waiting for success...")
-                logging.info(f"RECEIVED [During Wait]: {line}")
+                    logging.info(f"RECEIVED [During Wait]: {line}")
+                    continue
+                # Строка не наша — вернуть в общий поток, а не выбросить.
+                globals()['deferred_serial_lines'].append(line)
+                logging.info(f"RECEIVED [During Wait, отложено]: {line}")
 
             process_serial_queue()
             eventlet.sleep(0.05)
