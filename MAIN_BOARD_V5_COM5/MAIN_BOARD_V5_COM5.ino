@@ -3948,20 +3948,6 @@ void Library() {
         Serial.println(F("ghost_knock"));
         ghostState = 6;
       }
-      // 2026-08-05: ветка финального шага. Раньше её НЕ БЫЛО: после третьего
-      // нажатия ghostState прыгал в 6, и кнопка Ghost на пульте переставала
-      // что-либо делать. Пройти этап можно было ТОЛЬКО физическим датчиком
-      // стука на Mega (case 6, analogRead(KnockSens)). Если датчик не
-      // срабатывает — игроки застревали намертво, скип не спасал.
-      // Жалоба клиента CLC2 05.08: девять нажатий скипа без реакции.
-      // Повторяем ровно то, что делает case 6 при срабатывании датчика.
-      else if (ghostState == 6) {
-        Serial.println(F("punch"));
-        digitalWrite(KnockSol, LOW);
-        digitalWrite(LibraryLight, HIGH);
-        libraryDoorTimer = millis();
-        level++;
-      }
       if (ghostState < 4)
         ghostState++;
     }
