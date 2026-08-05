@@ -804,7 +804,20 @@ void OpenLock(byte num) {
 // в ЛЮБОМ state, не только в game-state 3-7.
 void DoorDefender() {
   bool em1Active = (state >= 3 && state <= 7) || (millis() < manualEM1Until);
-  bool em2Active = (basketDoorAllowed && state >= 6 && state <= 7) || (millis() < manualEM2Until);
+  // 2026-08-05: убрана привязка к state. Раньше было
+  //   (basketDoorAllowed && state >= 6 && state <= 7)
+  // Внутренний state башни растёт ТОЛЬКО от физического прохождения её этапов
+  // (тролль, металлы, пещера). Если игрок скипает этапы с пульта, башня этих
+  // событий не видит и state отстаёт — тогда условие state>=6 ложно, и дверь
+  // держалась лишь 8 сек по manualEM2Until, после чего закрывалась. Клиент
+  // физически не успевал войти (жалоба CLC2 05.08: «кнопка позеленела, а дверь
+  // закрыта»).
+  // Проверка по state была наследием эпохи до basketDoorAllowed: тогда она
+  // одна защищала от преждевременного открытия после item_end (ФИКС баг2).
+  // Теперь эту роль полностью выполняет флаг — он ставится ТОЛЬКО явной
+  // командой opent_basket и сбрасывается на restart/ready. Значит условие по
+  // state избыточно, а вреда от него больше, чем пользы.
+  bool em2Active = basketDoorAllowed || (millis() < manualEM2Until);
   if (millis() - doorDef >= 3000) {
     if (doorFlags) {
       if (em1Active) digitalWrite(SHERIF_EM1, HIGH);
