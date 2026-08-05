@@ -334,7 +334,16 @@ void HandleMessagges(String message) {
     sendLog("trollLed OFF");
   }
   if(message == "open_door") { OpenLock(SHERIF_EM2); manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS; }  // 2026-05-28 sustained
-  if(message == "opent_basket") { basketDoorAllowed = true; OpenLock(SHERIF_EM2); manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS; }
+  if(message == "opent_basket") {
+    // 2026-08-05: подтверждение приёма. Башня почти ничего не шлёт серверу,
+    // поэтому по логам нельзя было понять, дошла ли команда от Mega. Теперь
+    // в journalctl видно строку log:basket:opent_basket — если её нет, значит
+    // команда потерялась по пути, а не замок отказал.
+    Serial1.println("log:basket:opent_basket received - opening door");
+    basketDoorAllowed = true;
+    OpenLock(SHERIF_EM2);
+    manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS;
+  }
 }
 
 void CheckState(bool force) {
@@ -806,17 +815,19 @@ void DoorDefender() {
   bool em1Active = (state >= 3 && state <= 7) || (millis() < manualEM1Until);
   // 2026-08-05: убрана привязка к state. Раньше было
   //   (basketDoorAllowed && state >= 6 && state <= 7)
-  // Внутренний state башни растёт ТОЛЬКО от физического прохождения её этапов
-  // (тролль, металлы, пещера). Если игрок скипает этапы с пульта, башня этих
-  // событий не видит и state отстаёт — тогда условие state>=6 ложно, и дверь
-  // держалась лишь 8 сек по manualEM2Until, после чего закрывалась. Клиент
-  // физически не успевал войти (жалоба CLC2 05.08: «кнопка позеленела, а дверь
-  // закрыта»).
-  // Проверка по state была наследием эпохи до basketDoorAllowed: тогда она
-  // одна защищала от преждевременного открытия после item_end (ФИКС баг2).
-  // Теперь эту роль полностью выполняет флаг — он ставится ТОЛЬКО явной
-  // командой opent_basket и сбрасывается на restart/ready. Значит условие по
-  // state избыточно, а вреда от него больше, чем пользы.
+  // Проверка по state — наследие эпохи до basketDoorAllowed: тогда она одна
+  // защищала от преждевременного открытия сразу после item_end (ФИКС баг2).
+  // Сейчас эту роль полностью выполняет флаг: он ставится ТОЛЬКО явной
+  // командой opent_basket и сбрасывается на restart/ready. Условие по state
+  // стало избыточным и лишь сужает окно: при любом рассинхроне состояния
+  // (скип этапов с пульта, проскок состояния) дверь держалась бы 8 сек по
+  // manualEM2Until и закрывалась.
+  // ВАЖНО: инцидент CLC2 05.08 («кнопка позеленела, дверь закрыта») этим НЕ
+  // объясняется — клиент проходил честно, к моменту команды башня была в
+  // state 6-7 и условие выполнялось. Причина того случая пока не найдена,
+  // поэтому ниже в обработчик opent_basket добавлен лог приёма — чтобы в
+  // следующий раз по журналу сервера отличить «команда не дошла» от
+  // «команда дошла, но соленоид не сработал».
   bool em2Active = basketDoorAllowed || (millis() < manualEM2Until);
   if (millis() - doorDef >= 3000) {
     if (doorFlags) {
