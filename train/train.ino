@@ -1489,46 +1489,21 @@ void loop() {
   }
   // === END DIAG ===
 
-  // 2026-06-05 v2: РАСШИРЕННАЯ диагностика projector-геркона на сервер.
-  // Логируем BOTH transitions (HIGH→LOW и LOW→HIGH) + периодически
-  // текущее состояние pin (раз в 3 сек). Также логируем set/reset латча
-  // и срабатывание condition. Цель: понять почему авто-триггер
-  // {'projector':'end'} происходит сразу при касании map (Эдуард 5 июня).
-  static bool prevPin1State = true;  // HIGH = не нажат
+  // 2026-08-05: убраны блокирующие SendData() из диагностики pin1-переходов
+  // (была добавлена 5 июня для расследования латч-бага, задачу выполнила).
+  // ПРИЧИНА УДАЛЕНИЯ: SendData() — блокирующий HTTP POST (http.setTimeout(100)),
+  // и эти логи вызывались КАЖДЫЙ раз при переходе pin1, ДО проверки условия
+  // в case 1 (несколькими строками ниже по вызову MapGerkon()). При коротком
+  // касании геркона (быстрый тап) могло набежать до 4 блокирующих вызовов
+  // подряд (HIGH→LOW + latch=TRUE + LOW→HIGH + latch=FALSE, до ~400мс суммарно)
+  // — за это время геркон уже отпускали, и case 1 видел pin1=HIGH, пропуская
+  // срабатывание. Симптом клиента 04.08: тронул map, через 2 сек тронул
+  // projector — ничего не произошло, потребовался ручной skip с пульта.
+  // Логика trainSensorLatched (используется в другом месте кода) сохранена,
+  // просто без сетевых вызовов на каждый чих.
   bool currPin1State = INPUTS.digitalRead(1);
-  if (!currPin1State && prevPin1State) {
-      SendData("{\"log\":\"Train DIAG: pin1 HIGH→LOW (магнит поднесли)\"}");
-  }
-  if (currPin1State && !prevPin1State) {
-      SendData("{\"log\":\"Train DIAG: pin1 LOW→HIGH (магнит убрали)\"}");
-  }
-  prevPin1State = currPin1State;
-
-  // Периодически логируем текущее состояние pin1 (раз в 3 сек)
-  static unsigned long lastPin1Periodic = 0;
-  if (millis() - lastPin1Periodic > 3000) {
-      lastPin1Periodic = millis();
-      if (!currPin1State) {
-          SendData("{\"log\":\"Train DIAG: pin1 PERIODIC = LOW (геркон замкнут)\"}");
-      } else {
-          // Не логируем HIGH периодически — это норма, спам в логе
-      }
-  }
-
-  // Set/reset latch с логированием
-  static bool prevLatchState = false;
   if (!currPin1State) {
-      if (!trainSensorLatched) {
-          // Latch только что стал true
-          SendData("{\"log\":\"Train DIAG: trainSensorLatched = TRUE (pin1 LOW)\"}");
-      }
       trainSensorLatched = true;
-  }
-  if (prevLatchState != trainSensorLatched) {
-      if (!trainSensorLatched) {
-          SendData("{\"log\":\"Train DIAG: trainSensorLatched reset = FALSE\"}");
-      }
-      prevLatchState = trainSensorLatched;
   }
   handlePlayerQueries();
   MapGerkon();
