@@ -1783,20 +1783,40 @@ $('.ui.dropdown')
         socket.emit('Remote','workshop')
     });
 
+    // 2026-08-05: кнопки Ghost блокируются СРАЗУ при нажатии.
+    // Раньше кнопка гасла только когда приходило подтверждение (story_40 и
+    // далее). Если Mega ещё не дошла до нужного уровня, она команду не
+    // обрабатывала, подтверждение не приходило — и кнопка оставалась активной.
+    // Оператор жал повторно, команды копились в буфере Serial и срабатывали
+    // ПАЧКОЙ, когда плата доходила до level 11: этап промотывался за секунду
+    // (ghostState 2→3→4→6) ещё до того, как игроки к нему подошли.
+    // Инцидент CLC2 05.08: три 'ghost' за одну секунду, все истории разом.
+    // Страховка: если за 5 сек подтверждения нет (команда потерялась) —
+    // кнопку возвращаем, иначе оператор не смог бы повторить.
+    function ghostStepClick(id) {
+        var $b = $('#' + id);
+        if ($b.hasClass('disabled')) return;   // ещё не наш черёд или уже нажата
+        $b.addClass('disabled');
+        socket.emit('Remote', id);
+        setTimeout(function () {
+            if (!$b.hasClass('positive')) $b.removeClass('disabled');
+        }, 5000);
+    }
+
     $('#ghost_step_1').click(function(){
-        socket.emit('Remote','ghost_step_1')
+        ghostStepClick('ghost_step_1');
     });
     $('#ghost_step_2').click(function(){
-        socket.emit('Remote','ghost_step_2')
+        ghostStepClick('ghost_step_2');
     });
     $('#ghost_step_3').click(function(){
-        socket.emit('Remote','ghost_step_3')
+        ghostStepClick('ghost_step_3');
     });
     $('#ghost_step_4').click(function(){
-        socket.emit('Remote','ghost_step_4') // Это бывшая кнопка 'ghost'
+        ghostStepClick('ghost_step_4');   // Это бывшая кнопка 'ghost'
     });
     $('#ghost_step_5').click(function(){
-        socket.emit('Remote','ghost_step_5') // Это новая кнопка 'star_hint'
+        ghostStepClick('ghost_step_5');   // Это новая кнопка 'star_hint'
     });
 	$('#door_puzzle').click(function(){
         socket.emit('Remote','skip_lib_door')
