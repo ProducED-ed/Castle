@@ -1112,6 +1112,15 @@ def mega_boot_watchdog():
     if _wait_or_done(22):
         return
 
+    # 2026-08-05: последняя проверка перед Reset. Если за время ожидания от
+    # Mega пришла ХОТЬ ОДНА строка — она работает (просто занята игрой и не
+    # отвечает на check_towers, т.к. этот handler есть только в PowerOn/RestOn).
+    # Ресетить её в этом случае нельзя: DTR pulse обнулит прохождение игроков.
+    if mega_initial_boot_received:
+        logger.info("MEGA BOOT WATCHDOG: Mega отвечает (вероятно занята игрой) — "
+                    "Reset НЕ делаем ✅")
+        return
+
     # Шаг 1: DTR pulse 0.5 сек
     logger.warning("MEGA BOOT WATCHDOG: 25с тишины — DTR pulse 0.5с")
     try:
@@ -2994,6 +3003,15 @@ def tech_send_serial(data):
         'open_basket_door', 'open_mine_door',
         # Сервисные
         'check_towers',
+        # 2026-08-05: аварийный проброс этапа Ghost (библиотека, level 11).
+        # Штатно этап проходится ТОЛЬКО физическим датчиком стука
+        # (case 6: analogRead(KnockSens) <= threshold -> level++).
+        # Скип с пульта там не помогает: обработчик 'ghost' имеет ветки лишь
+        # для ghostState 2/3/4, а после третьего нажатия состояние прыгает в 6,
+        # где веток нет — кнопка молча ничего не делает. Если датчик не
+        # срабатывает, игроки застревают намертво. rrt3lck делает level++ и
+        # гасит соленоид — единственный выход без рестарта квеста.
+        'rrt3lck',
     }
     if cmd not in SAFE_DIAG_CMDS:
         logger.warning(f"[TECH-DIAG] rejected non-whitelisted cmd: {cmd}")
@@ -5510,6 +5528,16 @@ def serial():
               # Вместо ser.readline() (который может вернуть неполную строку),
               # читаем все доступные байты и обрабатываем только полные строки.
               serial_lines = serial_read_lines()
+              if serial_lines:
+                   # 2026-08-05: ЛЮБОЕ сообщение от Mega = она жива.
+                   # Раньше boot-watchdog признавал жизнь только по
+                   # QUEST_SYSTEM_READY или ответу на check_towers. Но handler
+                   # check_towers есть ТОЛЬКО в PowerOn() и RestOn() — во время
+                   # игры Mega физически не может ответить на probe. В итоге
+                   # watchdog считал занятую игрой плату зависшей и делал DTR
+                   # pulse, то есть Reset — прохождение клиента обнулялось
+                   # (инцидент CLC2 05.08, сброс прямо во время игры).
+                   globals()['mega_initial_boot_received'] = True
               for line in serial_lines:
                    flag = line
                    
