@@ -386,6 +386,17 @@ def hue_light_async(on, bri_pct=100):
         return
     eventlet.spawn_n(lambda: hue.set_light(on, bri_pct))
 
+def hue_plug_async(on):
+    """Fire-and-forget: умная розетка Hue вкл/выкл.
+
+    Своя проверка, НЕЗАВИСИМАЯ от тумблера света: клиент может подключить
+    только розетку и не трогать управление лампами (и наоборот). Условие
+    ровно одно — бридж спарен, тумблер розетки включён, розетка выбрана.
+    Всё настраивается клиентом на /tech, в коде ничего править не нужно."""
+    if not hue.plug_ready():
+        return
+    eventlet.spawn_n(lambda: hue.set_plug(on))
+
 def hue_single_lamp_async(bri_pct=100, index=0):
     """Fire-and-forget: включить ТОЛЬКО одну лампу группы (по индексу) на bri_pct%,
     ОСТАЛЬНЫЕ лампы группы выключить. Для сцены «горит только 1 лампа»."""
@@ -3195,6 +3206,40 @@ def hue_list():
         'groups': hue.get_groups(),
     })
 
+# ----- Умная розетка Hue (включается когда квест полностью пройден) -----
+@socketio.on('hue_plug_set_enable')
+def hue_plug_set_enable(data):
+    """Тумблер розетки. Отдельный от тумблера света — можно включить только его."""
+    on = bool((data or {}).get('on', False))
+    hue.set_plug_enabled(on)
+    hue_logger.info(f"[HUE] розетка: тумблер={on}")
+    socketio.emit('hue_status', hue.status())
+
+@socketio.on('hue_plug_set_id')
+def hue_plug_set_id(data):
+    """Выбрать розетку: {'plug_id': '7'}."""
+    pid = (data or {}).get('plug_id')
+    hue.set_plug_id(pid)
+    hue_logger.info(f"[HUE] розетка выбрана: id={pid}")
+    socketio.emit('hue_status', hue.status())
+
+@socketio.on('hue_plug_list')
+def hue_plug_list():
+    """Опрос бриджа: что вообще подключено. Розетки помечены is_plug."""
+    socketio.emit('hue_plug_list_data', {'lights': hue.get_lights_detailed()})
+
+@socketio.on('hue_plug_test')
+def hue_plug_test(data):
+    """Тест из /tech: {'on': true/false}. Работает даже при выключенном
+    тумблере — иначе клиент не смог бы проверить розетку до включения."""
+    on = bool((data or {}).get('on', False))
+    if not hue.is_paired():
+        socketio.emit('hue_plug_test_result',
+                      {'on': on, 'success': False, 'message': 'бридж не спарен'})
+        return
+    ok = hue.set_plug(on)
+    socketio.emit('hue_plug_test_result', {'on': on, 'success': ok, 'message': ''})
+
 #декоратор работы socket отвечает за настройки wifi
 @socketio.on('WLAN')
 def WLAN(ssid):
@@ -4746,6 +4791,10 @@ def tmr(res):
          send_esp32_command(ESP32_API_SUITCASE_URL, "restart")
          send_esp32_command(ESP32_API_SAFE_URL, "restart")
          hue_light_async(True, 100)  # HUE: свет на 100% на рестарте
+         # HUE: гасим умную розетку — она включается только по факту полного
+         # прохождения. Без этого следующая группа начала бы игру с уже
+         # включённой розеткой от предыдущей команды.
+         hue_plug_async(False)
          # 2026-05-28 (Вариант C): на рестарте авто-открываем двери башни Basket
          # (троль + баскет). basket3 открывает локеры только на manual-команды,
          # а пульт-Restart шлёт башням "ready" (сброс, без открытия). Поэтому
@@ -4805,6 +4854,7 @@ def tmr(res):
          pending_restart = False
          socketio.emit('level', 'ready_processing') 
          logger.info("Ready command received")
+         hue_plug_async(False)  # HUE: розетка выключена до самого финала квеста
          
          goalCount = 0
          enemyGoalCount = 0
@@ -7668,6 +7718,10 @@ def serial():
                               serial_write_queue.put('play_win_salute') # Сигнал для Главной платы (Сменить волну на салют)
                               play_effect(win)                          # Звук победы (win.wav)
                               hue_light_async(False)  # HUE: гасим свет в момент win+салюта
+                              # HUE: умная розетка — квест пройден полностью.
+                              # Выключается на restart/ready, чтобы следующая
+                              # группа начинала игру с выключенной розеткой.
+                              hue_plug_async(True)
                               # HUE: после окончания победной истории story_66 поднимаем свет на 100%.
                               # Спавним ПОСЛЕ гашения выше — гарантия что 100% ляжет после OFF,
                               # даже если story_66 короче салютных пауз. Ждём окончания channel3.

@@ -658,8 +658,10 @@
         </div>
         <!-- ============ /ДИАГНОСТИКА ============ -->
 
-        <!-- ============ УМНОЕ ОСВЕЩЕНИЕ HUE ============ -->
-        <div class="ui inverted segment" style="margin-top: 30px;">
+        <!-- ============ УМНОЕ ОСВЕЩЕНИЕ HUE + УМНАЯ РОЗЕТКА ============ -->
+        <div class="ui two column stackable grid" style="margin-top: 30px;">
+        <div class="column">
+        <div class="ui inverted segment" style="height:100%;">
             <h3><i class="lightbulb icon"></i> <span data-i18n="hue_title">Умное освещение (Philips Hue)</span></h3>
             <ol style="color:#bbb; padding-left:20px; line-height:1.6;">
                 <li data-i18n="hue_step1">Впиши IP бриджа Hue и нажми «Сохранить IP».</li>
@@ -704,6 +706,51 @@
 
             <div id="hue-progress" style="margin-top:10px; color:#ffd54a; font-family:monospace; display:none;"></div>
             <div id="hue-list" style="margin-top:10px; color:#ddd; font-family:monospace; font-size:12px; display:none; max-height:180px; overflow-y:auto;"></div>
+        </div>
+        </div>
+
+        <!-- ---------- УМНАЯ РОЗЕТКА HUE ---------- -->
+        <div class="column">
+        <div class="ui inverted segment" style="height:100%;">
+            <h3><i class="plug icon"></i> <span data-i18n="plug_title">Умная розетка (Philips Hue)</span></h3>
+            <p style="color:#bbb; line-height:1.5;" data-i18n="plug_intro">
+                Розетка включается в момент, когда квест пройден полностью, и
+                выключается при нажатии Restart или Ready. Бридж используется тот
+                же, что и для освещения слева — отдельно подключать его не нужно.
+            </p>
+            <ol style="color:#bbb; padding-left:20px; line-height:1.6;">
+                <li data-i18n="plug_step1">Сначала подключи бридж в блоке слева (IP + кнопка на бридже + «Pair»).</li>
+                <li data-i18n="plug_step2">Добавь розетку в приложение Philips Hue на телефоне, чтобы бридж её увидел.</li>
+                <li data-i18n="plug_step3">Нажми «Найти розетки» и выбери свою в списке.</li>
+                <li data-i18n="plug_step4">Проверь кнопками «Розетка ВКЛ / ВЫКЛ (тест)».</li>
+                <li data-i18n="plug_step5">Включи тумблер «Включить управление розеткой».</li>
+            </ol>
+
+            <div class="ui toggle checkbox" style="margin-bottom:14px;">
+                <input type="checkbox" id="plug-enable" onchange="huePlugSetEnable(this.checked)">
+                <label style="color:#ddd;" data-i18n="plug_enable">Включить управление розеткой</label>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                <span style="color:#ddd;" data-i18n="plug_status_label">Статус:</span>
+                <span id="plug-status" class="ui label">—</span>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                <span style="color:#ddd;" data-i18n="plug_select">Розетка:</span>
+                <select id="plug-select" style="padding:5px; min-width:190px;"></select>
+                <button class="ui small button" onclick="huePlugSaveId()"><span data-i18n="plug_save">Сохранить розетку</span></button>
+                <button class="ui small basic inverted button" onclick="huePlugList()"><span data-i18n="plug_find">Найти розетки</span></button>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <button class="ui green button" onclick="huePlugTest(true)"><span data-i18n="plug_test_on">Розетка ВКЛ (тест)</span></button>
+                <button class="ui red button" onclick="huePlugTest(false)"><span data-i18n="plug_test_off">Розетка ВЫКЛ (тест)</span></button>
+            </div>
+
+            <div id="plug-msg" style="margin-top:10px; color:#ffd54a; font-family:monospace; display:none;"></div>
+        </div>
+        </div>
         </div>
         <!-- ============ /HUE ============ -->
 
@@ -855,7 +902,28 @@
                 hue_refresh: "Обновить список групп",
                 hue_paired: "Подключён",
                 hue_not_paired: "Не подключён",
-                hue_pairing: "Ожидание кнопки на бридже..."
+                hue_pairing: "Ожидание кнопки на бридже...",
+                plug_title: "Умная розетка (Philips Hue)",
+                plug_intro: "Розетка включается в момент, когда квест пройден полностью, и выключается при нажатии Restart или Ready. Бридж используется тот же, что и для освещения слева — отдельно подключать его не нужно.",
+                plug_step1: "Сначала подключи бридж в блоке слева (IP + кнопка на бридже + «Pair»).",
+                plug_step2: "Добавь розетку в приложение Philips Hue на телефоне, чтобы бридж её увидел.",
+                plug_step3: "Нажми «Найти розетки» и выбери свою в списке.",
+                plug_step4: "Проверь кнопками «Розетка ВКЛ / ВЫКЛ (тест)».",
+                plug_step5: "Включи тумблер «Включить управление розеткой».",
+                plug_enable: "Включить управление розеткой",
+                plug_status_label: "Статус:",
+                plug_select: "Розетка:",
+                plug_save: "Сохранить розетку",
+                plug_find: "Найти розетки",
+                plug_test_on: "Розетка ВКЛ (тест)",
+                plug_test_off: "Розетка ВЫКЛ (тест)",
+                plug_no_bridge: "Бридж не подключён",
+                plug_not_chosen: "Розетка не выбрана",
+                plug_off_toggle: "Тумблер выключен",
+                plug_ready: "Готова",
+                plug_searching: "Опрашиваю бридж...",
+                plug_found: "Найдено розеток",
+                plug_none_found: "Розеток не найдено — выбери устройство из списка вручную"
             },
             en: {
                 title: "Technical Firmware Dashboard",
@@ -996,7 +1064,28 @@
                 hue_refresh: "Refresh group list",
                 hue_paired: "Connected",
                 hue_not_paired: "Not connected",
-                hue_pairing: "Waiting for bridge button..."
+                hue_pairing: "Waiting for bridge button...",
+                plug_title: "Smart plug (Philips Hue)",
+                plug_intro: "The plug switches on the moment the quest is fully completed, and switches off when Restart or Ready is pressed. It uses the same bridge as the lighting on the left — no separate pairing needed.",
+                plug_step1: "First connect the bridge in the block on the left (IP + button on the bridge + \u00abPair\u00bb).",
+                plug_step2: "Add the plug in the Philips Hue phone app so the bridge can see it.",
+                plug_step3: "Press \u00abFind plugs\u00bb and pick yours from the list.",
+                plug_step4: "Check it with the \u00abPlug ON / OFF (test)\u00bb buttons.",
+                plug_step5: "Turn on the \u00abEnable plug control\u00bb switch.",
+                plug_enable: "Enable plug control",
+                plug_status_label: "Status:",
+                plug_select: "Plug:",
+                plug_save: "Save plug",
+                plug_find: "Find plugs",
+                plug_test_on: "Plug ON (test)",
+                plug_test_off: "Plug OFF (test)",
+                plug_no_bridge: "Bridge not connected",
+                plug_not_chosen: "No plug selected",
+                plug_off_toggle: "Switch is off",
+                plug_ready: "Ready",
+                plug_searching: "Querying the bridge...",
+                plug_found: "Plugs found",
+                plug_none_found: "No plugs found — pick a device from the list manually"
             }
         };
         let currentLang = localStorage.getItem('techLang') || 'ru';
@@ -2016,7 +2105,71 @@
             if (s.paired && $('#hue-group option').length < 1) {
                 socket.emit('hue_list');
             }
+            huePlugRenderStatus(s);
         }
+
+        // ---------- Умная розетка Hue ----------
+        // Бридж общий с освещением, поэтому статус приходит тем же событием
+        // hue_status — отдельного запроса состояния не нужно.
+        function huePlugSetEnable(on) { socket.emit('hue_plug_set_enable', { on: on }); }
+        function huePlugSaveId() {
+            socket.emit('hue_plug_set_id', { plug_id: $('#plug-select').val() });
+        }
+        function huePlugTest(on) { socket.emit('hue_plug_test', { on: on }); }
+        function huePlugList() {
+            socket.emit('hue_plug_list');
+            $('#plug-msg').show().css('color', '#ffd54a').text(T('plug_searching'));
+        }
+        function huePlugRenderStatus(s) {
+            $('#plug-enable').prop('checked', !!s.plug_enabled);
+            const label = $('#plug-status');
+            if (!s.paired) {
+                label.removeClass('green yellow').addClass('red').text(T('plug_no_bridge'));
+            } else if (!s.plug_id) {
+                label.removeClass('green red').addClass('yellow').text(T('plug_not_chosen'));
+            } else if (!s.plug_enabled) {
+                label.removeClass('green red').addClass('yellow')
+                     .text(T('plug_off_toggle') + ': ' + (s.plug_name || s.plug_id));
+            } else {
+                label.removeClass('red yellow').addClass('green')
+                     .text(T('plug_ready') + ': ' + (s.plug_name || s.plug_id));
+            }
+            $('#plug-select').data('sel', s.plug_id || '');
+            // Список подтягиваем сам, если бридж уже спарен, а выпадашка пуста
+            // (например после F5) — чтобы клиент видел свою розетку сразу.
+            if (s.paired && $('#plug-select option').length < 1) {
+                socket.emit('hue_plug_list');
+            }
+        }
+        socket.on('hue_plug_list_data', function(d) {
+            const $sel = $('#plug-select');
+            const chosen = $sel.data('sel') || '';
+            const lights = d.lights || {};
+            $sel.empty();
+            // Розетки — первыми и со значком: у клиента в бридже могут быть
+            // десятки ламп, и найти среди них розетку иначе тяжело. Лампы
+            // всё равно показываем: если бридж назовёт тип розетки иначе,
+            // клиент не останется с пустым списком.
+            const entries = Object.entries(lights);
+            const plugs  = entries.filter(function(e) { return e[1].is_plug; });
+            const others = entries.filter(function(e) { return !e[1].is_plug; });
+            plugs.concat(others).forEach(function(e) {
+                const id = e[0], info = e[1];
+                const mark = info.is_plug ? '\u25A0 ' : '';
+                const sel = (id === chosen) ? ' selected' : '';
+                $sel.append('<option value="' + id + '"' + sel + '>' + mark +
+                            info.name + ' — ' + info.type + '</option>');
+            });
+            const msg = plugs.length
+                ? T('plug_found') + ': ' + plugs.length
+                : T('plug_none_found');
+            $('#plug-msg').show().css('color', plugs.length ? '#7eff7e' : '#ffd54a').text(msg);
+        });
+        socket.on('hue_plug_test_result', function(d) {
+            const what = d.on ? T('plug_test_on') : T('plug_test_off');
+            const txt = d.success ? (what + ': OK') : (what + ': FAIL ' + (d.message || ''));
+            $('#plug-msg').show().css('color', d.success ? '#7eff7e' : '#ff7e7e').text(txt);
+        });
         function hueFillGroupSelect(groups) {
             const $sel = $('#hue-group');
             const chosen = $sel.data('sel') || '';

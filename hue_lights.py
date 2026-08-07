@@ -9,13 +9,22 @@
     set_light(on=False)              → выключить
 Это даёт точную яркость под сценарий квеста (в отличие от фиксированных сцен).
 
+Кроме ламп поддерживается УМНАЯ РОЗЕТКА Hue. Розетка на бридже — это обычный
+"light" с типом "On/Off plug-in unit", поэтому управляется теми же вызовами
+/lights/<id>/state, только без яркости (bri розетка игнорирует).
+Задача розетки в квесте: включиться в момент полного прохождения (play_win_salute).
+
 Состояние — в hue_config.json рядом с CastleServer.py:
     {
       "bridge_ip": "192.168.1.141",
       "app_key":  "<получается при pairing>",
-      "enabled":  true/false,     # общий тумблер фичи на /tech
-      "group_id": "2"             # какой группой Hue управлять (напр. "Castle")
+      "enabled":  true/false,     # общий тумблер света на /tech
+      "group_id": "2",            # какой группой Hue управлять (напр. "Castle")
+      "plug_enabled": true/false, # отдельный тумблер розетки
+      "plug_id": "7"              # id розетки в /lights
     }
+Бридж у ламп и розетки ОБЩИЙ — pairing один на оба блока. Тумблеры раздельные:
+клиент может подключить только розетку, не трогая свет, и наоборот.
 """
 import json
 import logging
@@ -35,6 +44,9 @@ class HueClient:
         self.app_key = None
         self.enabled = False
         self.group_id = default_group
+        self.plug_enabled = False
+        self.plug_id = None
+        self._plug_names = {}        # кэш {id: name} розеток для читаемых логов
         self._group_names = {}       # кэш {id: name} для читаемых логов
         self._group_light_ids = []   # кэш id ламп в текущей группе
         self.load()
@@ -50,9 +62,13 @@ class HueClient:
             self.app_key = data.get("app_key")
             self.enabled = bool(data.get("enabled", False))
             self.group_id = str(data.get("group_id", self.group_id))
+            self.plug_enabled = bool(data.get("plug_enabled", False))
+            pid = data.get("plug_id")
+            self.plug_id = str(pid) if pid not in (None, "") else None
             logger.info(f"HUE: config loaded (ip={self.bridge_ip}, "
                         f"paired={bool(self.app_key)}, enabled={self.enabled}, "
-                        f"group={self.group_id})")
+                        f"group={self.group_id}, plug={self.plug_id} "
+                        f"enabled={self.plug_enabled})")
         except Exception as e:
             logger.warning(f"HUE: cannot load {self.config_path}: {e}")
 
@@ -64,6 +80,8 @@ class HueClient:
                     "app_key": self.app_key,
                     "enabled": self.enabled,
                     "group_id": self.group_id,
+                    "plug_enabled": self.plug_enabled,
+                    "plug_id": self.plug_id,
                 }, f, indent=2)
             logger.info(f"HUE: config saved to {self.config_path}")
         except Exception as e:
@@ -81,6 +99,14 @@ class HueClient:
 
     def set_group(self, group_id):
         self.group_id = str(group_id) if group_id else self.group_id
+        self.save()
+
+    def set_plug_enabled(self, on):
+        self.plug_enabled = bool(on)
+        self.save()
+
+    def set_plug_id(self, plug_id):
+        self.plug_id = str(plug_id) if plug_id not in (None, "") else None
         self.save()
 
     # ---------- state ----------
@@ -102,7 +128,16 @@ class HueClient:
             "app_key_short": (self.app_key[:8] + "...") if self.app_key else None,
             "group_id": self.group_id,
             "group_name": self._group_name(),
+            "plug_enabled": self.plug_enabled,
+            "plug_id": self.plug_id,
+            "plug_name": self._plug_names.get(str(self.plug_id), self.plug_id),
+            "plug_ready": self.plug_ready(),
         }
+
+    def plug_ready(self):
+        """Розетка настроена и готова сработать: бридж спарен, тумблер включён,
+        розетка выбрана. Ровно это условие проверяет сервер перед включением."""
+        return bool(self.app_key and self.plug_enabled and self.plug_id)
 
     # ---------- pairing ----------
     def try_pair_once(self):
@@ -146,6 +181,43 @@ class HueClient:
         if isinstance(data, dict):
             return {lid: info.get("name", "?") for lid, info in data.items()}
         return {}
+
+    # Типы, которыми бридж отдаёт умные розетки. Список — только для ПОДСКАЗКИ
+    # в интерфейсе: в выпадающем списке розетки идут первыми и помечены значком.
+    # Фильтровать по нему жёстко нельзя — у новых моделей строка типа может
+    # отличаться, и клиент увидел бы пустой список вместо своей розетки.
+    PLUG_TYPE_HINTS = ("plug", "on/off")
+
+    def get_lights_detailed(self):
+        """{id: {name, type, modelid, is_plug}} — всё, что бридж считает "лампой".
+        Умная розетка Hue тоже попадает сюда, с type "On/Off plug-in unit"."""
+        data = self._get("lights")
+        if not isinstance(data, dict):
+            return {}
+        out = {}
+        names = {}
+        for lid, info in data.items():
+            ltype = (info.get("type") or "")
+            name = info.get("name", "?")
+            is_plug = any(h in ltype.lower() for h in self.PLUG_TYPE_HINTS)
+            out[lid] = {"name": name, "type": ltype,
+                        "modelid": info.get("modelid", ""), "is_plug": is_plug}
+            if is_plug:
+                names[lid] = name
+        self._plug_names = names
+        return out
+
+    def set_plug(self, on):
+        """Включить/выключить умную розетку. Яркость не шлём — розетка её
+        игнорирует, а лишний ключ в теле некоторые прошивки бриджа отвергают."""
+        if not self.plug_id:
+            logger.warning("HUE: розетка не выбрана — команда пропущена")
+            return False
+        ok = self._put_light_state(self.plug_id, {"on": bool(on)})
+        name = self._plug_names.get(str(self.plug_id), self.plug_id)
+        logger.info(f"HUE: розетка '{name}' → {'ВКЛ' if on else 'ВЫКЛ'} "
+                    f"→ {'OK' if ok else 'ОШИБКА'}")
+        return ok
 
     def get_groups(self):
         """{group_id: {name, lights}}. Побочно кэшируем имена для логов."""
