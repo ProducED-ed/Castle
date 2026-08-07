@@ -215,6 +215,20 @@ const int TRACK_TRAIN = 5;
 const int TRACK_GHOST = 6;
 const int TRACK_ENGINE3 = 43;
 
+// 2026-08-07: страховка на потерянное событие finishedTrack от DFPlayer.
+// Запуск самой игры с поездом (state 1 -> 2) висел на ДВУХ подряд событиях
+// «трек доиграл»: projector -> TRACK_TRAIN_ON -> STORY_15 -> state = 2.
+// Библиотека DFRobotDFPlayerMini эти события теряет (тот же класс, что чинили
+// на Safe и на Chest), а запасного пути не было вообще — поезд оставался в
+// state 1 навсегда, и геймастеру приходилось скипать этап с пульта.
+// Лог CLC3 06.08: 09:47:24 {"projector":"end"} -> тишина -> 10:07:47 ручной скип.
+// Событие может и не потеряться, а быть перебито: любой трек, запущенный
+// поверх (подсказка по кнопке), тоже обрывает цепочку без шанса восстановиться.
+unsigned long trainOnStartedAt = 0;   // millis() запуска TRACK_TRAIN_ON, 0 = не ждём
+unsigned long story15StartedAt = 0;   // millis() запуска STORY_15, 0 = не ждём
+const unsigned long TRAIN_ON_MAX_MS = 20000UL;  // train_on ~7.4 сек, запас тройной
+const unsigned long STORY15_MAX_MS  = 60000UL;  // истории квеста 10-15 сек
+
 bool isTrainClick = false;
 bool isOwlClick = false;
 bool isKeyClick = false;
@@ -647,6 +661,8 @@ void setup() {
         mapClicksDisabled = false;
         isStartTrain = 0; // На всякий случай сбрасываем и это
 		    trainEndConfirmed = false; // Сбрасываем флаг
+        trainOnStartedAt = 0;      // 2026-08-07: чтобы сторож от прошлой игры
+        story15StartedAt = 0;      // не выстрелил посреди новой
       }
       if (body == "\"volume_up\"") {
         value = value + 1;
@@ -757,6 +773,8 @@ void setup() {
       if (body == "\"projector\"") {
         myMP3.playMp3Folder(TRACK_TRAIN_ON);
         SendData("{\"log\":\"Train: Playing Train On sound\"}");
+        trainOnStartedAt = millis();  // 2026-08-07: скип с пульта идёт по той же
+        story15StartedAt = 0;         // цепочке DFPlayer — сторож нужен и здесь
         ActiveLeds[0] = 9;
         ClickLeds[0] = -1;
         isStartTrain = 0;
@@ -771,6 +789,8 @@ void setup() {
       }
       if (body == "\"skip\"") {
         state = 3;
+        trainOnStartedAt = 0;   // 2026-08-07: этап скипнут, сторож цепочки снимаем
+        story15StartedAt = 0;
         myMP3.stop();
         delay(50);
         myMP3.disableLoop();
@@ -862,6 +882,8 @@ void setup() {
         isFishClick = false;
         isStartTimer = false;
         isStartTrain = false;
+        trainOnStartedAt = 0;      // 2026-08-07: сторож цепочки train_on/story_15
+        story15StartedAt = 0;
         isTrainEnd = false;
         isSkinPulsation = false;
         ghostFlag = false;
@@ -1506,6 +1528,7 @@ void loop() {
       trainSensorLatched = true;
   }
   handlePlayerQueries();
+  TrainIntroWatchdog();   // 2026-08-07: страховка на потерянные события DFPlayer
   MapGerkon();
   MapLeds();
   StartTimer();
@@ -1804,12 +1827,26 @@ void loop() {
           SendData("{\"log\":\"Train DIAG: CONDITION FIRED — pin1=LOW (live), mapState=train, isStartTrain=0\"}");
           Serial.println("Train click detected!");
           myMP3.playMp3Folder(TRACK_TRAIN_ON);
-          
+          trainOnStartedAt = millis();  // 2026-08-07: взводим сторож цепочки
+          story15StartedAt = 0;
+
+          // 2026-08-07: этап поезда начался — таймер карты больше не нужен.
+          // Раньше он досчитывал свои 9 секунд и сбрасывал state в 0 прямо
+          // во время вступительной истории (в лог при этом ничего не шло,
+          // т.к. isSendOut=1 глушит {"map":"out"}). Само по себе это игру не
+          // ломало, но открывало ветку подсказки по кнопке для state==0,
+          // а подсказка обрывает трек и вместе с ним всю цепочку.
+          // ВАЖНО: ResetTimer() обнуляет isStartTrain/isSendOut, поэтому
+          // вызываем его ДО того, как выставим эти флаги.
+          isStartTimer = false;
+          ResetTimer();
+
           // Местная индикация сразу
           ActiveLeds[0] = 9;
           ClickLeds[0] = -1;
-          isStartTrain = 1; 
+          isStartTrain = 1;
           isSendOut = 1;
+          isTrainClick = true;   // ResetTimer() снял флаг — возвращаем, как было до таймаута
           trainSensorLatched = false;
 
           // --- Отправляем команду на сервер (3 раза для надежности) ---
@@ -2289,6 +2326,57 @@ void checkGreen() {
   isGreen = (abs(hue - greenHue) <= 30);
 }
 
+// 2026-08-07: запуск вступительной истории поезда одним местом.
+// Раньше этот блок жил только внутри handlePlayerQueries() и вызывался
+// исключительно по событию «TRACK_TRAIN_ON доиграл». Теперь его же дёргает
+// страховочный таймер в loop(), когда события от DFPlayer не дождались.
+void playStory15() {
+  trainOnStartedAt = 0;          // ждать конец train_on больше не нужно
+  if (language == 1) {
+    myMP3.playMp3Folder(TRACK_STORY_15_RU);
+    SendData("{\"log\":\"Train: Playing Story 15 (RU)\"}");
+  }
+  if (language == 2) {
+    myMP3.playMp3Folder(TRACK_STORY_15_EN);
+    SendData("{\"log\":\"Train: Playing Story 15 (EN)\"}");
+  }
+  if (language == 3) {
+    myMP3.playMp3Folder(TRACK_STORY_15_AR);
+    SendData("{\"log\":\"Train: Playing Story 15 (AR)\"}");
+  }
+  if (language == 4) {
+    myMP3.playMp3Folder(TRACK_STORY_15_FR);
+    SendData("{\"log\":\"Train: Playing Story 15 (FR)\"}");
+  }
+  if (language == 5) {
+    myMP3.playMp3Folder(TRACK_STORY_15_UK);
+    SendData("{\"log\":\"Train: Playing Story 15 (UK)\"}");
+  }
+  if (language == 6) {
+    myMP3.playMp3Folder(TRACK_STORY_15_PL);
+    SendData("{\"log\":\"Train: Playing Story 15 (PL)\"}");
+  }
+  story15StartedAt = millis();   // с этого момента ждём state = 2
+}
+
+// 2026-08-07: страховка на потерянные события DFPlayer в цепочке
+// projector -> train_on -> story_15 -> старт игры. Вызывается из loop()
+// безусловно, а не из case 1: StartTimer() по истечении 9 секунд карты
+// сбрасывает state в 0, и сторож внутри switch туда бы просто не попал.
+void TrainIntroWatchdog() {
+  if (trainOnStartedAt && millis() - trainOnStartedAt > TRAIN_ON_MAX_MS) {
+    SendData("{\"log\":\"Train FALLBACK: конец train_on не пришёл от DFPlayer — запускаю Story 15 сам\"}");
+    playStory15();
+  }
+  if (story15StartedAt && millis() - story15StartedAt > STORY15_MAX_MS) {
+    SendData("{\"log\":\"Train FALLBACK: конец Story 15 не пришёл от DFPlayer — запускаю игру сам\"}");
+    story15StartedAt = 0;
+    state = 2;
+    isStartTimer = false;   // как в штатной ветке: таймер карты не должен сбросить игру
+    ResetTimer();
+  }
+}
+
 void handlePlayerQueries() {
   static bool flagTrack;
   static unsigned long trackTimer;
@@ -2312,37 +2400,15 @@ void handlePlayerQueries() {
       Serial.println(finishedTrack);
       delay(100);
       if (finishedTrack == TRACK_TRAIN_ON && !flagTrack) {
-        if (language == 1) {
-          myMP3.playMp3Folder(TRACK_STORY_15_RU);
-          SendData("{\"log\":\"Train: Playing Story 15 (RU)\"}");
-        }
-        if (language == 2) {
-          myMP3.playMp3Folder(TRACK_STORY_15_EN);
-          SendData("{\"log\":\"Train: Playing Story 15 (EN)\"}");
-        }
-        if (language == 3) {
-          myMP3.playMp3Folder(TRACK_STORY_15_AR);
-          SendData("{\"log\":\"Train: Playing Story 15 (AR)\"}");
-        }
-        if (language == 4) {
-          myMP3.playMp3Folder(TRACK_STORY_15_FR);
-          SendData("{\"log\":\"Train: Playing Story 15 (FR)\"}");
-        }
-        if (language == 5) {
-          myMP3.playMp3Folder(TRACK_STORY_15_UK);
-          SendData("{\"log\":\"Train: Playing Story 15 (UK)\"}");
-        }
-        if (language == 6) {
-          myMP3.playMp3Folder(TRACK_STORY_15_PL);
-          SendData("{\"log\":\"Train: Playing Story 15 (PL)\"}");
-        }
+        playStory15();        // 2026-08-07: тот же блок, вынесен в функцию
         trackTimer = millis();
         flagTrack = 1;
         hintFlag = 0;
       }
-      if ((finishedTrack == TRACK_STORY_15_RU) || (finishedTrack == TRACK_STORY_15_EN) || (finishedTrack == TRACK_STORY_15_AR) || 
+      if ((finishedTrack == TRACK_STORY_15_RU) || (finishedTrack == TRACK_STORY_15_EN) || (finishedTrack == TRACK_STORY_15_AR) ||
           (finishedTrack == TRACK_STORY_15_FR) || (finishedTrack == TRACK_STORY_15_UK) || (finishedTrack == TRACK_STORY_15_PL)) {
         state = 2;
+        story15StartedAt = 0; // 2026-08-07: штатный путь отработал, сторож не нужен
         Serial.println("state");
         isStartTimer = false; // Останавливаем таймер карты, чтобы он не сбросил игру
         ResetTimer();         // Сбрасываем визуализацию таймера

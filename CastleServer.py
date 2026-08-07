@@ -202,6 +202,27 @@ def scale_vol(ui_vol):
     """Переводит шкалу пульта 0-20 в физическую шкалу DFPlayer 0-30"""
     return int((float(ui_vol) / 20.0) * 30)
 
+# 2026-08-07: сколько историй прямо сейчас находятся ВНУТРИ play_story(), но
+# ещё не дошли до channel3.play(). Между строкой лога "PLAY [История/Подсказка]"
+# и фактическим стартом звука лежит цикл плавного приглушения фоновой музыки —
+# до ~2 секунд eventlet.sleep(). Всё это время story_busy() == False, и
+# любой другой обработчик считал канал свободным: очередь историй, периодические
+# фразы банкира story_22_*, подсказки по клику карты, check_story_and_fade_up().
+# Симптом у клиента 06.08 на CLC3: 10:11:27 стартовала story_30 тролля и в ту же
+# секунду её перебила story_22_c банкира — игрок не дослушал финал этапа.
+# Счётчик, а не флаг: две истории могут находиться в этом окне одновременно.
+story_play_pending = 0
+
+
+def story_busy():
+    """Занят ли канал историй — включая ещё не начавшуюся, но уже запущенную.
+
+    Везде, где раньше стояло story_busy(), нужен именно этот ответ:
+    «прозвучит ли сейчас чужая история, если я запущу свою».
+    """
+    return story_busy() or story_play_pending > 0
+
+
 def play_localized_audio(base_name, loops=0):
     """
     Автоматически формирует имя файла на основе текущего языка и воспроизводит его.
@@ -3824,7 +3845,7 @@ def Remote(check):
              # 2026-07-10: ждём окончания текущей истории (например story_3_b после
              # clock2) — Remote-хендлер живёт в отдельном greenlet и раньше перебивал
              # рассказ на полуслове (лог 2026-06-04 16:14: story_3_b оборван story_5).
-             while channel3.get_busy() and go == 1:
+             while story_busy() and go == 1:
                  eventlet.sleep(0.1)
 
              # 2. Добавляем всю пропущенную логику из 'if flag=="galet_on":'
@@ -3834,12 +3855,12 @@ def Remote(check):
              # 3. Воспроизводим истории (ОПТИМИЗИРОВАНО)
              play_localized_audio("story_5")
 
-             while channel3.get_busy()==True and go == 1: 
+             while story_busy()==True and go == 1: 
                  eventlet.sleep(0.1)
              
              play_localized_audio("story_6")
 
-             while channel3.get_busy()==True and go == 1: 
+             while story_busy()==True and go == 1: 
                  eventlet.sleep(0.1)
 
              # 4. Активируем ESP32 и Train
@@ -4007,7 +4028,7 @@ def Remote(check):
                   if story13Flag == 0:
                        story13Flag = 1
                        play_localized_audio("story_13")
-                       while channel3.get_busy()==True and go == 1:
+                       while story_busy()==True and go == 1:
                             eventlet.sleep(0.1)
                   play_localized_audio("story_14_a")
         if check == 'owls':
@@ -4115,12 +4136,12 @@ def Remote(check):
                   eventlet.sleep(0.1)
              #----История 25 (полная имитация, Эдуард 4 июня выбрал включать)
              play_localized_audio("story_25")
-             while channel3.get_busy()==True and go == 1:
+             while story_busy()==True and go == 1:
                   eventlet.sleep(0.1)
              eventlet.sleep(1.1)
              #----История 31
              play_localized_audio("story_31")
-             while channel3.get_busy()==True and go == 1:
+             while story_busy()==True and go == 1:
                   eventlet.sleep(0.1)
              #----Звук + открытие двери Workshop
              play_effect(door_workshop)
@@ -4486,7 +4507,7 @@ def handle_data():
           # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
           # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
           # занят — hint просто пропускается, игрок услышит на следующем клике.
-          if channel3.get_busy():
+          if story_busy():
                logger.debug("map click hint пропущен — channel3 занят историей")
           elif mapClickHints == 0:
                mapClickHints = 1
@@ -4505,7 +4526,7 @@ def handle_data():
           # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
           # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
           # занят — hint просто пропускается, игрок услышит на следующем клике.
-          if channel3.get_busy():
+          if story_busy():
                logger.debug("map click hint пропущен — channel3 занят историей")
           elif mapClickHints == 0:
                mapClickHints = 1
@@ -4524,7 +4545,7 @@ def handle_data():
           # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
           # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
           # занят — hint просто пропускается, игрок услышит на следующем клике.
-          if channel3.get_busy():
+          if story_busy():
                logger.debug("map click hint пропущен — channel3 занят историей")
           elif mapClickHints == 0:
                mapClickHints = 1
@@ -4540,7 +4561,7 @@ def handle_data():
           # 2026-07-10: подсказка по клику НЕ перебивает играющую историю
           # (лог 2026-06-02 16:58: story_10 оборван story_12_a). Если канал
           # занят — hint просто пропускается, игрок услышит на следующем клике.
-          if channel3.get_busy():
+          if story_busy():
                logger.debug("map click hint пропущен — channel3 занят историей")
           elif mapClickHints == 0:
                mapClickHints = 1
@@ -4989,8 +5010,8 @@ def is_number(str):
 
 def play_story(audio_source, loops=0, volume_file='3.txt'):
     # --- ОБНОВЛЕННАЯ ЛОГИКА: ЛЕНИВАЯ ЗАГРУЗКА ---
-    global story_fade_active, phoneLevel, go
-    
+    global story_fade_active, phoneLevel, go, story_play_pending
+
     sound_object = None
     filename_for_log = "Unknown"
 
@@ -5016,51 +5037,63 @@ def play_story(audio_source, loops=0, volume_file='3.txt'):
 
     logging.info(f"PLAY [История/Подсказка]: {filename_for_log}")
 
-    # СТРАХОВКА: Если канал историй молчит, значит фейд точно не активен.
-    if not channel3.get_busy():
-        story_fade_active = False
-    
-    # 2. Приглушаем фоновую музыку (только если она еще не приглушена)
-    if not story_fade_active and go == 1:
-        story_fade_active = True
-        serial_write_queue.put('soundon')
-        
-        # Получаем текущий phoneLevel
-        try:
-            with open('1.txt', 'r') as f:
-                phoneLevel = float(f.read(4))
-        except Exception as e:
-            logger.error(f"Ошибка чтения файла громкости 1.txt (в play_story): {e}")
-            pass 
+    # 2026-08-07: занимаем канал ДО фактического play(). Ниже лежит цикл
+    # приглушения фона на eventlet.sleep() — до ~2 секунд, в течение которых
+    # channel3.get_busy() ещё False. См. комментарий у story_busy().
+    story_play_pending += 1
+    try:
+        # СТРАХОВКА: Если канал историй молчит, значит фейд точно не активен.
+        # Здесь намеренно сырой get_busy(), а не story_busy(): наш собственный
+        # pending уже взведён строкой выше и всегда давал бы True.
+        if not channel3.get_busy():
+            story_fade_active = False
 
-        temp_vol = phoneLevel 
-        target_vol = 0.1 # Целевая громкость 10%
-        
-        while temp_vol > target_vol and go == 1:
-            temp_vol = round(temp_vol, 2) - 0.01
-            if temp_vol < target_vol: temp_vol = target_vol 
-            pygame.mixer.music.set_volume(round(temp_vol, 2))
-            eventlet.sleep(0.05) 
-        
-        eventlet.sleep(0.1)
-    
-    # 3. Воспроизводим
-    if sound_object:
-        # ИСПРАВЛЕНИЕ: Читаем громкость из файла и применяем ТОЛЬКО через канал.
-        # Раньше громкость ставилась и на sound_object, и на channel3 (через Voice handler),
-        # что приводило к двойному умножению: эффективная громкость = sound.vol × channel.vol.
-        # Теперь sound.volume всегда 1.0, а channel3.set_volume() ставится сразу после play().
-        try:
-            with open(volume_file, 'r') as f:
-                volume = float(f.read(4))
-        except Exception as e:
-            logger.error(f"Ошибка чтения файла громкости {volume_file} (в play_story): {e}")
-            volume = 0.5  # Безопасное значение по умолчанию
-        
-        sound_object.set_volume(1.0)  # Нейтральная громкость на объекте
-        channel3.play(sound_object, loops=loops)
-        channel3.set_volume(volume, volume)  # Громкость только через канал
-            
+        # 2. Приглушаем фоновую музыку (только если она еще не приглушена)
+        if not story_fade_active and go == 1:
+            story_fade_active = True
+            serial_write_queue.put('soundon')
+
+            # Получаем текущий phoneLevel
+            try:
+                with open('1.txt', 'r') as f:
+                    phoneLevel = float(f.read(4))
+            except Exception as e:
+                logger.error(f"Ошибка чтения файла громкости 1.txt (в play_story): {e}")
+                pass
+
+            temp_vol = phoneLevel
+            target_vol = 0.1 # Целевая громкость 10%
+
+            while temp_vol > target_vol and go == 1:
+                temp_vol = round(temp_vol, 2) - 0.01
+                if temp_vol < target_vol: temp_vol = target_vol
+                pygame.mixer.music.set_volume(round(temp_vol, 2))
+                eventlet.sleep(0.05)
+
+            eventlet.sleep(0.1)
+
+        # 3. Воспроизводим
+        if sound_object:
+            # ИСПРАВЛЕНИЕ: Читаем громкость из файла и применяем ТОЛЬКО через канал.
+            # Раньше громкость ставилась и на sound_object, и на channel3 (через Voice handler),
+            # что приводило к двойному умножению: эффективная громкость = sound.vol × channel.vol.
+            # Теперь sound.volume всегда 1.0, а channel3.set_volume() ставится сразу после play().
+            try:
+                with open(volume_file, 'r') as f:
+                    volume = float(f.read(4))
+            except Exception as e:
+                logger.error(f"Ошибка чтения файла громкости {volume_file} (в play_story): {e}")
+                volume = 0.5  # Безопасное значение по умолчанию
+
+            sound_object.set_volume(1.0)  # Нейтральная громкость на объекте
+            channel3.play(sound_object, loops=loops)
+            channel3.set_volume(volume, volume)  # Громкость только через канал
+    finally:
+        # Освобождаем резерв в любом случае — иначе канал остался бы «занят»
+        # навсегда и все истории после сбоя молчали бы.
+        story_play_pending -= 1
+
+
 def effects_are_busy():
     """Возвращает True, если играет ЛЮБОЙ из каналов эффектов"""
     for ch in effects_pool:
@@ -5282,11 +5315,11 @@ story_audio_queue = []
 
 def story_queue_worker():
     while True:
-        if story_audio_queue and not channel3.get_busy() and go == 1:
+        if story_audio_queue and not story_busy() and go == 1:
             item = story_audio_queue.pop(0)
             play_localized_audio(item['story'])
             # ждём окончания именно этой истории
-            while channel3.get_busy() and go == 1:
+            while story_busy() and go == 1:
                 eventlet.sleep(0.1)
             after = item.get('after_serial')
             if after and go == 1:
@@ -5316,7 +5349,7 @@ def check_story_and_fade_up():
     global story_fade_active, phoneLevel, go
     
     # Проверяем, был ли фон приглушен И канал3 (истории) теперь свободен
-    if story_fade_active and not channel3.get_busy() and go == 1:
+    if story_fade_active and not story_busy() and go == 1:
         
         # 1. Отправляем команду "черепу" (если нужно)
         serial_write_queue.put('soundoff')
@@ -5557,10 +5590,10 @@ def serial():
               #---- иногда для ассинхрона нужно добавлять eventlet.sleep(0)для переключения на другой метод
               eventlet.sleep(0.01)
               if pygame.mixer.music.get_busy() == False:
-                   # 2026-07-10: + not channel3.get_busy() — story_11 запускается
+                   # 2026-07-10: + not story_busy() — story_11 запускается
                    # когда fon7 доиграл, но story_10 может ещё звучать (fon7 короче).
                    # Ждём освобождения канала историй, иначе story_10 обрывался.
-                   if nextTrack == 1 and not channel3.get_busy():
+                   if nextTrack == 1 and not story_busy():
                         play_background_music("fon8.mp3", loops=-1)
                         # ОПТИМИЗИРОВАНО
                         play_localized_audio("story_11")
@@ -5958,7 +5991,7 @@ def serial():
                          #-----меняем значение переменной
                          name = "start_story_1"    
                          
-                         while channel3.get_busy()==True and go == 1: 
+                         while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                          check_story_and_fade_up()
                          send_esp32_command(ESP32_API_TRAIN_URL, "train_light_off")
@@ -6186,7 +6219,7 @@ def serial():
                               #----играем историю (ОПТИМИЗИРОВАНО)
                               play_localized_audio("story_3")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.1) 
                               serial_write_queue.put('kay_repeat') 
@@ -6205,7 +6238,7 @@ def serial():
                               while effects_are_busy() and go == 1:
                                   eventlet.sleep(0.1)
                               # 2026-07-10: + ждём окончания текущей истории (не перебивать)
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               #----играем историю (ОПТИМИЗИРОВАНО)
                               play_localized_audio("story_3_a")
@@ -6219,7 +6252,7 @@ def serial():
                               # 2026-07-10: ждём окончания story_3_a (этап clock1) —
                               # игрок крутит второй галетник быстро, и вся цепочка clock2
                               # (uf_clock + story_3_b) обрывала рассказ на полуслове.
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               #----шлем на клиента
                               play_background_music("fon4.mp3", loops=-1)
@@ -6235,7 +6268,7 @@ def serial():
                               #----играем историю (ОПТИМИЗИРОВАНО)
                               play_localized_audio("story_3_b")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)  
 
                               serial_write_queue.put('after_story_clock2')
@@ -6251,7 +6284,7 @@ def serial():
                               while effects_are_busy() and go == 1: 
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_3_c")
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               # Ждем лог "student_hide_success" от Arduino
                               send_command_with_confirmation('student_hide', 'student_hide_success')
@@ -6266,7 +6299,7 @@ def serial():
                               send_esp32_command(ESP32_API_TRAIN_URL, "train_light_on")
                               play_background_music("fon5.mp3", loops=-1)
                               play_localized_audio("story_4")
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               # --- Разрешаем Arduino начать игру ---
                               serial_write_queue.put('start_galet_logic')
@@ -6379,7 +6412,7 @@ def serial():
                                   
                                   play_localized_audio("story_5")
 
-                                  while channel3.get_busy()==True and go == 1: 
+                                  while story_busy()==True and go == 1: 
                                       eventlet.sleep(0.1)
                                   
                                   socketio.emit('level', 'open_mansard_door',to=None)
@@ -6392,7 +6425,7 @@ def serial():
                                   
                                   play_localized_audio("story_6")
 
-                                  while channel3.get_busy()==True and go == 1: 
+                                  while story_busy()==True and go == 1: 
                                       eventlet.sleep(0.1)
                                   
                                   # Активируем следующие этапы
@@ -6521,7 +6554,7 @@ def serial():
                                        story13Flag = 1
                                        play_localized_audio("story_13")
          
-                                       while channel3.get_busy()==True and go == 1: 
+                                       while story_busy()==True and go == 1: 
                                             eventlet.sleep(0.1)
                                        
                                   play_localized_audio("story_14_a")
@@ -6529,7 +6562,7 @@ def serial():
                                   # ФИКС: фоновый поток — Serial не блокируется пока играет story.
                                   # Бутылки и другие события обрабатываются мгновенно.
                                   def _after_story_14a():
-                                      while channel3.get_busy() and go == 1:
+                                      while story_busy() and go == 1:
                                           eventlet.sleep(0.1)
                                       send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
                                       socketio.emit('level', 'active_owls', to=None)
@@ -6580,7 +6613,7 @@ def serial():
                                    story13Flag = 1
                                    play_localized_audio("story_13")
      
-                                   while channel3.get_busy()==True and go == 1: 
+                                   while story_busy()==True and go == 1: 
                                         eventlet.sleep(0.1)     
 
                               play_localized_audio("story_17")
@@ -6656,7 +6689,7 @@ def serial():
                                       eventlet.sleep(0.1)
                                   #------играем голос    
                                   play_localized_audio("story_18")
-                                  while channel3.get_busy()==True and go == 1: 
+                                  while story_busy()==True and go == 1: 
                                       eventlet.sleep(0.1)    
                               socketio.start_background_task(_after_four_bottle)
                               #----активируем игру с метлой
@@ -6697,7 +6730,7 @@ def serial():
                                    story13Flag = 1
                                    play_localized_audio("story_13")
      
-                                   while channel3.get_busy()==True and go == 1: 
+                                   while story_busy()==True and go == 1: 
                                         eventlet.sleep(0.1)
 
                               play_localized_audio("story_19")
@@ -6705,7 +6738,7 @@ def serial():
                               # ФИКС: фоновый поток — Serial не блокируется пока играет story.
                               # Бутылки и другие события обрабатываются мгновенно.
                               def _after_story_19():
-                                  while channel3.get_busy() and go == 1:
+                                  while story_busy() and go == 1:
                                       eventlet.sleep(0.1)
                                   send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
                                   socketio.emit('level', 'active_dog', to=None)
@@ -6751,37 +6784,37 @@ def serial():
 
                          if flag=="story_22_a":
                               # 1. Ждем, пока канал освободится
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               # 2. Воспроизводим историю
                               play_localized_audio("story_22_a")
                                   
                               # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               # 4. Отправляем подтверждение на Arduino
                               serial_write_queue.put('story_22_done')
 
                          if flag=="story_22_b":
                               # 1. Ждем, пока канал освободится
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               # 2. Воспроизводим историю
                               play_localized_audio("story_22_b")
                                  
                               # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               # 4. Отправляем подтверждение на Arduino
                               serial_write_queue.put('story_22_done')
                            
                          if flag=="story_22_c":
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               play_localized_audio("story_22_c")
                                   
                               # 3. Ждем, пока PLAY ЗАКОНЧИТСЯ
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               # 4. Отправляем подтверждение на Arduino
                               serial_write_queue.put('story_22_done')
@@ -6892,7 +6925,7 @@ def serial():
                               play_localized_audio("story_23")
                               hue_light_async(True, 100)  # HUE: все лампы 100% (заиграл story_23)
 
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.0)
                               serial_write_queue.put('open_bank')
@@ -6908,7 +6941,7 @@ def serial():
                               eventlet.sleep(5.0)
                               play_localized_audio("story_24")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)     
                          if flag=="safe_turn":
                               #----играем эффект 
@@ -6942,12 +6975,12 @@ def serial():
 
                                   play_localized_audio("story_25")
 
-                                  while channel3.get_busy()==True and go == 1:
+                                  while story_busy()==True and go == 1:
                                       eventlet.sleep(0.1)
                                   eventlet.sleep(1.1)
                                   play_localized_audio("story_31")
 
-                                  while channel3.get_busy()==True and go == 1:
+                                  while story_busy()==True and go == 1:
                                       eventlet.sleep(0.1)
                                   play_effect(door_workshop)
                                   serial_write_queue.put('open_workshop')
@@ -6993,20 +7026,20 @@ def serial():
                               play_localized_audio("story_46")
 
                               send_esp32_command(ESP32_API_TRAIN_URL, "train_on")
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               # Отправляем команду на Arduino, чтобы начать 5-секундное мерцание
                               serial_write_queue.put('library_flicker_start')
                               eventlet.sleep(0.1)
                               play_localized_audio("story_47")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
 
                               play_background_music("fon15.mp3", loops=-1)
                               play_localized_audio("story_48")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               play_effect(door_top)
                               send_esp32_command(ESP32_API_WOLF_URL, "day_on")
@@ -7165,7 +7198,7 @@ def serial():
                               send_esp32_command(ESP32_API_TRAIN_URL, "stage_6") 
                               play_localized_audio("story_35")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               eventlet.sleep(1.0)
                               send_esp32_command(ESP32_API_WOLF_URL, "day_off")
@@ -7175,7 +7208,7 @@ def serial():
                               play_background_music("fon10.mp3", loops=-1)
                               play_localized_audio("story_36")
 
-                              while channel3.get_busy()==True and go == 1: 
+                              while story_busy()==True and go == 1: 
                                   eventlet.sleep(0.1)
                               send_command_with_confirmation('student_open', 'student_open_success')
                               eventlet.sleep(1.0)
@@ -7234,7 +7267,7 @@ def serial():
                               socklist.append('punch') # Добавляем флаг для UI
                               play_localized_audio("story_43")
 
-                              while channel3.get_busy()==True and go == 1:
+                              while story_busy()==True and go == 1:
                                   eventlet.sleep(0.1)
                               serial_write_queue.put('open_library')
                               hue_light_async(True, 100)  # HUE: свет на 100% когда открылся локер двери библиотеки
@@ -7332,7 +7365,7 @@ def serial():
                                   def lesson_intro_task(seq):
                                       play_localized_audio("story_57")
                                       eventlet.sleep(0.3)
-                                      while channel3.get_busy() == True and go == 1 and lesson_intro_seq == seq:
+                                      while story_busy() == True and go == 1 and lesson_intro_seq == seq:
                                           eventlet.sleep(0.1)
                                       if lesson_intro_seq != seq or go != 1: return
                                       
@@ -7347,7 +7380,7 @@ def serial():
                                       play_localized_audio("story_58")
                                       
                                       # --- ИСПРАВЛЕНИЕ: Ждем, пока story_58 ПОЛНОСТЬЮ закончится ---
-                                      while channel3.get_busy() == True and go == 1 and lesson_intro_seq == seq:
+                                      while story_busy() == True and go == 1 and lesson_intro_seq == seq:
                                           eventlet.sleep(0.1)
                                       if lesson_intro_seq != seq or go != 1: return
                                       
@@ -7639,7 +7672,7 @@ def serial():
                               # Спавним ПОСЛЕ гашения выше — гарантия что 100% ляжет после OFF,
                               # даже если story_66 короче салютных пауз. Ждём окончания channel3.
                               def _hue_after_story_66():
-                                  while channel3.get_busy() and go == 1:
+                                  while story_busy() and go == 1:
                                       eventlet.sleep(0.1)
                                   if go == 1:
                                       hue_light_async(True, 100)
@@ -7725,7 +7758,7 @@ def serial():
                          # Мы просто берем имя флага (например, hint_2_b) и играем соответствующий файл
                          if flag.startswith("hint_"):
                              # Если канал историй (голос) сейчас занят, просто игнорируем подсказку
-                             if channel3.get_busy():
+                             if story_busy():
                                  logger.debug(f"Игнорируем подсказку {flag}, так как звучит другая история/подсказка.")
                                  continue # Пропускаем дальнейшую обработку, в очередь не встает
                                  
