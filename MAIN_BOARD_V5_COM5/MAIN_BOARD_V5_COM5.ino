@@ -310,6 +310,10 @@ unsigned int validHex[][8] = {
 // фильтр
 int val[3];
 int val_filter;
+// 2026-08-07: глухое окно датчика стука библиотеки — см. Library(), case 6.
+unsigned long knockArmedAt = 0;
+const unsigned long KNOCK_BLANK_MS = 4000;
+const unsigned long LIB_DOOR_FALLBACK_MS = 25000;  // см. LibraryGame()
 byte index;
 String string = "";
 
@@ -3866,18 +3870,34 @@ void Library() {
       break;
     */
     case 6:
-      // --- ИЗМЕНЕНИЕ: Вся логика KnockInterval и KnockSol УДАЛЕНА ---
-      // --- Теперь мы НЕМЕДЛЕННО слушаем датчик стука ---
+      // 2026-08-07, жалоба клиента CLC2 «стук библиотеки глючит».
+      // Здесь было два дефекта, оба появились когда убрали логику KnockInterval:
+      //
+      // 1. Слушали датчик СРАЗУ. А ровно в этот момент замок сам стучит
+      //    (ghost_knock) и на колонках играет knock_castle.wav — своя же
+      //    вибрация даёт ложный punch. В логах 07.08: 04:12:31 ghost_knock,
+      //    04:12:35 punch — игрок ударить ещё не успел.
+      // 2. Медиана val_filter считалась, а сравнивали СЫРОЙ analogRead().
+      //    То есть фильтр стоял вхолостую, и одиночного выброса АЦП хватало.
+      //
+      // Теперь: глухое окно после входа в состояние + сравнение по медиане.
+      if (knockArmedAt == 0) {
+        knockArmedAt = millis();  // вошли в состояние — засекаем окно
+      }
 
-      // Фильтрация (остается)
+      // Фильтрация
       if (++index > 2)
         index = 0;
       val[index] = analogRead(KnockSens);
       val_filter = middle_of_3(val[0], val[1], val[2]);
-      // Serial.println(analogRead(KnockSens));
 
-      // Проверка стука (убираем 'if (KnockState != 1)')
-      if (analogRead(KnockSens) <= threshold) {
+      // Проверка стука — только после того, как отзвучал стук призрака.
+      // ВАЖНО: сравнение оставлено по СЫРОМУ отсчёту, как было. Медиана
+      // val_filter выше по-прежнему считается вхолостую — включать её сравнением
+      // нельзя вслепую: если loop подтормаживает, короткий удар пьезо даст один
+      // низкий отсчёт из трёх, медиана его срежет, и настоящий стук перестанет
+      // засчитываться. Это надо мерить на столе, а не на живом квесте.
+      if (millis() - knockArmedAt >= KNOCK_BLANK_MS && analogRead(KnockSens) <= threshold) {
         Serial.println(F("punch"));
         digitalWrite(KnockSol, LOW);  // Оставляем выключение, на всякий случай
         digitalWrite(LibraryLight, HIGH);
@@ -3947,6 +3967,7 @@ void Library() {
         Serial.println(F("story_42"));
         Serial.println(F("ghost_knock"));
         ghostState = 6;
+        knockArmedAt = 0;  // 2026-08-07: взводим глухое окно заново на каждую игру
       }
       if (ghostState < 4)
         ghostState++;
@@ -3962,6 +3983,22 @@ void Library() {
 }
 
 void LibraryGame() {
+  // 2026-08-07. Дверь библиотеки — единственная, которую Mega не открывает сама.
+  // Она ждёт команду open_library от сервера, а сервер шлёт её только ПОСЛЕ
+  // того, как доиграет story_43 (в ночь 07.08 это 14 секунд тишины). Если
+  // команда потеряется, дверь не откроется уже никогда — повторов нет, и
+  // оператору остаётся только Skip, который дверь тоже НЕ открывает, а лишь
+  // рапортует серверу об открытии.
+  // Страховка: этап пройден больше LIB_DOOR_FALLBACK_MS назад, а геркон двери
+  // так и молчит — открываем сами.
+  if (libraryDoorTimer != 0 && millis() - libraryDoorTimer >= LIB_DOOR_FALLBACK_MS
+      && !digitalReadExpander(5, board3)) {
+    Serial.println(F("log:main:lib door fallback"));
+    OpenLock(LibraryDoor);
+    digitalWrite(LibraryLight, HIGH);
+    libraryDoorTimer = 0;  // страховка одноразовая, дальше пульсирует handleLocks()
+  }
+
   if (digitalReadExpander(5, board3)) {
     Serial.println(F("lib_door"));
     // Выключаем свет в библиотеке ---
@@ -6703,6 +6740,7 @@ void RestOn() {
     code3Timer = 0;
     code4Timer = 0;
     libraryDoorTimer = 0;
+    knockArmedAt = 0;
     Scroll1On = 0;
     Scroll2On = 0;
     Scroll3On = 0;
