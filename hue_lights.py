@@ -94,9 +94,23 @@ class HueClient:
 
     # ---------- setters (from /tech UI) ----------
     def set_bridge_ip(self, ip):
-        self.bridge_ip = (ip or "").strip()
-        self.app_key = None  # смена IP аннулирует старый app_key
+        """Сохранить IP бриджа. Возвращает True, если pairing пришлось сбросить.
+
+        2026-08-07. Раньше app_key обнулялся ВСЕГДА. На практике клиент жмёт
+        «Сохранить IP» и после того, как уже спарился — просто чтобы убедиться,
+        что адрес записан. Такое нажатие молча разрывало связь с бриджем:
+        розетка и свет переставали работать, а в интерфейсе это выглядело как
+        «бридж сам отвалился». Именно так и случилось на CLC2 07.08.
+
+        app_key выдаётся бриджем и привязан к нему, поэтому сбрасывать его надо
+        только когда бридж действительно другой — то есть когда IP изменился."""
+        new_ip = (ip or "").strip()
+        changed = new_ip != (self.bridge_ip or "").strip()
+        self.bridge_ip = new_ip
+        if changed:
+            self.app_key = None  # другой бридж — старый ключ на нём не действует
         self.save()
+        return changed
 
     def set_enabled(self, on):
         self.enabled = bool(on)

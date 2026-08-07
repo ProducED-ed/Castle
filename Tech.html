@@ -893,6 +893,9 @@
                 hue_enable: "Включить управление светом",
                 hue_bridge_ip: "IP бриджа:",
                 hue_ip_hint: "например 192.168.1.50",
+                hue_ip_same: "IP сохранён, подключение к бриджу не тронуто",
+                hue_ip_changed: "Адрес бриджа изменён — нужно спарить заново",
+                hue_ip_confirm: "Это другой адрес бриджа. Подключение будет сброшено, и бридж придётся спарить заново. Продолжить?",
                 hue_save_ip: "Сохранить IP",
                 hue_status_label: "Статус:",
                 hue_pair: "Pair HUE Bridge",
@@ -1056,6 +1059,9 @@
                 hue_enable: "Enable light control",
                 hue_bridge_ip: "Bridge IP:",
                 hue_ip_hint: "e.g. 192.168.1.50",
+                hue_ip_same: "IP saved, bridge connection untouched",
+                hue_ip_changed: "Bridge address changed — pairing is required again",
+                hue_ip_confirm: "This is a different bridge address. The connection will be reset and you will have to pair again. Continue?",
                 hue_save_ip: "Save IP",
                 hue_status_label: "Status:",
                 hue_pair: "Pair HUE Bridge",
@@ -2071,7 +2077,13 @@
         function hueSetEnable(on) { socket.emit('hue_set_enable', { on: on }); }
         function hueSaveIp() {
             const ip = $('#hue-ip').val().trim();
-            if (ip) socket.emit('hue_set_ip', { ip: ip });
+            if (!ip) return;
+            // Смена адреса аннулирует ключ бриджа — предупреждаем заранее,
+            // чтобы клиент не потерял подключение случайным нажатием.
+            const cur = (_lastHueStatus && _lastHueStatus.bridge_ip) || '';
+            const paired = _lastHueStatus && _lastHueStatus.paired;
+            if (paired && ip !== cur && !confirm(T('hue_ip_confirm'))) return;
+            socket.emit('hue_set_ip', { ip: ip });
         }
         function hueTest(on, bri) { socket.emit('hue_test', { on: on, bri: bri }); }
         function hueList() {
@@ -2196,6 +2208,13 @@
                 $('#hue-progress').css('color', '#ff7e7e').text('✗ ' + d.message);
                 $('#hue-pair-btn').removeClass('disabled');
             }
+        });
+        socket.on('hue_ip_saved', function(d) {
+            // Раньше кнопка «Сохранить IP» ничего не отвечала и при этом молча
+            // рвала pairing. Теперь всегда видно, что именно произошло.
+            $('#hue-progress').show()
+                .css('color', d.changed ? '#ffd54a' : '#7eff7e')
+                .text(d.changed ? T('hue_ip_changed') : T('hue_ip_same'));
         });
         socket.on('hue_test_result', function(d) {
             const what = d.on ? (d.bri + '%') : T('hue_test_off');

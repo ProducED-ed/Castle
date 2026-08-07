@@ -3144,10 +3144,16 @@ def hue_status_req():
 
 @socketio.on('hue_set_ip')
 def hue_set_ip(data):
-    """Смена IP бриджа. Сбрасывает старый app_key (привязан к бриджу)."""
+    """Сохранить IP бриджа. Сбрасывает app_key ТОЛЬКО если адрес реально другой —
+    ключ привязан к конкретному бриджу. Повторное сохранение того же адреса
+    подключение не рвёт (см. set_bridge_ip)."""
     ip = (data or {}).get('ip', '')
-    hue.set_bridge_ip(ip)
-    hue_logger.info(f"[HUE] bridge IP set to {ip}")
+    changed = hue.set_bridge_ip(ip)
+    if changed:
+        hue_logger.info(f"[HUE] bridge IP изменён на {ip} — pairing сброшен, нужен новый")
+    else:
+        hue_logger.info(f"[HUE] bridge IP сохранён без изменений ({ip}), pairing цел")
+    socketio.emit('hue_ip_saved', {'ip': ip, 'changed': changed})
     socketio.emit('hue_status', hue.status())
 
 @socketio.on('hue_set_enable')
