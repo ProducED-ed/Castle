@@ -426,45 +426,48 @@ void setup() {
 }
 
 
-void CheckState() { 
-  // 1. Читаем физику
-  // Роза (A3): Active LOW
-  bool rose = !digitalRead(A3);
-  // Флаг (7): Active HIGH
-  bool f = digitalRead(7);
+// 2026-08-07. Было: сырой digitalRead + delay(150) после каждого фронта.
+// delay(150) работал как грубый антидребезг — он не фильтровал вход, а просто
+// затыкал башню на 150 мс, чтобы дребезг не успел породить второе сообщение.
+// Плата при этом ничего не делала: не читала Serial от Mega, не опрашивала
+// датчики. Флаг и роза вместе съедали до 300 мс.
+//
+// Теперь настоящий антидребезг по времени: уровень должен продержаться
+// DEBOUNCE_MS, и только тогда считается новым состоянием. Блокировок нет.
+//
+// Плюс периодическая пересылка текущего состояния: сообщения уходят только
+// на фронтах, и если фронт потерян или пришёл ложный, картина у Mega
+// расходится с реальностью НАВСЕГДА — новых фронтов ведь не будет. Клиент
+// лечил это, вынимая и вставляя флаг заново. Пересылка чинит рассинхрон сама.
+// Mega форвардит наверх только изменения, поэтому лишнего трафика нет.
+const unsigned long FLAG_DEBOUNCE_MS = 50;
+const unsigned long FLAG_RESEND_MS = 5000;
 
-  // --- Проверяем РОЗУ ---
-  if (rose) { 
-    if (!_restartGalet) {    
-      Serial.println("galet_on");
-      Serial.flush();
-      delay(150); // Важная задержка
-      _restartGalet = 1;
-    }
-  } else {                   
-    if (_restartGalet) {     
-      Serial.println("galet_off");
-      Serial.flush();
-      delay(150);
-      _restartGalet = 0;    
-    }
+bool debounced(bool raw, bool &stable, bool &pending, unsigned long &since) {
+  if (raw != pending) { pending = raw; since = millis(); }
+  if (raw != stable && millis() - since >= FLAG_DEBOUNCE_MS) { stable = raw; return true; }
+  return false;
+}
+
+void CheckState() {
+  static bool roseStable = false, rosePending = false;
+  static bool flagStable = false, flagPending = false;
+  static unsigned long roseSince = 0, flagSince = 0, lastResend = 0;
+
+  // Роза (A3): Active LOW.  Флаг (7): Active HIGH
+  bool changedRose = debounced(!digitalRead(A3), roseStable, rosePending, roseSince);
+  bool changedFlag = debounced(digitalRead(7),   flagStable, flagPending, flagSince);
+
+  bool resend = (millis() - lastResend >= FLAG_RESEND_MS);
+  if (resend) lastResend = millis();
+
+  if (changedRose || resend) {
+    Serial.println(roseStable ? "galet_on" : "galet_off");
+    _restartGalet = roseStable;
   }
-
-  // --- Проверяем ФЛАГ ---
-  if (f) { 
-    if (!_restartFlag) {    
-      Serial.println("flag3_on");
-      Serial.flush();
-      delay(150);
-      _restartFlag = 1;
-    }
-  } else {                  
-    if (_restartFlag) {     
-      Serial.println("flag3_off");
-      Serial.flush();
-      delay(150);
-      _restartFlag = 0;   
-    }
+  if (changedFlag || resend) {
+    Serial.println(flagStable ? "flag3_on" : "flag3_off");
+    _restartFlag = flagStable;
   }
 }
 

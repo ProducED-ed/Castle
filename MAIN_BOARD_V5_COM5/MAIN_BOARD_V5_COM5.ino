@@ -167,6 +167,22 @@ unsigned long stepsTimer;
 unsigned long libraryOpenTimer;
 unsigned long helpsBankTimer;
 unsigned long rfidCooldownEnd = 0;
+// 2026-08-07. Метка, которую только что засчитали, и время засчёта.
+// Зачем: игрок кладёт бутылочку, она засчитывается, он убирает руку — и по
+// дороге задевает ту же метку ещё раз. Для СЛЕДУЮЩЕГО шага это уже «чужая»
+// метка, и раньше это считалось ошибкой со сбросом всей последовательности.
+// Именно от этого задумывалось глухое окно, но оно взводилось ПОСЛЕ того как
+// ошибка уже отправлена, поэтому от этого случая не спасало вовсе.
+// Теперь: свою же только что принятую метку игнорируем TAG_GRACE_MS.
+byte lastAcceptedAddr[8];
+bool hasLastAccepted = false;
+unsigned long lastAcceptedAt = 0;
+const unsigned long TAG_GRACE_MS = 2000;
+
+// Неблокирующее затухание ленты комнаты после победы (см. FourBottle).
+bool potionFadeActive = false;
+int potionFadeLevel = 255;
+unsigned long potionFadeTimer = 0;
 int rainbowCycles = 0;
 int rainbowCycleCycles = 0;
 int repeatCount = 0;
@@ -878,6 +894,38 @@ void smartDelay(unsigned long ms) {
 void loop() {
   // 2026-05-28: DIAG mode early-return УДАЛЁН (облегчение loop).
 
+  // === Замер времени итерации loop (2026-08-07) ===
+  // Зачем: несколько жалоб держатся на гипотезе «плата не успела заметить».
+  // Пример — бутылки: шаг засчитывается, только если метку УБРАЛИ дольше чем
+  // на 100 мс. Если одна итерация цикла длиннее этого, быстрое «вынул-вставил»
+  // целиком укладывается внутрь неё, отсутствие метки не наблюдается, и шаг не
+  // переключается. До сих пор это была догадка — теперь есть цифра.
+  // Раз в минуту в лог уходит: среднее, худшее и число итераций.
+  // Стоимость — два вычитания на итерацию, на игру не влияет.
+  {
+    static unsigned long loopPrev = 0, loopSum = 0, loopWorst = 0, loopCount = 0, loopStatAt = 0;
+    unsigned long nowUs = micros();
+    if (loopPrev) {
+      unsigned long d = nowUs - loopPrev;
+      loopSum += d;
+      if (d > loopWorst) loopWorst = d;
+      loopCount++;
+    }
+    loopPrev = nowUs;
+    if (millis() - loopStatAt >= 60000UL) {
+      loopStatAt = millis();
+      if (loopCount) {
+        Serial.print(F("log:main:LOOP avg_us="));
+        Serial.print(loopSum / loopCount);
+        Serial.print(F(" worst_us="));
+        Serial.print(loopWorst);
+        Serial.print(F(" iters="));
+        Serial.println(loopCount);
+      }
+      loopSum = 0; loopWorst = 0; loopCount = 0;
+    }
+  }
+
   // === Step 5: passive heartbeat poll + HB log ===
   // Просто отмечаем что от башни приходят данные (не читаем — байты остаются в буфере).
   if (Serial1.available()) lastSeenWorkshop = millis();
@@ -905,6 +953,7 @@ void loop() {
   handleUfBlinking();
   handleLibraryFlicker();
   handleRainbow();
+  handlePotionFade();
   // Таймер эффекта ПОСЛЕ ГОЛА (Зеленая волна)
   if (discoBallsActive) {
     // Страховочный таймер на 8 секунд (основное выключение теперь от сервера)
@@ -2456,11 +2505,21 @@ void Flags() {
     if (buf1.startsWith("log:")) {
       Serial.println(buf1);
     } else if (buf1 == "flag1_on") {
-      FirstFlag = 1;
-      Serial.println(F("flag1_on"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (FirstFlag != 1) {
+        FirstFlag = 1;
+        Serial.println(F("flag1_on"));
+      }
     } else if (buf1 == "flag1_off") {
-      FirstFlag = 0;
-      Serial.println(F("flag1_off"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (FirstFlag != 0) {
+        FirstFlag = 0;
+        Serial.println(F("flag1_off"));
+      }
     }
   }
 
@@ -2472,11 +2531,21 @@ void Flags() {
     if (buf2.startsWith("log:")) {
       Serial.println(buf2);
     } else if (buf2 == "flag2_on") {
-      SecondFlag = 1;
-      Serial.println(F("flag2_on"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (SecondFlag != 1) {
+        SecondFlag = 1;
+        Serial.println(F("flag2_on"));
+      }
     } else if (buf2 == "flag2_off") {
-      SecondFlag = 0;
-      Serial.println(F("flag2_off"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (SecondFlag != 0) {
+        SecondFlag = 0;
+        Serial.println(F("flag2_off"));
+      }
     }
   }
 
@@ -2488,11 +2557,21 @@ void Flags() {
     if (buf3.startsWith("log:")) {
       Serial.println(buf3);
     } else if (buf3 == "flag3_on") {
-      ThirdFlag = 1;
-      Serial.println(F("flag3_on"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (ThirdFlag != 1) {
+        ThirdFlag = 1;
+        Serial.println(F("flag3_on"));
+      }
     } else if (buf3 == "flag3_off") {
-      ThirdFlag = 0;
-      Serial.println(F("flag3_off"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (ThirdFlag != 0) {
+        ThirdFlag = 0;
+        Serial.println(F("flag3_off"));
+      }
     }
   }
 
@@ -2504,11 +2583,21 @@ void Flags() {
     if (buf4.startsWith("log:")) {
       Serial.println(buf4);
     } else if (buf4 == "flag4_on") {
-      FourFlag = 1;
-      Serial.println(F("flag4_on"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (FourFlag != 1) {
+        FourFlag = 1;
+        Serial.println(F("flag4_on"));
+      }
     } else if (buf4 == "flag4_off") {
-      FourFlag = 0;
-      Serial.println(F("flag4_off"));
+      // 2026-08-07: башни шлют состояние флага периодически, чтобы
+      // рассинхрон лечился сам. Наверх отдаём только ИЗМЕНЕНИЯ —
+      // иначе сервер и пульт получали бы одно и то же каждые 5 сек.
+      if (FourFlag != 0) {
+        FourFlag = 0;
+        Serial.println(F("flag4_off"));
+      }
     }
   }
 
@@ -3333,6 +3422,36 @@ void Oven() {
 
 
 ////игра с бутылками
+// Запомнить метку как «только что принятую» — см. TAG_GRACE_MS.
+void rememberAccepted(byte *a) {
+  for (int i = 0; i < 8; i++) lastAcceptedAddr[i] = a[i];
+  hasLastAccepted = true;
+  lastAcceptedAt = millis();
+}
+
+// Это та самая метка, которую мы только что засчитали, и грейс ещё идёт?
+bool isGracedTag(byte *a) {
+  if (!hasLastAccepted) return false;
+  if (millis() - lastAcceptedAt >= TAG_GRACE_MS) return false;
+  for (int i = 0; i < 8; i++)
+    if (lastAcceptedAddr[i] != a[i]) return false;
+  return true;
+}
+
+// Плавное затухание ленты комнаты без delay() — вызывается из loop().
+void handlePotionFade() {
+  if (!potionFadeActive) return;
+  if (millis() - potionFadeTimer < 2) return;
+  potionFadeTimer = millis();
+  potionFadeLevel -= 1;
+  if (potionFadeLevel <= 50) {
+    potionFadeLevel = 50;
+    potionFadeActive = false;
+  }
+  CauldronRoomStrip.setBrightness(potionFadeLevel);
+  CauldronRoomStrip.show();
+}
+
 void Bottles() {
   // Если активен "период охлаждения" после ошибки, выходим из функции
   if (millis() < rfidCooldownEnd) {
@@ -3373,6 +3492,7 @@ void FirstBottle() {
         Serial.println(F("second_bottle"));
         CauldronTrueFire();
         FirstBottleTrue = 0;
+        rememberAccepted(addr);
       }
       if (FirstBottleTrue == 0) {
         for (int i = 0; i <= 12; i++) {
@@ -3382,6 +3502,12 @@ void FirstBottle() {
         CauldronFire();
       }
     } else {
+      // 2026-08-07: это та же метка, которую только что засчитали, и грейс
+      // ещё идёт → игрок просто задел её, убирая руку. Не ошибка.
+      if (isGracedTag(addr)) {
+        myRFID.reset_search();
+        return;
+      }
       // Неправильная бутылка
       if (FirstBottleFalse) {
         Serial.println(F("mistake_bottle"));
@@ -3445,6 +3571,7 @@ void SecondBottle() {
         Serial.println(F("first_bottle"));
         CauldronTrueFire();
         SecondBottleTrue = 0;
+        rememberAccepted(addr);
       }
       if (SecondBottleTrue == 0) {
         for (int i = 0; i <= 12; i++) {
@@ -3454,6 +3581,12 @@ void SecondBottle() {
         CauldronFire();
       }
     } else {
+      // 2026-08-07: это та же метка, которую только что засчитали, и грейс
+      // ещё идёт → игрок просто задел её, убирая руку. Не ошибка.
+      if (isGracedTag(addr)) {
+        myRFID.reset_search();
+        return;
+      }
       // Неправильная бутылка
       if (SecondBottleFalse) {
         Serial.println(F("mistake_bottle"));
@@ -3517,6 +3650,7 @@ void ThirdBottle() {
         Serial.println(F("third_bottle"));
         CauldronTrueFire();
         ThirdBottleTrue = 0;
+        rememberAccepted(addr);
       }
       if (ThirdBottleTrue == 0) {
         for (int i = 0; i <= 12; i++) {
@@ -3526,6 +3660,12 @@ void ThirdBottle() {
         CauldronFire();
       }
     } else {
+      // 2026-08-07: это та же метка, которую только что засчитали, и грейс
+      // ещё идёт → игрок просто задел её, убирая руку. Не ошибка.
+      if (isGracedTag(addr)) {
+        myRFID.reset_search();
+        return;
+      }
       // Неправильная бутылка
       if (ThirdBottleFalse) {
         Serial.println(F("mistake_bottle"));
@@ -3587,17 +3727,30 @@ void FourBottle() {
     if (result) {
       if (FourBottleTrue) {
         Serial.println(F("four_bottle"));
+        // 2026-08-07: у остальных трёх бутылок флаг здесь гасится, у четвёртой
+        // не гасился. Ветку прикрывало то, что после победы Bottles() больше
+        // не вызывается, но код был несогласован, а ветка «метку убрали» ниже
+        // оставалась мёртвой.
+        FourBottleTrue = 0;
+        rememberAccepted(addr);
         rainbow();
         CauldronStrip.setPixelColor(0, CauldronStrip.Color(128, 0, 128));
         CauldronStrip.show();
-        for (int i = 255; i >= 50; i--) {
-          CauldronRoomStrip.setBrightness(i);
-          CauldronRoomStrip.show();
-          delay(2);
-        }
+        // 2026-08-07: было for(255→50) с delay(2) = ~412 мс, в течение которых
+        // Mega не читала Serial — прямо в момент отправки four_bottle.
+        // Теперь то же затухание крутит handlePotionFade() из loop().
+        potionFadeActive = true;
+        potionFadeLevel = 255;
+        potionFadeTimer = millis();
         isPotionEnd = true;
       }
     } else {
+      // 2026-08-07: это та же метка, которую только что засчитали, и грейс
+      // ещё идёт → игрок просто задел её, убирая руку. Не ошибка.
+      if (isGracedTag(addr)) {
+        myRFID.reset_search();
+        return;
+      }
       // Неправильная бутылка
       if (FourBottleFalse) {
         Serial.println(F("mistake_bottle"));
@@ -6687,6 +6840,8 @@ void RestOn() {
     ThirdBottleTrue = 1;
     ThirdBottleFalse = 1;
     FourBottleTrue = 1;
+    hasLastAccepted = false;   // 2026-08-07: грейс метки не тянем в новую игру
+    potionFadeActive = false;
     FourBottleFalse = 1;
     flagSound = 1;
     FireInterval = 0;

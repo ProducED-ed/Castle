@@ -46,6 +46,8 @@ unsigned long manualEM2Until = 0;  // баскет дверь (SHERIF_EM2) manua
 const unsigned long MANUAL_DOOR_HOLD_MS = 8000;  // 8 сек sustained-открытие после команды
 unsigned long basketTimer;
 bool _restartFlag;
+const unsigned long FLAG_RESEND_MS = 5000;
+unsigned long lastFlagResend = 0;
 bool _restartGalet;
 bool isTrollFixed;
 int activeTrollButton = -1;
@@ -151,6 +153,14 @@ void loop() {
   if (flagButton.isRelease() && _restartFlag == 1) {
       Serial1.println("flag2_off");
       _restartFlag = 0;
+  }
+  // 2026-08-07: раз в FLAG_RESEND_MS повторяем текущее состояние флага.
+  // Сообщения уходили только на фронтах, и потерянный или ложный фронт
+  // разводил картину Mega с реальностью навсегда — клиент лечил это,
+  // вынимая и вставляя флаг. Mega форвардит наверх только изменения.
+  if (millis() - lastFlagResend >= FLAG_RESEND_MS) {
+      lastFlagResend = millis();
+      Serial1.println(_restartFlag ? "flag2_on" : "flag2_off");
   }
 
   switch (state) {

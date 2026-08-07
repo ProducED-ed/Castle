@@ -166,6 +166,8 @@ void handleUartCommands();
 void openLock();
 void manageLock();
 void CheckState(bool force = false);
+const unsigned long FLAG_RESEND_MS = 5000;
+unsigned long lastFlagResend = 0;
 void setup() {
   Serial1.begin(9600);
   Serial1.setTimeout(10);
@@ -767,6 +769,14 @@ void handleUartCommands() {
       _restartGalet = 0;
       _restartFlag = 0;
       CheckState();
+      // 2026-08-07: раз в FLAG_RESEND_MS шлём состояние флага принудительно.
+      // Сообщения уходили только на фронтах, и потерянный или ложный фронт
+      // разводил картину Mega с реальностью навсегда — клиент лечил это,
+      // вынимая и вставляя флаг. Mega форвардит наверх только изменения.
+      if (millis() - lastFlagResend >= FLAG_RESEND_MS) {
+        lastFlagResend = millis();
+        CheckState(true);
+      }
       lockOpen = false;
       recurringLockActive = false;
       digitalWrite(LOCK_PIN, HIGH);

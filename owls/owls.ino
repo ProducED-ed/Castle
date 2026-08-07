@@ -311,46 +311,45 @@ void handleSerial1Commands() {
   }
 }
 
+// 2026-08-07. Было: сырой digitalRead + delay(150) после каждого фронта.
+// delay(150) работал грубым антидребезгом — он не фильтровал вход, а просто
+// затыкал башню на 150 мс, чтобы дребезг не успел породить второе сообщение.
+// Плата при этом не читала Serial от Mega и не опрашивала датчики; лодка и
+// флаг вместе съедали до 300 мс.
+//
+// Теперь антидребезг по времени: уровень должен продержаться FLAG_DEBOUNCE_MS.
+// Плюс периодическая пересылка состояния — сообщения уходили только на
+// фронтах, и потерянный или ложный фронт разводил картину Mega с реальностью
+// НАВСЕГДА. Клиент лечил это, вынимая и вставляя флаг. Пересылка чинит сама.
+// Mega форвардит наверх только изменения, лишнего трафика нет.
+const unsigned long FLAG_DEBOUNCE_MS = 50;
+const unsigned long FLAG_RESEND_MS = 5000;
+
+bool debounced(bool raw, bool &stable, bool &pending, unsigned long &since) {
+  if (raw != pending) { pending = raw; since = millis(); }
+  if (raw != stable && millis() - since >= FLAG_DEBOUNCE_MS) { stable = raw; return true; }
+  return false;
+}
+
 void CheckState() {
-  // 1. Читаем физику
-  // Лодка (Pin 30): Active LOW (0 = нажата)
-  bool boat = !digitalRead(30);
-  // Флаг (Pin 27): Active HIGH (1 = нажат)
-  bool f = digitalRead(27);
+  static bool boatStable = false, boatPending = false;
+  static bool flagStable = false, flagPending = false;
+  static unsigned long boatSince = 0, flagSince = 0, lastResend = 0;
 
-  // --- 1. Проверяем ЛОДКУ ---
-  if (boat) { 
-    if (!_restartGalet) {    
-      Serial1.println("galet_on");
-      // ОТЛАДКА + ЗАДЕРЖКА
-      Serial1.flush();
-      delay(150); // Важная задержка
-      _restartGalet = 1;     
-    }
-  } else {                   
-    if (_restartGalet) {     
-      Serial1.println("galet_off");
-      Serial1.flush();
-      delay(150);
-      _restartGalet = 0;    
-    }
+  // Лодка (Pin 30): Active LOW.  Флаг (Pin 27): Active HIGH
+  bool changedBoat = debounced(!digitalRead(30), boatStable, boatPending, boatSince);
+  bool changedFlag = debounced(digitalRead(27),  flagStable, flagPending, flagSince);
+
+  bool resend = (millis() - lastResend >= FLAG_RESEND_MS);
+  if (resend) lastResend = millis();
+
+  if (changedBoat || resend) {
+    Serial1.println(boatStable ? "galet_on" : "galet_off");
+    _restartGalet = boatStable;
   }
-
-  // --- 2. Проверяем ФЛАГ ---
-  if (f) { 
-    if (!_restartFlag) {    
-      Serial1.println("flag4_on");
-      Serial1.flush();
-      delay(150);
-      _restartFlag = 1;     
-    }
-  } else {                  
-    if (_restartFlag) {     
-      Serial1.println("flag4_off");
-      Serial1.flush();
-      delay(150);
-      _restartFlag = 0;   
-    }
+  if (changedFlag || resend) {
+    Serial1.println(flagStable ? "flag4_on" : "flag4_off");
+    _restartFlag = flagStable;
   }
 }
 
@@ -373,15 +372,6 @@ void checkOwlButton() {
     delay(50); // паузу, чтобы MAIN_BOARD успел обработать команду перед логом
     sendLog("Owl button pressed.");
     state = 1;
-  }
-}
-
-void handleFlagSensorSimple() {
-  if (PIN_IR_FLAG.isPress()) {
-    Serial1.println("flag4_off");
-  }
-  if (PIN_IR_FLAG.isRelease()) {
-    Serial1.println("flag4_on");
   }
 }
 
