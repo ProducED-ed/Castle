@@ -188,7 +188,6 @@ bool FirstFlag = 0;
 bool SecondFlag = 0;
 bool ThirdFlag = 0;
 bool FourFlag = 0;
-bool KnockState = 0;
 bool upHelp;
 byte light;
 bool FirstBottleTrue = 1;
@@ -235,8 +234,6 @@ unsigned long FireInterval = 0;
 unsigned long CauldronFireInterval = 0;
 unsigned long CauldronFireMistakeInterval = 0;
 unsigned long CauldronFireTrueInterval = 0;
-unsigned long KnockInterval = 0;
-unsigned long KnockIntervalLow = 0;
 unsigned long Bottle1Timer = 0;
 unsigned long Bottle2Timer = 0;
 unsigned long Bottle3Timer = 0;
@@ -289,12 +286,10 @@ bool active[DOORS];
 
 // тайники - локеры
 const byte LibraryLight = A7;  // свет библиотеки
+// A8 свободен: здесь был соленоид «тук-тук» библиотеки. Соленоид демонтирован,
+// стук призрака теперь только звук knock_castle.wav на колонках замка (2026-08-07).
 
 
-// НАСЛЕДИЕ: соленоид «тук-тук» в библиотеке физически ДЕМОНТИРОВАН.
-// Стук призрака теперь только звук knock_castle.wav на колонках замка.
-// Пин и записи в него оставлены, чтобы не трогать разводку; на игру не влияют.
-const byte KnockSol = A8;
 // свет обычные ленты
 const byte HallLight = 37;          /// свет 1 комнаты
 const byte UfHallLight = A5;        /// свет 1 комнаты уф
@@ -655,7 +650,6 @@ void setup() {
 
   pinMode(LibraryLight, OUTPUT);
   pinMode(BankStashDoor, OUTPUT);
-  pinMode(KnockSol, OUTPUT);
   pinMode(HallLight, OUTPUT);
   pinMode(UfHallLight, OUTPUT);
   pinMode(CrimeDoor, OUTPUT);
@@ -3900,7 +3894,6 @@ void Library() {
       // засчитываться. Это надо мерить на столе, а не на живом квесте.
       if (millis() - knockArmedAt >= KNOCK_BLANK_MS && analogRead(KnockSens) <= threshold) {
         Serial.println(F("punch"));
-        digitalWrite(KnockSol, LOW);  // наследие: соленоида в библиотеке больше нет
         digitalWrite(LibraryLight, HIGH);
         libraryDoorTimer = millis();
         level++;
@@ -3914,7 +3907,6 @@ void Library() {
     buff.trim();
     if (buff == "rrt3lck") {
       //OpenLock(LibraryDoor);
-      digitalWrite(KnockSol, LOW);
       digitalWrite(LibraryLight, HIGH);
       level++;
     }
@@ -3944,7 +3936,6 @@ void Library() {
     }
     if (buff == "ghost_skip") {
       Serial.println(F("punch"));
-      digitalWrite(KnockSol, LOW);
       digitalWrite(LibraryLight, HIGH);
       libraryDoorTimer = millis();
       level++;
@@ -6685,7 +6676,6 @@ void RestOn() {
     SecondFlag = 0;
     ThirdFlag = 0;
     FourFlag = 0;
-    KnockState = 0;
     FirstBottleTrue = 1;
     FirstBottleFalse = 1;
     SecondBottleTrue = 1;
@@ -6699,8 +6689,6 @@ void RestOn() {
     CauldronFireInterval = 0;
     CauldronFireMistakeInterval = 0;
     CauldronFireTrueInterval = 0;
-    KnockInterval = 0;
-    KnockIntervalLow = 0;
     Bottle1Timer = 0;
     Bottle2Timer = 0;
     Bottle3Timer = 0;
