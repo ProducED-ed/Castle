@@ -679,7 +679,8 @@
 
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
                 <span style="color:#ddd;" data-i18n="hue_bridge_ip">IP бриджа:</span>
-                <input type="text" id="hue-ip" style="width:150px; padding:5px;" placeholder="192.168.1.141">
+                <input type="text" id="hue-ip" style="width:170px; padding:5px;"
+                       data-i18n-attr="placeholder|hue_ip_hint" placeholder="например 192.168.1.50">
                 <button class="ui small button" onclick="hueSaveIp()"><span data-i18n="hue_save_ip">Сохранить IP</span></button>
             </div>
 
@@ -891,6 +892,7 @@
                 hue_step6: "Проверь кнопками «Свет ВКЛ / ВЫКЛ (тест)» — лампы должны сработать.",
                 hue_enable: "Включить управление светом",
                 hue_bridge_ip: "IP бриджа:",
+                hue_ip_hint: "например 192.168.1.50",
                 hue_save_ip: "Сохранить IP",
                 hue_status_label: "Статус:",
                 hue_pair: "Pair HUE Bridge",
@@ -1053,6 +1055,7 @@
                 hue_step6: "Test with the 'Lights ON / OFF (test)' buttons — the lamps should react.",
                 hue_enable: "Enable light control",
                 hue_bridge_ip: "Bridge IP:",
+                hue_ip_hint: "e.g. 192.168.1.50",
                 hue_save_ip: "Save IP",
                 hue_status_label: "Status:",
                 hue_pair: "Pair HUE Bridge",

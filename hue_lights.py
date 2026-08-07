@@ -16,7 +16,7 @@
 
 Состояние — в hue_config.json рядом с CastleServer.py:
     {
-      "bridge_ip": "192.168.1.141",
+      "bridge_ip": "<IP бриджа в локалке клиента, вводится на /tech>",
       "app_key":  "<получается при pairing>",
       "enabled":  true/false,     # общий тумблер света на /tech
       "group_id": "2",            # какой группой Hue управлять (напр. "Castle")
@@ -38,7 +38,12 @@ DEVICETYPE = "clc_castle_quest#raspberrypi"
 
 
 class HueClient:
-    def __init__(self, config_path, default_ip="192.168.1.141", default_group="2"):
+    def __init__(self, config_path, default_ip="", default_group="2"):
+        """default_ip намеренно ПУСТОЙ. Раньше здесь был зашит адрес бриджа одного
+        из клиентов: на новом замке он подставлялся в поле как готовый, выглядел
+        правдоподобно, и сервер начинал стучаться по чужому адресу. IP бриджа
+        у каждого клиента свой и вводится на /tech. Не подставлять сюда ничей
+        реальный адрес — только пустая строка."""
         self.config_path = config_path
         self.bridge_ip = default_ip
         self.app_key = None

@@ -374,7 +374,7 @@ ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
 # Весь конфиг (IP бриджа, app_key, вкл/выкл, сцены FULL/OFF) — в hue_config.json,
 # настраивается через /tech. IP не хардкодим — у каждого клиента свой бридж.
 HUE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hue_config.json")
-hue = HueClient(HUE_CONFIG_PATH, default_ip="192.168.1.141", default_group="2")
+hue = HueClient(HUE_CONFIG_PATH, default_group="2")  # IP бриджа — только из hue_config.json / с /tech
 # Единый логгер для всех HUE-сообщений (чтобы в логах было одинаково 'hue_lights - INFO',
 # а не вперемешку 'root' из хелперов CastleServer и 'hue_lights' из модуля).
 hue_logger = logging.getLogger("hue_lights")
@@ -3169,6 +3169,14 @@ def hue_set_group(data):
 @socketio.on('hue_pair_start')
 def hue_pair_start():
     """60-секундный цикл pairing. Клиент жмёт кнопку на бридже, мы ловим app_key."""
+    if not (hue.bridge_ip or '').strip():
+        # 2026-08-07: раньше в поле стоял чужой IP по умолчанию и pairing всегда
+        # с чем-то «работал». Теперь поле пустое — говорим прямо, а не молчим
+        # 60 секунд и не отдаём невнятный таймаут.
+        socketio.emit('hue_pair_done',
+                      {'success': False,
+                       'message': 'сначала впиши IP бриджа и нажми «Сохранить IP»'})
+        return
     if hue.is_paired():
         socketio.emit('hue_pair_done', {'success': True, 'message': 'already paired'})
         return
