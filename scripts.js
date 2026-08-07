@@ -123,6 +123,7 @@ $('.ui.dropdown')
      var gFlag=0;
      var yFlag=0;
      var bFlag=0;
+     var caveClicks = 0;   // шаги шахты, см. cave_click
      var bottle1 = 0;
      var bottle2 =0;
      var bottle3 = 0;
@@ -519,7 +520,16 @@ $('.ui.dropdown')
     // планшет клиента, вкладка поддержки через Tailscale.
     // finalAlert / start_error / restflag сюда НЕ входят — это не прогресс,
     // и у Start с Restart они выставляются в разные значения.
+    // Пересчёт бара Бутылок от защёлок: 4 бутылки = 25% каждая.
+    // Считаем от флагов, а не приращением, поэтому повторный приход того же
+    // события бар не сдвигает — дедупликация получается сама собой.
+    function bottlesRefresh() {
+        var done = bottle1 + bottle2 + bottle3 + bottle4;
+        $('#bottles').progress({ percent: done * 25 });
+    }
+
     function resetProgressLatches() {
+        caveClicks = 0;
         rFlag = 0;
         gFlag = 0;
         yFlag = 0;
@@ -687,11 +697,15 @@ $('.ui.dropdown')
             }
 			
 			// 1. Шаг вперед (клик)
+            // 2026-08-07: та же болезнь, что была у бара Бутылок — progress('increment')
+            // не двигает процент дальше первого шага. Считаем сами: 5 шагов по 20%.
             if (inp === 'cave_click') {
-                $('#mine_progress').progress('increment');
+                caveClicks = Math.min(5, caveClicks + 1);
+                $('#mine_progress').progress({ percent: caveClicks * 20 });
             }
-			
+
 			if (inp === 'cave_reset') {
+                caveClicks = 0;
                 $('#mine_progress').progress({ percent: 0 }); // Сбрасываем шкалу в 0
             }
 
@@ -1064,30 +1078,21 @@ $('.ui.dropdown')
                 $('#dog_indic').addClass('check');
             }
 
-            if(inp === 'first_bottle') {
-                if(bottle1==0){
-                    $('#bottles').progress('increment')
-                    bottle1 = 1;
-                }
-            }
-            if(inp === 'second_bottle') {
-                if(bottle2==0){
-                    $('#bottles').progress('increment')
-                    bottle2 = 1;
-                }
-            }
-            if(inp === 'third_bottle') {
-                if(bottle3==0){
-                    $('#bottles').progress('increment')
-                    bottle3 = 1;
-                }
-            }
-            if(inp === 'four_bottle') {
-                if(bottle4==0){
-                    $('#bottles').progress('increment')
-                    bottle4 = 1;
-                    $('#open_potions_stash').addClass('positive');
-                }
+            // 2026-08-07. Бар Бутылок не рос — жалоба клиента «этап пройден,
+            // а прогресс не показывается». Было progress('increment'):
+            // счётчик внутри Semantic UI растёт, а процент застревает.
+            // Замер прямо в браузере на живом пульте:
+            //     после 1-й → value=1 percent=25
+            //     после 2-й → value=2 percent=25   ← бар стоит
+            //     после 3-й → value=3 percent=25
+            // Все остальные бары квеста (Совы, Сейф, Тролль, Мансарда)
+            // выставляют процент ЯВНО и работают. Приводим Бутылки к тому же.
+            if(inp === 'first_bottle')  { bottle1 = 1; bottlesRefresh(); }
+            if(inp === 'second_bottle') { bottle2 = 1; bottlesRefresh(); }
+            if(inp === 'third_bottle')  { bottle3 = 1; bottlesRefresh(); }
+            if(inp === 'four_bottle')   {
+                bottle4 = 1; bottlesRefresh();
+                $('#open_potions_stash').addClass('positive');
             }
             ////////////////
           

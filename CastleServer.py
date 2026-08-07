@@ -1349,11 +1349,19 @@ channel3 = pygame.mixer.Channel(2) # story (Истории)
 # --- Пул каналов для эффектов ---
 # Создаем список из 4 каналов: 1 (старый) и 3, 4, 5 (новые)
 # Канал 0 занят фоном, Канал 2 занят историями.
+# 2026-08-07. Канал 1 УБРАН из общего пула: это channel2, выделенный канал
+# зацикленного стука призрака. Пока он был в пуле, случались две вещи:
+#   - play_effect брал «первый свободный» и почти всегда попадал именно на него,
+#     то есть любой эффект мог оборвать стук призрака и наоборот;
+#   - зацикленный стук стартовал через play_effect и мог лечь на канал 3/4/5,
+#     а гасили его строго channel2.stop() — то есть канал 1. Если стук лёг не
+#     туда, он не останавливался ВООБЩЕ и играл поверх всего до конца игры.
+# Вместо него в пул добавлен свободный канал 7 (всего каналов 8, см. выше).
 effects_pool = [
-    pygame.mixer.Channel(1),
     pygame.mixer.Channel(3),
     pygame.mixer.Channel(4),
-    pygame.mixer.Channel(5)
+    pygame.mixer.Channel(5),
+    pygame.mixer.Channel(7)
 ]
 # Индекс для циклического перебора, если все каналы заняты
 current_effect_index = 0
@@ -5165,7 +5173,9 @@ def effects_are_busy():
             return True
     return False
 
-def play_effect(audio_file, loops=0, volume_file='2.txt'):
+def play_effect(audio_file, loops=0, volume_file='2.txt', channel=None):
+    """channel — сыграть в КОНКРЕТНЫЙ канал вместо выбора из пула.
+    Нужно зацикленным звукам, которые потом гасят по имени канала."""
     global current_effect_index
     
     # --- Улучшено логирование эффектов ---
@@ -5176,16 +5186,18 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
         logging.error(f"Ошибка логирования имени эффекта: {e}")
         
     # --- НОВАЯ ЛОГИКА РАСПРЕДЕЛЕНИЯ КАНАЛОВ ---
-    selected_channel = None
+    selected_channel = channel
 
-    # 1. Ищем первый СВОБОДНЫЙ канал в пуле
-    for ch in effects_pool:
-        if not ch.get_busy():
-            selected_channel = ch
-            break
+    if selected_channel is None:
+        # 1. Ищем первый СВОБОДНЫЙ канал в пуле
+        for ch in effects_pool:
+            if not ch.get_busy():
+                selected_channel = ch
+                break
     
     # 2. Если все заняты, берем следующий по кругу (Round Robin)
     # Это гарантирует, что звук не пропадет, а прервет самый "старый" из звучащих
+    # (сюда не попадаем, когда канал задан явно — он уже выбран выше)
     if selected_channel is None:
         selected_channel = effects_pool[current_effect_index]
         # Сдвигаем индекс для следующего раза
@@ -5208,9 +5220,15 @@ def play_effect(audio_file, loops=0, volume_file='2.txt'):
     selected_channel.set_volume(volume, volume)  # Громкость только через канал
         
 def stop_all_effects():
-    """Останавливает звук на всех каналах эффектов"""
+    """Останавливает звук на всех каналах эффектов.
+
+    2026-08-07: channel2 гасим ОТДЕЛЬНО. Раньше канал стука призрака входил в
+    effects_pool и попадал сюда сам; после того как его вынесли из пула, без
+    этой строки зацикленный стук пережил бы restart/ready и играл поверх
+    следующей игры."""
     for ch in effects_pool:
         ch.stop()
+    channel2.stop()
 
 def send_esp32_command(api_url, command, timeout=6, max_retries=4, retry_delay=1, async_mode=True):
 
@@ -6585,12 +6603,27 @@ def serial():
                                   play_effect(flags)
                                   send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
                                   send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
-                                  while effects_are_busy() and go == 1: 
-                                      eventlet.sleep(0.1)
-                                  play_background_music("fon7.mp3", loops=0)
-                                  hue_flags_lightshow_async()  # HUE: светомузыка на время fon7 (флаги пройдены)
-                                  # ОПТИМИЗИРОВАНО
-                                  play_localized_audio("story_10")
+
+                                  # 2026-08-07. Здесь стояло
+                                  #     while effects_are_busy(): eventlet.sleep(0.1)
+                                  # прямо в цикле чтения Serial. Два дефекта разом:
+                                  # 1) effects_are_busy() смотрит на ВСЕ каналы, то есть
+                                  #    ждали не свой звук flags.wav, а тишины во всём
+                                  #    замке — любой звук из другой комнаты продлевал
+                                  #    ожидание (комнаты проходят параллельно);
+                                  # 2) пока ждали, сервер НЕ читал Mega. Сообщения
+                                  #    копились и обрабатывались пачкой — отсюда жалоба
+                                  #    «аудио не успевает, звуки не в такт действиям».
+                                  # Теперь ждём только свой звук и в фоне.
+                                  def _after_flags():
+                                      while flags.get_num_channels() > 0 and go == 1:
+                                          eventlet.sleep(0.1)
+                                      if go != 1:
+                                          return
+                                      play_background_music("fon7.mp3", loops=0)
+                                      hue_flags_lightshow_async()  # HUE: светомузыка на время fon7
+                                      play_localized_audio("story_10")
+                                  socketio.start_background_task(_after_flags)
 
                                   nextTrack = 1
                               
@@ -7321,7 +7354,11 @@ def serial():
                               play_localized_audio("story_42")
 
                          if flag == "ghost_knock":
-                              play_effect(knock_castle, loops=-1)
+                              # Строго в channel2: ниже его гасят channel2.stop()
+                              # (в punch и при входе на уровень 12). Раньше канал
+                              # выбирался из пула, и если стук ложился не на первый,
+                              # остановить его было уже нечем.
+                              play_effect(knock_castle, loops=-1, channel=channel2)
                          if flag=="punch":
                               channel2.stop()
                               send_esp32_command(ESP32_API_TRAIN_URL, "stage_7") 
@@ -7350,9 +7387,14 @@ def serial():
                               socketio.emit('level', 'set_time', to=None)
                               socklist.append('set_time')
                          if flag=="fire":
-                             # Воспроизводим, только если канал эффектов (channel2) свободен.
-                             # Это гарантирует, что звук не запустится, если он еще играет.
-                             if not channel2.get_busy():
+                             # 2026-08-07. Было `if not channel2.get_busy()` — проверка
+                             # ЧУЖОГО канала. Камин играет на канале из пула, а channel2
+                             # это стук призрака, поэтому защита не срабатывала почти
+                             # никогда: в логах 07.08 камин запускался 7 раз за 34 секунды
+                             # (04:15:12, :13, :18, :22, :30, :30, :46), накладываясь сам
+                             # на себя и вытесняя из пула чужие звуки.
+                             # Спрашиваем у самого звука, играет ли он хоть где-то.
+                             if fireplace.get_num_channels() == 0:
                                  play_effect(fireplace)
                               
                          if flag=="mistake_crystal":
