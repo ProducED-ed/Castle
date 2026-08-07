@@ -509,128 +509,92 @@ $('.ui.dropdown')
         // 3. Отправляем команду на сервер
         socket.emit('time', 'ready');
     });
+    // 2026-08-07: единый сброс флагов-защёлок прогресса.
+    // Список был скопирован в обработчики кликов Start и Restart, но НЕ
+    // вызывался на серверном событии 'rest'. Прогресс-бары там обнулялись
+    // визуально, а защёлки оставались взведёнными — и в следующей игре
+    // события вида first_bottle гасились проверкой if(bottle1==0).
+    // Симптом CLC2 07.08: Бутылки пройдены физически, на пульте 0%.
+    // Бьёт по любой вкладке, где Restart нажимали не в ней: второй пульт,
+    // планшет клиента, вкладка поддержки через Tailscale.
+    // finalAlert / start_error / restflag сюда НЕ входят — это не прогресс,
+    // и у Start с Restart они выставляются в разные значения.
+    function resetProgressLatches() {
+        rFlag = 0;
+        gFlag = 0;
+        yFlag = 0;
+        bFlag = 0;
+        incCombo1 = 0;
+        incCombo2 = 0;
+        incCombo3 = 0;
+        incCombo4 = 0;
+        bottle1 = 0;
+        bottle2 = 0;
+        bottle3 = 0;
+        bottle4 = 0;
+        goal1player = 0;
+        goal2player = 0;
+        goal3player = 0;
+        goal4player = 0;
+        goal5player = 0;
+        goal6player = 0;
+        goal7player = 0;
+        goal8player = 0;
+        goal9player = 0;
+        goal10player = 0;
+        goal1bot = 0;
+        goal2bot = 0;
+        goal3bot = 0;
+        goal4bot = 0;
+        goal5bot = 0;
+        goal6bot = 0;
+        goal7bot = 0;
+        goal8bot = 0;
+        goal9bot = 0;
+        goal10bot = 0;
+        owl1 = 0;
+        owl2 = 0;
+        owl3 = 0;
+        owl4 = 0;
+        item1 = 0;
+        item2 = 0;
+        item3 = 0;
+        item4 = 0;
+        item5 = 0;
+        item6 = 0;
+        scroll1 = 0;
+        scroll2 = 0;
+        scroll3 = 0;
+        scroll4 = 0;
+        scroll5 = 0;
+        crystal4On = 1;
+        crystal1On = 1;
+        crystal2On = 1;
+        crystal3On = 1;
+        bugAlert = 0;
+        modal = 0;
+        safeStep1 = 0;
+        safeStep2 = 0;
+        safeStep3 = 0;
+        safeStep4 = 0;
+        safeStep5 = 0;
+    }
+
     //нажатие на старт тоже отправляем данные на сервак и отпускаем флаги
     $('#Start').click(function(){
       socket.emit('time', 'start');//шлем на сервер
-      rFlag = 0;
-      gFlag=0;
-      yFlag=0;
-      bFlag=0;
-      incCombo1 = 0;
-      incCombo2 = 0;
-      incCombo3 = 0;
-      incCombo4 = 0;
-      bottle1 = 0;
-      bottle2 =0;
-      bottle3 = 0;
-      bottle4=0;
-      goal1player=0;
-      goal2player=0;
-      goal3player=0;
-      goal4player=0;
-      goal5player=0;
-      goal6player=0;
-      goal7player=0;
-      goal8player=0;
-      goal9player=0;
-      goal10player=0;
-      goal1bot=0;
-      goal2bot=0;
-      goal3bot=0;
-      goal4bot=0;
-      goal5bot=0;
-      goal6bot=0;
-      goal7bot=0;
-      goal8bot=0;
-      goal9bot=0;
-      goal10bot=0;
-      owl1 = 0;
-      owl2 = 0;
-      owl3= 0;
-      owl4 = 0;
-      item1 = 0;
-      item2 = 0;
-      item3 = 0;
-      item4 = 0;
-      item5 = 0;
-      item6 = 0;
-      scroll1 = 0;
-      scroll2 = 0;
-      scroll3 = 0;
-      scroll4 = 0;
-      scroll5 = 0;
-      crystal4On =1;
-      crystal1On =1;
-      crystal2On =1;
-      crystal3On =1;
-      bugAlert = 0;
-      modal=0;
+      resetProgressLatches();
       finalAlert = 1;
       start_error = 1;
-	  safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
-    });
+});
     //нажали на рестарт обрати внимание данные шлем на сервер пока на пульте ничего не отображается
     $('#Restart').click(function(){
       socket.emit('time', 'restart');
-	  restflag = 0;
-      rFlag = 0;
-      gFlag=0;
-      yFlag=0;
-      bFlag=0;
-      incCombo1 = 0;
-      incCombo2 = 0;
-      incCombo3 = 0;
-      incCombo4 = 0;
-      bottle1 = 0;
-      bottle2 =0;
-      bottle3 = 0;
-      bottle4=0;
-      goal1player=0;
-      goal2player=0;
-      goal3player=0;
-      goal4player=0;
-      goal5player=0;
-      goal6player=0;
-      goal7player=0;
-      goal8player=0;
-      goal9player=0;
-      goal10player=0;
-      goal1bot=0;
-      goal2bot=0;
-      goal3bot=0;
-      goal4bot=0;
-      goal5bot=0;
-      goal6bot=0;
-      goal7bot=0;
-      goal8bot=0;
-      goal9bot=0;
-      goal10bot=0;
-      crystal4On =1;
-      crystal1On =1;
-      crystal2On =1;
-      //modal=0;
-      //bugAlert = 0;
-      crystal3On =1;
-      owl1 = 0;
-      owl2 = 0;
-      owl3= 0;
-      owl4 = 0;
-      item1 = 0;
-      item2 = 0;
-      item3 = 0;
-      item4 = 0;
-      item5 = 0;
-      item6 = 0;
-      scroll1 = 0;
-      scroll2 = 0;
-      scroll3 = 0;
-      scroll4 = 0;
-      scroll5 = 0;
-      start_error = 0
-	  safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
-
-      //finalAlert = 0;
-    });
+      resetProgressLatches();
+      restflag = 0;
+      finalAlert = 0;
+      start_error = 0;
+});
     // Real Restart-button press → блокируем Ready на 10 сек чтобы Mega успела
     // выполнить OpenAll/RestOn/SendRestartToAll до того как пользователь начнёт
     // следующий цикл. Это НЕ replay-event (не в socklist) — не дёргается при reconnect.
@@ -1431,6 +1395,7 @@ $('.ui.dropdown')
                 $('#helmet_icon').removeClass('green').addClass('grey');
                 $('#broom_icon').removeClass('green').addClass('grey');
 				// Добавляем сброс флагов и прогресс-бара Сейфа
+                resetProgressLatches();   // 2026-08-07: снимаем ВСЕ защёлки, а не только Сейфа
                 safeStep1 = 0; safeStep2 = 0; safeStep3 = 0; safeStep4 = 0; safeStep5 = 0;
                 $('#safe_progress').progress({ percent: 0 });
 

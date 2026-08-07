@@ -14,6 +14,7 @@ const int CAGE_REED_PIN = A0;     // Pin gerkona "kletka" (A0)
 const int VIBRO_MOTOR_PIN = 6;    // Pin upravleniya rele vibromotora (D6)
 const int END_REED_PIN = A1;      // Pin gerkona "end" (A1)
 const int CAGE_LOCK_PIN = 5;      // Pin upravleniya rele zamka "kletka" (D5)
+
 const int LED_STRIP_PIN = 4;      // Pin dlya 12V svetodiodnoy lenty cherez rele (D4)
 
 // Novye piny
@@ -160,6 +161,10 @@ bool isCrystalLockedOff = false;  // NOVYY FLAG: Blokiruet kristall do perezapus
 
 // Dlya gerkona "end"
 bool lastEndReedState = HIGH;
+// 2026-08-07: страховка на случай потерянного фронта END_REED — см. loop().
+unsigned long endReedLowSince = 0;
+bool endReedHandled = false;
+const unsigned long END_REED_HOLD_MS = 1500;
 bool hasSeenCageSensor = false;
 
 // Dlya plavnogo vklyucheniya svetodioda osveshcheniya
@@ -270,6 +275,8 @@ void resetQuestState() {
 
   // Obnovlyaem lastEndReedState do tekushchego fakticheskogo sostoyaniya END_REED_PIN pri sbrose
   lastEndReedState = digitalRead(END_REED_PIN);
+  endReedLowSince = 0;
+  endReedHandled = (digitalRead(END_REED_PIN) == LOW);  // платформа уже защёлкнута — не считать это победой
 
   // Otklyuchaem vse vyhody, vklyuchaya LIGHTING_LED_PIN i CRYSTAL_LIGHT_PIN
   digitalWrite(DOOR_LOCK_PIN, LOW);
@@ -409,6 +416,8 @@ void setup() {
 
   // Inicializaciya lastEndReedState realnym tekushchim sostoyaniem
   lastEndReedState = digitalRead(END_REED_PIN);
+  endReedLowSince = 0;
+  endReedHandled = (digitalRead(END_REED_PIN) == LOW);  // платформа уже защёлкнута — не считать это победой
 
   // Inicializaciya sostoyaniy novyh datchikov
   lastRoseReedState = digitalRead(ROSE_REED_PIN);
@@ -972,9 +981,37 @@ void loop() {
   int currentEndReedState = digitalRead(END_REED_PIN);
   if (lastEndReedState == HIGH && currentEndReedState == LOW) {
     if (currentQuestState == STATE_IN_PROGRESS) {
-        // Всегда вызываем activateEndStage. 
+        // Всегда вызываем activateEndStage.
         // Она сама решит: наказать игрока за скорость или отправить победу (dog_lock)
-        activateEndStage(); 
+        activateEndStage();
+        endReedHandled = true;
+    }
+  }
+
+  // 2026-08-07, жалоба клиента CLC2: платформа защёлкнулась в замке — значит
+  // вращение было медленным и этап пройден, — но победа не засчиталась.
+  // Замок игроку не мешал, то есть FAIL-ветка НЕ срабатывала: activateEndStage()
+  // не вызывался вообще. В логах башня молчала 25 минут (03:21 → 03:47), пока
+  // оператор не скипнул этап с пульта.
+  //
+  // Причина: победа ловится только по ФРОНТУ HIGH→LOW. Если фронт потерян —
+  // дребезг геркона, платформа была защёлкнута ещё до старта этапа (тогда
+  // resetQuestState() запомнит lastEndReedState = LOW и фронта уже не будет),
+  // или loop подтормозил на звуке — засчитать выигрыш нечем, этап встаёт намертво.
+  //
+  // Страховка по УРОВНЮ: геркон замкнут дольше END_REED_HOLD_MS подряд, а этап
+  // всё ещё в игре → отрабатываем так же, как по фронту. Флаг endReedHandled
+  // не даёт повторно дёргать замок, пока платформу не снимут (геркон → HIGH).
+  if (currentEndReedState == HIGH) {
+    endReedHandled = false;
+    endReedLowSince = 0;
+  } else if (currentQuestState == STATE_IN_PROGRESS && !endReedHandled) {
+    if (endReedLowSince == 0) {
+      endReedLowSince = currentMillis;
+    } else if (currentMillis - endReedLowSince >= END_REED_HOLD_MS) {
+      endReedHandled = true;
+      sendLog("END_REED: fronta ne bylo, zaschityvaem po urovnyu");
+      activateEndStage();
     }
   }
   lastEndReedState = currentEndReedState;

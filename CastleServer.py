@@ -1748,6 +1748,14 @@ class _DeadSerial:
     def in_waiting(self):
         return 0
 
+    # 2026-08-07: порт закрыт по определению. serial() смотрит на этот флаг и
+    # раз в несколько секунд пробует переподключиться — если Mega вернётся на
+    # USB (например, клиент передёрнул разъём), квест поднимется сам, без
+    # перезапуска сервера.
+    @property
+    def is_open(self):
+        return False
+
     @property
     def out_waiting(self):
         return 0
@@ -1859,6 +1867,8 @@ serial_buffer = ""
 # а кнопки Ghost остались серыми. Теперь копятся здесь и уходят в общий
 # обработчик следующим тактом.
 deferred_serial_lines = []
+_last_serial_err_log = 0.0   # см. rate-limit в serial_read_lines()
+_last_reconn_log = 0.0       # см. rate-limit в ветке переподключения serial()
 
 def serial_read_lines(include_deferred=True):
     """Читает доступные байты из serial, добавляет в буфер, возвращает список полных строк.
@@ -1867,7 +1877,7 @@ def serial_read_lines(include_deferred=True):
     Хендшейк вызывает с False, чтобы не забирать обратно то, что сам отложил
     (иначе он крутил бы их по кругу до конца своего ожидания).
     """
-    global serial_buffer, deferred_serial_lines
+    global serial_buffer, deferred_serial_lines, _last_serial_err_log
     lines = []
     if include_deferred and deferred_serial_lines:
         # Строки, прочитанные хендшейком не для себя. Отдаём их первыми —
@@ -1891,7 +1901,13 @@ def serial_read_lines(include_deferred=True):
                 logger.warning(f"Serial buffer overflow ({len(serial_buffer)} chars), flushing: {serial_buffer[:80]}...")
                 serial_buffer = ""
     except Exception as e:
-        logger.error(f"Serial read error: {e}")
+        # 2026-08-07: без rate-limit это давало 5554 одинаковых строки за полчаса
+        # (ночь CLC2 06→07.08, Mega пропала с USB). Логи распухали, полезного в
+        # них не было — сообщение всё время одно и то же.
+        now = time.time()
+        if now - _last_serial_err_log > 30:
+            _last_serial_err_log = now
+            logger.error(f"Serial read error: {e}")
     return lines
 
 # --- ТАБЛИЦА ВОССТАНОВЛЕНИЯ ПОВРЕЖДЕННЫХ КОМАНД ---
@@ -5569,6 +5585,17 @@ def serial():
               # --- БУФЕРИЗИРОВАННОЕ ЧТЕНИЕ SERIAL (ЗАЩИТА ОТ ОБРЕЗКИ И ПОВРЕЖДЕНИЯ) ---
               # Вместо ser.readline() (который может вернуть неполную строку),
               # читаем все доступные байты и обрабатываем только полные строки.
+              # 2026-08-07. Если Mega пропала с USB, попытка переподключения ниже
+              # может не удаться — тогда ser остаётся закрытым. Раньше цикл после
+              # этого крутился вечно на 10 Гц: serial_read_lines() глушила ошибку
+              # внутри себя, наружу исключение не выходило, и ветка переподключения
+              # больше НИКОГДА не вызывалась — связь сама не восстанавливалась.
+              # Ночью 06→07.08 на CLC2 помог только перезапуск Pi.
+              # Теперь мёртвый порт — это исключение: обработчик ниже сделает
+              # ещё одну попытку через 3 секунды, и так до успеха.
+              if not getattr(ser, 'is_open', False):
+                  raise IOError("Serial port closed — Mega не видна на USB")
+
               serial_lines = serial_read_lines()
               if serial_lines:
                    # 2026-08-05: ЛЮБОЕ сообщение от Mega = она жива.
@@ -7714,16 +7741,25 @@ def serial():
               except:
                   pass
               
-              logger.info("Попытка переподключения к Arduino через 2 секунды...")
+              # 2026-08-07: попытки идут бесконечно (пока Mega не вернётся на USB),
+              # поэтому неудачи логируем не чаще раза в минуту — иначе журнал
+              # забивается так же, как в ночь 06→07.08.
+              _now = time.time()
+              _noisy = (_now - globals().get('_last_reconn_log', 0.0)) > 60
+              if _noisy:
+                  globals()['_last_reconn_log'] = _now
+                  logger.info("Попытка переподключения к Arduino через 2 секунды...")
               eventlet.sleep(2) # Даем системе время заново определить USB
-              
+
               # Пытаемся открыть порт заново
               try:
                   ser = Serial('/dev/ttyUSB_MAIN', 115200, timeout=1, dsrdtr=False, rtscts=False)
                   _arduino_no_reset_on_close(ser)
+                  globals()['_last_reconn_log'] = 0.0   # успех логируем всегда
                   logger.info("УСПЕХ: Связь с Arduino восстановлена!")
               except Exception as reconn_e:
-                  logger.error(f"ОШИБКА: Не удалось переподключиться. Проверьте USB кабель! ({reconn_e})")
+                  if _noisy:
+                      logger.error(f"ОШИБКА: Не удалось переподключиться. Проверьте USB кабель! ({reconn_e})")
               
               eventlet.sleep(1)
    

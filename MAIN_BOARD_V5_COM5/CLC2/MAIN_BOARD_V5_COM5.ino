@@ -259,16 +259,16 @@ byte OwlScore = 0;
 byte NumKnock = 0;
 bool doorFlags = 1;
 bool flagStory = 1;
-//////двери - шерифы
-const byte MansardDoor = A6;      // шериф мансарды
-const byte PotionsRoomDoor = A3;  // шериф команты зельеварения
-const byte LibraryDoor = A11;     // шериф библиотеки
-const byte BankDoor = A4;         // шериф банка
-const byte HightTowerDoor = A9;   // шериф последней башни
-const byte HightTowerDoor2 = 30;  // шериф последней башни
-const byte MemoryRoomDoor = A2;   // шериф комнаты воспоминаний
-const byte CrimeDoor = 34;        // шериф тюрьмы
-const byte BankStashDoor = A10;   // шериф тайника в банке
+//////двери - локеры
+const byte MansardDoor = A6;      // локер мансарды
+const byte PotionsRoomDoor = A3;  // локер команты зельеварения
+const byte LibraryDoor = A11;     // локер библиотеки
+const byte BankDoor = A4;         // локер банка
+const byte HightTowerDoor = A9;   // локер последней башни
+const byte HightTowerDoor2 = 30;  // локер последней башни
+const byte MemoryRoomDoor = A2;   // локер комнаты воспоминаний
+const byte CrimeDoor = 34;        // локер тюрьмы
+const byte BankStashDoor = A10;   // локер тайника в банке
 
 const byte doors[] = {
   MansardDoor,
@@ -287,7 +287,7 @@ const int DOORS = sizeof(doors) / sizeof(doors[0]);
 unsigned long lastOpen[DOORS];
 bool active[DOORS];
 
-// тайники - шерифы
+// тайники - локеры
 const byte LibraryLight = A7;  // свет библиотеки
 
 

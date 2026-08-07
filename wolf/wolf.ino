@@ -61,6 +61,11 @@ unsigned long wolfTimer = 0;
 unsigned long doorTimer = 0;
 unsigned long repeatDoorTimer = 0;
 bool doorRepeatActive = false;
+
+// 2026-08-07: отложенное гашение по day_off — см. обработчик day_off.
+bool dayOffPending = false;
+unsigned long dayOffTimer = 0;
+const unsigned long DAY_OFF_DELAY_MS = 20000;
 const uint16_t updateInterval = 30;  // Частота обновления (мс)
 
 unsigned long cloudFiStartTime = 0;
@@ -659,6 +664,7 @@ void setup() {
         cloudFiPlaying = false;
         fireworkActive = false;
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+		dayOffPending = false;    // 2026-08-07: снимаем отложенное гашение от прошлой игры
         stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if (body == "\"start\"") {
@@ -667,6 +673,7 @@ void setup() {
         hintFlag = 1;
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+		dayOffPending = false;    // 2026-08-07: снимаем отложенное гашение от прошлой игры
         stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if (body == "\"ready\"") {
@@ -674,6 +681,7 @@ void setup() {
         doorRepeatActive = false;
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+		dayOffPending = false;    // 2026-08-07: снимаем отложенное гашение от прошлой игры
         stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if (body == "\"volume_up\"") {
@@ -813,8 +821,24 @@ void setup() {
       }
 
       if (body == "\"day_off\"") {
-        state = 0;
-        doorRepeatActive = false;
+        // 2026-08-07. Тот же баг, что нашли в chest.ino на CLC2 07.08.
+        // Сервер шлёт day_off в момент, когда пройдена ТРЕТЬЯ из трёх игр.
+        // Если третьим оказался Волк, day_off прилетает в ту же секунду,
+        // что и его победа, а доставка команд асинхронная — day_off может
+        // обогнать подтверждение от сервера. Тогда state 5 → 0, ветка
+        // "подтверждение получено → OpenLock(SH1)" не выполнялась никогда,
+        // и дверь оставалась запертой.
+        if (state == 5) {
+          OpenLock(SH1);          // этап пройден — замок обязан открыться
+        }
+        if (state >= 5) {
+          // Финал ещё идёт: гасим не сейчас, а когда замок отобьёт импульсы.
+          dayOffPending = true;
+          dayOffTimer = millis();
+        } else {
+          state = 0;
+          doorRepeatActive = false;
+        }
       }
 
       if (body == "\"ghost_game\"") {
@@ -1178,6 +1202,15 @@ void loop() {
       break;
     case 7:
       break;
+  }
+
+  // Отложенное гашение по day_off (см. обработчик day_off).
+  // Ждём, пока финал отработает и замок отобьёт свои импульсы,
+  // и только потом уводим Волка в "выключенное" состояние.
+  if (dayOffPending && millis() - dayOffTimer >= DAY_OFF_DELAY_MS) {
+    dayOffPending = false;
+    state = 0;
+    doorRepeatActive = false;
   }
 }
 

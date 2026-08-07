@@ -58,6 +58,14 @@ bool fadingUp = true;     // Флаг увеличения яркости
 unsigned long timerEndLed;
 unsigned long timerEndLock;
 unsigned long timerDoor;
+
+// 2026-08-07: "day_off" приходит в ту же секунду, когда Чемоданы стали третьей
+// пройденной игрой, и раньше рвал финал на полпути — см. обработчик day_off.
+// Гасим подсветку не сразу, а когда финал отработает.
+bool dayOffPending = false;
+unsigned long dayOffTimer = 0;
+const unsigned long DAY_OFF_DELAY_MS = 20000;  // 20 сек: замок успевает отбить ~6 импульсов
+
 bool storyFlag;
 int language=1;
 bool afterEffect;
@@ -436,6 +444,7 @@ void setup() {
         digitalWrite(insideLed, HIGH);
         OpenLock(SHERIF_EM2);
         chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        dayOffPending = false;     // 2026-08-07: снимаем отложенное гашение от прошлой игры
         stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"ready\""){
@@ -447,6 +456,7 @@ void setup() {
         myMP3.stop();
         digitalWrite(insideLed, LOW);
         chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        dayOffPending = false;     // 2026-08-07: снимаем отложенное гашение от прошлой игры
         stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       // Добавляем обработку подтверждения от сервера
@@ -462,12 +472,22 @@ void setup() {
         digitalWrite(insideLed, HIGH);
       }
       if(body == "\"day_off\""){
-        state = 6;
-        for (int i = 0; i < arrayLenght; i++)
-        {
-          analogWrite(ledsSym[i], 0);
+        // 2026-08-07. Раньше здесь сразу стояло state = 6, и это ломало замок.
+        // Сервер шлёт day_off в тот момент, когда пройдена ТРЕТЬЯ из трёх игр.
+        // Если третьими оказались Чемоданы, day_off прилетает в ту же секунду,
+        // когда мы только вошли в state 3 (этап пройден, идёт финальный джингл),
+        // а finalizeGame() — тот, кто открывает замок — вызывается лишь через
+        // 2 секунды. state = 6 выбрасывал нас из state 3 раньше срока:
+        //   - finalizeGame() не вызывался вообще → одиночный OpenLock не звучал;
+        //   - периодическая пульсация ниже работает только при state 4..5 → тоже нет.
+        // Итог: замок не открывался НИ РАЗУ, сундук оставался запертым.
+        // Логи CLC2 07.08: 03:16:28 THREE GAMES DONE → day_off, 03:16:29 {'suitcase':'end'}.
+        // Теперь: сначала даём финалу отработать, гасим подсветку с задержкой.
+        if (state == 3) {
+          finalizeGame();   // открыть замок и доиграть историю, раз этап уже пройден
         }
-        digitalWrite(insideLed, LOW);
+        dayOffPending = true;
+        dayOffTimer = millis();
       }
       if (body == "\"volume_up\"") {
         value = value + 1;
@@ -518,6 +538,7 @@ void setup() {
         myMP3.stop();
         hintFlag = 1;
         chestEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
+        dayOffPending = false;     // 2026-08-07: снимаем отложенное гашение от прошлой игры
         stageFinished = false;     // новая игра — снимаем защиту от гонки
       }
       if(body == "\"language_1\""){
@@ -872,6 +893,19 @@ void loop() {
     OpenLock(SHERIF_EM2);
     timerDoor = millis();
   }
+ }
+
+ // Отложенное гашение подсветки по day_off (см. обработчик day_off).
+ // Ждём, пока финал отработает и замок отобьёт свои импульсы, и только
+ // потом уводим устройство в "спящий" state 6.
+ if(dayOffPending && millis() - dayOffTimer >= DAY_OFF_DELAY_MS){
+   dayOffPending = false;
+   state = 6;
+   for (int i = 0; i < arrayLenght; i++)
+   {
+     analogWrite(ledsSym[i], 0);
+   }
+   digitalWrite(insideLed, LOW);
  }
 }
 
