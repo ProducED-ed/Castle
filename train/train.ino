@@ -1547,7 +1547,15 @@ void loop() {
       Serial.println();
   }
 
-  if (!INPUTS.digitalRead(2) && !ghostFlag) {
+  // 2026-08-07: подсказка не должна перебивать вступление этапа поезда.
+  // myMP3.pause() + новый трек убивают TRACK_TRAIN_ON или STORY_15, а вместе
+  // с ними и событие «трек доиграл», на котором держится запуск игры. Раньше
+  // это вешало этап намертво; теперь его вытащит TrainIntroWatchdog(), но
+  // ждать 60 секунд игроку незачем — проще не дать перебить.
+  // Клиент 06.08 впервые проходил карту начиная с поезда: вступление играет,
+  // а игроки уже вернулись к карте и тыкают палочкой по остальным символам.
+  bool trainIntroPlaying = (trainOnStartedAt != 0 || story15StartedAt != 0);
+  if (!INPUTS.digitalRead(2) && !ghostFlag && !trainIntroPlaying) {
     if ((state == 0 || state == 1) && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
 	  resumeEngineSound = true;
