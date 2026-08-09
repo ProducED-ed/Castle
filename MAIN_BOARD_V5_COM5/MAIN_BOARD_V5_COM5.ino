@@ -138,6 +138,22 @@ bool handleBoyCal(const String &buff) {
   return true;
 }
 
+// Прогнать серво на подобранных углах — кнопки «проверить» на тех-пульте.
+// Своя команда нужна потому, что игровые student_open/student_hide
+// обрабатываются ТОЛЬКО внутри соответствующих этапов квеста: в состоянии
+// ожидания Mega их не слушает, и кнопки на пульте молчали, хотя серво исправен.
+bool handleBoyTest(const String &buff) {
+  if (!buff.startsWith("boytest:")) return false;
+  bool toOpen = (buff.indexOf("open") != -1);
+  Serial.println(F("log:confirm:boytest_start"));
+  boyServo.attach(49, boyPulseMin, boyPulseMax);
+  boyServo.write(toOpen ? boyAngleOpen : boyAngleHide);
+  delay(boyMoveMs);
+  boyServo.detach();          // не держим момент, серво не греется
+  Serial.println(F("log:confirm:boytest_ok"));
+  return true;
+}
+
 //------------герконы кнопки и входы
 GButton startDoor(startDoorPin);  // геркон на стартовой двери
 GButton clock1Button(1);
@@ -1299,6 +1315,7 @@ void PowerOn() {
     // Калибровка серво с тех-пульта. Принимаем в состоянии ожидания: здесь
     // замок стоит и после загрузки, и когда монтажник подбирает углы.
     if (handleBoyCal(buff)) continue;
+    if (handleBoyTest(buff)) continue;
 
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
@@ -6980,6 +6997,7 @@ void RestOn() {
 
     // Калибровка серво с тех-пульта — принимается и в режиме отдыха.
     if (handleBoyCal(buff)) continue;
+    if (handleBoyTest(buff)) continue;
 
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();

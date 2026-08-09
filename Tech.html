@@ -885,7 +885,7 @@
                     <div class="ui inverted checkbox" style="margin-top:12px;">
                         <input type="checkbox" id="setup-ts-expiry" onchange="setupTsExpiry(this.checked)">
                         <label style="color:#ddd;" data-i18n="setup_ts_expiry">
-                            Disable key expiry сделан в админке Tailscale
+                            Disable key expiry нужно сделать в админке Tailscale
                         </label>
                     </div>
                     <div style="color:#e0a800; font-size:12px; margin-top:6px;">
@@ -900,8 +900,30 @@
                         <span data-i18n="setup_hub_title">Раскладка USB-хаба</span>
                         <span class="setup-badge" id="setup-hub-badge"></span></h4>
                     <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_hub_hint">
-                        Втыкайте башни по эталону. Пульт опознает каждую и скажет, правильно ли воткнуто.
+                        Проверяем, что кабель каждой башни воткнут в свой порт хаба. Если перепутать — «Прошить Workshop» уйдёт физически в Basket, прошивка пройдёт «успешно», а башня будет вести себя странно.
                     </div>
+
+                    <div style="background:#111; border:1px solid #444; border-radius:6px; padding:12px; margin-bottom:14px;">
+                        <div style="color:#ffd54a; font-weight:bold; margin-bottom:6px;" data-i18n="setup_hub_howto">
+                            Как проверить (5 минут):
+                        </div>
+                        <ol style="color:#ccc; padding-left:20px; line-height:1.7; margin:0;">
+                            <li data-i18n="setup_hub_s1">Вынуть из хаба все четыре кабеля башен. Хаб не выключать.</li>
+                            <li data-i18n="setup_hub_s2">Нажать «Снимок «ничего не воткнуто»» — пульт запомнит, что было до башен.</li>
+                            <li data-i18n="setup_hub_s3">Воткнуть ТОЛЬКО кабель Owls → нажать «Обновить список» → в таблице ниже появится новый порт, это и есть порт Owls.</li>
+                            <li data-i18n="setup_hub_s4">Так же по одной: Dog, потом Workshop, потом Basket. После каждой — «Обновить список».</li>
+                            <li data-i18n="setup_hub_s5">Сверить с эталоном: 1.2.1 Owls · 1.2.2 Dog · 1.2.3 Workshop · 1.2.4 Basket. Не совпало — проще переткнуть кабели, чем менять раскладку.</li>
+                            <li data-i18n="setup_hub_s6">Прошить все четыре башни (таблица прошивки выше на этой странице).</li>
+                            <li data-i18n="setup_hub_s7">Нажать «Опознать башни» — контрольная проверка. Все четыре зелёные → «Подтвердить раскладку».</li>
+                        </ol>
+                        <div style="color:#e0a800; font-size:12px; margin-top:10px;" data-i18n="setup_hub_warn_order">
+                            Порядок важен: «Опознать башни» читает имя из ПРОШИВКИ, а не из железа. Если сначала прошить при перепутанных кабелях, башня начнёт представляться чужим именем, и опознание покажет зелёное при неправильной сборке. Поэтому сначала пункты 1–5 руками.
+                        </div>
+                        <div style="color:#999; font-size:12px; margin-top:8px;" data-i18n="setup_hub_warn_reset">
+                            «Опознать башни» на секунду перезагружает платы башен, поэтому кнопка недоступна во время игры.
+                        </div>
+                    </div>
+
                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
                         <button class="ui small teal button" id="setup-hub-identify" onclick="setupIdentifyTowers()">
                             <i class="search icon"></i> <span data-i18n="setup_hub_identify">Опознать башни</span>
@@ -1248,7 +1270,7 @@
                 setup_ts_copy: "Копировать",
                 setup_ts_copied: "Ссылка скопирована",
                 setup_ts_url_hint: "Откройте эту ссылку на устройстве с интернетом и авторизуйте замок:",
-                setup_ts_expiry: "Disable key expiry сделан в админке Tailscale",
+                setup_ts_expiry: "Disable key expiry нужно сделать в админке Tailscale",
                 setup_ts_expiry_hint: "Без этого нода потеряет IP примерно через полгода.",
                 setup_ts_enabling: "Запускаю службу Tailscale…",
                 setup_ts_authkey: "Авторизуюсь по ключу…",
@@ -1258,7 +1280,17 @@
                 setup_ts_fail: "Не удалось: ",
                 setup_ts_cancelled: "Отменено.",
                 setup_hub_title: "Раскладка USB-хаба",
-                setup_hub_hint: "Втыкайте башни по эталону. Пульт опознает каждую и скажет, правильно ли воткнуто.",
+                setup_hub_hint: "Проверяем, что кабель каждой башни воткнут в свой порт хаба. Если перепутать — «Прошить Workshop» уйдёт физически в Basket, прошивка пройдёт «успешно», а башня будет вести себя странно.",
+                setup_hub_howto: "Как проверить (5 минут):",
+                setup_hub_s1: "Вынуть из хаба все четыре кабеля башен. Хаб не выключать.",
+                setup_hub_s2: "Нажать «Снимок «ничего не воткнуто»» — пульт запомнит, что было до башен.",
+                setup_hub_s3: "Воткнуть ТОЛЬКО кабель Owls → нажать «Обновить список» → в таблице ниже появится новый порт, это и есть порт Owls.",
+                setup_hub_s4: "Так же по одной: Dog, потом Workshop, потом Basket. После каждой — «Обновить список».",
+                setup_hub_s5: "Сверить с эталоном: 1.2.1 Owls · 1.2.2 Dog · 1.2.3 Workshop · 1.2.4 Basket. Не совпало — проще переткнуть кабели, чем менять раскладку.",
+                setup_hub_s6: "Прошить все четыре башни (таблица прошивки выше на этой странице).",
+                setup_hub_s7: "Нажать «Опознать башни» — контрольная проверка. Все четыре зелёные → «Подтвердить раскладку».",
+                setup_hub_warn_order: "Порядок важен: «Опознать башни» читает имя из ПРОШИВКИ, а не из железа. Если сначала прошить при перепутанных кабелях, башня начнёт представляться чужим именем, и опознание покажет зелёное при неправильной сборке. Поэтому сначала пункты 1–5 руками.",
+                setup_hub_warn_reset: "«Опознать башни» на секунду перезагружает платы башен, поэтому кнопка недоступна во время игры.",
                 setup_hub_identify: "Опознать башни",
                 setup_hub_refresh: "Обновить список",
                 setup_hub_snapshot: "Снимок «ничего не воткнуто»",
@@ -1289,7 +1321,9 @@
                 setup_servo_t_hide: "Проверить «прячется»",
                 setup_servo_t_open: "Проверить «открывается»",
                 setup_servo_save: "Сохранить",
-                setup_servo_sent: "Команда отправлена на главную плату.",
+                setup_servo_sent: "Команда отправлена на главную плату…",
+                setup_servo_moved: "Главная плата отчиталась: серво отработал.",
+                setup_servo_no_reply: "Главная плата не ответила. Проверь, что на неё залита свежая прошивка (кнопка «Прошить main» выше) — тестовую команду понимают только новые версии.",
                 setup_servo_saved: "Калибровка сохранена — она переживёт перезагрузку.",
                 setup_servo_bad: "Значения вне допустимых границ.",
                 setup_mon_title: "Живой поток событий датчиков",
@@ -1539,7 +1573,7 @@
                 setup_ts_copy: "Copy",
                 setup_ts_copied: "Link copied",
                 setup_ts_url_hint: "Open this link on a device with internet and authorise the castle:",
-                setup_ts_expiry: "Disable key expiry done in the Tailscale admin panel",
+                setup_ts_expiry: "Disable key expiry must be done in the Tailscale admin panel",
                 setup_ts_expiry_hint: "Without it the node loses its IP in about six months.",
                 setup_ts_enabling: "Starting the Tailscale service…",
                 setup_ts_authkey: "Authorising with the key…",
@@ -1549,7 +1583,17 @@
                 setup_ts_fail: "Failed: ",
                 setup_ts_cancelled: "Cancelled.",
                 setup_hub_title: "USB hub layout",
-                setup_hub_hint: "Plug the towers in per the reference. The dashboard identifies each one and tells you if it is right.",
+                setup_hub_hint: "We check that each tower cable sits in its own hub port. Get it wrong and “Flash Workshop” physically goes to Basket: the flash reports success, but the tower behaves oddly.",
+                setup_hub_howto: "How to check (5 minutes):",
+                setup_hub_s1: "Unplug all four tower cables from the hub. Leave the hub powered.",
+                setup_hub_s2: "Press “Snapshot «nothing plugged in»” — the dashboard remembers the state before the towers.",
+                setup_hub_s3: "Plug in ONLY the Owls cable → press “Refresh list” → a new port appears in the table below, that is the Owls port.",
+                setup_hub_s4: "Same one at a time: Dog, then Workshop, then Basket. Press “Refresh list” after each.",
+                setup_hub_s5: "Compare with the reference: 1.2.1 Owls · 1.2.2 Dog · 1.2.3 Workshop · 1.2.4 Basket. If it differs, swapping the cables is easier than changing the layout.",
+                setup_hub_s6: "Flash all four towers (the flashing table further up this page).",
+                setup_hub_s7: "Press “Identify towers” — the control check. All four green → “Confirm layout”.",
+                setup_hub_warn_order: "Order matters: “Identify towers” reads the name from the FIRMWARE, not from the hardware. Flash first with swapped cables and the tower starts reporting someone else's name, so identification shows green on a wrong assembly. Do steps 1–5 by hand first.",
+                setup_hub_warn_reset: "“Identify towers” reboots the tower boards for a second, so the button is unavailable while a game is running.",
                 setup_hub_identify: "Identify towers",
                 setup_hub_refresh: "Refresh list",
                 setup_hub_snapshot: "Snapshot “nothing plugged in”",
@@ -1580,7 +1624,9 @@
                 setup_servo_t_hide: "Test “hides”",
                 setup_servo_t_open: "Test “opens”",
                 setup_servo_save: "Save",
-                setup_servo_sent: "Command sent to the main board.",
+                setup_servo_sent: "Command sent to the main board…",
+                setup_servo_moved: "Main board reported back: the servo moved.",
+                setup_servo_no_reply: "No reply from the main board. Check that it runs the current firmware (the “Flash main” button above) — only newer versions understand the test command.",
                 setup_servo_saved: "Calibration saved — it survives a reboot.",
                 setup_servo_bad: "Values are out of the allowed range.",
                 setup_mon_title: "Live sensor event stream",
@@ -3369,6 +3415,17 @@
                 setupMsg('#setup-servo-msg', T('setup_locked'), 'bad');
             } else if (d.stage === 'sent') {
                 setupMsg('#setup-servo-msg', T('setup_servo_sent'), 'warn');
+                // Если плата не подтвердит движение за 8 секунд — скажем об этом
+                // прямо, а не оставим «команда отправлена» висеть навсегда.
+                clearTimeout(window._servoWait);
+                window._servoWait = setTimeout(function() {
+                    setupMsg('#setup-servo-msg', T('setup_servo_no_reply'), 'bad');
+                }, 8000);
+            } else if (d.stage === 'moved') {
+                clearTimeout(window._servoWait);
+                setupMsg('#setup-servo-msg', T('setup_servo_moved'), 'ok');
+            } else if (d.stage === 'accepted') {
+                clearTimeout(window._servoWait);
             } else if (d.ok) {
                 setupMsg('#setup-servo-msg', T('setup_servo_saved'), 'ok');
             } else {

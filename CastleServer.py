@@ -3671,7 +3671,10 @@ def setup_servo_test(data):
         return
     send_boy_servo_calibration(payload.get('values'))
     eventlet.sleep(0.3)                      # даём Mega принять калибровку
-    serial_write_queue.put('student_open' if action == 'open' else 'student_hide')
+    # Отдельная команда boytest:, а НЕ игровые student_open/student_hide.
+    # Те обрабатываются только внутри своих этапов квеста, а в состоянии
+    # ожидания Mega их игнорирует — кнопки на пульте молчали при исправном серво.
+    serial_write_queue.put(f'boytest:{action}')
     socketio.emit('setup_servo_result', {'ok': True, 'action': action, 'stage': 'sent'})
 
 
@@ -6212,6 +6215,14 @@ def serial():
                    # проверка флага и ничего больше.
                    if sensor_monitor_active:
                        _emit_sensor_event(flag)
+
+                   # Подтверждение от главной платы, что серво реально отработал.
+                   # Без него кнопка «проверить» слепая: команда ушла, а двинулся
+                   # ли привод — видно только глазами.
+                   if flag == "log:confirm:boytest_ok":
+                       socketio.emit('setup_servo_result', {'ok': True, 'stage': 'moved'})
+                   elif flag == "log:confirm:boycal_ok":
+                       socketio.emit('setup_servo_result', {'ok': True, 'stage': 'accepted'})
 
                    # --- ВОССТАНОВЛЕНИЕ ПОВРЕЖДЕННЫХ КОМАНД ---
                    # Проверяем, не повреждена ли команда (1-2 символа отличия от критической)
