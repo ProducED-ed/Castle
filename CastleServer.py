@@ -181,6 +181,8 @@ import os
 import requests
 from requests.exceptions import RequestException
 from hue_lights import HueClient
+from castle_config import CastleConfig, STANDARD_HUB_PORTS, TOWERS, validate_hostname
+import castle_setup
 import eventlet.queue
 import random
 
@@ -375,6 +377,13 @@ ESP32_API_SAFE_URL = f"http://{ESP32_IP_SAFE}/data"
 # настраивается через /tech. IP не хардкодим — у каждого клиента свой бридж.
 HUE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hue_config.json")
 hue = HueClient(HUE_CONFIG_PATH, default_group="2")  # IP бриджа — только из hue_config.json / с /tech
+
+# Клиентская специфика замка: имя квеста, раскладка USB-хаба башен, калибровка
+# серво мальчика, страна для wpa_supplicant. Всё настраивается на /tech в разделе
+# «Первый запуск», в коде ничего править не нужно — благодаря этому CLC2, CLC3 и
+# CLC4 работают на одних и тех же файлах. Подробности — в castle_config.py.
+CASTLE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "castle_config.json")
+castle_cfg = CastleConfig(CASTLE_CONFIG_PATH)
 # Единый логгер для всех HUE-сообщений (чтобы в логах было одинаково 'hue_lights - INFO',
 # а не вперемешку 'root' из хелперов CastleServer и 'hue_lights' из модуля).
 hue_logger = logging.getLogger("hue_lights")
@@ -931,6 +940,14 @@ def gather_system_status():
         'networks':  networks,
         'usb':       usb,
         'bluetooth': bluetooth_active,
+        # Имя квеста (оно же hostname, оно же имя ноды в Tailscale) — показывается
+        # в шапке /tech, чтобы при удалённой поддержке было сразу видно, к какому
+        # замку подключён оператор.
+        'quest_name': castle_cfg.quest_name(),
+        'hostname': castle_setup.current_hostname(),
+        # Идёт ли игра. Раздел «Первый запуск» по этому флагу блокирует всё, что
+        # трогает железо и сеть. Читаем без global — присваивать здесь нечего.
+        'game_running': (go == 1),
     }
 
 
@@ -1220,6 +1237,14 @@ def tailscale_watchdog():
     eventlet.sleep(180)  # дать сервису время на normal startup (Tailscale стартует ~30-60с)
 
     while True:
+        # Пока с /tech идёт первичная авторизация — не вмешиваемся.
+        # Во время неё BackendState = NeedsLogin, то есть ровно то, что вотчдог
+        # считает поломкой. Без этой проверки он через две минуты сделал бы
+        # `tailscale up --reset`, оборвал авторизацию и погасил ссылку, которую
+        # оператор в этот момент открывает на телефоне.
+        if _ts_setup_active:
+            eventlet.sleep(30)
+            continue
         try:
             r = subprocess.run(['tailscale', 'status', '--json'],
                                capture_output=True, text=True, timeout=8)
@@ -2645,7 +2670,7 @@ def handle_flash(board_id):
 
     commands = {
         'main': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN -b 115200 -D -U flash:w:/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex:i',
-        'owls': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.1:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
+        'owls': f'sudo avrdude -v -p atmega2560 -c wiring -P {castle_cfg.tower_dev("owls")} -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
         # 2026-06-05 (Эдуард): хаб-порты Workshop и Basket физически перепутаны
         # на CLC3 (доказано тестом «втыкай по одному»):
         #   - кабель к башне Workshop → хаб-порт 1.2.3
@@ -2653,9 +2678,14 @@ def handle_flash(board_id):
         # Раньше basket был 1.2.3, workshop 1.2.4 — «Прошить Workshop» уходило
         # физически на Basket и наоборот. Поэтому flash тихо «успешен» но
         # башня вела себя странно (basket думала что workshop и т.д.).
-        # Маппинг ИСПРАВЛЕН под физическую реальность CLC3.
-        'basket': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.4:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
-        'workshop': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.3:1.0-port0 -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
+        #
+        # 2026-08-09: раскладка больше НЕ живёт в коде. Она в castle_config.json
+        # и правится на /tech → «Первый запуск» → «Раскладка USB-хаба», где пульт
+        # сам опознаёт башни и показывает, правильно ли воткнуты кабели. Порядок
+        # выше стал эталоном для всех новых замков, у CLC2 в конфиге своя раскладка.
+        # Благодаря этому CastleServer.py на всех замках одинаковый.
+        'basket': f'sudo avrdude -v -p atmega2560 -c wiring -P {castle_cfg.tower_dev("basket")} -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
+        'workshop': f'sudo avrdude -v -p atmega2560 -c wiring -P {castle_cfg.tower_dev("workshop")} -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
         'train': 'cd /home/pi/New && python3 espota.py -i 192.168.4.202 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/train/train.ino.bin',
         'chest': 'cd /home/pi/New && python3 espota.py -i 192.168.4.203 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/chest/chest.ino.bin',
         'safe': 'cd /home/pi/New && python3 espota.py -i 192.168.4.204 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/safe/safe.ino.bin',
@@ -2664,6 +2694,16 @@ def handle_flash(board_id):
 
     if board_id not in commands: return
     cmd = commands[board_id]
+
+    # Печатаем фактический порт первой строкой. При разборе «прошил Workshop, а
+    # ожила Basket» это первое, что нужно увидеть: раскладка хаба у каждого замка
+    # своя, и раньше приходилось лезть в код, чтобы понять, куда ушла прошивка.
+    if board_id in TOWERS:
+        socketio.emit('flash_log', {
+            'board': board_id,
+            'msg': f'Порт {board_id}: {castle_cfg.tower_dev(board_id)} '
+                   f'(хаб-порт {castle_cfg.tower_port(board_id)})\n'
+        })
 
     try:
         # 1. Освобождение портов
@@ -2776,7 +2816,7 @@ def _handle_dog_flash():
     SILENCE_HEX = '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/silence.ino.hex'
     MEGA_HEX    = '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex'
     DOG_HEX     = '/home/pi/New/Sketches/dog/dog.ino.hex'
-    DOG_PORT    = '/dev/serial/by-path/platform-fd500000.pcie-pci-0000:01:00.0-usb-0:1.2.2:1.0-port0'
+    DOG_PORT    = castle_cfg.tower_dev('dog')   # раскладка хаба — из castle_config.json
 
     avrdude_mega = lambda hex_path: (
         f'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN '
@@ -3262,6 +3302,437 @@ def hue_plug_test(data):
     ok = hue.set_plug(on)
     socketio.emit('hue_plug_test_result', {'on': on, 'success': ok, 'message': ''})
 
+# ==========================================================================
+#  ПЕРВЫЙ ЗАПУСК — то, что раньше делалось руками через SSH
+#
+#  Раздел на /tech, который проводит монтажника по пуско-наладке нового замка:
+#  имя квеста, подключение к WiFi, Tailscale, раскладка USB-хаба, калибровка
+#  серво, чек-лист приёмки. Тяжёлая работа — в castle_setup.py, здесь только
+#  тонкие хендлеры.
+#
+#  Каждый хендлер, который трогает железо или сеть, начинается с _setup_busy():
+#  во время игры такие действия недопустимы. Клиентская блокировка в Tech.html
+#  тоже есть, но доверять ей нельзя — вкладку могли открыть заранее.
+# ==========================================================================
+
+_ts_setup_active = False        # идёт интерактивная авторизация Tailscale
+_ts_setup_proc = None
+_ports_snapshot = set()         # порты, видимые до подключения башен
+
+# Живой поток событий датчиков на /tech. Выключен по умолчанию: пока флаг
+# False, горячий цикл чтения Serial не делает ни одного лишнего действия.
+sensor_monitor_active = False
+_sensor_window_start = 0.0
+_sensor_window_count = 0
+SENSOR_EVENTS_PER_SEC = 40      # потолок, чтобы всплеск логов не забил сокет
+
+
+def _setup_busy():
+    """True, если сейчас идёт игра и трогать настройки нельзя."""
+    return go == 1
+
+
+def _setup_denied(event):
+    socketio.emit(event, {'ok': False, 'reason': 'game_running'})
+    logger.info(f"SETUP: {event} отклонён — идёт игра")
+
+
+def _setup_snapshot():
+    """Полное состояние раздела для /tech."""
+    state, auth_url, ts_ip = castle_setup.tailscale_status()
+    iface = castle_cfg.wifi_iface()
+    data = castle_cfg.as_status()
+    data.update({
+        'hostname': castle_setup.current_hostname(),
+        'game_running': _setup_busy(),
+        'tailscale_state': state,
+        'tailscale_ip': ts_ip,
+        'tailscale_auth_url': auth_url,
+        'tailscale_busy': _ts_setup_active,
+        'wifi_iface_present': castle_setup.iface_exists(iface),
+        'sensor_monitor': sensor_monitor_active,
+    })
+    return data
+
+
+@socketio.on('setup_status')
+def setup_status():
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+# ---------- шаг 1: имя квеста ----------
+@socketio.on('setup_set_quest_name')
+def setup_set_quest_name(data):
+    if _setup_busy():
+        return _setup_denied('setup_quest_name_result')
+    name = ((data or {}).get('name') or '').strip()
+    ok, warn = validate_hostname(name)
+    if not ok:
+        socketio.emit('setup_quest_name_result', {'ok': False, 'reason': 'invalid'})
+        return
+
+    def task():
+        applied, message = castle_setup.set_hostname(name)
+        if applied:
+            castle_cfg.set_quest_name(name)
+            logger.info(f"SETUP: имя квеста → {name}")
+        socketio.emit('setup_quest_name_result', {
+            'ok': applied,
+            'name': name,
+            'hostname_now': castle_setup.current_hostname(),
+            'warn': warn or (message if message == 'resolve_warning' else ''),
+            'reason': '' if applied else message,
+        })
+        socketio.emit('setup_status', _setup_snapshot())
+
+    socketio.start_background_task(task)
+
+
+@socketio.on('setup_tailscale_rename')
+def setup_tailscale_rename():
+    """Имя ноды в Tailscale за hostname машины само не следует — без этой
+    кнопки поддержка продолжит видеть в админке старое имя."""
+    if _setup_busy():
+        return _setup_denied('setup_tailscale_result')
+    name = castle_cfg.quest_name() or castle_setup.current_hostname()
+
+    def task():
+        ok, err = castle_setup.tailscale_set_hostname(name)
+        socketio.emit('setup_tailscale_result',
+                      {'ok': ok, 'stage': 'rename', 'message': err, 'name': name})
+        socketio.emit('setup_status', _setup_snapshot())
+
+    socketio.start_background_task(task)
+
+
+# ---------- шаг 2: WiFi ----------
+@socketio.on('setup_set_country')
+def setup_set_country(data):
+    code = ((data or {}).get('country') or '').strip()
+    castle_cfg.set_wifi_country(code)
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+@socketio.on('wifi_scan_start')
+def wifi_scan_start():
+    """Скан эфира. Заметно долгий, поэтому в фоне и с промежуточным событием —
+    иначе кнопка «Найти сети» выглядела бы зависшей."""
+    iface = castle_cfg.wifi_iface()
+
+    def task():
+        socketio.emit('wifi_scan_progress', {'stage': 'scanning'})
+        nets, method, error = castle_setup.scan_networks(iface)
+        socketio.emit('wifi_scan_result',
+                      {'networks': nets, 'method': method, 'error': error, 'iface': iface})
+        logger.info(f"SETUP: скан {iface} через '{method or '—'}': "
+                    f"{len(nets)} сетей, ошибка='{error or '—'}'")
+
+    socketio.start_background_task(task)
+
+
+# ---------- шаг 3: Tailscale ----------
+@socketio.on('setup_tailscale_up')
+def setup_tailscale_up(data):
+    global _ts_setup_active, _ts_setup_proc
+    if _setup_busy():
+        return _setup_denied('setup_tailscale_result')
+    if _ts_setup_active:
+        socketio.emit('setup_tailscale_result',
+                      {'ok': False, 'reason': 'already_running'})
+        return
+
+    authkey = ((data or {}).get('authkey') or '').strip()
+    name = castle_cfg.quest_name() or castle_setup.current_hostname()
+    _ts_setup_active = True
+
+    def task():
+        global _ts_setup_active, _ts_setup_proc
+        try:
+            socketio.emit('setup_tailscale_progress', {'stage': 'enable'})
+            rc, _out, err = castle_setup.run_cmd(
+                ['sudo', 'systemctl', 'enable', '--now', 'tailscaled'], timeout=40)
+            if rc != 0:
+                socketio.emit('setup_tailscale_result',
+                              {'ok': False, 'stage': 'enable', 'message': err.strip() or str(rc)})
+                return
+
+            # Ждём, пока демон реально поднимется: сразу после enable он ещё
+            # может не отвечать, и `tailscale up` упал бы на ровном месте.
+            for _ in range(15):
+                state, _url, _ip = castle_setup.tailscale_status()
+                if state:
+                    break
+                eventlet.sleep(2)
+
+            argv = ['sudo', 'tailscale', 'up',
+                    f'--hostname={name}', '--accept-dns=false']
+            if authkey:
+                socketio.emit('setup_tailscale_progress', {'stage': 'authkey'})
+                argv.append(f'--authkey={authkey}')
+                rc, _out, err = castle_setup.run_cmd(argv, timeout=120)
+                if rc != 0:
+                    socketio.emit('setup_tailscale_result',
+                                  {'ok': False, 'stage': 'up',
+                                   'message': err.strip() or str(rc)})
+                    return
+            else:
+                # Без ключа `tailscale up` висит до авторизации в браузере.
+                # Поэтому запускаем и НЕ ждём, а ссылку берём из status --json
+                # (поле AuthURL) — читать блокирующий pipe не приходится.
+                socketio.emit('setup_tailscale_progress', {'stage': 'waiting_auth'})
+                _ts_setup_proc = subprocess.Popen(
+                    argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+            sent_url = ''
+            for _ in range(100):                      # до ~5 минут
+                if not _ts_setup_active:
+                    return                            # нажали «Отмена»
+                state, auth_url, ip = castle_setup.tailscale_status()
+                if auth_url and auth_url != sent_url:
+                    sent_url = auth_url
+                    socketio.emit('setup_tailscale_progress',
+                                  {'stage': 'auth_url', 'auth_url': auth_url})
+                if state == 'Running' and ip:
+                    castle_cfg.set_tailscale_flag('authorized', True)
+                    socketio.emit('setup_tailscale_result',
+                                  {'ok': True, 'stage': 'done', 'ip': ip, 'state': state})
+                    logger.info(f"SETUP: Tailscale поднят, IP {ip}")
+                    return
+                eventlet.sleep(3)
+
+            socketio.emit('setup_tailscale_result',
+                          {'ok': False, 'stage': 'timeout', 'auth_url': sent_url})
+        finally:
+            _ts_setup_active = False
+            if _ts_setup_proc is not None:
+                try:
+                    _ts_setup_proc.poll()
+                except Exception:
+                    pass
+                _ts_setup_proc = None
+            socketio.emit('setup_status', _setup_snapshot())
+
+    socketio.start_background_task(task)
+
+
+@socketio.on('setup_tailscale_cancel')
+def setup_tailscale_cancel():
+    global _ts_setup_active, _ts_setup_proc
+    _ts_setup_active = False
+    if _ts_setup_proc is not None:
+        try:
+            _ts_setup_proc.kill()
+        except Exception:
+            pass
+        _ts_setup_proc = None
+    socketio.emit('setup_tailscale_result', {'ok': False, 'stage': 'cancelled'})
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+@socketio.on('setup_tailscale_flag')
+def setup_tailscale_flag(data):
+    """Галочка «Disable key expiry сделан». Делается в веб-админке Tailscale и
+    с Pi никак не видна, а забытый шаг через полгода роняет удалённый доступ."""
+    key = (data or {}).get('key')
+    castle_cfg.set_tailscale_flag(key, bool((data or {}).get('value')))
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+# ---------- шаг 4: раскладка USB-хаба ----------
+@socketio.on('setup_ports_snapshot')
+def setup_ports_snapshot():
+    """Запомнить, что видно сейчас — до подключения башен. Дальше всё новое
+    подсвечивается как «только что воткнули»."""
+    global _ports_snapshot
+    _ports_snapshot = {p['port'] for p in castle_setup.list_serial_ports()}
+    socketio.emit('setup_ports_data', _ports_payload())
+
+
+def _ports_payload(identified=None):
+    ports = castle_setup.list_serial_ports()
+    assigned = {port: tower for tower, port in castle_cfg.hub_ports().items()}
+    identified = identified or {}
+    for entry in ports:
+        entry['is_new'] = entry['port'] not in _ports_snapshot
+        entry['assigned_to'] = assigned.get(entry['port'], '')
+        entry['identified_as'] = identified.get(entry['port'], '')
+    return {
+        'ports': ports,
+        'mapping': castle_cfg.hub_ports(),
+        'standard': dict(STANDARD_HUB_PORTS),
+        'confirmed': castle_cfg.hub_confirmed(),
+        'is_standard': castle_cfg.hub_is_standard(),
+    }
+
+
+@socketio.on('setup_ports_scan')
+def setup_ports_scan():
+    socketio.emit('setup_ports_data', _ports_payload())
+
+
+@socketio.on('setup_ports_identify')
+def setup_ports_identify():
+    """Опознать башни и сказать, правильно ли воткнуты кабели.
+
+    Owls/Workshop/Basket печатают в USB-Serial баннер CLC-TOWER при старте.
+    Открытие порта дёргает DTR и перезагружает плату — поэтому это явная
+    команда оператора, а не фоновый опрос: именно фоновый опрос USB когда-то
+    ресетил башни во время игры. Dog так не опознать (его единственный UART
+    делится с линией к Mega), поэтому он определяется по сигнатуре Nano."""
+    if _setup_busy():
+        return _setup_denied('setup_ports_identify_result')
+    if is_system_flashing:
+        socketio.emit('setup_ports_identify_result',
+                      {'ok': False, 'reason': 'flashing'})
+        return
+
+    def task():
+        identified = {}
+        ports = castle_setup.list_serial_ports()
+        socketio.emit('setup_ports_progress',
+                      {'stage': 'banner', 'total': len(ports), 'done': 0})
+
+        for index, entry in enumerate(ports, start=1):
+            tower = castle_setup.identify_tower(entry['tty'])
+            if tower in TOWERS:
+                identified[entry['port']] = tower
+            socketio.emit('setup_ports_progress',
+                          {'stage': 'banner', 'total': len(ports), 'done': index,
+                           'port': entry['port'], 'found': tower})
+
+        # Dog баннер не печатает — ищем его по сигнатуре среди неопознанных.
+        if 'dog' not in identified.values():
+            rest = [p for p in ports if p['port'] not in identified]
+            for index, entry in enumerate(rest, start=1):
+                socketio.emit('setup_ports_progress',
+                              {'stage': 'dog', 'total': len(rest), 'done': index,
+                               'port': entry['port']})
+                if castle_setup.identify_dog_by_signature(entry['tty']):
+                    identified[entry['port']] = 'dog'
+                    break
+
+        payload = _ports_payload(identified)
+        payload['identified'] = identified
+        payload['ok'] = True
+        socketio.emit('setup_ports_identify_result', payload)
+        logger.info(f"SETUP: опознание башен → {identified}")
+
+    socketio.start_background_task(task)
+
+
+@socketio.on('setup_ports_assign')
+def setup_ports_assign(data):
+    if _setup_busy():
+        return _setup_denied('setup_ports_data')
+    tower = (data or {}).get('tower')
+    port = (data or {}).get('port')
+    castle_cfg.set_tower_port(tower, port)
+    logger.info(f"SETUP: {tower} → порт {port}; раскладка {castle_cfg.hub_ports()}")
+    socketio.emit('setup_ports_data', _ports_payload())
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+@socketio.on('setup_ports_confirm')
+def setup_ports_confirm():
+    castle_cfg.set_hub_confirmed(True)
+    socketio.emit('setup_ports_data', _ports_payload())
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+@socketio.on('setup_ports_reset')
+def setup_ports_reset():
+    castle_cfg.reset_hub_to_standard()
+    socketio.emit('setup_ports_data', _ports_payload())
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+# ---------- шаг 5: калибровка серво мальчика ----------
+def send_boy_servo_calibration(values=None):
+    """Отправить калибровку на Mega. Зовётся при каждом хендшейке и с пульта.
+
+    Хранится калибровка на Pi, а не в EEPROM платы: тогда прошивка остаётся
+    одна на все замки, а разница между комплектами живёт в конфиге."""
+    command = castle_cfg.boy_servo_command(values)
+    serial_write_queue.put(command)
+    logger.info(f"SETUP: калибровка серво → Mega: {command}")
+    return command
+
+
+@socketio.on('setup_servo_test')
+def setup_servo_test(data):
+    """Проиграть движение с ещё не сохранёнными числами: оператор крутит
+    значения, сразу видит ход и только потом жмёт «Сохранить»."""
+    if _setup_busy():
+        return _setup_denied('setup_servo_result')
+    payload = data or {}
+    action = payload.get('action', 'open')
+    if action not in ('open', 'hide'):
+        return
+    send_boy_servo_calibration(payload.get('values'))
+    eventlet.sleep(0.3)                      # даём Mega принять калибровку
+    serial_write_queue.put('student_open' if action == 'open' else 'student_hide')
+    socketio.emit('setup_servo_result', {'ok': True, 'action': action, 'stage': 'sent'})
+
+
+@socketio.on('setup_servo_save')
+def setup_servo_save(data):
+    ok, values = castle_cfg.set_boy_servo((data or {}).get('values') or {})
+    if ok:
+        send_boy_servo_calibration()
+    socketio.emit('setup_servo_result',
+                  {'ok': ok, 'stage': 'saved', 'values': values})
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+# ---------- шаг 6: чек-лист приёмки ----------
+@socketio.on('setup_checklist_set')
+def setup_checklist_set(data):
+    castle_cfg.set_checklist((data or {}).get('key'), bool((data or {}).get('checked')))
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+@socketio.on('setup_checklist_reset')
+def setup_checklist_reset():
+    castle_cfg.reset_checklist()
+    socketio.emit('setup_status', _setup_snapshot())
+
+
+# ---------- живой поток событий датчиков ----------
+def _emit_sensor_event(line):
+    """Отправить строку от Mega в монитор на /tech.
+
+    С ограничением частоты. Стек обработчиков, забивающий сокет, уже однажды
+    клал сервер — а в момент старта квеста Mega выдаёт десятки строк подряд.
+    Превышение потолка не копим и не откладываем: монитор нужен для «нажал —
+    увидел», а не для полного лога, который и так пишется в castle.log."""
+    global _sensor_window_start, _sensor_window_count
+    now = time.time()
+    if now - _sensor_window_start >= 1.0:
+        _sensor_window_start = now
+        _sensor_window_count = 0
+    _sensor_window_count += 1
+    if _sensor_window_count > SENSOR_EVENTS_PER_SEC:
+        if _sensor_window_count == SENSOR_EVENTS_PER_SEC + 1:
+            socketio.emit('sensor_event', {'raw': '', 'throttled': True, 'ts': now})
+        return
+    socketio.emit('sensor_event', {'raw': line, 'throttled': False, 'ts': now})
+
+
+@socketio.on('sensor_monitor_set')
+def sensor_monitor_set(data):
+    """Включить/выключить трансляцию строк от Mega на /tech.
+
+    Нужен, когда замок только собран и неизвестно, доходит ли сигнал с геркона.
+    Прошивки для этого не меняются: события башен и так идут по UART в главную
+    плату, а оттуда в сервер. Пока тумблер выключен — накладных расходов ноль."""
+    global sensor_monitor_active, _sensor_window_start, _sensor_window_count
+    sensor_monitor_active = bool((data or {}).get('active'))
+    _sensor_window_start = 0.0
+    _sensor_window_count = 0
+    logger.info(f"SETUP: монитор датчиков {'включён' if sensor_monitor_active else 'выключен'}")
+    socketio.emit('sensor_monitor_state', {'active': sensor_monitor_active})
+
+
 #декоратор работы socket отвечает за настройки wifi
 @socketio.on('WLAN')
 def WLAN(ssid):
@@ -3356,140 +3827,147 @@ def handle_connect():
 
 @socketio.on('connect_wifi')
 def handle_wifi_connect(data):
-    ssid = data.get('ssid')
-    password = data.get('password')
-    # Создаем флаг "Интернет разрешен"
-    subprocess.run(['touch', '/home/pi/wifi_enabled'], check=False)
-    print(f"Wi-Fi Request: Connecting to {ssid} on wlan1...")
+    """Подключить wlan1 к сети клиента. Вызывается с /tech → «Первый запуск».
 
-    # 1. Сразу меняем статус на "Connecting..."
-    socketio.emit('wifi_status', {'status': 'connecting', 'message': 'Connecting...', 'ssid': ssid})
-    
-    config_text = f"""ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=RU
+    2026-08-09, три правки:
+      * страна regdomain берётся из castle_config.json (была зашита RU);
+      * SSID и пароль экранируются — раньше подставлялись в конфиг сырыми, и
+        имя сети с кавычкой и переводом строки дописывало в файл произвольные
+        директивы;
+      * тип защиты приходит из скана: у открытой сети key_mgmt=NONE вместо
+        невалидного psk="" (с ним подключение молча не происходило и выглядело
+        как «донгл не видит сеть»), у WPA3/смешанной — дополнительно SAE.
+    Вся работа ушла в фон: цикл ожидания на 30 секунд стоял прямо в хендлере и
+    на это время морозил сервер вместе с игрой."""
+    if go == 1:
+        socketio.emit('wifi_status', {'status': 'error', 'message': 'Идёт игра', 'ssid': ''})
+        return
 
-network={{
-    ssid="{ssid}"
-    psk="{password}"
-    key_mgmt=WPA-PSK
-    priority=1
-    scan_ssid=1
-}}
-"""
-    try:
-        # 2. Записываем настройки
-        with open('/tmp/wpa_supplicant.conf', 'w') as f:
-            f.write(config_text)
-            
-        subprocess.run(['sudo', 'mv', '/tmp/wpa_supplicant.conf', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=True)
-        subprocess.run(['sudo', 'chown', 'root:root', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=False)
-        
-        # 3. Перезапускаем интерфейс
-        text_to_wlan1_reset()
-        
-        # 4. Перезапускаем демона dhcpcd (он управляет wpa_supplicant на Raspberry)
-        subprocess.run(['sudo', 'systemctl', 'restart', 'dhcpcd'], check=False)
-        
-        # ДАЕМ ПАУЗУ, чтобы служба поднялась и инициализировала адаптер
-        eventlet.sleep(5)
-        
-        # 5. ЦИКЛ ОЖИДАНИЯ (ждем до 30 секунд, проверяя соединение)
-        connected = False
-        for i in range(30):
-            eventlet.sleep(1)
-            try:
-                # Проверяем SSID
-                ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
-                current_ssid = ssid_bytes.decode('utf-8').strip()
-                
-                if current_ssid == ssid:
-                    # Если подключились, пытаемся узнать IP
-                    ip_addr = "Wait IP..."
-                    try:
-                        ip_cmd = "ip -4 addr show wlan1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
-                        ip_bytes = subprocess.check_output(ip_cmd, shell=True)
-                        ip_addr = ip_bytes.decode('utf-8').strip()
-                    except:
-                        pass
+    payload = data or {}
+    ssid = (payload.get('ssid') or '').strip()
+    password = payload.get('password') or ''
+    security = payload.get('security') or 'wpa2'
+    if not ssid:
+        socketio.emit('wifi_status', {'status': 'error', 'message': 'SSID пустой', 'ssid': ''})
+        return
 
-                    socketio.emit('wifi_status', {
-                        'status': 'success', 
-                        'message': f'Connected: {current_ssid} ({ip_addr})', 
-                        'ssid': current_ssid,
-                        'ip': ip_addr
-                    })
-                    print(f"Wi-Fi Success: {current_ssid} at {ip_addr}")
-                    connected = True
-                    break
-            except:
-                pass
+    iface = castle_cfg.wifi_iface()
+    config_text = castle_setup.build_wpa_config(
+        ssid, password, castle_cfg.wifi_country(), security)
 
-        # 6. Если за 15 секунд так и не подключились
-        if not connected:
-            socketio.emit('wifi_status', {'status': 'failed', 'message': 'Not connected (Time out)', 'ssid': ''})
-            print("Wi-Fi Fail: Timeout")
-        
-    except Exception as e:
-        print(f"Wi-Fi Connect Error: {e}")
-        socketio.emit('wifi_status', {'status': 'error', 'message': f'Error: {e}', 'ssid': ''})
+    def task():
+        # Создаем флаг "Интернет разрешен"
+        castle_setup.run_cmd(['touch', '/home/pi/wifi_enabled'], timeout=10)
+        logger.info(f"Wi-Fi Request: Connecting to {ssid} on {iface} (security={security})")
+        socketio.emit('wifi_status',
+                      {'status': 'connecting', 'message': 'Connecting...', 'ssid': ssid})
+        try:
+            with open('/tmp/wpa_supplicant.conf', 'w') as f:
+                f.write(config_text)
+
+            rc, _out, err = castle_setup.run_cmd(
+                ['sudo', 'mv', '/tmp/wpa_supplicant.conf',
+                 '/etc/wpa_supplicant/wpa_supplicant.conf'], timeout=15)
+            if rc != 0:
+                socketio.emit('wifi_status',
+                              {'status': 'error', 'message': f'Error: {err.strip()}', 'ssid': ''})
+                return
+            castle_setup.run_cmd(
+                ['sudo', 'chown', 'root:root', '/etc/wpa_supplicant/wpa_supplicant.conf'],
+                timeout=10)
+
+            text_to_wlan1_reset()
+            castle_setup.run_cmd(['sudo', 'systemctl', 'restart', 'dhcpcd'], timeout=30)
+            eventlet.sleep(5)
+
+            for _ in range(30):
+                eventlet.sleep(1)
+                rc, out, _err = castle_setup.run_cmd(['iwgetid', '-r', iface], timeout=8)
+                if rc != 0 or out.strip() != ssid:
+                    continue
+                ip_addr = _iface_ipv4(iface) or 'Wait IP...'
+                socketio.emit('wifi_status', {
+                    'status': 'success',
+                    'message': f'Connected: {ssid} ({ip_addr})',
+                    'ssid': ssid,
+                    'ip': ip_addr,
+                })
+                logger.info(f"Wi-Fi Success: {ssid} at {ip_addr}")
+                socketio.emit('setup_status', _setup_snapshot())
+                return
+
+            socketio.emit('wifi_status',
+                          {'status': 'failed', 'message': 'Not connected (Time out)', 'ssid': ''})
+            logger.warning("Wi-Fi Fail: Timeout")
+        except Exception as e:
+            logger.warning(f"Wi-Fi Connect Error: {e}")
+            socketio.emit('wifi_status',
+                          {'status': 'error', 'message': f'Error: {e}', 'ssid': ''})
+
+    socketio.start_background_task(task)
+
+
+def _iface_ipv4(iface):
+    """IPv4-адрес интерфейса. Раньше это делалось через shell-конвейер с grep -oP;
+    парсим сами — так нет shell и нет зависимости от версии grep."""
+    rc, out, _err = castle_setup.run_cmd(['ip', '-4', '-o', 'addr', 'show', iface], timeout=8)
+    if rc != 0:
+        return ''
+    match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', out)
+    return match.group(1) if match else ''
 
 @socketio.on('disconnect_wifi')
 def handle_wifi_disconnect():
-    print("Disabling Wi-Fi connection on wlan1...")
-    # Удаляем флаг "Интернет разрешен"
-    subprocess.run(['rm', '-f', '/home/pi/wifi_enabled'], check=False)
-    try:
-        # Очищаем файл настроек
-        empty_conf = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=RU
-"""
-        # Обход прав через временный файл и sudo mv
-        with open('/tmp/wpa_supplicant.conf', 'w') as f:
-            f.write(empty_conf)
-            
-        subprocess.run(['sudo', 'mv', '/tmp/wpa_supplicant.conf', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=True)
-        subprocess.run(['sudo', 'chown', 'root:root', '/etc/wpa_supplicant/wpa_supplicant.conf'], check=False)
-            
-        # Применяем пустоту (это отключит текущую сеть)
-        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan1', 'reconfigure'], check=True)
-        
-        # Отправляем статус "Disconnected" и очищаем SSID
-        socketio.emit('wifi_status', {'status': 'disconnected', 'message': 'Disconnected', 'ssid': ''})
-    except Exception as e:
-        print(f"Disconnect Error: {e}")
+    if go == 1:
+        socketio.emit('wifi_status', {'status': 'error', 'message': 'Идёт игра', 'ssid': ''})
+        return
+    iface = castle_cfg.wifi_iface()
+    logger.info(f"Disabling Wi-Fi connection on {iface}...")
+
+    def task():
+        # Удаляем флаг "Интернет разрешен"
+        castle_setup.run_cmd(['rm', '-f', '/home/pi/wifi_enabled'], timeout=10)
+        try:
+            # Очищаем файл настроек (страна — из конфига, а не зашитая RU)
+            empty_conf = ("ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\n"
+                          "update_config=1\n"
+                          f"country={castle_cfg.wifi_country()}\n")
+            with open('/tmp/wpa_supplicant.conf', 'w') as f:
+                f.write(empty_conf)
+
+            castle_setup.run_cmd(
+                ['sudo', 'mv', '/tmp/wpa_supplicant.conf',
+                 '/etc/wpa_supplicant/wpa_supplicant.conf'], timeout=15)
+            castle_setup.run_cmd(
+                ['sudo', 'chown', 'root:root', '/etc/wpa_supplicant/wpa_supplicant.conf'],
+                timeout=10)
+            # Применяем пустоту (это отключит текущую сеть)
+            castle_setup.run_cmd(['sudo', 'wpa_cli', '-i', iface, 'reconfigure'], timeout=15)
+
+            socketio.emit('wifi_status',
+                          {'status': 'disconnected', 'message': 'Disconnected', 'ssid': ''})
+            socketio.emit('setup_status', _setup_snapshot())
+        except Exception as e:
+            logger.warning(f"Disconnect Error: {e}")
+
+    socketio.start_background_task(task)
 
 @socketio.on('check_wifi_status')
 def handle_check_status():
-    try:
-        # 1. Узнаем имя сети
-        ssid_bytes = subprocess.check_output("iwgetid -r wlan1", shell=True)
-        ssid = ssid_bytes.decode('utf-8').strip()
-        
-        # 2. Узнаем IP-адрес именно на wlan1
-        # Команда hostname -I выдает все адреса, нам нужно найти тот, что не 192.168.4.1
-        # Но надежнее спросить ip у интерфейса:
-        ip_cmd = "ip -4 addr show wlan1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
-        try:
-            ip_bytes = subprocess.check_output(ip_cmd, shell=True)
-            ip_addr = ip_bytes.decode('utf-8').strip()
-        except:
-            ip_addr = "Unknown IP"
-
-        if ssid:
-            # Отправляем и статус, и имя, и IP
-            socketio.emit('wifi_status', {
-                'status': 'success', 
-                'message': f'Connected: {ssid} ({ip_addr})', 
-                'ssid': ssid,
-                'ip': ip_addr
-            })
-        else:
-            socketio.emit('wifi_status', {'status': 'disconnected', 'message': 'Not connected', 'ssid': ''})
-            
-    except Exception:
-        socketio.emit('wifi_status', {'status': 'disconnected', 'message': 'Not connected', 'ssid': ''})
+    iface = castle_cfg.wifi_iface()
+    rc, out, _err = castle_setup.run_cmd(['iwgetid', '-r', iface], timeout=8)
+    ssid = out.strip() if rc == 0 else ''
+    if not ssid:
+        socketio.emit('wifi_status',
+                      {'status': 'disconnected', 'message': 'Not connected', 'ssid': ''})
+        return
+    ip_addr = _iface_ipv4(iface) or 'Unknown IP'
+    socketio.emit('wifi_status', {
+        'status': 'success',
+        'message': f'Connected: {ssid} ({ip_addr})',
+        'ssid': ssid,
+        'ip': ip_addr,
+    })
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -5724,7 +6202,16 @@ def serial():
                    globals()['mega_initial_boot_received'] = True
               for line in serial_lines:
                    flag = line
-                   
+
+                   # --- ЖИВОЙ ПОТОК СОБЫТИЙ ДАТЧИКОВ (/tech) ---
+                   # Через эту точку проходит ВСЁ, что говорят главная плата и
+                   # башни. Когда монтажник включает монитор на пульте, каждая
+                   # строка уходит туда: замкнул геркон рукой — увидел вспышку,
+                   # не проходя весь сценарий. Пока тумблер выключен, здесь одна
+                   # проверка флага и ничего больше.
+                   if sensor_monitor_active:
+                       _emit_sensor_event(flag)
+
                    # --- ВОССТАНОВЛЕНИЕ ПОВРЕЖДЕННЫХ КОМАНД ---
                    # Проверяем, не повреждена ли команда (1-2 символа отличия от критической)
                    recovered = try_recover_corrupted_command(flag)
@@ -5737,6 +6224,11 @@ def serial():
                        globals()['mega_initial_boot_received'] = True
                        logger.info("SYSTEM CHECK COMPLETE: Playing startup sound.")
                        play_effect(on_sound)
+                       # Калибровка серво мальчика живёт на Pi, а не в прошивке:
+                       # благодаря этому Mega у всех замков одна и та же. Шлём её
+                       # на каждой загрузке платы — до первого движения серво
+                       # (уровень 25) времени с запасом.
+                       send_boy_servo_calibration()
 
                    # --- DIAG snapshot от Mega (или прокинутый от башни) ---
                    # Формат: "DIAG_SNAPSHOT:<device>:{...JSON...}"

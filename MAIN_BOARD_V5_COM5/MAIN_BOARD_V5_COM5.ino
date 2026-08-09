@@ -92,6 +92,52 @@ const int COLORS = sizeof(palette) / sizeof(palette[0]);
 
 Servo boyServo;
 
+// --- КАЛИБРОВКА СЕРВО МАЛЬЧИКА (пин 49) ---
+// 2026-08-09: раньше эти числа были зашиты в коде, и под Канаду приходилось
+// держать ОТДЕЛЬНУЮ сборку прошивки — сервоприводы приходят разными партиями и
+// одинаково не ходят. Из-за второй сборки каждая правка вносилась дважды, и она
+// же успела отстать от мастера на один баг-фикс.
+// Теперь значения приходят с Pi командой boycal:<min>:<max>:<open>:<hide>:<ms>
+// (сервер шлёт её при каждом QUEST_SYSTEM_READY и по кнопке на /tech), а
+// прошивка на всех замках одна. Значения ниже — дефолт, работает и без сервера.
+int boyPulseMin = 500;      // мкс, нижняя граница импульса
+int boyPulseMax = 2500;     // мкс, верхняя граница импульса
+int boyAngleOpen = 170;     // угол «мальчик открывается»
+int boyAngleHide = 0;       // угол «мальчик прячется»
+unsigned int boyMoveMs = 1000;  // сколько ждать окончания хода
+
+// Разбирает команду калибровки. true — команда распознана и обработана.
+// Вызывается из состояний ожидания (PowerOn/RestOn): именно в них замок стоит
+// и при загрузке, и когда монтажник крутит калибровку на пульте.
+bool handleBoyCal(const String &buff) {
+  if (!buff.startsWith("boycal:")) return false;
+  int p[5];
+  int idx = 7;  // после "boycal:"
+  for (int i = 0; i < 5; i++) {
+    int sep = buff.indexOf(':', idx);
+    String part = (sep == -1) ? buff.substring(idx) : buff.substring(idx, sep);
+    p[i] = part.toInt();
+    if (sep == -1) {
+      if (i < 4) return true;   // команда обрезана — молча игнорируем
+      break;
+    }
+    idx = sep + 1;
+  }
+  // Границы дублируют серверные. Серво без механического ограничителя легко
+  // загнать в упор: он будет гудеть, греться и в итоге сгорит.
+  if (p[0] < 400 || p[0] > 1500 || p[1] < 1500 || p[1] > 2600 || p[0] >= p[1]) return true;
+  if (p[2] < 0 || p[2] > 180 || p[3] < 0 || p[3] > 180) return true;
+  if (p[4] < 200 || p[4] > 5000) return true;
+
+  boyPulseMin = p[0];
+  boyPulseMax = p[1];
+  boyAngleOpen = p[2];
+  boyAngleHide = p[3];
+  boyMoveMs = (unsigned int)p[4];
+  Serial.println(F("log:confirm:boycal_ok"));
+  return true;
+}
+
 //------------герконы кнопки и входы
 GButton startDoor(startDoorPin);  // геркон на стартовой двери
 GButton clock1Button(1);
@@ -826,8 +872,8 @@ void setup() {
   pinMode(board3, INPUT_PULLUP);
   pinMode(board4, INPUT_PULLUP);
 
-  boyServo.attach(49, 500, 2500);
-  boyServo.write(0);
+  boyServo.attach(49, boyPulseMin, boyPulseMax);
+  boyServo.write(boyAngleHide);
   boyServo.detach();
   // --- БЛОК ПРОВЕРКИ БАШЕН ---
   Serial.println(F("log:main:Checking towers..."));
@@ -1250,6 +1296,10 @@ void PowerOn() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
+    // Калибровка серво с тех-пульта. Принимаем в состоянии ожидания: здесь
+    // замок стоит и после загрузки, и когда монтажник подбирает углы.
+    if (handleBoyCal(buff)) continue;
+
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();
@@ -1378,9 +1428,9 @@ void PowerOn() {
     }
 
     if (buff == "start") {
-      boyServo.attach(49, 500, 2500);
-      boyServo.write(0);
-      delay(1000);
+      boyServo.attach(49, boyPulseMin, boyPulseMax);
+      boyServo.write(boyAngleHide);
+      delay(boyMoveMs);
       boyServo.detach();
       Serial.println(F("modalend"));
       delay(100);
@@ -1928,10 +1978,10 @@ void StartDoor() {
 
     // --- ЛОГИКА СЕРВОПРИВОДА ---
     if (!boyServo.attached()) {
-      boyServo.attach(49, 500, 2500);
+      boyServo.attach(49, boyPulseMin, boyPulseMax);
     }
     delay(50);
-    boyServo.write(170);  // Поворот
+    boyServo.write(boyAngleOpen);  // Поворот
 
     // Цикл ожидания 3 секунды
     unsigned long startWait = millis();
@@ -1978,9 +2028,9 @@ void StartDoor() {
       isStartDoorOpenedGlobal = true;
 
       // Имитация работы сервопривода, как при физическом открытии
-      if (!boyServo.attached()) { boyServo.attach(49, 500, 2500); }
+      if (!boyServo.attached()) { boyServo.attach(49, boyPulseMin, boyPulseMax); }
       delay(50);
-      boyServo.write(170);
+      boyServo.write(boyAngleOpen);
       unsigned long startWait = millis();
       while (millis() - startWait < 3000) {
         if (Serial.available()) {
@@ -6928,6 +6978,9 @@ void RestOn() {
     String buff = Serial.readStringUntil('\n');
     buff.trim();
 
+    // Калибровка серво с тех-пульта — принимается и в режиме отдыха.
+    if (handleBoyCal(buff)) continue;
+
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();
       OpenAll(); 
@@ -7715,11 +7768,11 @@ void SendRestartToAll() {
 
 void RunStudentHide() {
   Serial.println(F("log:confirm:student_hide_start"));  // Лог начала
-  boyServo.attach(49, 500, 2500);
+  boyServo.attach(49, boyPulseMin, boyPulseMax);
   digitalWrite(HallLight, HIGH);
   digitalWrite(MansardLight, HIGH);
-  boyServo.write(0);  // Поворот (прячется)
-  smartDelay(1000);
+  boyServo.write(boyAngleHide);  // Поворот (прячется)
+  smartDelay(boyMoveMs);
 
   boyServo.detach();
   Serial.println(F("log:confirm:student_hide_success"));  // Ответ серверу
@@ -7730,9 +7783,9 @@ void RunStudentOpen() {
   smartDelay(1000);
 
   Serial.println(F("log:confirm:student_open_start"));
-  boyServo.attach(49, 500, 2500);
-  boyServo.write(170);  // Поворот (открывается)
-  smartDelay(1000);
+  boyServo.attach(49, boyPulseMin, boyPulseMax);
+  boyServo.write(boyAngleOpen);  // Поворот (открывается)
+  smartDelay(boyMoveMs);
 
   boyServo.detach();
   Serial.println(F("log:confirm:student_open_success"));  // ВАЖНО: Ответ серверу

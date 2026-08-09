@@ -214,25 +214,19 @@
         <div class="ui tiny header" style="color: white;">Internet</div>
     </div>
 
+    <!-- 2026-08-09: поля подключения переехали на /tech → «Первый запуск».
+         Причина: connect_wifi перезапускает интерфейс и dhcpcd. Нажатие этой
+         кнопки во время игры роняло клиентскую сеть, а вместе с ней свет Hue и
+         умную розетку — прямо в сессии. На тех-пульте то же действие
+         заблокировано, пока квест идёт. Статус подключения тут остаётся:
+         оператору по-прежнему видно SSID и IP. -->
     <div id="wifi_panel" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
         <div class="ui inverted form">
-            <div class="field">
-                <label style="color: #ccc;">SSID (Name)</label>
-                <div class="ui input mini">
-                    <input type="text" id="wifi_ssid">
-                </div>
-            </div>
-            <div class="field">
-                <label style="color: #ccc;">Password</label>
-                <div class="ui input mini">
-                    <input type="password" id="wifi_pass">
-                </div>
-            </div>
-            <div class="ui two buttons">
-                <button class="ui green basic inverted button mini" id="btn_connect">Connect</button>
-                <button class="ui red basic inverted button mini" id="btn_disconnect">Off</button>
-            </div>
             <div id="wifi_msg" style="color: yellow; margin-top: 5px; text-align: center;"></div>
+            <div style="color:#ccc; font-size: 12px; margin-top: 8px; text-align: center;">
+                Настройка Wi-Fi — на техническом пульте:<br>
+                <a href="/tech#setup" style="color:#6cf;">/tech → Первый запуск</a>
+            </div>
         </div>
     </div>
 </div>

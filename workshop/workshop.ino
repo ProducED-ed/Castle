@@ -170,6 +170,16 @@ void setup() {
   Serial1.begin(9600);
   Serial1.setTimeout(10);
 
+  // Опознавательный баннер для тех-пульта — см. пояснение в owls.ino.
+  // USB-Serial у этой башни больше ни для чего не используется: связь с главной
+  // платой идёт по Serial1. Именно Workshop с Basket и путали местами на CLC3,
+  // так что здесь баннер нужнее всего.
+  Serial.begin(9600);
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.println(F("CLC-TOWER:workshop"));
+    delay(80);
+  }
+
   strip.begin();
   strip.setBrightness(BRIGHTNESS);
   strip.clear();

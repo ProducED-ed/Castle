@@ -580,6 +580,17 @@ void setup() {
   Serial1.begin(9600);
   Serial.begin(9600);
 
+  // Опознавательный баннер для тех-пульта (/tech → «Первый запуск» → раскладка
+  // USB-хаба). Пульт открывает порт, плата от DTR перезагружается и печатает
+  // сюда своё имя — так видно, в тот ли порт хаба воткнут кабель. Раньше
+  // раскладку проверяли вручную через ls /dev/serial/by-path, и перепутанные
+  // Workshop с Basket однажды доехали до клиента. Связь с главной платой идёт
+  // по Serial1, этот вывод игровой логике не мешает.
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.println(F("CLC-TOWER:owls"));
+    delay(80);
+  }
+
   FastLED.addLeds<WS2812B, LED_PIN_TILES, GRB>(tileLeds, NUM_TILE_LEDS);
   FastLED.setBrightness(100);
   FastLED.clear();

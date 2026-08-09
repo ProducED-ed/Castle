@@ -3,8 +3,10 @@
 # Запускается ОДИН раз после первой загрузки клона из золотого образа.
 # Задаёт hostname по запросу оператора.
 #
-# Tailscale В ЭТОМ СКРИПТЕ НЕ ВКЛЮЧАЕТСЯ — это делает оператор сам:
-#   sudo hostnamectl set-hostname CLC-NN-страна   (если хочет поменять что задал тут)
+# Tailscale В ЭТОМ СКРИПТЕ НЕ ВКЛЮЧАЕТСЯ. С августа 2026 это делается с тех-пульта:
+#   /tech → «Первый запуск» → шаг Tailscale (там же имя квеста и подключение к WiFi).
+# Вручную из консоли, если пульт недоступен:
+#   sudo hostnamectl set-hostname castle-clc-N
 #   sudo systemctl enable --now tailscaled
 #   sudo tailscale up
 #
@@ -44,11 +46,12 @@ else
   echo "  CLC First Boot — задайте hostname"
   echo "═══════════════════════════════════════════════════════════════"
   echo ""
-  echo "  Имя должно быть в формате: clc-NN-страна"
+  echo "  Имя должно быть в формате: castle-clc-N"
   echo "  Только латиница a-z, цифры, дефис. БЕЗ подчёркиваний и БЕЗ заглавных"
   echo "  (требование Tailscale MagicDNS)."
   echo ""
-  echo "  Примеры:  clc-04-russia, clc-05-uae, clc-06-france"
+  echo "  Примеры:  castle-clc-4, castle-clc-5, castle-clc-6"
+  echo "  Так же квест называется в Tailscale и в реестре клиентов."
   echo ""
   read -p "Hostname: " HOSTNAME_NEW
 fi

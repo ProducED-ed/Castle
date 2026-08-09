@@ -86,6 +86,13 @@ void setup() {
   Serial.begin(9600);
   Serial1.begin(9600);
 
+  // Опознавательный баннер для тех-пульта — см. пояснение в owls.ino.
+  // Связь с главной платой идёт по Serial1, этот вывод игре не мешает.
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.println(F("CLC-TOWER:basket"));
+    delay(80);
+  }
+
   pinMode(trollLed, OUTPUT);
   pinMode(SHERIF_EM1, OUTPUT);
   pinMode(SHERIF_EM2, OUTPUT);

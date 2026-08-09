@@ -43,6 +43,12 @@
             <i class="cogs icon"></i>
             <div class="content" data-i18n="title">Technical Firmware Dashboard</div>
             <div class="sub header" style="margin-top: 10px; font-weight: bold; transition: color 0.3s; display: inline-flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                <!-- Имя квеста: оно же hostname, оно же имя ноды в Tailscale.
+                     При удалённой поддержке сразу видно, к какому замку подключён
+                     оператор — раньше это можно было узнать только по SSH. -->
+                <span id="quest-name-wrap" style="color:#ffd54a; display:none;">
+                    <i class="chess rook icon"></i> <span id="quest-name"></span>
+                </span>
                 <span id="connection-status" style="color: #e74c3c; transition: color 0.3s;">
                     <i class="circle icon"></i> <span data-i18n="status_waiting">Ожидание подключения...</span>
                 </span>
@@ -755,6 +761,271 @@
         </div>
         <!-- ============ /HUE ============ -->
 
+        <!-- ============ ПЕРВЫЙ ЗАПУСК ============
+             Пуско-наладка нового замка без SSH: имя квеста, WiFi, Tailscale,
+             раскладка USB-хаба, калибровка серво, чек-лист приёмки.
+             Раздел свёрнут по умолчанию и во время игры блокируется — часть
+             шагов перезапускает сеть и ресетит платы. -->
+        <div class="ui inverted segment" id="setup-segment" style="margin-top: 30px;">
+            <h3 style="cursor:pointer; user-select:none;" onclick="setupToggle()">
+                <i class="magic icon"></i> <span data-i18n="setup_title">Первый запуск</span>
+                <i class="dropdown icon" id="setup-caret" style="float:right;"></i>
+            </h3>
+            <div style="color:#999; font-size:13px; margin-top:-8px;" data-i18n="setup_subtitle">
+                Настройка нового замка на производстве. Раньше делалась через консоль.
+            </div>
+
+            <div id="setup-body" style="display:none; margin-top:16px;">
+
+                <div id="setup-game-lock" class="ui warning message" style="display:none;">
+                    <i class="exclamation triangle icon"></i>
+                    <span data-i18n="setup_locked">Идёт игра — настройки заблокированы. Дождитесь конца или нажмите Restart.</span>
+                </div>
+
+                <!-- ---- Шаг 1: имя квеста ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">1</span>
+                        <span data-i18n="setup_name_title">Имя квеста</span>
+                        <span class="setup-badge" id="setup-name-badge"></span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_name_hint">
+                        Формат castle-clc-N. Это же имя видно в Tailscale и в реестре клиентов.
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <span style="color:#ddd;" data-i18n="setup_name_current">Сейчас:</span>
+                        <code id="setup-hostname" style="color:#ffd54a;">—</code>
+                        <input type="text" id="setup-name-input" style="width:190px; padding:5px;"
+                               data-i18n-attr="placeholder|setup_name_ph" placeholder="castle-clc-4">
+                        <button class="ui small blue button" id="setup-name-btn" onclick="setupApplyName()">
+                            <span data-i18n="setup_name_apply">Применить</span>
+                        </button>
+                        <button class="ui small button" id="setup-ts-rename-btn" onclick="setupTsRename()">
+                            <span data-i18n="setup_name_ts">Обновить имя в Tailscale</span>
+                        </button>
+                    </div>
+                    <div id="setup-name-msg" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ---- Шаг 2: WiFi ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">2</span>
+                        <span data-i18n="setup_wifi_title">Wi-Fi для интернета</span>
+                        <span class="setup-badge" id="setup-wifi-badge"></span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_wifi_hint">
+                        Нажмите «Найти сети» и выберите нужную из списка — так не ошибётесь в названии.
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                        <button class="ui small teal button" id="setup-scan-btn" onclick="setupScanWifi()">
+                            <i class="search icon"></i> <span data-i18n="setup_wifi_scan">Найти сети</span>
+                        </button>
+                        <select id="setup-wifi-list" style="padding:5px; min-width:280px;"
+                                onchange="setupWifiPicked()"></select>
+                        <span id="setup-wifi-method" style="color:#777; font-size:11px;"></span>
+                    </div>
+                    <div class="ui inverted checkbox" style="margin-bottom:10px;">
+                        <input type="checkbox" id="setup-wifi-manual" onchange="setupWifiManualToggle()">
+                        <label style="color:#ddd;" data-i18n="setup_wifi_manual">Ввести вручную (скрытая сеть)</label>
+                    </div>
+                    <div id="setup-wifi-warn" style="margin-bottom:10px;"></div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="setup-wifi-ssid" style="width:190px; padding:5px; display:none;"
+                               data-i18n-attr="placeholder|setup_wifi_ssid_ph" placeholder="Имя сети">
+                        <input type="password" id="setup-wifi-pass" style="width:190px; padding:5px;"
+                               data-i18n-attr="placeholder|setup_wifi_pass_ph" placeholder="Пароль">
+                        <select id="setup-wifi-country" style="padding:5px;" onchange="setupSetCountry()">
+                            <option value="RU">RU</option><option value="KW">KW</option>
+                            <option value="OM">OM</option><option value="AE">AE</option>
+                            <option value="CA">CA</option><option value="FR">FR</option>
+                            <option value="GB">GB</option><option value="PL">PL</option>
+                            <option value="UA">UA</option><option value="US">US</option>
+                        </select>
+                        <button class="ui small green button" id="setup-wifi-connect" onclick="setupWifiConnect()">
+                            <span data-i18n="setup_wifi_connect">Подключить</span>
+                        </button>
+                        <button class="ui small red button" id="setup-wifi-off" onclick="setupWifiDisconnect()">
+                            <span data-i18n="setup_wifi_off">Отключить</span>
+                        </button>
+                    </div>
+                    <div id="setup-wifi-msg" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ---- Шаг 3: Tailscale ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">3</span>
+                        <span data-i18n="setup_ts_title">Tailscale (удалённый доступ)</span>
+                        <span class="setup-badge" id="setup-ts-badge"></span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_ts_hint">
+                        Нужен интернет (шаг 2). С ключом из админки всё пройдёт само, без ключа появится ссылка.
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <span style="color:#ddd;" data-i18n="setup_ts_state">Состояние:</span>
+                        <span id="setup-ts-state" class="ui label">—</span>
+                        <input type="text" id="setup-ts-key" style="width:230px; padding:5px;"
+                               data-i18n-attr="placeholder|setup_ts_key_ph" placeholder="tskey-auth-… (необязательно)">
+                        <button class="ui small blue button" id="setup-ts-btn" onclick="setupTailscaleUp()">
+                            <i class="linkify icon"></i> <span data-i18n="setup_ts_up">Включить и авторизовать</span>
+                        </button>
+                        <button class="ui small button" id="setup-ts-cancel" style="display:none;" onclick="setupTailscaleCancel()">
+                            <span data-i18n="setup_ts_cancel">Отмена</span>
+                        </button>
+                    </div>
+                    <div id="setup-ts-msg" style="margin-top:8px;"></div>
+                    <div id="setup-ts-url-box" style="display:none; margin-top:10px; padding:10px; background:#111; border:1px solid #444; border-radius:6px;">
+                        <div style="color:#ffd54a; margin-bottom:6px;" data-i18n="setup_ts_url_hint">
+                            Откройте эту ссылку на устройстве с интернетом и авторизуйте замок:
+                        </div>
+                        <a id="setup-ts-url-link" href="#" target="_blank" style="color:#6cf; word-break:break-all;"></a>
+                        <div style="margin-top:8px;">
+                            <input type="text" id="setup-ts-url-text" readonly
+                                   style="width:100%; max-width:480px; padding:5px; background:#000; color:#ddd; border:1px solid #444;">
+                            <button class="ui mini button" onclick="setupCopyTsUrl()" style="margin-top:6px;">
+                                <i class="copy icon"></i> <span data-i18n="setup_ts_copy">Копировать</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ui inverted checkbox" style="margin-top:12px;">
+                        <input type="checkbox" id="setup-ts-expiry" onchange="setupTsExpiry(this.checked)">
+                        <label style="color:#ddd;" data-i18n="setup_ts_expiry">
+                            Disable key expiry сделан в админке Tailscale
+                        </label>
+                    </div>
+                    <div style="color:#e0a800; font-size:12px; margin-top:6px;">
+                        <span data-i18n="setup_ts_expiry_hint">Без этого нода потеряет IP примерно через полгода.</span>
+                        <a href="https://login.tailscale.com/admin/machines" target="_blank" style="color:#6cf;">admin/machines</a>
+                    </div>
+                </div>
+
+                <!-- ---- Шаг 4: раскладка USB-хаба ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">4</span>
+                        <span data-i18n="setup_hub_title">Раскладка USB-хаба</span>
+                        <span class="setup-badge" id="setup-hub-badge"></span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_hub_hint">
+                        Втыкайте башни по эталону. Пульт опознает каждую и скажет, правильно ли воткнуто.
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+                        <button class="ui small teal button" id="setup-hub-identify" onclick="setupIdentifyTowers()">
+                            <i class="search icon"></i> <span data-i18n="setup_hub_identify">Опознать башни</span>
+                        </button>
+                        <button class="ui small button" onclick="setupPortsScan()">
+                            <span data-i18n="setup_hub_refresh">Обновить список</span>
+                        </button>
+                        <button class="ui small button" onclick="setupPortsSnapshot()">
+                            <span data-i18n="setup_hub_snapshot">Снимок «ничего не воткнуто»</span>
+                        </button>
+                        <button class="ui small green button" id="setup-hub-confirm" onclick="setupPortsConfirm()">
+                            <i class="check icon"></i> <span data-i18n="setup_hub_confirm">Подтвердить раскладку</span>
+                        </button>
+                    </div>
+                    <div id="setup-hub-progress" style="color:#999; font-size:12px; margin-bottom:8px;"></div>
+                    <table class="ui celled inverted table" style="margin-top:0;">
+                        <thead><tr>
+                            <th data-i18n="setup_hub_port">Порт хаба</th>
+                            <th data-i18n="setup_hub_expected">Должна быть</th>
+                            <th data-i18n="setup_hub_found">Найдено</th>
+                            <th data-i18n="setup_hub_verdict">Статус</th>
+                        </tr></thead>
+                        <tbody id="setup-hub-table"></tbody>
+                    </table>
+                    <div id="setup-hub-extra" style="color:#999; font-size:12px;"></div>
+                    <div style="margin-top:10px;">
+                        <a href="#" onclick="setupToggleManualHub(); return false;" style="color:#6cf; font-size:12px;">
+                            <span data-i18n="setup_hub_manual_link">Раскладка отличается от эталона — назначить вручную</span>
+                        </a>
+                        <div id="setup-hub-manual" style="display:none; margin-top:10px;"></div>
+                    </div>
+                </div>
+
+                <!-- ---- Шаг 5: калибровка серво ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">5</span>
+                        <span data-i18n="setup_servo_title">Калибровка серво мальчика</span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_servo_hint">
+                        Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните.
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_pmin">Импульс мин, мкс</span><br>
+                            <input type="number" id="servo-pulse-min" style="width:110px; padding:5px;"></label>
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_pmax">Импульс макс, мкс</span><br>
+                            <input type="number" id="servo-pulse-max" style="width:110px; padding:5px;"></label>
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_hide">Угол «прячется»</span><br>
+                            <input type="number" id="servo-angle-hide" style="width:100px; padding:5px;"></label>
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_open">Угол «открывается»</span><br>
+                            <input type="number" id="servo-angle-open" style="width:100px; padding:5px;"></label>
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_ms">Время хода, мс</span><br>
+                            <input type="number" id="servo-move-ms" style="width:100px; padding:5px;"></label>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                        <button class="ui small button" id="servo-test-hide" onclick="setupServoTest('hide')">
+                            <i class="arrow down icon"></i> <span data-i18n="setup_servo_t_hide">Проверить «прячется»</span>
+                        </button>
+                        <button class="ui small button" id="servo-test-open" onclick="setupServoTest('open')">
+                            <i class="arrow up icon"></i> <span data-i18n="setup_servo_t_open">Проверить «открывается»</span>
+                        </button>
+                        <button class="ui small green button" id="servo-save" onclick="setupServoSave()">
+                            <span data-i18n="setup_servo_save">Сохранить</span>
+                        </button>
+                    </div>
+                    <div id="setup-servo-msg" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ---- Шаг 6: монитор датчиков ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">6</span>
+                        <span data-i18n="setup_mon_title">Живой поток событий датчиков</span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_mon_hint">
+                        Замкните геркон или нажмите кнопку рукой — событие вспыхнет здесь. Проходить сценарий не нужно.
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <div class="ui toggle checkbox">
+                            <input type="checkbox" id="setup-mon-toggle" onchange="setupMonitorToggle(this.checked)">
+                            <label style="color:#ddd;" data-i18n="setup_mon_on">Включить монитор</label>
+                        </div>
+                        <button class="ui mini button" onclick="setupMonitorClear()">
+                            <span data-i18n="setup_mon_clear">Очистить</span>
+                        </button>
+                        <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
+                    </div>
+                    <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
+                    <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
+                         background:#000; border:1px solid #333; border-radius:6px; padding:8px;
+                         font-family:monospace; font-size:12px; color:#8f8;"></div>
+                </div>
+
+                <!-- ---- Шаг 7: чек-лист приёмки ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">7</span>
+                        <span data-i18n="setup_chk_title">Чек-лист приёмки</span>
+                        <span class="setup-badge" id="setup-chk-badge"></span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_chk_hint">
+                        То, что можно проверить только руками. Сохраняется на замке.
+                    </div>
+                    <div id="setup-checklist"></div>
+                    <button class="ui mini button" onclick="setupChecklistReset()" style="margin-top:10px;">
+                        <span data-i18n="setup_chk_reset">Сбросить чек-лист</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .setup-step {
+                display:inline-block; width:22px; height:22px; line-height:22px;
+                text-align:center; border-radius:50%; background:#2185d0; color:#fff;
+                font-size:12px; margin-right:8px;
+            }
+            .setup-badge { font-size:12px; font-weight:normal; margin-left:10px; }
+            .setup-ok { color:#21ba45; }
+            .setup-warn { color:#fbbd08; }
+            .setup-bad { color:#db2828; }
+            #setup-mon-flash .mon-chip {
+                display:inline-block; padding:6px 12px; margin:4px; border-radius:6px;
+                background:#21ba45; color:#fff; font-weight:bold;
+                animation: monflash 1.2s ease-out;
+            }
+            @keyframes monflash { from { background:#fff; color:#000; } to { background:#21ba45; color:#fff; } }
+        </style>
+        <!-- ============ /ПЕРВЫЙ ЗАПУСК ============ -->
+
         <a href="/" class="ui inverted basic button" style="margin-top: 20px;"><i class="arrow left icon"></i> <span data-i18n="back_to_pult">Вернуться к пульту</span></a>
     </div>
 
@@ -928,7 +1199,132 @@
                 plug_ready: "Готова",
                 plug_searching: "Опрашиваю бридж...",
                 plug_found: "Найдено розеток",
-                plug_none_found: "Розеток не найдено — выбери устройство из списка вручную"
+                plug_none_found: "Розеток не найдено — выбери устройство из списка вручную",
+
+                // ---- Первый запуск ----
+                setup_title: "Первый запуск",
+                setup_subtitle: "Настройка нового замка на производстве. Раньше делалась через консоль.",
+                setup_locked: "Идёт игра — настройки заблокированы. Дождитесь конца или нажмите Restart.",
+                setup_done: "готово",
+                setup_todo: "не выполнено",
+                setup_name_title: "Имя квеста",
+                setup_name_hint: "Формат castle-clc-N. Это же имя видно в Tailscale и в реестре клиентов.",
+                setup_name_current: "Сейчас:",
+                setup_name_ph: "castle-clc-4",
+                setup_name_apply: "Применить",
+                setup_name_ts: "Обновить имя в Tailscale",
+                setup_name_invalid: "Только строчные латинские буквы, цифры и дефис, длина от 3 символов.",
+                setup_name_not_preferred: "Имя принято, но обычно используется формат castle-clc-N.",
+                setup_name_ok: "Имя применено. Перезагрузите замок, когда квест не идёт.",
+                setup_name_resolve_warn: "Имя задано, но система пока не резолвит его. Проверьте /etc/hosts.",
+                setup_name_fail: "Не удалось применить имя: ",
+                setup_ts_renamed: "Имя ноды в Tailscale обновлено.",
+                setup_wifi_title: "Wi-Fi для интернета",
+                setup_wifi_hint: "Нажмите «Найти сети» и выберите нужную из списка — так не ошибётесь в названии.",
+                setup_wifi_scan: "Найти сети",
+                setup_wifi_scanning: "Ищу сети…",
+                setup_wifi_manual: "Ввести вручную (скрытая сеть)",
+                setup_wifi_ssid_ph: "Имя сети",
+                setup_wifi_pass_ph: "Пароль",
+                setup_wifi_connect: "Подключить",
+                setup_wifi_off: "Отключить",
+                setup_wifi_pick: "— выберите сеть —",
+                setup_wifi_ghz: "ГГц",
+                setup_wifi_none: "Сети не найдены. Проверьте, что USB-донгл на месте и интерфейс поднялся.",
+                setup_wifi_no_iface: "Wi-Fi донгл не найден — проверьте, что он воткнут.",
+                setup_wifi_failed: "Скан не удался. Попробуйте ещё раз через полминуты.",
+                setup_wifi_found: "Найдено сетей: ",
+                setup_wifi_wpa3: "Это сеть WPA3. Донглы MT7601U и подобные её не видят — попросите парную WPA2-сеть или переведите роутер в WPA2.",
+                setup_wifi_5ghz: "Сеть на 5 ГГц. Донгл может её не поддерживать — при раздаче с телефона переключите точку на 2.4 ГГц.",
+                setup_wifi_open: "Сеть открытая, пароль не нужен.",
+                setup_wifi_need_ssid: "Сначала выберите сеть или введите имя вручную.",
+                setup_wifi_off_confirm: "Отключить замок от Wi-Fi клиента?",
+                setup_ts_title: "Tailscale (удалённый доступ)",
+                setup_ts_hint: "Нужен интернет (шаг 2). С ключом из админки всё пройдёт само, без ключа появится ссылка.",
+                setup_ts_state: "Состояние:",
+                setup_ts_key_ph: "tskey-auth-… (необязательно)",
+                setup_ts_up: "Включить и авторизовать",
+                setup_ts_cancel: "Отмена",
+                setup_ts_copy: "Копировать",
+                setup_ts_copied: "Ссылка скопирована",
+                setup_ts_url_hint: "Откройте эту ссылку на устройстве с интернетом и авторизуйте замок:",
+                setup_ts_expiry: "Disable key expiry сделан в админке Tailscale",
+                setup_ts_expiry_hint: "Без этого нода потеряет IP примерно через полгода.",
+                setup_ts_enabling: "Запускаю службу Tailscale…",
+                setup_ts_authkey: "Авторизуюсь по ключу…",
+                setup_ts_waiting: "Жду авторизации…",
+                setup_ts_ok: "Готово. Tailscale IP: ",
+                setup_ts_timeout: "Авторизация не завершилась. Откройте ссылку и попробуйте снова.",
+                setup_ts_fail: "Не удалось: ",
+                setup_ts_cancelled: "Отменено.",
+                setup_hub_title: "Раскладка USB-хаба",
+                setup_hub_hint: "Втыкайте башни по эталону. Пульт опознает каждую и скажет, правильно ли воткнуто.",
+                setup_hub_identify: "Опознать башни",
+                setup_hub_refresh: "Обновить список",
+                setup_hub_snapshot: "Снимок «ничего не воткнуто»",
+                setup_hub_confirm: "Подтвердить раскладку",
+                setup_hub_port: "Порт хаба",
+                setup_hub_expected: "Должна быть",
+                setup_hub_found: "Найдено",
+                setup_hub_verdict: "Статус",
+                setup_hub_empty: "порт пуст",
+                setup_hub_unknown: "не опознано",
+                setup_hub_match: "верно",
+                setup_hub_mismatch: "перепутано",
+                setup_hub_swap: "В этом порту стоит другая башня — поменяйте кабели местами.",
+                setup_hub_identifying: "Опознаю башни, платы при этом перезагружаются…",
+                setup_hub_dog: "Ищу Dog по сигнатуре платы…",
+                setup_hub_not_confirmed: "Раскладка не подтверждена. Пока не подтвердите, прошивка может уйти не в ту башню.",
+                setup_hub_confirmed: "Раскладка подтверждена.",
+                setup_hub_manual_link: "Раскладка отличается от эталона — назначить вручную",
+                setup_hub_extra_ports: "Портов в хабе найдено: ",
+                setup_hub_flashing: "Идёт прошивка — опознание недоступно.",
+                setup_servo_title: "Калибровка серво мальчика",
+                setup_servo_hint: "Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните.",
+                setup_servo_pmin: "Импульс мин, мкс",
+                setup_servo_pmax: "Импульс макс, мкс",
+                setup_servo_hide: "Угол «прячется»",
+                setup_servo_open: "Угол «открывается»",
+                setup_servo_ms: "Время хода, мс",
+                setup_servo_t_hide: "Проверить «прячется»",
+                setup_servo_t_open: "Проверить «открывается»",
+                setup_servo_save: "Сохранить",
+                setup_servo_sent: "Команда отправлена на главную плату.",
+                setup_servo_saved: "Калибровка сохранена — она переживёт перезагрузку.",
+                setup_servo_bad: "Значения вне допустимых границ.",
+                setup_mon_title: "Живой поток событий датчиков",
+                setup_mon_hint: "Замкните геркон или нажмите кнопку рукой — событие вспыхнет здесь. Проходить сценарий не нужно.",
+                setup_mon_on: "Включить монитор",
+                setup_mon_clear: "Очистить",
+                setup_mon_events: "событий: ",
+                setup_mon_throttled: "(поток слишком плотный, часть строк пропущена)",
+                sens_galet_on: "Workshop: галетник", sens_galet_off: "Workshop: галетник снят",
+                sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
+                sens_door_owl: "Owls: дверь сов", sens_mine: "Basket: мина",
+                sens_cup: "Кубок", sens_start: "Старт квеста", sens_restart: "Restart",
+                setup_chk_title: "Чек-лист приёмки",
+                setup_chk_hint: "То, что можно проверить только руками. Сохраняется на замке.",
+                setup_chk_reset: "Сбросить чек-лист",
+                setup_chk_reset_confirm: "Снять все галочки чек-листа?",
+                chk_towers_green: "Все башни зелёные на пульте",
+                chk_esp32_green: "Все ESP32 зелёные на пульте",
+                chk_mega_ready: "Главная плата отчиталась System Ready",
+                chk_audio_ok: "«Проверить аудио» — все файлы валидны",
+                chk_led_strips: "Адресные ленты отвечают на тест",
+                chk_bluetooth: "Bluetooth включается в режиме Restart",
+                chk_run_workshop: "Workshop: галетник и соленоид двери",
+                chk_run_basket: "Basket: мина и дверь",
+                chk_run_dog: "Dog: индикатор и дверь",
+                chk_run_owls: "Owls: геркон сов и дверь",
+                chk_run_train: "Train: карта, проектор, запуск игры",
+                chk_run_esp: "Wolf / Safe / Chest открываются",
+                chk_cup: "Кубок зажигается на финале",
+                chk_wago: "Wago-клеммы затянуты после сборки",
+                chk_wires: "Каждый провод проверен на выдёргивание",
+                chk_spare: "ЗИП уложен в коробку клиента",
+                chk_photos: "Сделаны фото корпуса, хаба и главной платы",
+                chk_remote: "Удалённый доступ проверен с другого устройства",
+                chk_inventory: "Замок записан в реестр клиентов"
             },
             en: {
                 title: "Technical Firmware Dashboard",
@@ -1094,7 +1490,132 @@
                 plug_ready: "Ready",
                 plug_searching: "Querying the bridge...",
                 plug_found: "Plugs found",
-                plug_none_found: "No plugs found — pick a device from the list manually"
+                plug_none_found: "No plugs found — pick a device from the list manually",
+
+                // ---- First run ----
+                setup_title: "First run",
+                setup_subtitle: "Commissioning a new castle. This used to be done over SSH.",
+                setup_locked: "A game is running — settings are locked. Wait for the end or press Restart.",
+                setup_done: "done",
+                setup_todo: "not done",
+                setup_name_title: "Quest name",
+                setup_name_hint: "Format castle-clc-N. The same name appears in Tailscale and in the client registry.",
+                setup_name_current: "Current:",
+                setup_name_ph: "castle-clc-4",
+                setup_name_apply: "Apply",
+                setup_name_ts: "Update name in Tailscale",
+                setup_name_invalid: "Lowercase latin letters, digits and hyphen only, at least 3 characters.",
+                setup_name_not_preferred: "Name accepted, but the usual format is castle-clc-N.",
+                setup_name_ok: "Name applied. Reboot the castle when no game is running.",
+                setup_name_resolve_warn: "Name is set but the system does not resolve it yet. Check /etc/hosts.",
+                setup_name_fail: "Could not apply the name: ",
+                setup_ts_renamed: "Tailscale node name updated.",
+                setup_wifi_title: "Wi-Fi for internet",
+                setup_wifi_hint: "Press “Scan networks” and pick one from the list — no typos that way.",
+                setup_wifi_scan: "Scan networks",
+                setup_wifi_scanning: "Scanning…",
+                setup_wifi_manual: "Enter manually (hidden network)",
+                setup_wifi_ssid_ph: "Network name",
+                setup_wifi_pass_ph: "Password",
+                setup_wifi_connect: "Connect",
+                setup_wifi_off: "Disconnect",
+                setup_wifi_pick: "— pick a network —",
+                setup_wifi_ghz: "GHz",
+                setup_wifi_none: "No networks found. Check that the USB dongle is in place and the interface is up.",
+                setup_wifi_no_iface: "Wi-Fi dongle not found — check that it is plugged in.",
+                setup_wifi_failed: "Scan failed. Try again in half a minute.",
+                setup_wifi_found: "Networks found: ",
+                setup_wifi_wpa3: "This is a WPA3 network. MT7601U-class dongles cannot see it — ask for a paired WPA2 network or switch the router to WPA2.",
+                setup_wifi_5ghz: "This network is on 5 GHz. The dongle may not support it — if sharing from a phone, switch the hotspot to 2.4 GHz.",
+                setup_wifi_open: "Open network, no password needed.",
+                setup_wifi_need_ssid: "Pick a network first, or type the name manually.",
+                setup_wifi_off_confirm: "Disconnect the castle from the client Wi-Fi?",
+                setup_ts_title: "Tailscale (remote access)",
+                setup_ts_hint: "Needs internet (step 2). With a key from the admin panel it runs on its own; without one you get a link.",
+                setup_ts_state: "State:",
+                setup_ts_key_ph: "tskey-auth-… (optional)",
+                setup_ts_up: "Enable and authorise",
+                setup_ts_cancel: "Cancel",
+                setup_ts_copy: "Copy",
+                setup_ts_copied: "Link copied",
+                setup_ts_url_hint: "Open this link on a device with internet and authorise the castle:",
+                setup_ts_expiry: "Disable key expiry done in the Tailscale admin panel",
+                setup_ts_expiry_hint: "Without it the node loses its IP in about six months.",
+                setup_ts_enabling: "Starting the Tailscale service…",
+                setup_ts_authkey: "Authorising with the key…",
+                setup_ts_waiting: "Waiting for authorisation…",
+                setup_ts_ok: "Done. Tailscale IP: ",
+                setup_ts_timeout: "Authorisation did not finish. Open the link and try again.",
+                setup_ts_fail: "Failed: ",
+                setup_ts_cancelled: "Cancelled.",
+                setup_hub_title: "USB hub layout",
+                setup_hub_hint: "Plug the towers in per the reference. The dashboard identifies each one and tells you if it is right.",
+                setup_hub_identify: "Identify towers",
+                setup_hub_refresh: "Refresh list",
+                setup_hub_snapshot: "Snapshot “nothing plugged in”",
+                setup_hub_confirm: "Confirm layout",
+                setup_hub_port: "Hub port",
+                setup_hub_expected: "Expected",
+                setup_hub_found: "Found",
+                setup_hub_verdict: "Status",
+                setup_hub_empty: "port empty",
+                setup_hub_unknown: "not identified",
+                setup_hub_match: "correct",
+                setup_hub_mismatch: "swapped",
+                setup_hub_swap: "A different tower sits in this port — swap the cables.",
+                setup_hub_identifying: "Identifying towers, the boards reboot while this runs…",
+                setup_hub_dog: "Looking for Dog by board signature…",
+                setup_hub_not_confirmed: "Layout is not confirmed. Until you confirm it, firmware may go to the wrong tower.",
+                setup_hub_confirmed: "Layout confirmed.",
+                setup_hub_manual_link: "Layout differs from the reference — assign manually",
+                setup_hub_extra_ports: "Ports found in the hub: ",
+                setup_hub_flashing: "Flashing in progress — identification is unavailable.",
+                setup_servo_title: "Boy servo calibration",
+                setup_servo_hint: "Servos come in different batches. Dial the values in with the test buttons, then save.",
+                setup_servo_pmin: "Pulse min, µs",
+                setup_servo_pmax: "Pulse max, µs",
+                setup_servo_hide: "Angle “hides”",
+                setup_servo_open: "Angle “opens”",
+                setup_servo_ms: "Travel time, ms",
+                setup_servo_t_hide: "Test “hides”",
+                setup_servo_t_open: "Test “opens”",
+                setup_servo_save: "Save",
+                setup_servo_sent: "Command sent to the main board.",
+                setup_servo_saved: "Calibration saved — it survives a reboot.",
+                setup_servo_bad: "Values are out of the allowed range.",
+                setup_mon_title: "Live sensor event stream",
+                setup_mon_hint: "Close a reed switch or press a button by hand — the event flashes here. No need to play through the scenario.",
+                setup_mon_on: "Enable monitor",
+                setup_mon_clear: "Clear",
+                setup_mon_events: "events: ",
+                setup_mon_throttled: "(stream too dense, some lines skipped)",
+                sens_galet_on: "Workshop: rotary switch", sens_galet_off: "Workshop: rotary switch released",
+                sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
+                sens_door_owl: "Owls: owl door", sens_mine: "Basket: mine",
+                sens_cup: "Cup", sens_start: "Quest start", sens_restart: "Restart",
+                setup_chk_title: "Acceptance checklist",
+                setup_chk_hint: "The parts that can only be checked by hand. Stored on the castle.",
+                setup_chk_reset: "Reset checklist",
+                setup_chk_reset_confirm: "Clear every checklist tick?",
+                chk_towers_green: "All towers green on the dashboard",
+                chk_esp32_green: "All ESP32 green on the dashboard",
+                chk_mega_ready: "Main board reported System Ready",
+                chk_audio_ok: "“Check audio” — every file valid",
+                chk_led_strips: "Addressable strips respond to the test",
+                chk_bluetooth: "Bluetooth turns on in Restart mode",
+                chk_run_workshop: "Workshop: rotary switch and door solenoid",
+                chk_run_basket: "Basket: mine and door",
+                chk_run_dog: "Dog: indicator and door",
+                chk_run_owls: "Owls: reed switch and door",
+                chk_run_train: "Train: card, projector, game start",
+                chk_run_esp: "Wolf / Safe / Chest open",
+                chk_cup: "Cup lights up at the finale",
+                chk_wago: "Wago terminals tightened after assembly",
+                chk_wires: "Every wire pull-tested",
+                chk_spare: "Spare kit packed into the client box",
+                chk_photos: "Photos taken of the case, hub and main board",
+                chk_remote: "Remote access verified from another device",
+                chk_inventory: "Castle recorded in the client registry"
             }
         };
         let currentLang = localStorage.getItem('techLang') || 'ru';
@@ -1116,6 +1637,11 @@
             document.querySelectorAll('.flag-btn').forEach(function(b) {
                 b.classList.toggle('active', b.dataset.setLang === currentLang);
             });
+            // Раздел «Первый запуск» рисует много текста из JS (бейджи, вердикты
+            // по портам, список сетей). Такие строки атрибут data-i18n не
+            // покрывает — без этого вызова после переключения языка половина
+            // раздела оставалась на прежнем.
+            if (typeof setupRerenderTexts === 'function') setupRerenderTexts();
         }
         function setLang(l) {
             if (!I18N[l]) return;
@@ -2393,6 +2919,550 @@
             $('#preview-mode-castle').toggleClass('active', audioPreviewMode === 'castle');
         });
         // ===== /АУДИО-МЕНЕДЖЕР =====
+
+        // ============ ПЕРВЫЙ ЗАПУСК ============
+        // Пуско-наладка нового замка без консоли. Раздел свёрнут по умолчанию и
+        // опрашивает сервер только пока открыт — во время игры лишний трафик и
+        // случайные нажатия здесь не нужны.
+
+        var setupOpen = localStorage.getItem('setupOpen') === '1';
+        var setupTimer = null;
+        var setupState = null;
+        var setupNets = [];
+        var monEvents = 0;
+        var lastHubPayload = null;      // чтобы перерисовать таблицу при смене языка
+        var lastHubIdentified = {};
+        var lastWifiStatus = null;
+
+        var CHECKLIST_ITEMS = [
+            'towers_green', 'esp32_green', 'mega_ready', 'audio_ok', 'led_strips',
+            'bluetooth', 'run_workshop', 'run_basket', 'run_dog', 'run_owls',
+            'run_train', 'run_esp', 'cup', 'wago', 'wires', 'spare', 'photos',
+            'remote', 'inventory'
+        ];
+
+        // Человеческие подписи к строкам от Mega — ключи i18n. Незнакомые строки
+        // показываем как есть: словарь тут для удобства, а не фильтр.
+        var SENSOR_LABELS = {
+            'galet_on': 'sens_galet_on', 'galet_off': 'sens_galet_off',
+            'flag3_on': 'sens_flag3_on', 'flag3_off': 'sens_flag3_off',
+            'door_owl': 'sens_door_owl', 'mine': 'sens_mine',
+            'cup': 'sens_cup', 'start': 'sens_start', 'restart': 'sens_restart'
+        };
+
+        // Опрос только пока раздел открыт: во время игры вкладка /tech часто
+        // висит открытой, и фоновый трафик ей ни к чему.
+        function setupApplyOpenState() {
+            $('#setup-body').toggle(setupOpen);
+            $('#setup-caret').toggleClass('up', setupOpen);
+            if (setupOpen) {
+                socket.emit('setup_status');
+                socket.emit('setup_ports_scan');
+                socket.emit('check_wifi_status');
+                if (!setupTimer) setupTimer = setInterval(function() {
+                    socket.emit('setup_status');
+                }, 10000);
+            } else if (setupTimer) {
+                clearInterval(setupTimer);
+                setupTimer = null;
+            }
+        }
+
+        function setupToggle() {
+            setupOpen = !setupOpen;
+            localStorage.setItem('setupOpen', setupOpen ? '1' : '0');
+            setupApplyOpenState();
+        }
+
+        function setupMsg(sel, text, kind) {
+            $(sel).html('<span class="setup-' + (kind || 'warn') + '">' + text + '</span>');
+        }
+
+        function setupBadge(sel, done) {
+            $(sel).html('<span class="setup-' + (done ? 'ok' : 'warn') + '">'
+                + (done ? '✓ ' + T('setup_done') : '• ' + T('setup_todo')) + '</span>');
+        }
+
+        // ---- общее состояние ----
+        socket.on('setup_status', function(s) {
+            setupState = s;
+            setupRenderStatus(s);
+        });
+
+        function setupRenderStatus(s) {
+            $('#setup-hostname').text(s.hostname || '—');
+            if (!$('#setup-name-input').is(':focus')) {
+                $('#setup-name-input').val(s.quest_name || s.hostname || '');
+            }
+            setupBadge('#setup-name-badge', !!s.quest_name);
+
+            $('#setup-wifi-country').val(s.wifi.country);
+
+            var tsOk = s.tailscale_state === 'Running' && !!s.tailscale_ip;
+            $('#setup-ts-state').text(
+                (s.tailscale_state || '—') + (s.tailscale_ip ? ' · ' + s.tailscale_ip : ''));
+            setupBadge('#setup-ts-badge', tsOk && s.tailscale.key_expiry_disabled);
+            $('#setup-ts-expiry').prop('checked', !!s.tailscale.key_expiry_disabled);
+            $('#setup-ts-cancel').toggle(!!s.tailscale_busy);
+            $('#setup-ts-btn').toggleClass('loading disabled', !!s.tailscale_busy);
+
+            setupBadge('#setup-hub-badge', !!s.usb_hub.confirmed);
+
+            var servo = s.boy_servo;
+            if (!$('#servo-pulse-min').is(':focus')) $('#servo-pulse-min').val(servo.pulse_min);
+            if (!$('#servo-pulse-max').is(':focus')) $('#servo-pulse-max').val(servo.pulse_max);
+            if (!$('#servo-angle-hide').is(':focus')) $('#servo-angle-hide').val(servo.angle_hide);
+            if (!$('#servo-angle-open').is(':focus')) $('#servo-angle-open').val(servo.angle_open);
+            if (!$('#servo-move-ms').is(':focus')) $('#servo-move-ms').val(servo.move_ms);
+
+            $('#setup-mon-toggle').prop('checked', !!s.sensor_monitor);
+
+            setupRenderChecklist(s.checklist || {});
+            setupApplyLock(!!s.game_running);
+        }
+
+        // Во время игры блокируем всё, что трогает железо и сеть. Это только
+        // видимая половина защиты — сервер отклоняет такие команды сам.
+        function setupApplyLock(running) {
+            $('#setup-game-lock').toggle(running);
+            var guarded = ['#setup-name-btn', '#setup-ts-rename-btn', '#setup-ts-btn',
+                           '#setup-wifi-connect', '#setup-wifi-off', '#setup-hub-identify',
+                           '#servo-test-hide', '#servo-test-open'];
+            guarded.forEach(function(sel) { $(sel).toggleClass('disabled', running); });
+        }
+
+        // ---- шаг 1: имя квеста ----
+        function setupApplyName() {
+            var name = ($('#setup-name-input').val() || '').trim();
+            if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(name)) {
+                setupMsg('#setup-name-msg', T('setup_name_invalid'), 'bad');
+                return;
+            }
+            $('#setup-name-btn').addClass('loading disabled');
+            socket.emit('setup_set_quest_name', { name: name });
+        }
+
+        socket.on('setup_quest_name_result', function(d) {
+            $('#setup-name-btn').removeClass('loading disabled');
+            if (!d.ok) {
+                setupMsg('#setup-name-msg',
+                    d.reason === 'game_running' ? T('setup_locked')
+                        : (d.reason === 'invalid' ? T('setup_name_invalid')
+                                                  : T('setup_name_fail') + (d.reason || '')), 'bad');
+                return;
+            }
+            var text = T('setup_name_ok');
+            if (d.warn === 'not_preferred') text += ' ' + T('setup_name_not_preferred');
+            if (d.warn === 'resolve_warning') text = T('setup_name_resolve_warn');
+            setupMsg('#setup-name-msg', text, 'ok');
+        });
+
+        function setupTsRename() {
+            $('#setup-ts-rename-btn').addClass('loading disabled');
+            socket.emit('setup_tailscale_rename');
+        }
+
+        // ---- шаг 2: WiFi ----
+        function setupScanWifi() {
+            $('#setup-scan-btn').addClass('loading disabled');
+            setupMsg('#setup-wifi-msg', T('setup_wifi_scanning'), 'warn');
+            socket.emit('wifi_scan_start');
+        }
+
+        socket.on('wifi_scan_progress', function() {
+            setupMsg('#setup-wifi-msg', T('setup_wifi_scanning'), 'warn');
+        });
+
+        socket.on('wifi_scan_result', function(d) {
+            $('#setup-scan-btn').removeClass('loading disabled');
+            setupNets = d.networks || [];
+            $('#setup-wifi-method').text(d.method ? d.method : '');
+            setupFillWifiList();
+
+            if (d.error === 'no_iface') {
+                setupMsg('#setup-wifi-msg', T('setup_wifi_no_iface'), 'bad');
+            } else if (d.error) {
+                setupMsg('#setup-wifi-msg', T('setup_wifi_failed'), 'bad');
+            } else if (!setupNets.length) {
+                setupMsg('#setup-wifi-msg', T('setup_wifi_none'), 'bad');
+            } else {
+                setupMsg('#setup-wifi-msg', T('setup_wifi_found') + setupNets.length, 'ok');
+            }
+        });
+
+        function setupFillWifiList() {
+            var keep = $('#setup-wifi-list').val();
+            var list = $('#setup-wifi-list').empty();
+            list.append($('<option>').val('').text(T('setup_wifi_pick')));
+            setupNets.forEach(function(n, i) {
+                var label = n.ssid + '  ' + setupBars(n.quality) + '  ' + n.signal
+                          + ' dBm  ·  ' + n.security.toUpperCase() + '  ·  '
+                          + n.band + ' ' + T('setup_wifi_ghz');
+                list.append($('<option>').val(String(i)).text(label));
+            });
+            if (keep) list.val(keep);
+        }
+
+        function setupBars(quality) {
+            var levels = ['▁', '▂', '▄', '▆', '█'];
+            return levels[Math.min(4, Math.floor(quality / 21))];
+        }
+
+        // Предупреждения показываем сразу при выборе: WPA3 и 5 ГГц — две самые
+        // частые причины «донгл не видит сеть», и без подсказки на них уходит час.
+        function setupWifiPicked() {
+            var idx = $('#setup-wifi-list').val();
+            var warn = $('#setup-wifi-warn').empty();
+            if (idx === '' || idx === null) return;
+            var net = setupNets[parseInt(idx, 10)];
+            if (!net) return;
+            if (net.wpa3_only) warn.append($('<div class="setup-bad">').text(T('setup_wifi_wpa3')));
+            if (net.band === '5') warn.append($('<div class="setup-warn">').text(T('setup_wifi_5ghz')));
+            if (net.open) warn.append($('<div class="setup-warn">').text(T('setup_wifi_open')));
+            $('#setup-wifi-pass').toggle(!net.open);
+        }
+
+        function setupWifiManualToggle() {
+            var manual = $('#setup-wifi-manual').is(':checked');
+            $('#setup-wifi-ssid').toggle(manual);
+            $('#setup-wifi-list').prop('disabled', manual);
+            $('#setup-wifi-pass').show();
+        }
+
+        function setupSetCountry() {
+            socket.emit('setup_set_country', { country: $('#setup-wifi-country').val() });
+        }
+
+        function setupWifiConnect() {
+            var manual = $('#setup-wifi-manual').is(':checked');
+            var ssid = '', security = 'wpa2';
+            if (manual) {
+                ssid = ($('#setup-wifi-ssid').val() || '').trim();
+            } else {
+                var idx = $('#setup-wifi-list').val();
+                var net = (idx === '' || idx === null) ? null : setupNets[parseInt(idx, 10)];
+                if (net) { ssid = net.ssid; security = net.open ? 'open' : net.security; }
+            }
+            if (!ssid) {
+                setupMsg('#setup-wifi-msg', T('setup_wifi_need_ssid'), 'bad');
+                return;
+            }
+            $('#setup-wifi-connect').addClass('loading disabled');
+            socket.emit('connect_wifi', {
+                ssid: ssid, password: $('#setup-wifi-pass').val() || '', security: security
+            });
+        }
+
+        function setupWifiDisconnect() {
+            if (!confirm(T('setup_wifi_off_confirm'))) return;
+            socket.emit('disconnect_wifi');
+        }
+
+        socket.on('wifi_status', function(d) {
+            lastWifiStatus = d;
+            if (d.status !== 'connecting') $('#setup-wifi-connect').removeClass('loading disabled');
+            setupRenderWifiStatus(d);
+        });
+
+        function setupRenderWifiStatus(d) {
+            var kind = d.status === 'success' ? 'ok'
+                     : (d.status === 'connecting' ? 'warn'
+                     : (d.status === 'disconnected' ? 'warn' : 'bad'));
+            setupMsg('#setup-wifi-msg', d.message || '', kind);
+            setupBadge('#setup-wifi-badge', d.status === 'success');
+        }
+
+        // ---- шаг 3: Tailscale ----
+        function setupTailscaleUp() {
+            $('#setup-ts-btn').addClass('loading disabled');
+            $('#setup-ts-cancel').show();
+            socket.emit('setup_tailscale_up', { authkey: ($('#setup-ts-key').val() || '').trim() });
+        }
+
+        function setupTailscaleCancel() {
+            socket.emit('setup_tailscale_cancel');
+        }
+
+        socket.on('setup_tailscale_progress', function(d) {
+            if (d.stage === 'enable') setupMsg('#setup-ts-msg', T('setup_ts_enabling'), 'warn');
+            if (d.stage === 'authkey') setupMsg('#setup-ts-msg', T('setup_ts_authkey'), 'warn');
+            if (d.stage === 'waiting_auth') setupMsg('#setup-ts-msg', T('setup_ts_waiting'), 'warn');
+            if (d.stage === 'auth_url' && d.auth_url) {
+                // Ссылку даём и кликабельной, и текстом: пульт часто открывают с
+                // телефона, подключённого к сети Castle, где интернета нет, и
+                // ссылку приходится переносить на другое устройство.
+                $('#setup-ts-url-link').attr('href', d.auth_url).text(d.auth_url);
+                $('#setup-ts-url-text').val(d.auth_url);
+                $('#setup-ts-url-box').show();
+                setupMsg('#setup-ts-msg', T('setup_ts_waiting'), 'warn');
+            }
+        });
+
+        socket.on('setup_tailscale_result', function(d) {
+            $('#setup-ts-btn').removeClass('loading disabled');
+            $('#setup-ts-rename-btn').removeClass('loading disabled');
+            $('#setup-ts-cancel').hide();
+            if (d.stage === 'rename') {
+                setupMsg('#setup-name-msg', d.ok ? T('setup_ts_renamed')
+                                                 : T('setup_ts_fail') + (d.message || ''),
+                         d.ok ? 'ok' : 'bad');
+                return;
+            }
+            if (d.ok) {
+                $('#setup-ts-url-box').hide();
+                setupMsg('#setup-ts-msg', T('setup_ts_ok') + (d.ip || ''), 'ok');
+            } else if (d.stage === 'cancelled') {
+                setupMsg('#setup-ts-msg', T('setup_ts_cancelled'), 'warn');
+            } else if (d.stage === 'timeout') {
+                setupMsg('#setup-ts-msg', T('setup_ts_timeout'), 'bad');
+            } else if (d.reason === 'game_running') {
+                setupMsg('#setup-ts-msg', T('setup_locked'), 'bad');
+            } else {
+                setupMsg('#setup-ts-msg', T('setup_ts_fail') + (d.message || d.reason || ''), 'bad');
+            }
+        });
+
+        function setupCopyTsUrl() {
+            var field = document.getElementById('setup-ts-url-text');
+            field.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            setupMsg('#setup-ts-msg', T('setup_ts_copied'), 'ok');
+        }
+
+        function setupTsExpiry(checked) {
+            socket.emit('setup_tailscale_flag', { key: 'key_expiry_disabled', value: checked });
+        }
+
+        // ---- шаг 4: раскладка USB-хаба ----
+        function setupPortsScan()     { socket.emit('setup_ports_scan'); }
+        function setupPortsSnapshot() { socket.emit('setup_ports_snapshot'); }
+        function setupPortsConfirm()  { socket.emit('setup_ports_confirm'); }
+
+        function setupIdentifyTowers() {
+            $('#setup-hub-identify').addClass('loading disabled');
+            $('#setup-hub-progress').text(T('setup_hub_identifying'));
+            socket.emit('setup_ports_identify');
+        }
+
+        socket.on('setup_ports_progress', function(d) {
+            var base = d.stage === 'dog' ? T('setup_hub_dog') : T('setup_hub_identifying');
+            $('#setup-hub-progress').text(base + '  ' + (d.done || 0) + '/' + (d.total || 0));
+        });
+
+        socket.on('setup_ports_data', function(d) { setupRenderHub(d, {}); });
+
+        // Перерисовать всё, что нарисовано из JS, на текущем языке. Вызывается
+        // из applyI18n при переключении RU/EN.
+        function setupRerenderTexts() {
+            if (setupState) setupRenderStatus(setupState);
+            if (lastHubPayload) setupRenderHub(lastHubPayload, lastHubIdentified);
+            if (setupNets.length) setupFillWifiList();
+            if (lastWifiStatus) setupRenderWifiStatus(lastWifiStatus);
+            // Разовые сообщения о результате действия («имя применено»,
+            // «калибровка сохранена») привязаны к уже завершённому нажатию.
+            // Переводить их задним числом не из чего, поэтому гасим — иначе
+            // после переключения языка в разделе остаётся смесь двух языков.
+            ['#setup-name-msg', '#setup-servo-msg', '#setup-ts-msg'].forEach(function(sel) {
+                $(sel).empty();
+            });
+            if (monEvents) $('#setup-mon-count').text(T('setup_mon_events') + monEvents);
+        }
+
+        socket.on('setup_ports_identify_result', function(d) {
+            $('#setup-hub-identify').removeClass('loading disabled');
+            $('#setup-hub-progress').text('');
+            if (!d.ok) {
+                $('#setup-hub-progress').text(
+                    d.reason === 'flashing' ? T('setup_hub_flashing') : T('setup_locked'));
+                return;
+            }
+            setupRenderHub(d, d.identified || {});
+        });
+
+        function setupRenderHub(d, identified) {
+            lastHubPayload = d;
+            lastHubIdentified = identified || {};
+            var standard = d.standard || {};
+            var mapping = d.mapping || {};
+            var found = {};
+            Object.keys(identified).forEach(function(port) { found[port] = identified[port]; });
+            var present = {};
+            (d.ports || []).forEach(function(p) { present[p.port] = true; });
+
+            var rows = $('#setup-hub-table').empty();
+            var order = ['owls', 'dog', 'workshop', 'basket'];
+            order.forEach(function(tower) {
+                var port = standard[tower] || mapping[tower];
+                var got = found[port] || '';
+                var verdict, cls;
+                if (!present[port]) {
+                    verdict = T('setup_hub_empty'); cls = 'setup-warn';
+                } else if (!got) {
+                    verdict = T('setup_hub_unknown'); cls = 'setup-warn';
+                } else if (got === tower) {
+                    verdict = '✓ ' + T('setup_hub_match'); cls = 'setup-ok';
+                } else {
+                    verdict = '✗ ' + T('setup_hub_mismatch') + ' — ' + T('setup_hub_swap');
+                    cls = 'setup-bad';
+                }
+                rows.append(
+                    '<tr><td><code>' + port + '</code></td>'
+                  + '<td>' + tower + '</td>'
+                  + '<td>' + (got || '—') + '</td>'
+                  + '<td class="' + cls + '">' + verdict + '</td></tr>');
+            });
+
+            $('#setup-hub-extra').text(T('setup_hub_extra_ports') + (d.ports || []).length);
+            $('#setup-hub-confirm').toggleClass('disabled', !!d.confirmed);
+            setupRenderManualHub(mapping, d.ports || []);
+        }
+
+        function setupToggleManualHub() { $('#setup-hub-manual').toggle(); }
+
+        function setupRenderManualHub(mapping, ports) {
+            var box = $('#setup-hub-manual').empty();
+            ['owls', 'dog', 'workshop', 'basket'].forEach(function(tower) {
+                var sel = $('<select>').css('padding', '4px').attr('data-tower', tower);
+                var options = ports.map(function(p) { return p.port; });
+                ['1.2.1', '1.2.2', '1.2.3', '1.2.4'].forEach(function(p) {
+                    if (options.indexOf(p) === -1) options.push(p);
+                });
+                options.sort().forEach(function(p) {
+                    sel.append($('<option>').val(p).text(p));
+                });
+                sel.val(mapping[tower]);
+                sel.on('change', function() {
+                    socket.emit('setup_ports_assign',
+                                { tower: tower, port: $(this).val() });
+                });
+                box.append($('<div style="margin-bottom:6px; color:#ddd;">')
+                    .text(tower + ': ').append(sel));
+            });
+            box.append($('<button class="ui mini button">')
+                .text('⟲ ' + T('setup_hub_confirm'))
+                .on('click', function() { socket.emit('setup_ports_reset'); }));
+        }
+
+        // ---- шаг 5: калибровка серво ----
+        function setupServoValues() {
+            return {
+                pulse_min: parseInt($('#servo-pulse-min').val(), 10),
+                pulse_max: parseInt($('#servo-pulse-max').val(), 10),
+                angle_hide: parseInt($('#servo-angle-hide').val(), 10),
+                angle_open: parseInt($('#servo-angle-open').val(), 10),
+                move_ms: parseInt($('#servo-move-ms').val(), 10)
+            };
+        }
+
+        function setupServoTest(action) {
+            socket.emit('setup_servo_test', { action: action, values: setupServoValues() });
+        }
+
+        function setupServoSave() {
+            $('#servo-save').addClass('loading disabled');
+            socket.emit('setup_servo_save', { values: setupServoValues() });
+        }
+
+        socket.on('setup_servo_result', function(d) {
+            $('#servo-save').removeClass('loading disabled');
+            if (d.reason === 'game_running') {
+                setupMsg('#setup-servo-msg', T('setup_locked'), 'bad');
+            } else if (d.stage === 'sent') {
+                setupMsg('#setup-servo-msg', T('setup_servo_sent'), 'warn');
+            } else if (d.ok) {
+                setupMsg('#setup-servo-msg', T('setup_servo_saved'), 'ok');
+            } else {
+                setupMsg('#setup-servo-msg', T('setup_servo_bad'), 'bad');
+            }
+        });
+
+        // ---- шаг 6: живой поток событий ----
+        function setupMonitorToggle(active) {
+            socket.emit('sensor_monitor_set', { active: active });
+        }
+
+        function setupMonitorClear() {
+            monEvents = 0;
+            $('#setup-mon-log').empty();
+            $('#setup-mon-flash').empty();
+            $('#setup-mon-count').text('');
+        }
+
+        socket.on('sensor_monitor_state', function(d) {
+            $('#setup-mon-toggle').prop('checked', !!d.active);
+        });
+
+        socket.on('sensor_event', function(d) {
+            if (d.throttled) {
+                $('#setup-mon-log').prepend(
+                    $('<div style="color:#e0a800;">').text(T('setup_mon_throttled')));
+                return;
+            }
+            monEvents++;
+            $('#setup-mon-count').text(T('setup_mon_events') + monEvents);
+
+            var labelKey = SENSOR_LABELS[d.raw];
+            if (labelKey) {
+                var chip = $('<span class="mon-chip">').text(T(labelKey));
+                $('#setup-mon-flash').prepend(chip);
+                setTimeout(function() { chip.remove(); }, 4000);
+            }
+            var time = new Date(d.ts * 1000).toLocaleTimeString();
+            $('#setup-mon-log').prepend($('<div>').text(time + '  ' + d.raw));
+            var log = $('#setup-mon-log');
+            while (log.children().length > 300) log.children().last().remove();
+        });
+
+        // ---- шаг 7: чек-лист ----
+        function setupRenderChecklist(checked) {
+            var box = $('#setup-checklist');
+            if (box.children().length !== CHECKLIST_ITEMS.length) {
+                box.empty();
+                CHECKLIST_ITEMS.forEach(function(key) {
+                    var id = 'chk-' + key;
+                    box.append(
+                        '<div class="ui inverted checkbox" style="display:block; margin-bottom:6px;">'
+                      + '<input type="checkbox" id="' + id + '" data-chk="' + key + '">'
+                      + '<label style="color:#ddd;" data-i18n="chk_' + key + '">'
+                      + T('chk_' + key) + '</label></div>');
+                });
+                box.find('input[data-chk]').on('change', function() {
+                    socket.emit('setup_checklist_set',
+                        { key: $(this).data('chk'), checked: this.checked });
+                });
+            }
+            var done = 0;
+            CHECKLIST_ITEMS.forEach(function(key) {
+                var on = !!checked[key];
+                if (on) done++;
+                $('#chk-' + key).prop('checked', on);
+            });
+            $('#setup-chk-badge').html(
+                '<span class="setup-' + (done === CHECKLIST_ITEMS.length ? 'ok' : 'warn') + '">'
+                + done + ' / ' + CHECKLIST_ITEMS.length + '</span>');
+        }
+
+        function setupChecklistReset() {
+            if (!confirm(T('setup_chk_reset_confirm'))) return;
+            socket.emit('setup_checklist_reset');
+        }
+
+        // ---- имя квеста в шапке ----
+        socket.on('system_status', function(s) {
+            var name = s.quest_name || s.hostname;
+            $('#quest-name-wrap').toggle(!!name);
+            $('#quest-name').text(name || '');
+        });
+
+        $(document).ready(function() {
+            // Ссылка вида /tech#setup с игрового пульта открывает раздел сразу.
+            if (location.hash === '#setup') {
+                setupOpen = true;
+                localStorage.setItem('setupOpen', '1');
+            }
+            setupApplyOpenState();
+        });
+        // ============ /ПЕРВЫЙ ЗАПУСК ============
     </script>
 </body>
 </html>

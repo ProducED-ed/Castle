@@ -2183,40 +2183,15 @@ $('.ui.dropdown')
         }
     });
 
-    // 2. КНОПКА CONNECT (Этого не хватало!)
-    $('#btn_connect').click(function(e){
-        e.preventDefault();
-        
-        // Считываем то, что вы написали в поля
-        // ВНИМАНИЕ: Проверьте в Front.html, совпадают ли id ("wifi_ssid", "wifi_pass")
-        var ssid_val = $('#wifi_ssid').val(); 
-        var pass_val = $('#wifi_pass').val();
+    // 2026-08-09: кнопки Connect/Off убраны с игрового пульта.
+    // connect_wifi перезапускает интерфейс и dhcpcd — во время игры это роняло
+    // клиентскую сеть, а с ней свет Hue и умную розетку. Подключение теперь на
+    // /tech → «Первый запуск», где оно заблокировано на время квеста.
+    // Показ статуса остаётся здесь: оператору по-прежнему видно SSID и IP.
 
-        if(!ssid_val) {
-            alert("Please enter SSID (Name)!");
-            return;
-        }
-
-        // Шлем на сервер команду
-        socket.emit('connect_wifi', {ssid: ssid_val, password: pass_val});
-    });
-
-    // 3. КНОПКА DISCONNECT (OFF)
-    $('#btn_disconnect').click(function(e){
-        e.preventDefault();
-        if(confirm("Disconnect from Wi-Fi?")) {
-            socket.emit('disconnect_wifi');
-        }
-    });
-
-    // 4. ОБРАБОТКА ОТВЕТОВ ОТ СЕРВЕРА
+    // ОБРАБОТКА ОТВЕТОВ ОТ СЕРВЕРА
     socket.on('wifi_status', function(data){
         var msg = $('#wifi_msg');
-        var nameField = $('#wifi_ssid');
-
-        if(data.ssid && data.ssid !== '') {
-            nameField.val(data.ssid);
-        }
 
         if(data.status == 'connecting') {
             msg.text(data.message).css('color', 'orange');
