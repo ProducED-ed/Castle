@@ -178,6 +178,7 @@ from logging.handlers import RotatingFileHandler
 #библиотека для работы с системой много крутых фишек тоже почитай
 from subprocess import call
 import os
+import re
 import requests
 from requests.exceptions import RequestException
 from hue_lights import HueClient
@@ -3433,7 +3434,7 @@ def wifi_scan_start():
 # ---------- шаг 3: Tailscale ----------
 @socketio.on('setup_tailscale_up')
 def setup_tailscale_up(data):
-    global _ts_setup_active, _ts_setup_proc
+    global _ts_setup_active
     if _setup_busy():
         return _setup_denied('setup_tailscale_result')
     if _ts_setup_active:
