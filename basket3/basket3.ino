@@ -41,9 +41,12 @@ unsigned long doorDef;
 // открываемой N сек через DoorDefender в ЛЮБОМ state. Раньше DoorDefender
 // пульсировал локеры только в game-state 3-7, поэтому в restart/rest (state 0)
 // одиночный OpenLock(300ms) часто не открывал дверь.
-unsigned long manualEM1Until = 0;  // троль/cave дверь (SHERIF_EM1) manual-open до этого времени
-unsigned long manualEM2Until = 0;  // баскет дверь (SHERIF_EM2) manual-open до этого времени
-const unsigned long MANUAL_DOOR_HOLD_MS = 8000;  // 8 сек sustained-открытие после команды
+// 2026-08-08: таймеры 8-секундного удержания дверей убраны.
+// Работало так: manual-команда взводила таймер, и DoorDefender всё это
+// время пульсировал замком каждые 3 сек. Сервер шлёт open_basket_door
+// через 3 секунды после каждого Restart — отсюда дверь баскетбола,
+// которую клиент не мог закрыть.
+// Правило проекта: Restart открывает дверь ОДНИМ импульсом.
 unsigned long basketTimer;
 bool _restartFlag;
 const unsigned long FLAG_RESEND_MS = 5000;
@@ -247,8 +250,6 @@ void HandleMessagges(String message) {
       digitalWrite(SHERIF_EM1, LOW);
       digitalWrite(SHERIF_EM2, LOW);
       digitalWrite(Solenoid, LOW);
-      manualEM1Until = 0;  // 2026-05-28 сброс manual-hold при restart/ready
-      manualEM2Until = 0;
       
       digitalWrite(trollLed, LOW);
       digitalWrite(owlLed, LOW);
@@ -319,8 +320,7 @@ void HandleMessagges(String message) {
   //     и пульсирует SHERIF_EM1 каждые 3 сек бесконечно (Эдуард 2026-06-05
   //     подтвердил: норма только для START-режима, не для restart).
   else if (message == "mine") {
-    OpenLock(SHERIF_EM1);
-    manualEM1Until = millis() + MANUAL_DOOR_HOLD_MS;
+    OpenLock(SHERIF_EM1);   // 2026-08-08: без 8-сек удержания, см. open_door
     digitalWrite(trollLed, HIGH);
     Serial1.println("door_cave");
     if (state < 3) state = 3;
@@ -328,7 +328,7 @@ void HandleMessagges(String message) {
   else if (message == "open_mine_door") {
     // 2026-06-05 (Эдуард): в restart жмёшь Open Door → строго ОДИН раз
     // открывается. Нажмёшь ещё — ещё ОДИН раз. БЕЗ 8-сек keep-alive
-    // (manualEM1Until убран — он давал 2-3 пульса за 8 сек через DoorDefender).
+    // (удержание убрано — оно давало 2-3 пульса за 8 сек через DoorDefender).
     OpenLock(SHERIF_EM1);
   }
   else if (message == "start_troll") {
@@ -343,16 +343,23 @@ void HandleMessagges(String message) {
     digitalWrite(trollLed, LOW);
     sendLog("trollLed OFF");
   }
-  if(message == "open_door") { OpenLock(SHERIF_EM2); manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS; }  // 2026-05-28 sustained
+  // 2026-08-08. Было: OpenLock + удержание на 8 сек, то есть команда
+  // ВЗВОДИЛА повторяющуюся пульсацию DoorDefender на 8 секунд.
+  // Сервер шлёт эту команду через 3 секунды после каждого Restart, поэтому
+  // дверь баскетбола толкало снова и снова, и клиент не мог её закрыть.
+  // Во всех остальных проектах и на всех остальных дверях Restart даёт РОВНО
+  // ОДИН импульс: OpenAll() на Mega гасит active[] (то есть разоружает
+  // повторную пульсацию) и бьёт по каждой двери один раз на 500 мс.
+  // Приводим к тому же правилу: один импульс, без удержания.
+  if(message == "open_door") { OpenLock(SHERIF_EM2); }
   if(message == "opent_basket") {
     // 2026-08-05: подтверждение приёма. Башня почти ничего не шлёт серверу,
     // поэтому по логам нельзя было понять, дошла ли команда от Mega. Теперь
     // в journalctl видно строку log:basket:opent_basket — если её нет, значит
     // команда потерялась по пути, а не замок отказал.
     Serial1.println("log:basket:opent_basket received - opening door");
-    basketDoorAllowed = true;
+    basketDoorAllowed = true;   // в игре дверь держит открытой этот флаг
     OpenLock(SHERIF_EM2);
-    manualEM2Until = millis() + MANUAL_DOOR_HOLD_MS;
   }
 }
 
@@ -813,16 +820,20 @@ void OpenBasket(){
 
 void OpenLock(byte num) {
   digitalWrite(num, HIGH);
-  delay(300); // Увеличено
+  // 2026-08-08: 300 → 500 мс, как в OpenAll() на Mega. Там это проверенное
+  // значение для одиночного импульса на рестарте, и одиночного импульса
+  // хватает. Раньше короткий импульс компенсировали 8-секундным удержанием
+  // (см. ниже) — именно оно и ломало правило «Restart открывает дверь один раз».
+  delay(500);
   digitalWrite(num, LOW);
 }
 
 // Вернули старую логику DoorDefender
 // 2026-05-28: добавлены manual-условия (em1Active/em2Active) — manual-open
-// с пульта (open_mine_door/open_door) держит дверь открываемой MANUAL_DOOR_HOLD_MS
+// с пульта (open_mine_door/open_door) держала дверь открываемой 8 секунд —
 // в ЛЮБОМ state, не только в game-state 3-7.
 void DoorDefender() {
-  bool em1Active = (state >= 3 && state <= 7) || (millis() < manualEM1Until);
+  bool em1Active = (state >= 3 && state <= 7);   // игровое keep-alive троллевой двери
   // 2026-08-05: убрана привязка к state. Раньше было
   //   (basketDoorAllowed && state >= 6 && state <= 7)
   // Проверка по state — наследие эпохи до basketDoorAllowed: тогда она одна
@@ -831,14 +842,14 @@ void DoorDefender() {
   // командой opent_basket и сбрасывается на restart/ready. Условие по state
   // стало избыточным и лишь сужает окно: при любом рассинхроне состояния
   // (скип этапов с пульта, проскок состояния) дверь держалась бы 8 сек по
-  // manualEM2Until и закрывалась.
+  // удержанию и закрывалась.
   // ВАЖНО: инцидент CLC2 05.08 («кнопка позеленела, дверь закрыта») этим НЕ
   // объясняется — клиент проходил честно, к моменту команды башня была в
   // state 6-7 и условие выполнялось. Причина того случая пока не найдена,
   // поэтому ниже в обработчик opent_basket добавлен лог приёма — чтобы в
   // следующий раз по журналу сервера отличить «команда не дошла» от
   // «команда дошла, но соленоид не сработал».
-  bool em2Active = basketDoorAllowed || (millis() < manualEM2Until);
+  bool em2Active = basketDoorAllowed;            // игровое keep-alive двери баскетбола
   if (millis() - doorDef >= 3000) {
     if (doorFlags) {
       if (em1Active) digitalWrite(SHERIF_EM1, HIGH);
@@ -849,8 +860,13 @@ void DoorDefender() {
     }
   }
   if (!doorFlags && (millis() - doorTimer >= 50)) {
-      if (em1Active) digitalWrite(SHERIF_EM1, LOW);
-      if (em2Active) digitalWrite(SHERIF_EM2, LOW);
+      // 2026-08-08. Выключение стояло под тем же условием, что и включение.
+      // Если условие переставало выполняться в те 50 мс между HIGH и LOW,
+      // LOW не выполнялся НИКОГДА и соленоид оставался под напряжением:
+      // дверь не закрыть вообще, а катушка греется. Гасим безусловно —
+      // лишний digitalWrite(LOW) по уже выключенному пину безвреден.
+      digitalWrite(SHERIF_EM1, LOW);
+      digitalWrite(SHERIF_EM2, LOW);
       doorDef = millis(); doorFlags = 1;
   }
 }

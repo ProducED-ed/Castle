@@ -68,7 +68,7 @@ const unsigned long lockOpenDuration = 500;
 
 bool recurringLockActive = false;
 unsigned long lastRecurringLockOpenTime = 0;
-// 2026-07-31: было 10000 — БАГ. Keep-alive manualLockUntil = 8000 мс, то есть
+// 2026-07-31: было 10000 — БАГ. Keep-alive удержания был 8000 мс, то есть
 // окно закрывалось РАНЬШЕ, чем наступал повторный импульс, и одиночный 500мс
 // импульс так и не пробивал соленоид (жалоба клиента CLC2: дверь Workshop не
 // открылась ни по игровой команде, ни с пульта — помогло только физически).
@@ -80,10 +80,8 @@ const unsigned long RECURRING_LOCK_INTERVAL = 3000;
 // manualEMxUntil в basket3.ino (commit a2761a8). Одиночный 500мс импульс
 // в open_door не пробивает соленоид без keep-alive (recurringLockActive
 // сбрасывается в restart/ready и пульсирование останавливается). С этим
-// таймером manageLock() пульсирует locker ещё MANUAL_LOCK_HOLD_MS после
+// таймером manageLock() пульсировал locker ещё 8 секунд после
 // открытия с пульта. См. memory [[clc-basket-door-restart-fix-2026-05-28]].
-unsigned long manualLockUntil = 0;
-const unsigned long MANUAL_LOCK_HOLD_MS = 8000;
 
 bool floorLedsOn = false;
 
@@ -780,12 +778,14 @@ void handleUartCommands() {
       lockOpen = false;
       recurringLockActive = false;
       digitalWrite(LOCK_PIN, HIGH);
-      delay(100);
+      // 2026-08-08: было delay(100) + keep-alive 8 сек. Правило проекта —
+      // Restart открывает дверь ОДНИМ импульсом (эталон OpenAll() на Mega:
+      // 500 мс и разоружение повторной пульсации). Сотка соленоид не пробивала,
+      // и слабый импульс компенсировали удержанием, из-за которого дверь
+      // толкало ещё 2-3 раза после рестарта. Доводим импульс до 500 мс.
+      delay(500);
       digitalWrite(LOCK_PIN, LOW);
       digitalWrite(LED_FLOOR2_PIN, HIGH);
-      // 2026-06-04: keep-alive 8 сек — чтобы при restart с пульта дверь
-      // workshop точно открылась (одиночный 100мс импульс не пробивает соленоид).
-      manualLockUntil = millis() + MANUAL_LOCK_HOLD_MS;
       workbenchMode = 0;
       workbenchStrip.clear();
       workbenchStrip.show();
@@ -817,8 +817,7 @@ void handleUartCommands() {
     }
 
     else if (command == "open_door") {
-      // 2026-06-04: keep-alive 8 сек чтобы соленоид точно открылся.
-      manualLockUntil = millis() + MANUAL_LOCK_HOLD_MS;
+      // 2026-08-08: удержание убрано — импульса 500 мс достаточно, см. рестарт.
       digitalWrite(LOCK_PIN, HIGH);
       delay(500);
       digitalWrite(LOCK_PIN, LOW);
@@ -884,10 +883,10 @@ void manageLock() {
     lockOpen = false;
   }
 
-  // 2026-06-04: пульсируем locker если recurringLockActive ИЛИ manual-hold
-  // не истёк. Manual-hold взводится open_door/restart с пульта (8 сек),
-  // чтобы одиночный импульс не залип в закрытом состоянии.
-  bool shouldRecur = recurringLockActive || (millis() < manualLockUntil);
+  // 2026-08-08: повторная пульсация остаётся только для ИГРЫ (recurringLockActive).
+  // Manual-hold от open_door/restart убран: на рестарте дверь должна открыться
+  // один раз, а не толкаться каждые 3 секунды.
+  bool shouldRecur = recurringLockActive;
   if (shouldRecur && !lockOpen && (millis() - lastRecurringLockOpenTime >= RECURRING_LOCK_INTERVAL)) {
     digitalWrite(LOCK_PIN, HIGH);
     lockOpen = true;
