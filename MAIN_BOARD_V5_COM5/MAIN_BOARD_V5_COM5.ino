@@ -138,6 +138,73 @@ bool handleBoyCal(const String &buff) {
   return true;
 }
 
+// --- МОНИТОР ДАТЧИКОВ ДЛЯ ТЕХ-ПУЛЬТА ---
+// Плата рассказывает о срабатываниях датчиков только внутри игровых этапов, и
+// на свежесобранном замке проверить проводку было нечем: приходилось проходить
+// сценарий целиком. Здесь — опрос входов в состоянии ожидания: замкнул геркон
+// рукой, увидел событие на пульте.
+//
+// Работает ТОЛЬКО когда монитор включён кнопкой на /tech (команда mon:1) и
+// ТОЛЬКО из состояний ожидания PowerOn/RestOn — в игру этот код не заходит.
+// Имена датчиков живут на пульте, плата шлёт лишь номер пина: так их можно
+// переименовать без перепрошивки, и во флеше не лежат строки.
+const uint8_t MON_PINS[] = {
+  41, 38, 47, 43, 42, 44, 45, 40,   // старт, тюрьма/студент, золото, директор,
+                                    // дракон, профессор, ведьма, галетники
+  A15, A13,                         // гоблин, датчик окна
+  27, 24, 23, 25,                   // кристаллы 1-4
+  21, 20, A12, 33                   // доски 1-4
+};
+const uint8_t MON_COUNT = sizeof(MON_PINS);
+bool monActive = false;
+uint8_t monPrev[MON_COUNT];
+uint8_t monCnt[MON_COUNT];
+unsigned long monTimer = 0;
+
+void monReport(uint8_t i, uint8_t value) {
+  Serial.print(F("sens:"));
+  Serial.print(MON_PINS[i]);
+  Serial.print(':');
+  Serial.println(value ? 1 : 0);
+}
+
+bool handleMonCmd(const String &buff) {
+  if (!buff.startsWith("mon:")) return false;
+  monActive = (buff.indexOf('1') != -1);
+  if (monActive) {
+    // Сразу отдаём текущее состояние всех входов, чтобы пульт не ждал первого
+    // шевеления и было видно, что нажато прямо сейчас.
+    for (uint8_t i = 0; i < MON_COUNT; i++) {
+      monPrev[i] = digitalRead(MON_PINS[i]);
+      monCnt[i] = 0;
+      monReport(i, monPrev[i]);
+    }
+  }
+  Serial.println(monActive ? F("log:confirm:mon_on") : F("log:confirm:mon_off"));
+  return true;
+}
+
+void monPoll() {
+  if (!monActive) return;
+  if (millis() - monTimer < 60) return;      // опрос ~16 раз в секунду
+  monTimer = millis();
+  for (uint8_t i = 0; i < MON_COUNT; i++) {
+    uint8_t v = digitalRead(MON_PINS[i]);
+    if (v != monPrev[i]) {
+      // Антидребезг: значение должно продержаться два опроса подряд (~120 мс).
+      // Без него длинный провод геркона даёт пачку ложных срабатываний — той же
+      // природы, что ловили на двери сов.
+      if (++monCnt[i] >= 2) {
+        monPrev[i] = v;
+        monCnt[i] = 0;
+        monReport(i, v);
+      }
+    } else {
+      monCnt[i] = 0;
+    }
+  }
+}
+
 // Прогнать серво на подобранных углах — кнопки «проверить» на тех-пульте.
 // Своя команда нужна потому, что игровые student_open/student_hide
 // обрабатываются ТОЛЬКО внутри соответствующих этапов квеста: в состоянии
@@ -1307,6 +1374,7 @@ void handleLibraryFlicker() {
 void PowerOn() {
   waitingForBasketConfirm = false;  // Глушим таймер
   basketRetryCount = 0;
+  monPoll();                        // монитор датчиков для /tech (в покое)
   handleIdleBoySensor();
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
@@ -1316,6 +1384,7 @@ void PowerOn() {
     // замок стоит и после загрузки, и когда монтажник подбирает углы.
     if (handleBoyCal(buff)) continue;
     if (handleBoyTest(buff)) continue;
+    if (handleMonCmd(buff)) continue;
 
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
@@ -6783,6 +6852,7 @@ void ClearSatelliteBuffers() {
 void RestOn() {
   waitingForBasketConfirm = false;  // Глушим таймер
   basketRetryCount = 0;
+  monPoll();                        // монитор датчиков для /tech (в покое)
   // БЛОК 1: ОДНОКРАТНАЯ ИНИЦИАЛИЗАЦИЯ
   // Выполняется только один раз при входе в режим.
 
@@ -6998,6 +7068,7 @@ void RestOn() {
     // Калибровка серво с тех-пульта — принимается и в режиме отдыха.
     if (handleBoyCal(buff)) continue;
     if (handleBoyTest(buff)) continue;
+    if (handleMonCmd(buff)) continue;
 
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();

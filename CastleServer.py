@@ -3780,7 +3780,16 @@ def _emit_sensor_event(line):
         if _sensor_window_count == SENSOR_EVENTS_PER_SEC + 1:
             socketio.emit('sensor_event', {'raw': '', 'throttled': True, 'ts': now})
         return
-    socketio.emit('sensor_event', {'raw': line, 'throttled': False, 'ts': now})
+
+    payload = {'raw': line, 'throttled': False, 'ts': now}
+    # Опрос входов главной платой: "sens:<пин>:<0|1>". Имя датчика подставляет
+    # пульт — так его можно переименовать без перепрошивки платы.
+    if isinstance(line, str) and line.startswith('sens:'):
+        parts = line.split(':')
+        if len(parts) == 3 and parts[1].isdigit() and parts[2] in ('0', '1'):
+            payload['pin'] = int(parts[1])
+            payload['value'] = int(parts[2])
+    socketio.emit('sensor_event', payload)
 
 
 @socketio.on('sensor_monitor_set')
@@ -3794,6 +3803,9 @@ def sensor_monitor_set(data):
     sensor_monitor_active = bool((data or {}).get('active'))
     _sensor_window_start = 0.0
     _sensor_window_count = 0
+    # Главная плата про датчики в покое молчит — просим её начать опрашивать
+    # входы. Без этой команды монитор показывал бы только служебные строки.
+    serial_write_queue.put('mon:1' if sensor_monitor_active else 'mon:0')
     logger.info(f"SETUP: монитор датчиков {'включён' if sensor_monitor_active else 'выключен'}")
     socketio.emit('sensor_monitor_state', {'active': sensor_monitor_active})
 

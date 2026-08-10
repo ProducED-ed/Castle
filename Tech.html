@@ -1017,6 +1017,8 @@
                         <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
                     </div>
 
+                    <div id="setup-mon-sensors" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+
                     <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
                     <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
                          background:#000; border:1px solid #333; border-radius:6px; padding:8px;
@@ -1339,7 +1341,7 @@
                 setup_servo_saved: "Калибровка сохранена — она переживёт перезагрузку.",
                 setup_servo_bad: "Значения вне допустимых границ.",
                 setup_mon_title: "Живой поток событий датчиков",
-                setup_mon_hint: "Замкните геркон или нажмите кнопку рукой — событие вспыхнет здесь. Проходить сценарий не нужно.",
+                setup_mon_hint: "Включите монитор — плата начнёт опрашивать входы и покажет их состояние. Замкните геркон или нажмите кнопку рукой: плашка загорится зелёным. Проходить сценарий не нужно. Работает только когда квест не идёт.",
                 setup_mon_on: "Включить монитор",
                 setup_mon_clear: "Очистить",
                 setup_mon_events: "событий: ",
@@ -1348,6 +1350,7 @@
                 setup_mon_towers: "Башни отвечают:",
                 setup_mon_loop: "Цикл главной платы:",
                 setup_mon_us: "мкс",
+                setup_mon_pin: "Пин",
                 setup_mon_worst: "худший",
                 sens_galet_on: "Workshop: галетник", sens_galet_off: "Workshop: галетник снят",
                 sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
@@ -1650,7 +1653,7 @@
                 setup_servo_saved: "Calibration saved — it survives a reboot.",
                 setup_servo_bad: "Values are out of the allowed range.",
                 setup_mon_title: "Live sensor event stream",
-                setup_mon_hint: "Close a reed switch or press a button by hand — the event flashes here. No need to play through the scenario.",
+                setup_mon_hint: "Turn the monitor on — the board starts polling its inputs and shows their state. Close a reed switch or press a button by hand: the chip lights up green. No need to play through the scenario. Works only while no game is running.",
                 setup_mon_on: "Enable monitor",
                 setup_mon_clear: "Clear",
                 setup_mon_events: "events: ",
@@ -1659,6 +1662,7 @@
                 setup_mon_towers: "Towers responding:",
                 setup_mon_loop: "Main board loop:",
                 setup_mon_us: "µs",
+                setup_mon_pin: "Pin",
                 setup_mon_worst: "worst",
                 sens_galet_on: "Workshop: rotary switch", sens_galet_off: "Workshop: rotary switch released",
                 sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
@@ -3492,12 +3496,58 @@
         });
 
         // ---- шаг 6: живой поток событий ----
+        // Пин на главной плате → человеческое имя. Живёт здесь, а не в прошивке:
+        // переименовать можно без перепрошивки Mega.
+        var MON_PIN_NAMES = {
+            41: 'Геркон стартовой двери',
+            38: 'Геркон тюрьмы / студент',
+            47: 'Золото',
+            43: 'Кнопка директора',
+            42: 'Дракон',
+            44: 'Профессор',
+            45: 'Ведьма',
+            40: 'Галетники первой комнаты',
+            69: 'Гоблин',
+            67: 'Датчик окна',
+            27: 'Кристалл 1',
+            24: 'Кристалл 2',
+            23: 'Кристалл 3',
+            25: 'Кристалл 4',
+            21: 'Доска 1',
+            20: 'Доска 2',
+            66: 'Доска 3',
+            33: 'Доска 4'
+        };
+
+        function monRenderSensor(pin, value) {
+            var id = 'mon-pin-' + pin;
+            var name = MON_PIN_NAMES[pin] || (T('setup_mon_pin') + ' ' + pin);
+            // Входы с подтяжкой: 0 = замкнут (сработал), 1 = разомкнут.
+            var closed = (value === 0);
+            var chip = $('#' + id);
+            if (!chip.length) {
+                chip = $('<span>').attr('id', id).css({
+                    padding: '6px 10px', 'border-radius': '6px',
+                    border: '1px solid #444', 'font-size': '13px'
+                });
+                $('#setup-mon-sensors').append(chip);
+            }
+            chip.text(name + (closed ? ' ●' : ' ○'))
+                .css({background: closed ? '#21ba45' : '#222',
+                      color: closed ? '#fff' : '#aaa'});
+            if (closed) {
+                chip.css('box-shadow', '0 0 10px #21ba45');
+                setTimeout(function() { chip.css('box-shadow', 'none'); }, 800);
+            }
+        }
+
         function setupMonitorToggle(active) {
             socket.emit('sensor_monitor_set', { active: active });
         }
 
         function setupMonitorClear() {
             monEvents = 0;
+            $('#setup-mon-sensors').empty();
             $('#setup-mon-log').empty();
             $('#setup-mon-flash').empty();
             $('#setup-mon-count').text('');
@@ -3535,6 +3585,12 @@
             if (lp) {
                 $('#mon-loop').text(lp[1] + ' ' + T('setup_mon_us')
                                     + ', ' + T('setup_mon_worst') + ' ' + lp[2]);
+                return;
+            }
+
+            // Опрос входов главной платы. Пин 0 = замкнут (входы с подтяжкой).
+            if (typeof d.pin === 'number') {
+                monRenderSensor(d.pin, d.value);
                 return;
             }
 
