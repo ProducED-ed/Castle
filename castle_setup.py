@@ -546,6 +546,45 @@ def list_serial_ports(hub_prefix="1.2.", exclude_tty=None):
     return ports
 
 
+def usb_replug(device="1-1.2", settle=2.0, wait_ports=15.0, expect=4):
+    """Передёрнуть USB-устройство программно — то же, что вынуть и вставить.
+
+    Зачем. На CLC-замках регулярно случается, что прошивка башни виснет, и
+    лечится это только физическим передёргиванием кабеля хаба. Оператор так и
+    делал руками, а клиентов приходилось об этом просить. Ядро даёт то же самое
+    через `authorized`: 0 отсоединяет устройство логически, 1 подключает заново
+    с полной ре-энумерацией. VBUS при этом не снимается, поэтому сами платы
+    башен продолжают работать — отваливается только линия данных.
+
+    Хаб башен стоит отдельно от всего остального (звуковая карта и WiFi-донгл
+    воткнуты прямо в Pi), поэтому передёргивание не задевает ни звук, ни сеть.
+
+    Возвращает (ok, сообщение)."""
+    node = f"/sys/bus/usb/devices/{device}/authorized"
+    if not os.path.exists(node):
+        return False, f"нет {node}"
+
+    for value in ("0", "1"):
+        rc, _out, err = run_cmd(
+            ["sudo", "sh", "-c", f"echo {value} > {node}"], timeout=10)
+        if rc != 0:
+            return False, f"authorized={value}: {err.strip() or rc}"
+        if value == "0":
+            eventlet.sleep(settle)
+
+    # Ждём, пока порты вернутся: ре-энумерация занимает пару секунд, и если
+    # начать прошивку раньше, avrdude не найдёт устройство.
+    deadline = time.monotonic() + wait_ports
+    seen = 0
+    while time.monotonic() < deadline:
+        seen = len(list_serial_ports())
+        if seen >= expect:
+            eventlet.sleep(1.0)          # дать udev дописать симлинки
+            return True, f"порты вернулись ({seen})"
+        eventlet.sleep(0.5)
+    return False, f"порты не вернулись за {int(wait_ports)}с (видно {seen})"
+
+
 def _tty_vidpid(tty):
     """VID:PID устройства за /dev/ttyUSBn — читаем из sysfs, порт не открываем."""
     if not tty:

@@ -88,6 +88,12 @@ DEFAULTS = {
         "suffix": ":1.0-port0",
         "confirmed": False,
         "ports": dict(STANDARD_HUB_PORTS),
+        # Узел самого хаба в /sys/bus/usb/devices — через него хаб
+        # передёргивается программно перед прошивкой башен.
+        "usb_device": "1-1.2",
+        # Передёргивать автоматически. Выключается, если на каком-то замке это
+        # окажется лишним.
+        "replug_before_flash": True,
     },
     # Серво мальчика на пине 49 главной Mega. Дефолты — то, что было зашито
     # в прошивке CLC3 (DS3218). У Канады другая партия: 544/2400/130/0/500.
@@ -258,6 +264,18 @@ class CastleConfig:
 
     def hub_confirmed(self):
         return bool(self.data["usb_hub"].get("confirmed", False))
+
+    def hub_usb_device(self):
+        """Узел хаба в /sys/bus/usb/devices — например '1-1.2'."""
+        node = str(self.data["usb_hub"].get("usb_device", "1-1.2"))
+        return node if re.fullmatch(r"[0-9]+-[0-9.]+", node) else "1-1.2"
+
+    def hub_replug_enabled(self):
+        return bool(self.data["usb_hub"].get("replug_before_flash", True))
+
+    def set_hub_replug(self, enabled):
+        self.data["usb_hub"]["replug_before_flash"] = bool(enabled)
+        self.save()
 
     def hub_is_standard(self):
         return self.hub_ports() == STANDARD_HUB_PORTS
