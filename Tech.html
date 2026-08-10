@@ -969,9 +969,9 @@
                             <input type="number" id="servo-pulse-min" style="width:110px; padding:5px;"></label>
                         <label style="color:#ddd;"><span data-i18n="setup_servo_pmax">Импульс макс, мкс</span><br>
                             <input type="number" id="servo-pulse-max" style="width:110px; padding:5px;"></label>
-                        <label style="color:#ddd;"><span data-i18n="setup_servo_hide">Угол «прячется»</span><br>
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_hide">Положение «прячется» (0–180)</span><br>
                             <input type="number" id="servo-angle-hide" style="width:100px; padding:5px;"></label>
-                        <label style="color:#ddd;"><span data-i18n="setup_servo_open">Угол «открывается»</span><br>
+                        <label style="color:#ddd;"><span data-i18n="setup_servo_open">Положение «открывается» (0–180)</span><br>
                             <input type="number" id="servo-angle-open" style="width:100px; padding:5px;"></label>
                         <label style="color:#ddd;"><span data-i18n="setup_servo_ms">Время хода, мс</span><br>
                             <input type="number" id="servo-move-ms" style="width:100px; padding:5px;"></label>
@@ -1314,11 +1314,11 @@
                 flash_stale: "Файл прошивки новее того, что залито в плату — плату нужно прошить.",
                 setup_hub_no_banner: "Ни одна башня не представилась. Почти всегда это значит, что на башнях прошивка без опознавательного баннера — прошейте Owls, Workshop и Basket текущей версией (таблица выше) и повторите опознание.",
                 setup_servo_title: "Калибровка серво мальчика",
-                setup_servo_hint: "Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните.",
+                setup_servo_hint: "Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните. Угол 0–180 — это НЕ градусы привода, а положение внутри диапазона импульса: библиотека Arduino жёстко режет всё выше 180. У привода на 270° или 360° полный ход уже укладывается в эти 0–180. Не хватает хода — расширяйте импульсы мин/макс, а не угол.",
                 setup_servo_pmin: "Импульс мин, мкс",
                 setup_servo_pmax: "Импульс макс, мкс",
-                setup_servo_hide: "Угол «прячется»",
-                setup_servo_open: "Угол «открывается»",
+                setup_servo_hide: "Положение «прячется» (0–180)",
+                setup_servo_open: "Положение «открывается» (0–180)",
                 setup_servo_ms: "Время хода, мс",
                 setup_servo_t_hide: "Проверить «прячется»",
                 setup_servo_t_open: "Проверить «открывается»",
@@ -1619,11 +1619,11 @@
                 flash_stale: "The firmware file is newer than what is on the board — the board needs flashing.",
                 setup_hub_no_banner: "No tower announced itself. Almost always this means the towers run firmware without the identification banner — flash Owls, Workshop and Basket with the current version (table above) and identify again.",
                 setup_servo_title: "Boy servo calibration",
-                setup_servo_hint: "Servos come in different batches. Dial the values in with the test buttons, then save.",
+                setup_servo_hint: "Servos come in different batches. Dial the values in with the test buttons, then save. The 0–180 angle is NOT servo degrees but a position inside the pulse range: the Arduino library hard-clamps anything above 180. On a 270° or 360° servo the full travel already fits into that 0–180. Need more travel — widen the min/max pulse, not the angle.",
                 setup_servo_pmin: "Pulse min, µs",
                 setup_servo_pmax: "Pulse max, µs",
-                setup_servo_hide: "Angle “hides”",
-                setup_servo_open: "Angle “opens”",
+                setup_servo_hide: "Position “hides” (0–180)",
+                setup_servo_open: "Position “opens” (0–180)",
                 setup_servo_ms: "Travel time, ms",
                 setup_servo_t_hide: "Test “hides”",
                 setup_servo_t_open: "Test “opens”",

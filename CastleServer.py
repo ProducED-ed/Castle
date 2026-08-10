@@ -1060,15 +1060,28 @@ def wlan1_watchdog():
                     except Exception as _e:
                         logger.error(f"wlan1 soft reset failed: {_e}")
                 elif consecutive_down == 10:  # ~100 сек down
-                    logger.warning("WLAN1 WATCHDOG: still down — USB power-cycle (authorized=0/1)")
-                    try:
-                        subprocess.run(['sudo', 'sh', '-c', f'echo 0 > {USB_WIFI_PATH}'],
-                                       check=False, timeout=3)
-                        eventlet.sleep(2)
-                        subprocess.run(['sudo', 'sh', '-c', f'echo 1 > {USB_WIFI_PATH}'],
-                                       check=False, timeout=3)
-                    except Exception as _e:
-                        logger.error(f"USB power-cycle failed: {_e}")
+                    # authorized умеет только отсоединить/подключить устройство,
+                    # которое ЕЩЁ ЧИСЛИТСЯ на шине. Если донгл отвалился совсем,
+                    # узла в /sys уже нет, и обе записи молча падают с «Directory
+                    # nonexistent» — а в логе при этом бодро значилось
+                    # «USB power-cycle», будто что-то произошло. Именно так было
+                    # на CLC4 10.08.2026: оператор ждал, что вотчдог поднимет
+                    # донгл, а поднять его могло только физическое передёргивание.
+                    if not os.path.exists(USB_WIFI_PATH):
+                        logger.error(
+                            "WLAN1 WATCHDOG: донгл исчез с шины USB (нет %s). "
+                            "Программно поднять нельзя — нужно физически вынуть и "
+                            "вставить USB-донгл.", USB_WIFI_PATH)
+                    else:
+                        logger.warning("WLAN1 WATCHDOG: still down — USB power-cycle (authorized=0/1)")
+                        try:
+                            subprocess.run(['sudo', 'sh', '-c', f'echo 0 > {USB_WIFI_PATH}'],
+                                           check=False, timeout=3)
+                            eventlet.sleep(2)
+                            subprocess.run(['sudo', 'sh', '-c', f'echo 1 > {USB_WIFI_PATH}'],
+                                           check=False, timeout=3)
+                        except Exception as _e:
+                            logger.error(f"USB power-cycle failed: {_e}")
                 elif consecutive_down == 30:  # ~5 мин down
                     logger.error("WLAN1 WATCHDOG: wlan1 down >5 min — manual intervention needed")
             else:
