@@ -1007,6 +1007,16 @@
                         </button>
                         <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
                     </div>
+                    <div class="ui warning message" style="margin-top:10px;">
+                        <i class="info circle icon"></i>
+                        <span data-i18n="setup_mon_scope">Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.</span>
+                    </div>
+
+                    <div id="setup-mon-decoded" style="margin-top:10px; color:#ddd;">
+                        <div><span data-i18n="setup_mon_towers">Башни отвечают:</span> <span id="mon-towers">—</span></div>
+                        <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
+                    </div>
+
                     <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
                     <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
                          background:#000; border:1px solid #333; border-radius:6px; padding:8px;
@@ -1334,6 +1344,11 @@
                 setup_mon_clear: "Очистить",
                 setup_mon_events: "событий: ",
                 setup_mon_throttled: "(поток слишком плотный, часть строк пропущена)",
+                setup_mon_scope: "Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.",
+                setup_mon_towers: "Башни отвечают:",
+                setup_mon_loop: "Цикл главной платы:",
+                setup_mon_us: "мкс",
+                setup_mon_worst: "худший",
                 sens_galet_on: "Workshop: галетник", sens_galet_off: "Workshop: галетник снят",
                 sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
                 sens_door_owl: "Owls: дверь сов", sens_mine: "Basket: мина",
@@ -1640,6 +1655,11 @@
                 setup_mon_clear: "Clear",
                 setup_mon_events: "events: ",
                 setup_mon_throttled: "(stream too dense, some lines skipped)",
+                setup_mon_scope: "The main board reports sensor triggers only during a game. At rest it sends service lines only — decoded below.",
+                setup_mon_towers: "Towers responding:",
+                setup_mon_loop: "Main board loop:",
+                setup_mon_us: "µs",
+                setup_mon_worst: "worst",
                 sens_galet_on: "Workshop: rotary switch", sens_galet_off: "Workshop: rotary switch released",
                 sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
                 sens_door_owl: "Owls: owl door", sens_mine: "Basket: mine",
@@ -3495,6 +3515,28 @@
             }
             monEvents++;
             $('#setup-mon-count').text(T('setup_mon_events') + monEvents);
+
+            // Служебные строки платы расшифровываем, а не показываем сырьём:
+            // без этого панель выглядит набором непонятных букв.
+            // HB — сколько МИЛЛИСЕКУНД назад отозвалась каждая башня.
+            var hb = /log:main:HB W=(\d+) B=(\d+) D=(\d+) O=(\d+)/.exec(d.raw || '');
+            if (hb) {
+                var names = ['Workshop', 'Basket', 'Dog', 'Owls'];
+                var html = names.map(function(n, i) {
+                    var ms = parseInt(hb[i + 1], 10);
+                    var alive = ms < 15000;          // 999999 = не отвечала ни разу
+                    return '<span class="setup-' + (alive ? 'ok' : 'bad') + '">'
+                         + n + (alive ? ' ✓' : ' ✗') + '</span>';
+                }).join(' · ');
+                $('#mon-towers').html(html);
+                return;                              // в сырой лог не льём
+            }
+            var lp = /LOOP avg_us=(\d+) worst_us=(\d+)/.exec(d.raw || '');
+            if (lp) {
+                $('#mon-loop').text(lp[1] + ' ' + T('setup_mon_us')
+                                    + ', ' + T('setup_mon_worst') + ' ' + lp[2]);
+                return;
+            }
 
             var labelKey = SENSOR_LABELS[d.raw];
             if (labelKey) {
