@@ -1017,6 +1017,8 @@
                         <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
                     </div>
 
+                    <div id="setup-mon-silence" style="margin-top:8px;"></div>
+                    <div id="setup-mon-age" style="color:#777; font-size:12px; margin-top:6px;"></div>
                     <div id="setup-mon-sensors" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;"></div>
 
                     <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
@@ -1351,6 +1353,9 @@
                 setup_mon_loop: "Цикл главной платы:",
                 setup_mon_us: "мкс",
                 setup_mon_pin: "Пин",
+                setup_mon_silent: "Главная плата не прислала состояние входов. Обычно это значит, что на ней старая прошивка либо она перезагрузилась — выключите и включите тумблер заново, а если не помогло, прошейте главную плату.",
+                setup_mon_age: "последнее сообщение от платы:",
+                setup_mon_sec: "с назад",
                 setup_mon_board: "Плата",
                 setup_mon_ch: "канал",
                 setup_mon_worst: "худший",
@@ -1665,6 +1670,9 @@
                 setup_mon_loop: "Main board loop:",
                 setup_mon_us: "µs",
                 setup_mon_pin: "Pin",
+                setup_mon_silent: "The main board sent no input states. Usually this means it runs old firmware or has rebooted — switch the toggle off and on again, and if that does not help, flash the main board.",
+                setup_mon_age: "last message from the board:",
+                setup_mon_sec: "s ago",
                 setup_mon_board: "Board",
                 setup_mon_ch: "channel",
                 setup_mon_worst: "worst",
@@ -3568,9 +3576,34 @@
             }
         }
 
+        var monLastUpdate = 0;
+        var monSilenceTimer = null;
+
         function setupMonitorToggle(active) {
             socket.emit('sensor_monitor_set', { active: active });
+            clearTimeout(monSilenceTimer);
+            $('#setup-mon-silence').empty();
+            if (active) {
+                // При включении плата обязана прислать снимок всех входов. Если
+                // за 8 секунд не пришло ничего — она не слышит команду, и дальше
+                // проверять датчики бессмысленно: панель будет молча замершей.
+                monLastUpdate = 0;
+                monSilenceTimer = setTimeout(function() {
+                    if (!monLastUpdate) {
+                        $('#setup-mon-silence').html(
+                            '<div class="setup-bad">' + T('setup_mon_silent') + '</div>');
+                    }
+                }, 8000);
+            }
         }
+
+        // Раз в 10 секунд показываем, когда последний раз что-то приходило —
+        // чтобы «ничего не происходит» отличалось от «панель мертва».
+        setInterval(function() {
+            if (!$('#setup-mon-toggle').is(':checked') || !monLastUpdate) return;
+            var sec = Math.round((Date.now() - monLastUpdate) / 1000);
+            $('#setup-mon-age').text(T('setup_mon_age') + ' ' + sec + ' ' + T('setup_mon_sec'));
+        }, 10000);
 
         function setupMonitorClear() {
             monEvents = 0;
@@ -3617,6 +3650,8 @@
 
             // Опрос входов главной платы. Пин 0 = замкнут (входы с подтяжкой).
             if (d.pin !== undefined && d.pin !== null) {
+                monLastUpdate = Date.now();
+                $('#setup-mon-silence').empty();
                 monRenderSensor(d.pin, d.value);
                 return;
             }
