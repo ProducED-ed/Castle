@@ -2660,28 +2660,20 @@ def handle_get_stats():
     socketio.emit('board_stats_data', stats)
 
 # --- ПРОШИВКА ---
-def replug_tower_hub(board_id=None):
-    """Передёрнуть USB-хаб башен перед прошивкой.
-
-    Лечит давнюю болячку: прошивка башни виснет, и помогает только физическое
-    выдёргивание кабеля хаба. Эдуард делал это руками и просил о том же клиентов
-    CLC2 и CLC3. Программно это ровно то же самое — ре-энумерация через
-    `authorized`, и она безопасна: за хабом только четыре башни, звуковая карта
-    и WiFi-донгл воткнуты прямо в Pi и не задеваются."""
-    if not castle_cfg.hub_replug_enabled():
-        return True
-    target = board_id or 'main'
-    socketio.emit('flash_log', {'board': target,
-                                'msg': 'Передёргиваю USB-хаб башен...\n'})
-    ok, message = castle_setup.usb_replug(castle_cfg.hub_usb_device())
-    socketio.emit('flash_log', {
-        'board': target,
-        'msg': ('Хаб переподключён: ' if ok else '⚠ Хаб не переподключился: ') + message + '\n'
-    })
-    if not ok:
-        logger.warning(f"FLASH: передёргивание хаба не удалось — {message}")
-    return ok
-
+# ПРОГРАММНОЕ ПЕРЕДЁРГИВАНИЕ ХАБА НЕ РАБОТАЕТ — не пытаться снова.
+#
+# Идея была закрыть кодом ручной приём «вынуть и вставить кабель хаба перед
+# прошивкой башни». Проверено на живом CLC4 10.08.2026, все три способа:
+#   * authorized 0→1 на узле хаба — отключает намертво. Узел показывает
+#     authorized=1, но downstream-порты не переэнумерируются, дочерних устройств
+#     в /sys не появляется вообще;
+#   * unbind/bind драйвера usb для 1-1.2 — не поднимает;
+#   * USBDEVFS_RESET (ioctl) на устройстве хаба — не поднимает.
+# После любого из них хаб оживает ТОЛЬКО физическим передёргиванием кабеля.
+#
+# Поэтому ручной приём остаётся: перед прошивкой башен вынуть и вставить кабель
+# хаба в Pi. Функция castle_setup.usb_replug() оставлена, но НЕ вызывается —
+# на хабе, который умеет возвращаться, она сработает, на этих дешёвых не умеет.
 
 @socketio.on('start_flash')
 def handle_flash(board_id):
@@ -2728,7 +2720,6 @@ def handle_flash(board_id):
             'msg': f'Порт {board_id}: {castle_cfg.tower_dev(board_id)} '
                    f'(хаб-порт {castle_cfg.tower_port(board_id)})\n'
         })
-        replug_tower_hub(board_id)
 
     try:
         # 1. Освобождение портов
@@ -2863,10 +2854,6 @@ def _handle_dog_flash():
 
     try:
         # --- Шаг 1: silence Mega ---
-        # Хаб передёргиваем ДО шага 1: если он в залипшем состоянии, упадёт не
-        # только прошивка Dog, но и восстановление главной платы на шаге 3 —
-        # а это уже неработающий квест.
-        replug_tower_hub('dog')
         socketio.emit('flash_log', {'board': 'dog', 'msg': '=== ШАГ 1/3: Прошиваем silence.ino на Mega (отключает Mega от Nano) ===\n'})
         is_system_flashing = True
         eventlet.sleep(1)
@@ -3647,11 +3634,6 @@ def setup_ports_identify():
 
     def task():
         identified = {}
-        # Залипший хаб — самая частая причина, по которой башня не отзывается.
-        # Передёргиваем его перед опознанием по той же причине, что и перед
-        # прошивкой.
-        socketio.emit('setup_ports_progress', {'stage': 'replug', 'total': 0, 'done': 0})
-        replug_tower_hub()
         ports = castle_setup.list_serial_ports(exclude_tty=ARDUINO_PORT)
         socketio.emit('setup_ports_progress',
                       {'stage': 'banner', 'total': len(ports), 'done': 0})
@@ -3697,21 +3679,6 @@ def setup_ports_assign(data):
     logger.info(f"SETUP: {tower} → порт {port}; раскладка {castle_cfg.hub_ports()}")
     socketio.emit('setup_ports_data', _ports_payload())
     socketio.emit('setup_status', _setup_snapshot())
-
-
-@socketio.on('setup_hub_replug')
-def setup_hub_replug():
-    """Кнопка «Переподключить хаб» — то же, что вынуть и вставить кабель."""
-    if _setup_busy():
-        return _setup_denied('setup_hub_replug_result')
-
-    def task():
-        ok, message = castle_setup.usb_replug(castle_cfg.hub_usb_device())
-        logger.info(f"SETUP: передёргивание хаба — {'ок' if ok else 'не удалось'}: {message}")
-        socketio.emit('setup_hub_replug_result', {'ok': ok, 'message': message})
-        socketio.emit('setup_ports_data', _ports_payload())
-
-    socketio.start_background_task(task)
 
 
 @socketio.on('setup_ports_confirm')

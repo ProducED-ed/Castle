@@ -934,9 +934,6 @@
                         <button class="ui small button" onclick="setupPortsSnapshot()">
                             <span data-i18n="setup_hub_snapshot">Снимок «ничего не воткнуто»</span>
                         </button>
-                        <button class="ui small orange button" id="setup-hub-replug" onclick="setupHubReplug()">
-                            <i class="plug icon"></i> <span data-i18n="setup_hub_replug">Переподключить хаб</span>
-                        </button>
                         <button class="ui small green button" id="setup-hub-confirm" onclick="setupPortsConfirm()">
                             <i class="check icon"></i> <span data-i18n="setup_hub_confirm">Подтвердить раскладку</span>
                         </button>
@@ -1314,10 +1311,6 @@
                 setup_hub_manual_link: "Раскладка отличается от эталона — назначить вручную",
                 setup_hub_extra_ports: "Портов в хабе найдено: ",
                 setup_hub_flashing: "Идёт прошивка — опознание недоступно.",
-                setup_hub_replug: "Переподключить хаб",
-                setup_hub_replugging: "Передёргиваю USB-хаб башен…",
-                setup_hub_replug_ok: "Хаб переподключён.",
-                setup_hub_replug_fail: "Не удалось переподключить хаб:",
                 flash_stale: "Файл прошивки новее того, что залито в плату — плату нужно прошить.",
                 setup_hub_no_banner: "Ни одна башня не представилась. Почти всегда это значит, что на башнях прошивка без опознавательного баннера — прошейте Owls, Workshop и Basket текущей версией (таблица выше) и повторите опознание.",
                 setup_servo_title: "Калибровка серво мальчика",
@@ -1623,10 +1616,6 @@
                 setup_hub_manual_link: "Layout differs from the reference — assign manually",
                 setup_hub_extra_ports: "Ports found in the hub: ",
                 setup_hub_flashing: "Flashing in progress — identification is unavailable.",
-                setup_hub_replug: "Re-plug the hub",
-                setup_hub_replugging: "Re-plugging the tower USB hub…",
-                setup_hub_replug_ok: "Hub re-plugged.",
-                setup_hub_replug_fail: "Could not re-plug the hub:",
                 flash_stale: "The firmware file is newer than what is on the board — the board needs flashing.",
                 setup_hub_no_banner: "No tower announced itself. Almost always this means the towers run firmware without the identification banner — flash Owls, Workshop and Basket with the current version (table above) and identify again.",
                 setup_servo_title: "Boy servo calibration",
@@ -3327,20 +3316,6 @@
         function setupPortsSnapshot() { socket.emit('setup_ports_snapshot'); }
         function setupPortsConfirm()  { socket.emit('setup_ports_confirm'); }
 
-        function setupHubReplug() {
-            $('#setup-hub-replug').addClass('loading disabled');
-            $('#setup-hub-progress').text(T('setup_hub_replugging'));
-            socket.emit('setup_hub_replug');
-        }
-
-        socket.on('setup_hub_replug_result', function(d) {
-            $('#setup-hub-replug').removeClass('loading disabled');
-            $('#setup-hub-progress').html(
-                '<span class="setup-' + (d.ok ? 'ok' : 'bad') + '">'
-                + (d.ok ? T('setup_hub_replug_ok') : T('setup_hub_replug_fail'))
-                + ' ' + (d.message || '') + '</span>');
-        });
-
         function setupIdentifyTowers() {
             $('#setup-hub-identify').addClass('loading disabled');
             $('#setup-hub-progress').text(T('setup_hub_identifying'));
@@ -3348,10 +3323,6 @@
         }
 
         socket.on('setup_ports_progress', function(d) {
-            if (d.stage === 'replug') {
-                $('#setup-hub-progress').text(T('setup_hub_replugging'));
-                return;
-            }
             var base = d.stage === 'dog' ? T('setup_hub_dog') : T('setup_hub_identifying');
             $('#setup-hub-progress').text(base + '  ' + (d.done || 0) + '/' + (d.total || 0));
         });
