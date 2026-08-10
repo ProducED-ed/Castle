@@ -3786,8 +3786,10 @@ def _emit_sensor_event(line):
     # пульт — так его можно переименовать без перепрошивки платы.
     if isinstance(line, str) and line.startswith('sens:'):
         parts = line.split(':')
-        if len(parts) == 3 and parts[1].isdigit() and parts[2] in ('0', '1'):
-            payload['pin'] = int(parts[1])
+        # id — строка: "41" прямой пин, "b2c7" канал мультиплексора, "knock".
+        if (len(parts) == 3 and parts[2] in ('0', '1')
+                and re.fullmatch(r'[a-z0-9_]{1,8}', parts[1])):
+            payload['pin'] = parts[1]
             payload['value'] = int(parts[2])
     socketio.emit('sensor_event', payload)
 
@@ -3800,12 +3802,29 @@ def sensor_monitor_set(data):
     Прошивки для этого не меняются: события башен и так идут по UART в главную
     плату, а оттуда в сервер. Пока тумблер выключен — накладных расходов ноль."""
     global sensor_monitor_active, _sensor_window_start, _sensor_window_count
-    sensor_monitor_active = bool((data or {}).get('active'))
+    want = bool((data or {}).get('active'))
+    if want and _setup_busy():
+        socketio.emit('sensor_monitor_state',
+                      {'active': False, 'reason': 'game_running'})
+        return
+
+    sensor_monitor_active = want
     _sensor_window_start = 0.0
     _sensor_window_count = 0
     # Главная плата про датчики в покое молчит — просим её начать опрашивать
     # входы. Без этой команды монитор показывал бы только служебные строки.
     serial_write_queue.put('mon:1' if sensor_monitor_active else 'mon:0')
+
+    # Блокируем игровой пульт тем же механизмом, что и диагностика ESP32:
+    # опрос входов работает только пока квест стоит, и если в этот момент
+    # нажать Старт или Restart, монитор молча перестанет обновляться. Пусть
+    # лучше кнопки будут недоступны и висит понятный баннер.
+    if sensor_monitor_active:
+        _active_diag_devices.add('монитор датчиков')
+    else:
+        _active_diag_devices.discard('монитор датчиков')
+    _broadcast_diag_state()
+
     logger.info(f"SETUP: монитор датчиков {'включён' if sensor_monitor_active else 'выключен'}")
     socketio.emit('sensor_monitor_state', {'active': sensor_monitor_active})
 
