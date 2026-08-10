@@ -7719,13 +7719,27 @@ bool handleMonCmd(const String &buff) {
   return true;
 }
 
+// Пьезодатчик читаем на КАЖДОМ проходе, а не раз в 150 мс вместе с остальными.
+// Удар по стеклу даёт всплеск длиной в единицы миллисекунд: при редком опросе
+// он просто не попадал в выборку, и датчик выглядел мёртвым, хотя исправен.
+void monPollKnock() {
+  if (analogRead(KnockSens) <= threshold) monKnockUntil = millis() + 900;
+  uint8_t v = (millis() < monKnockUntil) ? 0 : 1;
+  if (v != monPrev[MON_KNOCK_IDX]) {
+    monPrev[MON_KNOCK_IDX] = v;
+    monReport(MON_KNOCK_IDX, v);
+  }
+}
+
 void monPoll() {
   if (!monActive) return;
+  monPollKnock();
   // Полный обход мультиплексора стоит ~32 мс (в digitalReadExpander есть
   // обязательная пауза 1 мс на стабилизацию), поэтому реже, чем прямые пины.
   if (millis() - monTimer < 150) return;
   monTimer = millis();
   for (uint8_t i = 0; i < MON_COUNT; i++) {
+    if (i == MON_KNOCK_IDX) continue;   // пьезо опрошен выше, на каждом проходе
     uint8_t v = monRead(i);
     if (v != monPrev[i]) {
       // Антидребезг: значение должно продержаться два опроса подряд.
