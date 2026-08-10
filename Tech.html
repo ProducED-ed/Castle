@@ -1311,6 +1311,8 @@
                 setup_hub_manual_link: "Раскладка отличается от эталона — назначить вручную",
                 setup_hub_extra_ports: "Портов в хабе найдено: ",
                 setup_hub_flashing: "Идёт прошивка — опознание недоступно.",
+                flash_stale: "Файл прошивки новее того, что залито в плату — плату нужно прошить.",
+                setup_hub_no_banner: "Ни одна башня не представилась. Почти всегда это значит, что на башнях прошивка без опознавательного баннера — прошейте Owls, Workshop и Basket текущей версией (таблица выше) и повторите опознание.",
                 setup_servo_title: "Калибровка серво мальчика",
                 setup_servo_hint: "Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните.",
                 setup_servo_pmin: "Импульс мин, мкс",
@@ -1614,6 +1616,8 @@
                 setup_hub_manual_link: "Layout differs from the reference — assign manually",
                 setup_hub_extra_ports: "Ports found in the hub: ",
                 setup_hub_flashing: "Flashing in progress — identification is unavailable.",
+                flash_stale: "The firmware file is newer than what is on the board — the board needs flashing.",
+                setup_hub_no_banner: "No tower announced itself. Almost always this means the towers run firmware without the identification banner — flash Owls, Workshop and Basket with the current version (table above) and identify again.",
                 setup_servo_title: "Boy servo calibration",
                 setup_servo_hint: "Servos come in different batches. Dial the values in with the test buttons, then save.",
                 setup_servo_pmin: "Pulse min, µs",
@@ -1757,10 +1761,35 @@
             $('#connection-status').transition('pulse');
         });
 
+        // Дата файла приходит как 09.08.2026:20:24, дата прошивки как
+        // 09.08.2026 19:26 — разделитель перед временем разный.
+        function parseBoardDate(s) {
+            var m = /^(\d{2})\.(\d{2})\.(\d{4})[: ](\d{2}):(\d{2})$/.exec((s || '').trim());
+            return m ? new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]) : null;
+        }
+
         socket.on('board_stats_data', function(stats) {
             for (const [board, data] of Object.entries(stats)) {
                 $('#mtime-' + board).text(data.mtime);
                 $('#last-' + board).text(data.last_flash);
+
+                // Если файл прошивки новее того, что реально залито в плату —
+                // подсвечиваем. Раньше это можно было заметить только сверив две
+                // даты глазами, и на CLC4 плата с виду выглядела непрошитой.
+                var fileAt = parseBoardDate(data.mtime);
+                var flashAt = parseBoardDate(data.last_flash);
+                var stale = fileAt && (!flashAt || flashAt < fileAt);
+                $('#last-' + board)
+                    .css('color', stale ? '#e0a800' : '')
+                    .attr('title', stale ? T('flash_stale') : '');
+                $('#stale-' + board).remove();
+                if (stale) {
+                    $('#last-' + board).after(
+                        $('<span>').attr('id', 'stale-' + board)
+                            .css({color: '#e0a800', 'margin-left': '6px'})
+                            .attr('title', T('flash_stale'))
+                            .text('⚠'));
+                }
             }
         });
 
@@ -3323,6 +3352,10 @@
                 return;
             }
             setupRenderHub(d, d.identified || {});
+            if (d.hint === 'no_banner') {
+                $('#setup-hub-progress').html(
+                    '<span class="setup-bad">' + T('setup_hub_no_banner') + '</span>');
+            }
         });
 
         function setupRenderHub(d, identified) {

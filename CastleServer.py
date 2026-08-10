@@ -2870,18 +2870,35 @@ def _handle_dog_flash():
         ok3, _ = _run(avrdude_mega(MEGA_HEX), 'Шаг 3: MAIN_BOARD → Mega')
 
         # Финал
-        if ok1 and ok2 and ok3:
-            now_str = datetime.now().strftime('%d.%m.%Y %H:%M')
-            flashes = {}
-            if os.path.exists(FLASH_STATS_FILE):
+        now_str = datetime.now().strftime('%d.%m.%Y %H:%M')
+        flashes = {}
+        if os.path.exists(FLASH_STATS_FILE):
+            try:
                 with open(FLASH_STATS_FILE, 'r') as f: flashes = json.load(f)
+            except Exception:
+                flashes = {}
+
+        # Шаг 3 физически заливает в Mega текущий MAIN_BOARD.ino.hex — это
+        # настоящая прошивка главной платы, и дату надо записать ДАЖЕ если шаг 2
+        # (сам Dog) не удался. Иначе на пульте у главной платы остаётся старая
+        # дата, и понять, что на ней на самом деле лежит, невозможно: ровно так
+        # на CLC4 плата оказалась прошитой свежей версией, а пульт показывал
+        # позавчерашнюю дату.
+        if ok3:
+            flashes['main'] = now_str
+            socketio.emit('flash_success', {'board': 'main', 'time': now_str})
+
+        if ok1 and ok2 and ok3:
             flashes['dog'] = now_str
-            with open(FLASH_STATS_FILE, 'w') as f: json.dump(flashes, f)
             socketio.emit('flash_success', {'board': 'dog', 'time': now_str})
             socketio.emit('flash_log', {'board': 'dog', 'msg': '\n[SYSTEM] ✅ Все 3 шага прошли успешно! Dog обновлён.\n'})
         else:
             socketio.emit('flash_failed', {'board': 'dog'})
             socketio.emit('flash_log', {'board': 'dog', 'msg': f'\n[SYSTEM] ⚠️ silence={ok1} dog={ok2} mega_restore={ok3}\n'})
+            if ok3:
+                socketio.emit('flash_log', {'board': 'dog', 'msg': '[SYSTEM] Главная плата при этом прошита текущей версией — её дата обновлена.\n'})
+
+        with open(FLASH_STATS_FILE, 'w') as f: json.dump(flashes, f)
 
         # После flash Mega — нужен рестарт сервера для свежего fd (см. commit 7cb898d).
         # os._exit(0) вместо SIGTERM: SIGTERM иногда не доходит в eventlet greenlet
@@ -3615,8 +3632,13 @@ def setup_ports_identify():
         payload = _ports_payload(identified)
         payload['identified'] = identified
         payload['ok'] = True
+        # Если не отозвался никто — это почти всегда одна и та же причина:
+        # на башнях прошивка без опознавательного баннера. Говорим прямо, а не
+        # оставляем четыре прочерка без объяснения.
+        if not identified and ports:
+            payload['hint'] = 'no_banner'
         socketio.emit('setup_ports_identify_result', payload)
-        logger.info(f"SETUP: опознание башен → {identified}")
+        logger.info(f"SETUP: опознание башен → {identified or 'никто не отозвался'}")
 
     socketio.start_background_task(task)
 

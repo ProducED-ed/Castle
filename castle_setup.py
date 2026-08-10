@@ -562,36 +562,72 @@ def _tty_vidpid(tty):
         return ""
 
 
-def identify_tower(tty, timeout=6.0):
+def identify_tower(tty, timeout=9.0):
     """Опознать башню по баннеру CLC-TOWER в USB-Serial.
 
-    Открытие порта роняет DTR, башня перезагружается и печатает баннер в
-    setup() — именно этого мы и ждём. Работает для Owls/Workshop/Basket: у них
-    связь с главной платой идёт по Serial1, а USB-Serial свободен. Dog так
-    опознать нельзя — у него единственный UART делится с линией к Mega, поэтому
-    для него есть identify_dog_by_signature()."""
+    Башня печатает своё имя в setup(), то есть ОДИН РАЗ при загрузке. К моменту
+    опознания она работает уже часы, поэтому её надо перезагрузить — и сделать
+    это надо явным импульсом DTR.
+
+    Рассчитывать на то, что плата ресетнётся сама от открытия порта, нельзя:
+    pyserial выставляет DTR при открытии не на всех платформах и драйверах
+    одинаково. Из-за этого первая версия опознания открывала порт, слушала
+    тишину и честно возвращала «не опознано» на исправных башнях (CLC4,
+    2026-08-10). Импульс DTR ниже повторяет то, что делает avrdude перед
+    прошивкой, и перезагружает плату гарантированно.
+
+    Работает для Owls/Workshop/Basket: у них связь с главной платой идёт по
+    Serial1, а USB-Serial свободен. Dog так опознать нельзя — у него
+    единственный UART делится с линией к Mega."""
     try:
         import serial
     except ImportError:
+        logger.warning("SETUP: pyserial недоступен — опознание башен невозможно")
         return ""
+
     try:
-        with serial.Serial(tty, 9600, timeout=0.3, dsrdtr=False, rtscts=False) as ser:
-            deadline = time.monotonic() + timeout
-            buf = ""
-            while time.monotonic() < deadline:
-                try:
-                    chunk = ser.read(256).decode("utf-8", errors="replace")
-                except Exception:
-                    break
-                if chunk:
-                    buf += chunk
-                    match = TOWER_BANNER_RE.search(buf)
-                    if match:
-                        return match.group(1)
-                    buf = buf[-512:]
-                eventlet.sleep(0.1)
+        ser = serial.Serial(tty, 9600, timeout=0.3, dsrdtr=False, rtscts=False)
     except Exception as e:
-        logger.debug(f"SETUP: не опознать {tty}: {e}")
+        logger.warning(f"SETUP: порт {tty} не открывается: {e}")
+        return ""
+
+    try:
+        # Импульс сброса: отпускаем линии, выдерживаем паузу, дёргаем обратно.
+        try:
+            ser.dtr = False
+            ser.rts = False
+            eventlet.sleep(0.15)
+            ser.reset_input_buffer()
+            ser.dtr = True
+            ser.rts = True
+        except Exception as e:
+            logger.warning(f"SETUP: не удалось дёрнуть DTR на {tty}: {e}")
+
+        deadline = time.monotonic() + timeout
+        buf = ""
+        while time.monotonic() < deadline:
+            try:
+                chunk = ser.read(256).decode("utf-8", errors="replace")
+            except Exception as e:
+                logger.warning(f"SETUP: ошибка чтения {tty}: {e}")
+                break
+            if chunk:
+                buf += chunk
+                match = TOWER_BANNER_RE.search(buf)
+                if match:
+                    return match.group(1)
+                buf = buf[-512:]
+            eventlet.sleep(0.05)
+
+        # Тишина — это тоже диагностика: либо на башне прошивка без баннера,
+        # либо она не перезагрузилась. Пишем в лог сырой хвост, чтобы было видно.
+        logger.warning(f"SETUP: {tty} — баннер не пришёл за {timeout}с; "
+                       f"получено {len(buf)} байт: {buf[-120:]!r}")
+    finally:
+        try:
+            ser.close()
+        except Exception:
+            pass
     return ""
 
 
