@@ -3545,12 +3545,14 @@ def setup_ports_snapshot():
     """Запомнить, что видно сейчас — до подключения башен. Дальше всё новое
     подсвечивается как «только что воткнули»."""
     global _ports_snapshot
-    _ports_snapshot = {p['port'] for p in castle_setup.list_serial_ports()}
+    _ports_snapshot = {p['port'] for p in castle_setup.list_serial_ports(exclude_tty=ARDUINO_PORT)}
     socketio.emit('setup_ports_data', _ports_payload())
 
 
 def _ports_payload(identified=None):
-    ports = castle_setup.list_serial_ports()
+    # Главную плату в список не пускаем: она не в хабе, а прямо на порту Pi,
+    # и её порт занят сервером. Открыть его — значит перезагрузить Mega.
+    ports = castle_setup.list_serial_ports(exclude_tty=ARDUINO_PORT)
     assigned = {port: tower for tower, port in castle_cfg.hub_ports().items()}
     identified = identified or {}
     for entry in ports:
@@ -3589,7 +3591,7 @@ def setup_ports_identify():
 
     def task():
         identified = {}
-        ports = castle_setup.list_serial_ports()
+        ports = castle_setup.list_serial_ports(exclude_tty=ARDUINO_PORT)
         socketio.emit('setup_ports_progress',
                       {'stage': 'banner', 'total': len(ports), 'done': 0})
 
@@ -3601,16 +3603,14 @@ def setup_ports_identify():
                           {'stage': 'banner', 'total': len(ports), 'done': index,
                            'port': entry['port'], 'found': tower})
 
-        # Dog баннер не печатает — ищем его по сигнатуре среди неопознанных.
+        # Dog баннер не печатает: его единственный UART делится с главной платой.
+        # Определяем вычитанием — если три остальные башни назвались, оставшийся
+        # порт и есть Dog. Так быстрее и, главное, ничего не ресетит.
         if 'dog' not in identified.values():
             rest = [p for p in ports if p['port'] not in identified]
-            for index, entry in enumerate(rest, start=1):
-                socketio.emit('setup_ports_progress',
-                              {'stage': 'dog', 'total': len(rest), 'done': index,
-                               'port': entry['port']})
-                if castle_setup.identify_dog_by_signature(entry['tty']):
-                    identified[entry['port']] = 'dog'
-                    break
+            named = {t for t in identified.values() if t in TOWERS}
+            if len(rest) == 1 and len(named) == 3:
+                identified[rest[0]['port']] = 'dog'
 
         payload = _ports_payload(identified)
         payload['identified'] = identified
@@ -6220,8 +6220,10 @@ def serial():
                    # Без него кнопка «проверить» слепая: команда ушла, а двинулся
                    # ли привод — видно только глазами.
                    if flag == "log:confirm:boytest_ok":
+                       logger.info("SETUP: главная плата отчиталась — серво отработал")
                        socketio.emit('setup_servo_result', {'ok': True, 'stage': 'moved'})
                    elif flag == "log:confirm:boycal_ok":
+                       logger.info("SETUP: главная плата приняла калибровку серво")
                        socketio.emit('setup_servo_result', {'ok': True, 'stage': 'accepted'})
 
                    # --- ВОССТАНОВЛЕНИЕ ПОВРЕЖДЕННЫХ КОМАНД ---

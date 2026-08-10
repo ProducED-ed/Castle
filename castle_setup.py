@@ -495,31 +495,50 @@ def find_auth_url(text):
 #  Порты USB-хаба и опознание башен
 # ==========================================================================
 
-def list_serial_ports():
-    """Что физически воткнуто в хаб.
+def list_serial_ports(hub_prefix="1.2.", exclude_tty=None):
+    """Что воткнуто в USB-хаб башен.
 
     Только чтение файловой системы: ни одного os.open() на tty. Открытие
     последовательного порта дёргает DTR и перезагружает плату — фоновый опрос
     USB когда-то ресетил башни каждые несколько секунд, и они теряли игровое
     состояние. Опознание (которое порт всё-таки открывает) вынесено отдельно и
-    делается только по явной команде оператора."""
+    делается только по явной команде оператора.
+
+    ГЛАВНАЯ ПЛАТА СЮДА ПОПАДАТЬ НЕ ДОЛЖНА. Она сидит не в хабе, а прямо на порту
+    Pi (1.1), и её путь тоже оканчивается на ':1.0-port0'. В первой версии
+    фильтр этого не учитывал: «Опознать башни» открывало порт работающей Mega,
+    роняло DTR, перезагружало главную плату и потом гоняло по ней avrdude.
+    Поэтому здесь два независимых отсева — по префиксу хаба и по фактическому
+    tty главной платы."""
     ports = []
     try:
         entries = sorted(os.listdir(SERIAL_BY_PATH))
     except Exception:
         return ports
 
+    main_tty = ""
+    if exclude_tty:
+        try:
+            main_tty = os.path.realpath(exclude_tty)
+        except Exception:
+            main_tty = ""
+
     for entry in entries:
         match = SERIAL_PORT_RE.search(entry)
         if not match:
             continue
+        port = match.group("port")
+        if hub_prefix and not port.startswith(hub_prefix):
+            continue                      # не хаб — скорее всего главная плата
         full = os.path.join(SERIAL_BY_PATH, entry)
         try:
             tty = os.path.realpath(full)
         except Exception:
             tty = ""
+        if main_tty and tty == main_tty:
+            continue                      # это главная плата, трогать нельзя
         ports.append({
-            "port": match.group("port"),
+            "port": port,
             "path": full,
             "tty": tty,
             "vidpid": _tty_vidpid(tty),
@@ -576,13 +595,9 @@ def identify_tower(tty, timeout=6.0):
     return ""
 
 
-def identify_dog_by_signature(tty):
-    """Dog — единственная башня на Nano (atmega328p), остальные три на Mega 2560.
-    Значит, чтение сигнатуры чипом-328 успешно ровно на его порту."""
-    rc, out, err = run_cmd(
-        ["sudo", "avrdude", "-p", "atmega328p", "-c", "arduino",
-         "-P", tty, "-b", "115200", "-U", "signature:r:-:h"],
-        timeout=25,
-    )
-    blob = (out or "") + (err or "")
-    return rc == 0 and "0x1e" in blob.lower()
+# Пробу Dog через avrdude (чтение сигнатуры atmega328p) здесь СОЗНАТЕЛЬНО нет.
+# Она стоила до 25 секунд на порт, из-за чего опознание выглядело зависшим, а
+# главное — avrdude ресетит плату, к которой обращается, и на Dog это лезет в
+# UART, разделённый с главной Mega (тот самый, из-за которого прошивка Dog идёт
+# через три шага с silence.ino). Dog определяется вычитанием: три остальные
+# башни называют себя баннером сами, значит оставшийся порт — его.
