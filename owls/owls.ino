@@ -310,8 +310,6 @@ bool monActive = false;
 uint8_t monPrev[MON_COUNT];
 uint8_t monCnt[MON_COUNT];
 unsigned long monTimer = 0;
-unsigned long monScanTimer = 0;
-uint8_t monScanIdx = 0;
 
 void monReport(uint8_t i, uint8_t value) {
   Serial1.print(F("sens:to"));
@@ -333,40 +331,22 @@ bool handleMonCmd(const char *cmd) {
       monCnt[i] = 0;
       monReport(i, monPrev[i]);
     }
-    monScanIdx = 0;
-    monScanTimer = millis();
   }
   return true;
 }
 
 void monPoll() {
   if (!monActive) return;
-
-  // Опрос на КАЖДОМ проходе, антидребезг по времени. Раньше входы читались раз
-  // в 120 мс и требовалось два совпадения подряд — то есть геркон надо было
-  // удерживать почти четверть секунды, иначе касание рукой до пульта вообще не
-  // доходило. Три совпадения по 10 мс дают те же 30 мс, что и у игровых кнопок.
-  if (millis() - monTimer >= 10) {
-    monTimer = millis();
-    for (uint8_t i = 0; i < MON_COUNT; i++) {
-      uint8_t v = digitalRead(MON_PINS[i]);
-      if (v != monPrev[i]) {
-        if (++monCnt[i] >= 3) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
-      } else {
-        monCnt[i] = 0;
-      }
+  if (millis() - monTimer < 120) return;
+  monTimer = millis();
+  for (uint8_t i = 0; i < MON_COUNT; i++) {
+    uint8_t v = digitalRead(MON_PINS[i]);
+    if (v != monPrev[i]) {
+      // Антидребезг: значение держится два опроса подряд (~240 мс).
+      if (++monCnt[i] >= 2) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
+    } else {
+      monCnt[i] = 0;
     }
-  }
-
-  // Медленный дозор: раз в 300 мс повторяем состояние одного входа по кругу.
-  // Стартовый залп из всех входов сразу частично терялся — четыре башни
-  // отвечают одновременно, а у Сов канал программный с маленьким буфером, — и
-  // такие плашки не появлялись на пульте вообще. Здесь всплеска нет: обход
-  // растянут на секунды, а потерянная строка приходит следующим кругом.
-  if (millis() - monScanTimer >= 300) {
-    monScanTimer = millis();
-    monReport(monScanIdx, monPrev[monScanIdx]);
-    if (++monScanIdx >= MON_COUNT) monScanIdx = 0;
   }
 }
 // ============ /МОНИТОР ============
