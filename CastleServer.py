@@ -1377,8 +1377,10 @@ pygame.mixer.music.load = _safe_music_load
 # === END Layer 3 ===
 
 #------инициализация звуковых каналов
-# Явно запрашиваем 8 каналов у Pygame (стандартно, но для надежности)
-pygame.mixer.set_num_channels(8)
+# Явно запрашиваем 9 каналов у Pygame (стандартно 8, девятый добавлен под писк
+# монитора датчиков: он должен звучать, не отбирая канал ни у фона, ни у
+# историй, ни у эффектов — иначе диагностика обрывала бы игровой звук).
+pygame.mixer.set_num_channels(9)
 
 channel1 = pygame.mixer.Channel(0) # background music (Фон)
 # channel2 оставляем как переменную для совместимости, но использовать будем список
@@ -1404,6 +1406,9 @@ effects_pool = [
 ]
 # Индекс для циклического перебора, если все каналы заняты
 current_effect_index = 0
+
+# Канал 6 занят прослушкой аудио-менеджера, 8 — писком монитора датчиков.
+beep_channel = pygame.mixer.Channel(8)
 
 #------эффекты в формате wav (ЗВУКИ ОСТАВЛЯЕМ КАК ОБЪЕКТЫ, ЭТО ПРАВИЛЬНО)
 door_act = pygame.mixer.Sound('door_act.wav')
@@ -3383,6 +3388,22 @@ _sensor_window_start = 0.0
 _sensor_window_count = 0
 SENSOR_EVENTS_PER_SEC = 40      # потолок, чтобы всплеск логов не забил сокет
 
+# Писк на срабатывание датчика из динамиков замка. Датчик проверяют руками,
+# стоя у железа, и смотреть при этом в экран неудобно — сигнал позволяет
+# проверять проводку на слух. Пульт может пищать и сам, своим динамиком; какой
+# источник выбран, знает только вкладка, поэтому она сообщает это сюда.
+SENSOR_BEEP_SRC = os.path.join(AUDIO_DIR, 'pip.mp3')
+# Конвертированную копию кладём во временную папку, а не рядом с игровыми
+# звуками: в /home/pi/New лежит то, что видит аудио-менеджер, и служебный файл
+# в этом списке только сбивал бы с толку.
+SENSOR_BEEP_WAV = '/tmp/pip_beep.wav'
+SENSOR_BEEP_MIN_GAP = 0.12      # залп из нескольких входов = один писк
+sensor_beep_castle = False
+_sensor_beep_sound = None
+_sensor_beep_tried = False
+_sensor_beep_last = 0.0
+_sensor_last_values = {}        # последнее известное состояние каждого входа
+
 
 def _setup_busy():
     """True, если сейчас идёт игра и трогать настройки нельзя."""
@@ -3762,6 +3783,91 @@ def setup_checklist_reset():
     socketio.emit('setup_status', _setup_snapshot())
 
 
+# ---------- писк на срабатывание датчика ----------
+def _sensor_beep_prepare():
+    """Готовит короткий сигнал монитора. Вызывать только из фоновой задачи.
+
+    pygame.mixer.Sound читает лишь 16-битный PCM WAV, а звук лежит в mp3 —
+    конвертируем один раз и держим в памяти. Через ffplay это тоже работает, но
+    каждый писк стоил бы отдельного процесса и лишней сотни миллисекунд, а тут
+    важна именно синхронность с рукой: замкнул — пикнуло."""
+    global _sensor_beep_sound, _sensor_beep_tried
+    if _sensor_beep_sound is not None or _sensor_beep_tried:
+        return _sensor_beep_sound
+    _sensor_beep_tried = True
+    if not os.path.exists(SENSOR_BEEP_SRC):
+        logger.warning(f"MON-BEEP: нет файла {SENSOR_BEEP_SRC} — писк из замка недоступен")
+        return None
+    try:
+        need = (not os.path.exists(SENSOR_BEEP_WAV)
+                or os.path.getmtime(SENSOR_BEEP_WAV) < os.path.getmtime(SENSOR_BEEP_SRC))
+        if need:
+            rc, out, err = castle_setup.run_cmd(
+                ['ffmpeg', '-y', '-loglevel', 'error', '-i', SENSOR_BEEP_SRC,
+                 '-ac', '2', '-ar', '44100', '-acodec', 'pcm_s16le', SENSOR_BEEP_WAV],
+                timeout=20)
+            if rc != 0:
+                logger.warning(f"MON-BEEP: ffmpeg не смог сконвертировать pip.mp3: {err.strip()}")
+                return None
+        _sensor_beep_sound = pygame.mixer.Sound(SENSOR_BEEP_WAV)
+        logger.info("MON-BEEP: сигнал монитора готов")
+    except Exception as e:
+        logger.warning(f"MON-BEEP: подготовка сигнала не удалась: {e}")
+        _sensor_beep_sound = None
+    return _sensor_beep_sound
+
+
+def _sensor_beep():
+    """Пикнуть в динамики замка. Молча ничего не делает, если сигнал не готов."""
+    global _sensor_beep_last
+    now = time.time()
+    if now - _sensor_beep_last < SENSOR_BEEP_MIN_GAP:
+        return
+    if _sensor_beep_sound is None:
+        return
+    _sensor_beep_last = now
+    try:
+        beep_channel.play(_sensor_beep_sound)
+    except Exception as e:
+        logger.warning(f"MON-BEEP: не удалось воспроизвести: {e}")
+
+
+@socketio.on('sensor_monitor_sound')
+def sensor_monitor_sound(data):
+    """Откуда пищать: из замка или из динамика самого пульта.
+
+    Пульт присылает выбор при каждом подключении — иначе после перезапуска
+    сервера писк из замка пропал бы молча, и это выглядело бы как «датчики
+    перестали срабатывать»."""
+    global sensor_beep_castle
+    d = data or {}
+    want = bool(d.get('enabled')) and d.get('source') == 'castle'
+    if want and not sensor_beep_castle:
+        socketio.start_background_task(_sensor_beep_prepare)
+    sensor_beep_castle = want
+
+
+@socketio.on('sensor_monitor_beep_test')
+def sensor_monitor_beep_test():
+    """Пикнуть один раз по кнопке.
+
+    Нужна не для красоты: услышать сигнал заранее — единственный способ понять,
+    что молчание монитора это молчание датчика, а не выключенный усилитель."""
+    global _sensor_beep_tried
+    # Кнопкой жмут в том числе после того, как положили pip.mp3 на место, —
+    # даём подготовке ещё один шанс, иначе она навсегда осталась бы в отказе.
+    if _sensor_beep_sound is None:
+        _sensor_beep_tried = False
+
+    def task():
+        _sensor_beep_prepare()
+        ok = _sensor_beep_sound is not None
+        if ok:
+            _sensor_beep()
+        socketio.emit('sensor_monitor_beep_result', {'ok': ok})
+    socketio.start_background_task(task)
+
+
 # ---------- живой поток событий датчиков ----------
 def _emit_sensor_event(line):
     """Отправить строку от Mega в монитор на /tech.
@@ -3791,6 +3897,13 @@ def _emit_sensor_event(line):
                 and re.fullmatch(r'[a-z0-9_]{1,8}', parts[1])):
             payload['pin'] = parts[1]
             payload['value'] = int(parts[2])
+            # Пищим только на настоящую смену состояния уже известного входа:
+            # при включении монитора платы отдают снимок всех входов разом, и
+            # это была бы сотня писков подряд.
+            prev = _sensor_last_values.get(payload['pin'])
+            _sensor_last_values[payload['pin']] = payload['value']
+            if sensor_beep_castle and prev is not None and prev != payload['value']:
+                _sensor_beep()
     socketio.emit('sensor_event', payload)
 
 
@@ -3802,6 +3915,7 @@ def sensor_monitor_set(data):
     Прошивки для этого не меняются: события башен и так идут по UART в главную
     плату, а оттуда в сервер. Пока тумблер выключен — накладных расходов ноль."""
     global sensor_monitor_active, _sensor_window_start, _sensor_window_count
+    global sensor_beep_castle
     want = bool((data or {}).get('active'))
     if want and _setup_busy():
         socketio.emit('sensor_monitor_state',
@@ -3811,6 +3925,11 @@ def sensor_monitor_set(data):
     sensor_monitor_active = want
     _sensor_window_start = 0.0
     _sensor_window_count = 0
+    # Снимок всех входов приходит заново — прежние состояния к нему отношения
+    # не имеют, иначе включение монитора отзовётся очередью писков.
+    _sensor_last_values.clear()
+    if not want:
+        sensor_beep_castle = False
     # Главная плата про датчики в покое молчит — просим её начать опрашивать
     # входы. Без этой команды монитор показывал бы только служебные строки.
     serial_write_queue.put('mon:1' if sensor_monitor_active else 'mon:0')

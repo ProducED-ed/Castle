@@ -761,6 +761,80 @@
         </div>
         <!-- ============ /HUE ============ -->
 
+        <!-- ============ МОНИТОР ДАТЧИКОВ ============
+             Живое состояние входов замка и всех четырёх башен. Раньше был шагом
+             внутри «Первого запуска», но нужен постоянно — и на сборке, и когда
+             у клиента «датчик перестал видеться», — поэтому вынесен в отдельный
+             раздел. Только чтение: игровую логику не трогает, платы опрашивают
+             входы лишь пока тумблер включён. -->
+        <div class="ui inverted segment" id="monitor-segment" style="margin-top: 30px;">
+            <h3 style="cursor:pointer; user-select:none;" onclick="monToggle()">
+                <i class="rss icon"></i> <span data-i18n="mon_section_title">Монитор датчиков</span>
+                <i class="dropdown icon" id="mon-caret" style="float:right;"></i>
+            </h3>
+            <div style="color:#999; font-size:13px; margin-top:-8px;" data-i18n="mon_section_sub">
+                Живое состояние входов замка и всех четырёх башен.
+            </div>
+
+            <div id="monitor-body" style="display:none; margin-top:16px;">
+
+                <div id="mon-game-lock" class="ui warning message" style="display:none;">
+                    <i class="exclamation triangle icon"></i>
+                    <span data-i18n="setup_locked">Идёт игра — настройки заблокированы. Дождитесь конца или нажмите Restart.</span>
+                </div>
+
+                <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_mon_hint">
+                    Включите монитор — плата начнёт опрашивать входы и покажет их состояние.
+                </div>
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" id="setup-mon-toggle" onchange="setupMonitorToggle(this.checked)">
+                        <label style="color:#ddd;" data-i18n="setup_mon_on">Включить монитор</label>
+                    </div>
+                    <!-- Писк на срабатывание: датчик проверяют, стоя у железа, и
+                         смотреть в экран одновременно неудобно. Источник звука
+                         выбирается — динамики замка слышно из любой комнаты,
+                         динамик телефона удобнее, когда замок молчит. -->
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" id="mon-beep-toggle" onchange="monBeepChanged()">
+                        <label style="color:#ddd;" data-i18n="mon_beep_on">Звук на срабатывание</label>
+                    </div>
+                    <select id="mon-beep-source" onchange="monBeepChanged()" style="padding:5px;">
+                        <option value="castle" data-i18n="mon_beep_castle">Динамики замка</option>
+                        <option value="browser" data-i18n="mon_beep_browser">Это устройство</option>
+                    </select>
+                    <button class="ui mini button" id="mon-beep-test" onclick="monBeepTest()">
+                        <span data-i18n="mon_beep_test">Проверить звук</span>
+                    </button>
+                    <button class="ui mini button" onclick="setupMonitorClear()">
+                        <span data-i18n="setup_mon_clear">Очистить</span>
+                    </button>
+                    <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
+                </div>
+                <div id="mon-beep-msg" style="margin-top:6px; font-size:12px;"></div>
+
+                <div class="ui warning message" style="margin-top:10px;">
+                    <i class="info circle icon"></i>
+                    <span data-i18n="setup_mon_scope">Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.</span>
+                </div>
+
+                <div id="setup-mon-decoded" style="margin-top:10px; color:#ddd;">
+                    <div><span data-i18n="setup_mon_towers">Башни отвечают:</span> <span id="mon-towers">—</span></div>
+                    <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
+                </div>
+
+                <div id="setup-mon-silence" style="margin-top:8px;"></div>
+                <div id="setup-mon-age" style="color:#777; font-size:12px; margin-top:6px;"></div>
+                <div id="setup-mon-sensors" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+
+                <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
+                <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
+                     background:#000; border:1px solid #333; border-radius:6px; padding:8px;
+                     font-family:monospace; font-size:12px; color:#8f8;"></div>
+            </div>
+        </div>
+        <!-- ============ /МОНИТОР ДАТЧИКОВ ============ -->
+
         <!-- ============ ПЕРВЫЙ ЗАПУСК ============
              Пуско-наладка нового замка без SSH: имя квеста, WiFi, Tailscale,
              раскладка USB-хаба, калибровка серво, чек-лист приёмки.
@@ -990,46 +1064,9 @@
                     <div id="setup-servo-msg" style="margin-top:8px;"></div>
                 </div>
 
-                <!-- ---- Шаг 6: монитор датчиков ---- -->
+                <!-- ---- Шаг 6: чек-лист приёмки ---- -->
                 <div class="ui inverted segment">
                     <h4><span class="setup-step">6</span>
-                        <span data-i18n="setup_mon_title">Живой поток событий датчиков</span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_mon_hint">
-                        Замкните геркон или нажмите кнопку рукой — событие вспыхнет здесь. Проходить сценарий не нужно.
-                    </div>
-                    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                        <div class="ui toggle checkbox">
-                            <input type="checkbox" id="setup-mon-toggle" onchange="setupMonitorToggle(this.checked)">
-                            <label style="color:#ddd;" data-i18n="setup_mon_on">Включить монитор</label>
-                        </div>
-                        <button class="ui mini button" onclick="setupMonitorClear()">
-                            <span data-i18n="setup_mon_clear">Очистить</span>
-                        </button>
-                        <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
-                    </div>
-                    <div class="ui warning message" style="margin-top:10px;">
-                        <i class="info circle icon"></i>
-                        <span data-i18n="setup_mon_scope">Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.</span>
-                    </div>
-
-                    <div id="setup-mon-decoded" style="margin-top:10px; color:#ddd;">
-                        <div><span data-i18n="setup_mon_towers">Башни отвечают:</span> <span id="mon-towers">—</span></div>
-                        <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
-                    </div>
-
-                    <div id="setup-mon-silence" style="margin-top:8px;"></div>
-                    <div id="setup-mon-age" style="color:#777; font-size:12px; margin-top:6px;"></div>
-                    <div id="setup-mon-sensors" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-
-                    <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
-                    <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
-                         background:#000; border:1px solid #333; border-radius:6px; padding:8px;
-                         font-family:monospace; font-size:12px; color:#8f8;"></div>
-                </div>
-
-                <!-- ---- Шаг 7: чек-лист приёмки ---- -->
-                <div class="ui inverted segment">
-                    <h4><span class="setup-step">7</span>
                         <span data-i18n="setup_chk_title">Чек-лист приёмки</span>
                         <span class="setup-badge" id="setup-chk-badge"></span></h4>
                     <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_chk_hint">
@@ -1342,7 +1379,6 @@
                 setup_servo_no_reply: "Главная плата не ответила. Проверь, что на неё залита свежая прошивка (кнопка «Прошить main» выше) — тестовую команду понимают только новые версии.",
                 setup_servo_saved: "Калибровка сохранена — она переживёт перезагрузку.",
                 setup_servo_bad: "Значения вне допустимых границ.",
-                setup_mon_title: "Живой поток событий датчиков",
                 setup_mon_hint: "Включите монитор — плата начнёт опрашивать входы и покажет их состояние. Замкните геркон или нажмите кнопку рукой: плашка загорится зелёным. Проходить сценарий не нужно. Работает только когда квест не идёт.",
                 setup_mon_on: "Включить монитор",
                 setup_mon_clear: "Очистить",
@@ -1360,6 +1396,14 @@
                 setup_mon_board: "Плата",
                 setup_mon_ch: "канал",
                 setup_mon_worst: "худший",
+                mon_section_title: "Монитор датчиков",
+                mon_section_sub: "Живое состояние входов замка и всех четырёх башен.",
+                mon_beep_on: "Звук на срабатывание",
+                mon_beep_castle: "Динамики замка",
+                mon_beep_browser: "Это устройство",
+                mon_beep_blocked: "Браузер не дал включить звук. Нажмите в любом месте страницы и включите тумблер ещё раз.",
+                mon_beep_test: "Проверить звук",
+                mon_beep_no_file: "Замок не смог воспроизвести сигнал: проверьте, что файл pip.mp3 лежит на сервере и включён звук.",
                 sens_galet_on: "Workshop: галетник", sens_galet_off: "Workshop: галетник снят",
                 sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
                 sens_door_owl: "Owls: дверь сов", sens_mine: "Basket: мина",
@@ -1660,7 +1704,6 @@
                 setup_servo_no_reply: "No reply from the main board. Check that it runs the current firmware (the “Flash main” button above) — only newer versions understand the test command.",
                 setup_servo_saved: "Calibration saved — it survives a reboot.",
                 setup_servo_bad: "Values are out of the allowed range.",
-                setup_mon_title: "Live sensor event stream",
                 setup_mon_hint: "Turn the monitor on — the board starts polling its inputs and shows their state. Close a reed switch or press a button by hand: the chip lights up green. No need to play through the scenario. Works only while no game is running.",
                 setup_mon_on: "Enable monitor",
                 setup_mon_clear: "Clear",
@@ -1678,6 +1721,14 @@
                 setup_mon_board: "Board",
                 setup_mon_ch: "channel",
                 setup_mon_worst: "worst",
+                mon_section_title: "Sensor monitor",
+                mon_section_sub: "Live state of every input on the castle and all four towers.",
+                mon_beep_on: "Beep on trigger",
+                mon_beep_castle: "Castle speakers",
+                mon_beep_browser: "This device",
+                mon_beep_blocked: "The browser blocked audio playback. Tap anywhere on the page and switch the toggle on again.",
+                mon_beep_test: "Test sound",
+                mon_beep_no_file: "The castle could not play the beep: check that pip.mp3 is on the server and the sound is on.",
                 sens_galet_on: "Workshop: rotary switch", sens_galet_off: "Workshop: rotary switch released",
                 sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
                 sens_door_owl: "Owls: owl door", sens_mine: "Basket: mine",
@@ -3135,6 +3186,10 @@
         // видимая половина защиты — сервер отклоняет такие команды сам.
         function setupApplyLock(running) {
             $('#setup-game-lock').toggle(running);
+            // Монитор живёт в своём разделе, но блокируется тем же признаком:
+            // опрос входов работает только пока квест стоит.
+            $('#mon-game-lock').toggle(running);
+            $('#setup-mon-toggle').prop('disabled', running);
             var guarded = ['#setup-name-btn', '#setup-ts-rename-btn', '#setup-ts-btn',
                            '#setup-wifi-connect', '#setup-wifi-off', '#setup-hub-identify',
                            '#servo-test-hide', '#servo-test-open'];
@@ -3501,7 +3556,10 @@
             }
         });
 
-        // ---- шаг 6: живой поток событий ----
+        // ============ МОНИТОР ДАТЧИКОВ ============
+        // Отдельный раздел, а не шаг первого запуска: нужен и на сборке, и при
+        // удалённом разборе «датчик перестал видеться» у клиента.
+        //
         // Пин на главной плате → человеческое имя. Живёт здесь, а не в прошивке:
         // переименовать можно без перепрошивки Mega.
                 // ── КАК ДОБАВИТЬ НОВЫЙ ДАТЧИК В МОНИТОР ──────────────────────────
@@ -3524,14 +3582,16 @@
         //    Типы: reed (герконы, кнопки), galet (галетные переключатели),
         //          touch (ёмкостные), ir (ИК), vibro (вибрация), other.
         //
-        // ВАЖНО про тип: от него зависит полярность. У всех, кроме ir, зелёная
-        // плашка означает ноль на входе (замкнут на землю). У ir наоборот —
-        // единицу, потому что в прошивках они настроены как LOW_PULL.
+        // ВАЖНО про тип: от него зависит полярность. У герконов, кнопок и
+        // галетников зелёная плашка означает ноль на входе (замкнут на землю).
+        // У ir и touch наоборот — единицу: ИК-датчики в прошивках башен стоят
+        // как LOW_PULL, а ёмкостные модули в покое сами держат линию в нуле и
+        // выдают единицу от касания (главная плата и в игре читает их без «!»).
         //
         // Датчик без строки в MON_META не потеряется: он покажется в группе
         // «Прочее» под техническим именем. Но лучше подписать сразу.
         // ─────────────────────────────────────────────────────────────────
-        var MON_META = {"41": ["main", "reed", "Стартовая дверь"], "38": ["main", "reed", "Тюрьма / студент"], "47": ["main", "reed", "Золото"], "43": ["main", "reed", "Директор"], "42": ["main", "reed", "Дракон"], "44": ["main", "reed", "Профессор"], "45": ["main", "reed", "Ведьма"], "69": ["main", "reed", "Гоблин"], "67": ["main", "reed", "Окно"], "27": ["main", "reed", "Кристалл 1"], "24": ["main", "reed", "Кристалл 2"], "23": ["main", "reed", "Кристалл 3"], "25": ["main", "reed", "Кристалл 4"], "26": ["main", "reed", "РЕЗЕРВ 1 (J22)"], "28": ["main", "reed", "РЕЗЕРВ 2 (J23)"], "40": ["main", "galet", "Галетник первой комнаты — дерево"], "knock": ["main", "vibro", "Датчик вибрации"], "b1c7": ["main", "reed", "Мальчик вышел"], "b1c6": ["main", "reed", "Часы УФ"], "b2c0": ["main", "reed", "Часы 1"], "b2c1": ["main", "reed", "Замок тюрьмы"], "b3c5": ["main", "reed", "Дверь в библиотеке"], "b3c2": ["main", "reed", "Последовательность 1"], "b3c0": ["main", "reed", "Последовательность 2"], "b3c3": ["main", "reed", "Последовательность 3"], "b3c1": ["main", "reed", "Последовательность 4"], "b4c2": ["main", "reed", "Кубок"], "b4c3": ["main", "reed", "Камин"], "b4c4": ["main", "reed", "Кристаллы в подвале"], "b4c0": ["main", "reed", "Геркон: свайп влево"], "b4c1": ["main", "reed", "Геркон: свайп вправо"], "tw31": ["tw", "reed", "Печка"], "tw29": ["tw", "reed", "Подсказка"], "tw44": ["tw", "reed", "Верстак 1"], "tw42": ["tw", "reed", "Верстак 2"], "tw40": ["tw", "reed", "Верстак 3"], "tw46": ["tw", "reed", "Верстак 4"], "tw30": ["tw", "galet", "Галетник «солнце»"], "tw27": ["tw", "ir", "ИК-флаг"], "tb40": ["tb", "reed", "Дверь тролля: геркон 1"], "tb42": ["tb", "reed", "Дверь тролля: геркон 2"], "tb44": ["tb", "reed", "Дверь тролля: геркон 3"], "tb46": ["tb", "reed", "Дверь тролля: геркон 4"], "tb38": ["tb", "reed", "Вращение тролля 1"], "tb36": ["tb", "reed", "Вращение тролля 2"], "tb34": ["tb", "reed", "Вращение тролля 3"], "tb32": ["tb", "reed", "Вращение тролля 4"], "tb30": ["tb", "reed", "Помощь"], "tb31": ["tb", "reed", "Металл"], "tb28": ["tb", "reed", "Мальчик"], "tb26": ["tb", "galet", "Галетник"], "tb27": ["tb", "ir", "ИК-флаг"], "tb64": ["tb", "ir", "ИК-датчик корзины"], "to29": ["to", "reed", "Сова"], "to31": ["to", "reed", "Гном"], "to5": ["to", "reed", "Стартовый геркон (гном)"], "to58": ["to", "reed", "Плитка 1"], "to60": ["to", "reed", "Плитка 2"], "to62": ["to", "reed", "Плитка 3"], "to64": ["to", "reed", "Плитка 4"], "to30": ["to", "galet", "Галетник «лодка»"], "to46": ["to", "galet", "Левый галетник: поз. 2"], "to44": ["to", "galet", "Левый галетник: поз. 3"], "to42": ["to", "galet", "Левый галетник: поз. 4"], "to40": ["to", "galet", "Левый галетник: поз. 5"], "to32": ["to", "galet", "Правый галетник: поз. 1"], "to34": ["to", "galet", "Правый галетник: поз. 2"], "to36": ["to", "galet", "Правый галетник: поз. 3"], "to38": ["to", "galet", "Правый галетник: поз. 4"], "to27": ["to", "ir", "ИК-флаг"], "td19": ["td", "reed", "Навесной замок"], "td11": ["td", "reed", "Дверь башни (капсула)"], "td13": ["td", "reed", "Рыцарь"], "td14": ["td", "reed", "Геркон скорости платформы"], "td15": ["td", "reed", "Локер клетки"], "td16": ["td", "reed", "Кристалл"], "td17": ["td", "galet", "Галетник «роза»"], "td7": ["td", "ir", "ИК-флаг"], "b2c5": ["main", "touch", "Сенсор ловли снитча 1"], "b2c6": ["main", "touch", "Сенсор ловли снитча 2"], "b4c5": ["main", "touch", "Сенсор ловли снитча 3"], "b4c6": ["main", "touch", "Сенсор ловли снитча 4"]};
+        var MON_META = {"41": ["main", "reed", "Стартовая дверь"], "38": ["main", "reed", "Тюрьма / студент"], "47": ["main", "reed", "Золото"], "43": ["main", "reed", "Директор"], "42": ["main", "reed", "Дракон"], "44": ["main", "reed", "Профессор"], "45": ["main", "reed", "Ведьма"], "69": ["main", "reed", "Гоблин"], "67": ["main", "reed", "Окно"], "27": ["main", "reed", "Кристалл 1"], "24": ["main", "reed", "Кристалл 2"], "23": ["main", "reed", "Кристалл 3"], "25": ["main", "reed", "Кристалл 4"], "26": ["main", "reed", "РЕЗЕРВ 1 (J22)"], "28": ["main", "reed", "РЕЗЕРВ 2 (J23)"], "40": ["main", "galet", "Галетник первой комнаты — дерево"], "knock": ["main", "vibro", "Датчик вибрации"], "b1c7": ["main", "reed", "Мальчик вышел"], "b1c6": ["main", "reed", "Часы УФ"], "b2c0": ["main", "reed", "Часы 1"], "b2c1": ["main", "reed", "Замок тюрьмы"], "b3c5": ["main", "reed", "Дверь в библиотеке"], "b3c2": ["main", "reed", "Последовательность 1"], "b3c0": ["main", "reed", "Последовательность 2"], "b3c3": ["main", "reed", "Последовательность 3"], "b3c1": ["main", "reed", "Последовательность 4"], "b4c2": ["main", "reed", "Кубок"], "b4c3": ["main", "reed", "Камин"], "b4c4": ["main", "reed", "Кристаллы в подвале"], "b4c0": ["main", "reed", "Геркон: свайп влево"], "b4c1": ["main", "reed", "Геркон: свайп вправо"], "tw31": ["tw", "reed", "Печка"], "tw29": ["tw", "reed", "Подсказка"], "tw44": ["tw", "reed", "Верстак 1"], "tw42": ["tw", "reed", "Верстак 2"], "tw40": ["tw", "reed", "Верстак 3"], "tw46": ["tw", "reed", "Верстак 4"], "tw30": ["tw", "galet", "Галетник «солнце»"], "tw27": ["tw", "ir", "ИК-флаг"], "tb40": ["tb", "reed", "Дверь тролля: геркон 1"], "tb42": ["tb", "reed", "Дверь тролля: геркон 2"], "tb44": ["tb", "reed", "Дверь тролля: геркон 3"], "tb46": ["tb", "reed", "Дверь тролля: геркон 4"], "tb38": ["tb", "reed", "Вращение тролля 1"], "tb36": ["tb", "reed", "Вращение тролля 2"], "tb34": ["tb", "reed", "Вращение тролля 3"], "tb32": ["tb", "reed", "Вращение тролля 4"], "tb30": ["tb", "reed", "Помощь"], "tb31": ["tb", "reed", "Металл"], "tb28": ["tb", "reed", "Мальчик"], "tb26": ["tb", "galet", "Галетник"], "tb27": ["tb", "ir", "ИК-флаг"], "tb64": ["tb", "ir", "ИК-датчик корзины"], "to29": ["to", "reed", "Сова"], "to31": ["to", "reed", "Гном"], "to5": ["to", "reed", "Стартовый геркон (гном)"], "to58": ["to", "reed", "Плитка 1"], "to60": ["to", "reed", "Плитка 2"], "to62": ["to", "reed", "Плитка 3"], "to64": ["to", "reed", "Плитка 4"], "to30": ["to", "galet", "Галетник «лодка»"], "to46": ["to", "galet", "Левый галетник: поз. 2"], "to44": ["to", "galet", "Левый галетник: поз. 3"], "to42": ["to", "galet", "Левый галетник: поз. 4"], "to40": ["to", "galet", "Левый галетник: поз. 5"], "to32": ["to", "galet", "Правый галетник: поз. 1"], "to34": ["to", "galet", "Правый галетник: поз. 2"], "to36": ["to", "galet", "Правый галетник: поз. 3"], "to38": ["to", "galet", "Правый галетник: поз. 4"], "to27": ["to", "ir", "ИК-флаг"], "td19": ["td", "reed", "Навесной замок"], "td11": ["td", "reed", "Дверь башни (капсула)"], "td13": ["td", "reed", "Рыцарь"], "td14": ["td", "reed", "Геркон скорости платформы"], "td15": ["td", "reed", "Локер клетки"], "td16": ["td", "reed", "Кристалл"], "td17": ["td", "galet", "Галетник «роза»"], "td7": ["td", "ir", "ИК-флаг"], "b2c6": ["main", "touch", "Сенсор ловли снитча 1"], "b2c5": ["main", "touch", "Сенсор ловли снитча 2"], "b4c5": ["main", "touch", "Сенсор ловли снитча 3"], "b4c6": ["main", "touch", "Сенсор ловли снитча 4"]};
         var MON_DEVICES = [['main','Замок (главная плата)'],['tw','Башня Мастерская'],
                            ['tb','Башня Баскетбол'],['to','Башня Совы'],['td','Башня Цербер']];
         var MON_TYPES = [['reed','Герконы'],['galet','Галетные переключатели'],
@@ -3575,11 +3635,12 @@
         function monRenderSensor(pin, value) {
             var m = monMeta(pin);
             var id = 'mon-pin-' + pin;
-            // Герконы и кнопки сидят на подтяжке к питанию: 0 = сработал.
-            // ИК-датчики наоборот (LOW_PULL в прошивках башен) — у них
-            // активное состояние это единица. Без этого флаг светился
-            // зелёным, когда его НЕ вставили.
-            var closed = (m[1] === 'ir') ? (value === 1) : (value === 0);
+            // Герконы, кнопки и галетники сидят на подтяжке к питанию:
+            // 0 = сработал. ИК-датчики (LOW_PULL в прошивках башен) и ёмкостные
+            // сенсоры наоборот — у них активное состояние это единица. Без
+            // этого флаг светился зелёным, когда его НЕ вставили, а все четыре
+            // сенсора ловли снитча горели, пока их никто не трогает.
+            var closed = (m[1] === 'ir' || m[1] === 'touch') ? (value === 1) : (value === 0);
             var chip = $('#' + id);
             if (!chip.length) {
                 chip = $('<span>').attr('id', id).css({
@@ -3601,8 +3662,111 @@
         var monHbAt = 0;
         var monSilenceTimer = null;
 
+        // Раздел сворачивается отдельно от «Первого запуска» и помнит своё
+        // состояние: монитор открывают часто, каждый раз раскрывать заново
+        // неудобно.
+        var monOpen = localStorage.getItem('monOpen') === '1';
+
+        function monApplyOpenState() {
+            $('#monitor-body').toggle(monOpen);
+            $('#mon-caret').toggleClass('up', monOpen);
+            // Тумблер должен показывать состояние сервера, а не последнее, что
+            // помнит вкладка: монитор мог включить кто-то другой.
+            if (monOpen) socket.emit('setup_status');
+        }
+
+        function monToggle() {
+            monOpen = !monOpen;
+            localStorage.setItem('monOpen', monOpen ? '1' : '0');
+            monApplyOpenState();
+        }
+
+        // ---- писк на срабатывание ----
+        // Датчик проверяют руками у железа, а экран в это время может быть в
+        // другой комнате. Источник выбирается: динамики замка слышно отовсюду,
+        // но если рядом кто-то работает — удобнее динамик самого устройства,
+        // на котором открыт пульт.
+        var monBeepOn = localStorage.getItem('monBeepOn') === '1';
+        var monBeepSource = localStorage.getItem('monBeepSource') || 'castle';
+        var monBeepAudio = null;
+        var monBeepLast = 0;
+        var monValues = {};          // последнее известное состояние каждого входа
+
+        function monBeepInit() {
+            if (monBeepAudio) return monBeepAudio;
+            monBeepAudio = new Audio('/api/audio/file/pip.mp3');
+            monBeepAudio.preload = 'auto';
+            return monBeepAudio;
+        }
+
+        // Вызывается из onchange, то есть внутри жеста пользователя — только так
+        // мобильный браузер разрешает воспроизведение без клика на каждый звук.
+        function monBeepChanged() {
+            monBeepOn = $('#mon-beep-toggle').is(':checked');
+            monBeepSource = $('#mon-beep-source').val() || 'castle';
+            localStorage.setItem('monBeepOn', monBeepOn ? '1' : '0');
+            localStorage.setItem('monBeepSource', monBeepSource);
+            $('#mon-beep-msg').empty();
+            if (monBeepOn && monBeepSource === 'browser') {
+                var a = monBeepInit();
+                a.volume = 0;
+                var p = a.play();
+                if (p && p.catch) {
+                    p.then(function() { a.pause(); a.currentTime = 0; a.volume = 1; })
+                     .catch(function() {
+                        a.volume = 1;
+                        $('#mon-beep-msg').html(
+                            '<span class="setup-warn">' + T('mon_beep_blocked') + '</span>');
+                     });
+                } else {
+                    a.pause(); a.currentTime = 0; a.volume = 1;
+                }
+            }
+            monBeepSend();
+        }
+
+        function monBeepTest() {
+            $('#mon-beep-msg').empty();
+            if (monBeepSource === 'browser') {
+                var a = monBeepInit();
+                a.volume = 1;
+                try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
+                return;
+            }
+            socket.emit('sensor_monitor_beep_test');
+        }
+
+        socket.on('sensor_monitor_beep_result', function(d) {
+            if (!d || d.ok) return;
+            $('#mon-beep-msg').html('<span class="setup-bad">' + T('mon_beep_no_file') + '</span>');
+        });
+
+        function monBeepSend() {
+            socket.emit('sensor_monitor_sound', {
+                enabled: monBeepOn, source: monBeepSource
+            });
+        }
+
+        // Пищим только на настоящую смену состояния уже известного входа.
+        // Первое появление плашки — не смена: при включении монитора платы
+        // отдают снимок всех входов разом, и это было бы полторы сотни писков.
+        function monBeepMaybe(pin, value) {
+            var known = monValues.hasOwnProperty(pin);
+            var prev = monValues[pin];
+            monValues[pin] = value;
+            if (!known || prev === value) return;
+            if (!monBeepOn || monBeepSource !== 'browser') return;   // замок пищит сам
+            var now = Date.now();
+            if (now - monBeepLast < 120) return;      // залп из нескольких входов = один писк
+            monBeepLast = now;
+            var a = monBeepInit();
+            try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
+        }
+
         function setupMonitorToggle(active) {
             socket.emit('sensor_monitor_set', { active: active });
+            monValues = {};
+            monBeepSend();
             clearTimeout(monSilenceTimer);
             $('#setup-mon-silence').empty();
             if (active) {
@@ -3639,6 +3803,7 @@
 
         function setupMonitorClear() {
             monEvents = 0;
+            monValues = {};      // плашки стёрли — прежние состояния больше не наши
             $('#setup-mon-sensors').empty();
             $('#setup-mon-log').empty();
             $('#setup-mon-flash').empty();
@@ -3685,6 +3850,7 @@
             if (d.pin !== undefined && d.pin !== null) {
                 monLastUpdate = Date.now();
                 $('#setup-mon-silence').empty();
+                monBeepMaybe(d.pin, d.value);
                 monRenderSensor(d.pin, d.value);
                 return;
             }
@@ -3748,7 +3914,21 @@
                 localStorage.setItem('setupOpen', '1');
             }
             setupApplyOpenState();
+
+            if (location.hash === '#monitor') {
+                monOpen = true;
+                localStorage.setItem('monOpen', '1');
+            }
+            $('#mon-beep-toggle').prop('checked', monBeepOn);
+            $('#mon-beep-source').val(monBeepSource);
+            monApplyOpenState();
+            // Сервер про выбор звука не знает, пока вкладка о нём не сказала:
+            // после перезапуска сервера писк из динамиков замка иначе пропал бы
+            // молча, и это выглядело бы как «датчики перестали срабатывать».
+            monBeepSend();
         });
+
+        socket.on('connect', function() { monBeepSend(); });
         // ============ /ПЕРВЫЙ ЗАПУСК ============
     </script>
 </body>
