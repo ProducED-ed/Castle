@@ -162,8 +162,13 @@ void monReport(uint8_t i, uint8_t value) {
 
 bool handleMonCmd(const String &cmd) {
   if (!cmd.startsWith("mon:")) return false;
+  bool wasActive = monActive;
   monActive = (cmd.indexOf('1') != -1);
-  if (monActive) {
+  // Дамп только на переходе выключено -> включено. Главная плата
+  // повторяет mon:1 каждые 5 секунд, чтобы башня, пережившая сброс или
+  // перепрошивку, сама вернулась в монитор; полный снимок при каждом
+  // повторе забил бы канал.
+  if (monActive && !wasActive) {
     for (uint8_t i = 0; i < MON_COUNT; i++) {
       monPrev[i] = digitalRead(MON_PINS[i]);
       monCnt[i] = 0;

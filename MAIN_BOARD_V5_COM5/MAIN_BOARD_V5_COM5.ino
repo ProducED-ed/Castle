@@ -7738,6 +7738,8 @@ uint8_t monPrev[MON_COUNT];
 uint8_t monCnt[MON_COUNT];
 unsigned long monTimer = 0;
 unsigned long monExpTimer = 0;
+unsigned long monScanTimer = 0;
+uint8_t monScanIdx = 0;
 unsigned long monPingTimer = 0;
 unsigned long monKnockUntil = 0;
 
@@ -7788,6 +7790,8 @@ bool handleMonCmd(const String &buff) {
       monCnt[i] = 0;
       monReport(i, monPrev[i]);
     }
+    monScanIdx = 0;
+    monScanTimer = millis();
   }
   // Раздаём команду башням: датчики башен идут в пульт ТЕМ ЖЕ путём, что и в
   // игре — по UART в главную плату и дальше на сервер. Читать их по USB было бы
@@ -7826,6 +7830,11 @@ void monPollKnock() {
 // прошивку: их UART делится с USB-CH340, и байты от главной платы сбивают
 // синхронизацию avrdude — ровно поэтому перед прошивкой Цербера существует
 // release_serial3.
+// Заодно повторяем сюда же mon:1. Башня, пережившая сброс или перепрошивку,
+// просыпается с выключенным монитором и молчит навсегда, хотя тумблер на пульте
+// включён: панель тихо замирает, а человек продолжает мерить датчики вслепую.
+// Повтор возвращает её в строй сам. Башня, которая уже в мониторе, команду
+// игнорирует — снимок она отдаёт только на переходе выключено -> включено.
 void monPingTowers() {
   if (millis() - monPingTimer < 5000) return;
   monPingTimer = millis();
@@ -7833,6 +7842,10 @@ void monPingTowers() {
   Serial2.println(F("ping_main"));
   Serial3.println(F("ping_main"));
   mySerial.println(F("ping_main"));
+  Serial1.println(F("mon:1"));
+  Serial2.println(F("mon:1"));
+  Serial3.println(F("mon:1"));
+  mySerial.println(F("mon:1"));
 }
 
 void monPoll() {
@@ -7867,6 +7880,16 @@ void monPoll() {
   // Это осознанный размен: монитор — прибор для рук, и пропущенное нажатие
   // здесь дороже, чем лишняя вспышка плашки. Игровую логику это не затрагивает,
   // она читает входы своим кодом.
+  // Медленный дозор: раз в 250 мс повторяем состояние одного входа по кругу,
+  // как это делают башни. Потерянная или искажённая строка иначе замораживает
+  // плашку до конца сеанса — а «плашка не двигается» человек читает как
+  // «датчик не работает» и идёт искать поломку, которой нет.
+  if (millis() - monScanTimer >= 250) {
+    monScanTimer = millis();
+    monReport(monScanIdx, monPrev[monScanIdx]);
+    if (++monScanIdx >= MON_COUNT) monScanIdx = 0;
+  }
+
   if (millis() - monExpTimer < 150) return;
   monExpTimer = millis();
   for (uint8_t i = MON_DIRECT; i < MON_COUNT; i++) {

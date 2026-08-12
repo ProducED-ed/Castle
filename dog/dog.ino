@@ -502,8 +502,11 @@ void monReport(uint8_t i, uint8_t value) {
 
 bool handleMonCmd(const char *cmd) {
   if (strncmp(cmd, "mon:", 4) != 0) return false;
+  bool wasActive = monActive;
   monActive = (strchr(cmd, '1') != NULL);
-  if (monActive) {
+  // Дамп только на переходе выключено -> включено (см. коммент выше про
+  // повтор mon:1 каждые 5 секунд с главной платы).
+  if (monActive && !wasActive) {
     // Сразу отдаём состояние всех входов, чтобы пульт не ждал первого шевеления.
     for (uint8_t i = 0; i < MON_COUNT; i++) {
       monPrev[i] = digitalRead(MON_PINS[i]);
