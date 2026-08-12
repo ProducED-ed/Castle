@@ -1317,7 +1317,17 @@ void PowerOn() {
   // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
   // доходили. Читаем их здесь, но ТОЛЬКО при включённом мониторе: при
   // выключенном поведение платы не меняется ни на такт.
-  if (monActive) HelpTowersHandler();
+  if (monActive) {
+    // Живость башен определяется ПАССИВНО: loop() смотрит, есть ли байты в
+    // буфере, и намеренно их не читает. HelpTowersHandler() буферы вычерпывает,
+    // поэтому отметку живости ставим ДО него — иначе башни, которые говорят
+    // редко (Workshop, Dog), выглядят отвалившимися, хотя исправны.
+    if (Serial1.available())  lastSeenWorkshop = millis();
+    if (Serial2.available())  lastSeenBasket   = millis();
+    if (Serial3.available())  lastSeenDog      = millis();
+    if (mySerial.available()) lastSeenOwls     = millis();
+    HelpTowersHandler();
+  }
   handleIdleBoySensor();
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
@@ -6835,7 +6845,17 @@ void RestOn() {
   // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
   // доходили. Читаем их здесь, но ТОЛЬКО при включённом мониторе: при
   // выключенном поведение платы не меняется ни на такт.
-  if (monActive) HelpTowersHandler();
+  if (monActive) {
+    // Живость башен определяется ПАССИВНО: loop() смотрит, есть ли байты в
+    // буфере, и намеренно их не читает. HelpTowersHandler() буферы вычерпывает,
+    // поэтому отметку живости ставим ДО него — иначе башни, которые говорят
+    // редко (Workshop, Dog), выглядят отвалившимися, хотя исправны.
+    if (Serial1.available())  lastSeenWorkshop = millis();
+    if (Serial2.available())  lastSeenBasket   = millis();
+    if (Serial3.available())  lastSeenDog      = millis();
+    if (mySerial.available()) lastSeenOwls     = millis();
+    HelpTowersHandler();
+  }
   // БЛОК 1: ОДНОКРАТНАЯ ИНИЦИАЛИЗАЦИЯ
   // Выполняется только один раз при входе в режим.
 
