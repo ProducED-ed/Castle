@@ -3441,6 +3441,7 @@
                 $(sel).empty();
             });
             if (monEvents) $('#setup-mon-count').text(T('setup_mon_events') + monEvents);
+            monRerenderTexts();
         }
 
         socket.on('setup_ports_identify_result', function(d) {
@@ -3602,19 +3603,45 @@
         // «Прочее» под техническим именем. Но лучше подписать сразу.
         // ─────────────────────────────────────────────────────────────────
         var MON_META = {"41": ["main", "reed", "Стартовая дверь"], "38": ["main", "reed", "Тюрьма / студент"], "47": ["main", "reed", "Золото"], "43": ["main", "reed", "Директор"], "42": ["main", "reed", "Дракон"], "44": ["main", "reed", "Профессор"], "45": ["main", "reed", "Ведьма"], "69": ["main", "reed", "Гоблин"], "67": ["main", "reed", "Окно"], "27": ["main", "reed", "Кристалл 1"], "24": ["main", "reed", "Кристалл 2"], "23": ["main", "reed", "Кристалл 3"], "25": ["main", "reed", "Кристалл 4"], "26": ["main", "reed", "РЕЗЕРВ 1 (J22)"], "28": ["main", "reed", "РЕЗЕРВ 2 (J23)"], "40": ["main", "galet", "Галетник первой комнаты — дерево"], "knock": ["main", "vibro", "Датчик вибрации"], "b1c7": ["main", "reed", "Мальчик вышел"], "b1c6": ["main", "reed", "Часы УФ"], "b2c0": ["main", "reed", "Часы 1"], "b2c1": ["main", "reed", "Замок тюрьмы"], "b3c5": ["main", "reed", "Дверь в библиотеке"], "b3c2": ["main", "reed", "Последовательность 1"], "b3c0": ["main", "reed", "Последовательность 2"], "b3c3": ["main", "reed", "Последовательность 3"], "b3c1": ["main", "reed", "Последовательность 4"], "b4c2": ["main", "reed", "Кубок"], "b4c3": ["main", "reed", "Камин"], "b4c4": ["main", "reed", "Кристаллы в подвале"], "b4c0": ["main", "reed", "Геркон: свайп влево"], "b4c1": ["main", "reed", "Геркон: свайп вправо"], "tw31": ["tw", "reed", "Печка"], "tw29": ["tw", "reed", "Подсказка"], "tw44": ["tw", "reed", "Верстак 1"], "tw42": ["tw", "reed", "Верстак 2"], "tw40": ["tw", "reed", "Верстак 3"], "tw46": ["tw", "reed", "Верстак 4"], "tw30": ["tw", "galet", "Галетник «солнце»"], "tw27": ["tw", "ir", "ИК-флаг"], "tb40": ["tb", "reed", "Дверь тролля: геркон 1"], "tb42": ["tb", "reed", "Дверь тролля: геркон 2"], "tb44": ["tb", "reed", "Дверь тролля: геркон 3"], "tb46": ["tb", "reed", "Дверь тролля: геркон 4"], "tb38": ["tb", "reed", "Вращение тролля 1"], "tb36": ["tb", "reed", "Вращение тролля 2"], "tb34": ["tb", "reed", "Вращение тролля 3"], "tb32": ["tb", "reed", "Вращение тролля 4"], "tb30": ["tb", "reed", "Помощь"], "tb31": ["tb", "reed", "Металл"], "tb28": ["tb", "reed", "Мальчик"], "tb26": ["tb", "galet", "Галетник"], "tb27": ["tb", "ir", "ИК-флаг"], "tb64": ["tb", "ir", "ИК-датчик корзины"], "to29": ["to", "reed", "Сова"], "to31": ["to", "reed", "Гном"], "to5": ["to", "reed", "Стартовый геркон (гном)"], "to58": ["to", "reed", "Плитка 1"], "to60": ["to", "reed", "Плитка 2"], "to62": ["to", "reed", "Плитка 3"], "to64": ["to", "reed", "Плитка 4"], "to30": ["to", "galet", "Галетник «лодка»"], "to46": ["to", "galet", "Левый галетник: поз. 2"], "to44": ["to", "galet", "Левый галетник: поз. 3"], "to42": ["to", "galet", "Левый галетник: поз. 4"], "to40": ["to", "galet", "Левый галетник: поз. 5"], "to32": ["to", "galet", "Правый галетник: поз. 1"], "to34": ["to", "galet", "Правый галетник: поз. 2"], "to36": ["to", "galet", "Правый галетник: поз. 3"], "to38": ["to", "galet", "Правый галетник: поз. 4"], "to27": ["to", "ir", "ИК-флаг"], "td19": ["td", "reed", "Навесной замок"], "td11": ["td", "reed", "Дверь башни (капсула)"], "td13": ["td", "reed", "Рыцарь"], "td14": ["td", "reed", "Геркон скорости платформы"], "td15": ["td", "reed", "Локер клетки"], "td16": ["td", "reed", "Кристалл"], "td17": ["td", "galet", "Галетник «роза»"], "td7": ["td", "ir", "ИК-флаг"], "b2c6": ["main", "touch", "Сенсор ловли снитча 1"], "b2c5": ["main", "touch", "Сенсор ловли снитча 2"], "b4c5": ["main", "touch", "Сенсор ловли снитча 3"], "b4c6": ["main", "touch", "Сенсор ловли снитча 4"]};
-        var MON_DEVICES = [['main','Замок (главная плата)'],['tw','Башня Мастерская'],
-                           ['tb','Башня Баскетбол'],['to','Башня Совы'],['td','Башня Цербер']];
-        var MON_TYPES = [['reed','Герконы'],['galet','Галетные переключатели'],
-                         ['touch','Ёмкостные сенсоры'],['ir','ИК-датчики'],
-                         ['vibro','Датчик вибрации'],['other','Прочее']];
+        // Английские подписи тех же входов. Отдельной таблицей, а не пятым
+        // полем MON_META: так строку с русскими именами по-прежнему можно
+        // править одним движением, не считая запятые.
+        var MON_NAME_EN = {"41": "Start door", "38": "Prison / student", "47": "Gold", "43": "Headmaster", "42": "Dragon", "44": "Professor", "45": "Witch", "69": "Goblin", "67": "Window", "27": "Crystal 1", "24": "Crystal 2", "23": "Crystal 3", "25": "Crystal 4", "26": "SPARE 1 (J22)", "28": "SPARE 2 (J23)", "40": "First room rotary switch — tree", "knock": "Vibration sensor", "b1c7": "Boy left", "b1c6": "UV clock", "b2c0": "Clock 1", "b2c1": "Prison lock", "b3c5": "Library door", "b3c2": "Sequence 1", "b3c0": "Sequence 2", "b3c3": "Sequence 3", "b3c1": "Sequence 4", "b4c2": "Cup", "b4c3": "Fireplace", "b4c4": "Crystals in the cellar", "b4c0": "Reed: swipe left", "b4c1": "Reed: swipe right", "tw31": "Stove", "tw29": "Hint", "tw44": "Workbench 1", "tw42": "Workbench 2", "tw40": "Workbench 3", "tw46": "Workbench 4", "tw30": "Rotary switch “sun”", "tw27": "IR flag", "tb40": "Troll door: reed 1", "tb42": "Troll door: reed 2", "tb44": "Troll door: reed 3", "tb46": "Troll door: reed 4", "tb38": "Troll rotation 1", "tb36": "Troll rotation 2", "tb34": "Troll rotation 3", "tb32": "Troll rotation 4", "tb30": "Help", "tb31": "Metal", "tb28": "Boy", "tb26": "Rotary switch", "tb27": "IR flag", "tb64": "Basket IR sensor", "to29": "Owl", "to31": "Gnome", "to5": "Start reed (gnome)", "to58": "Tile 1", "to60": "Tile 2", "to62": "Tile 3", "to64": "Tile 4", "to30": "Rotary switch “boat”", "to46": "Left rotary switch: pos. 2", "to44": "Left rotary switch: pos. 3", "to42": "Left rotary switch: pos. 4", "to40": "Left rotary switch: pos. 5", "to32": "Right rotary switch: pos. 1", "to34": "Right rotary switch: pos. 2", "to36": "Right rotary switch: pos. 3", "to38": "Right rotary switch: pos. 4", "to27": "IR flag", "td19": "Padlock", "td11": "Tower door (capsule)", "td13": "Knight", "td14": "Platform speed reed", "td15": "Cage locker", "td16": "Crystal", "td17": "Rotary switch “rose”", "td7": "IR flag", "b2c6": "Snitch catch sensor 1", "b2c5": "Snitch catch sensor 2", "b4c5": "Snitch catch sensor 3", "b4c6": "Snitch catch sensor 4"};
+
+        var MON_DEVICES = [['main','Замок (главная плата)','Castle (main board)'],
+                           ['tw','Башня Мастерская','Workshop tower'],
+                           ['tb','Башня Баскетбол','Basketball tower'],
+                           ['to','Башня Совы','Owls tower'],
+                           ['td','Башня Цербер','Cerberus tower']];
+        var MON_TYPES = [['reed','Герконы','Reed switches'],
+                         ['galet','Галетные переключатели','Rotary switches'],
+                         ['touch','Ёмкостные сенсоры','Capacitive sensors'],
+                         ['ir','ИК-датчики','IR sensors'],
+                         ['vibro','Датчик вибрации','Vibration sensor'],
+                         ['other','Прочее','Other']];
+
+        // Подпись на языке интерфейса. Второй элемент — русский, третий —
+        // английский; если английского нет, показываем русский, чтобы датчик
+        // не пропал из панели.
+        function monLabel(row) {
+            return (currentLang === 'en' && row[2]) ? row[2] : row[1];
+        }
 
         function monMeta(pin) {
-            if (MON_META[pin]) return MON_META[pin];
+            if (MON_META[pin]) {
+                var r = MON_META[pin];
+                return [r[0], r[1],
+                        (currentLang === 'en' && MON_NAME_EN[pin]) ? MON_NAME_EN[pin] : r[2]];
+            }
+            // Неописанный вход не теряем, но и подписать его нечем — показываем
+            // адрес. Слова берём из общего словаря, иначе в английском пульте
+            // остались бы русские «Плата 2, канал 7».
             var m = /^b(\d)c(\d)$/.exec(pin);
-            if (m) return ['main','other','Мультиплексор: плата ' + m[1] + ', канал ' + m[2]];
+            if (m) return ['main', 'other',
+                           T('setup_mon_board') + ' ' + m[1] + ', ' + T('setup_mon_ch') + ' ' + m[2]];
             var t = /^t([wbod])(\d+)$/.exec(pin);
-            if (t) return ['t' + t[1], 'other', 'Пин ' + t[2]];
-            return ['main','other','Пин ' + pin];
+            if (t) return ['t' + t[1], 'other', T('setup_mon_pin') + ' ' + t[2]];
+            return ['main', 'other', T('setup_mon_pin') + ' ' + pin];
         }
 
         // Плашки раскладываются по устройству и типу датчика. Контейнеры
@@ -3627,13 +3654,13 @@
             var devId = 'mon-d-' + dev;
             var devBox = $('#' + devId);
             if (!devBox.length) {
-                var devName = (MON_DEVICES.filter(function(d){return d[0]===dev;})[0] || [dev,dev])[1];
+                var devName = monLabel(MON_DEVICES.filter(function(d){return d[0]===dev;})[0] || [dev, dev]);
                 devBox = $('<div>').attr('id', devId).css({'margin-top':'14px'})
                     .append($('<div>').css({color:'#ffd54a','font-weight':'bold','margin-bottom':'4px'})
                             .text(devName));
                 $('#setup-mon-sensors').append(devBox);
             }
-            var typeName = (MON_TYPES.filter(function(t){return t[0]===type;})[0] || [type,type])[1];
+            var typeName = monLabel(MON_TYPES.filter(function(t){return t[0]===type;})[0] || [type, type]);
             box = $('<div>').attr('id', id).css({'margin':'6px 0 0 12px'});
             box.append($('<div>').css({color:'#999','font-size':'12px','margin-bottom':'3px'}).text(typeName));
             box.append($('<div>').addClass('mon-chips')
@@ -3666,7 +3693,7 @@
             if (before) chip.insertBefore(before); else box.append(chip);
         }
 
-        function monRenderSensor(pin, value) {
+        function monRenderSensor(pin, value, quiet) {
             var m = monMeta(pin);
             var id = 'mon-pin-' + pin;
             // Герконы, кнопки и галетники сидят на подтяжке к питанию:
@@ -3686,10 +3713,21 @@
             chip.text(m[2] + (closed ? ' ●' : ' ○'))
                 .css({background: closed ? '#21ba45' : '#222',
                       color: closed ? '#fff' : '#aaa'});
-            if (closed) {
+            if (closed && !quiet) {
                 chip.css('box-shadow', '0 0 10px #21ba45');
                 setTimeout(function() { chip.css('box-shadow', 'none'); }, 800);
             }
+        }
+
+        // Подписи плашек и заголовки групп рисует JS, поэтому data-i18n их не
+        // покрывает: при переключении языка панель надо собрать заново из
+        // последних известных значений. Без вспышек — язык переключили, а не
+        // датчик сработал.
+        function monRerenderTexts() {
+            var pins = Object.keys(monValues);
+            if (!pins.length) return;
+            $('#setup-mon-sensors').empty();
+            pins.forEach(function(p) { monRenderSensor(p, monValues[p], true); });
         }
 
         var monLastUpdate = 0;
