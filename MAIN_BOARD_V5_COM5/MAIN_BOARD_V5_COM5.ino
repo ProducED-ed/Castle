@@ -92,6 +92,10 @@ const int COLORS = sizeof(palette) / sizeof(palette[0]);
 
 Servo boyServo;
 
+// Флаг монитора датчиков объявлен здесь, до состояний ожидания:
+// PowerOn/RestOn проверяют его раньше, чем идёт сам блок монитора.
+bool monActive = false;
+
 // --- КАЛИБРОВКА СЕРВО МАЛЬЧИКА (пин 49) ---
 // 2026-08-09: раньше эти числа были зашиты в коде, и под Канаду приходилось
 // держать ОТДЕЛЬНУЮ сборку прошивки — сервоприводы приходят разными партиями и
@@ -1308,6 +1312,12 @@ void PowerOn() {
   waitingForBasketConfirm = false;  // Глушим таймер
   basketRetryCount = 0;
   monPoll();                        // монитор датчиков для /tech (в покое)
+  // Строки от башен разбирает только HelpTowersHandler(), а он вызывается
+  // из smartDelay() — то есть работает лишь пока плата чего-то ждёт внутри
+  // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
+  // доходили. Читаем их здесь, но ТОЛЬКО при включённом мониторе: при
+  // выключенном поведение платы не меняется ни на такт.
+  if (monActive) HelpTowersHandler();
   handleIdleBoySensor();
   while (Serial.available()) {
     String buff = Serial.readStringUntil('\n');
@@ -6820,6 +6830,12 @@ void RestOn() {
   waitingForBasketConfirm = false;  // Глушим таймер
   basketRetryCount = 0;
   monPoll();                        // монитор датчиков для /tech (в покое)
+  // Строки от башен разбирает только HelpTowersHandler(), а он вызывается
+  // из smartDelay() — то есть работает лишь пока плата чего-то ждёт внутри
+  // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
+  // доходили. Читаем их здесь, но ТОЛЬКО при включённом мониторе: при
+  // выключенном поведение платы не меняется ни на такт.
+  if (monActive) HelpTowersHandler();
   // БЛОК 1: ОДНОКРАТНАЯ ИНИЦИАЛИЗАЦИЯ
   // Выполняется только один раз при входе в режим.
 
@@ -7698,7 +7714,6 @@ const uint8_t MON_EXPANDED = 4 * MON_CHANNELS;      // 32 канала
 const uint8_t MON_KNOCK_IDX = MON_DIRECT + MON_EXPANDED;
 const uint8_t MON_COUNT = MON_DIRECT + MON_EXPANDED + 1;   // +1 — датчик вибрации
 
-bool monActive = false;
 uint8_t monPrev[MON_COUNT];
 uint8_t monCnt[MON_COUNT];
 unsigned long monTimer = 0;
