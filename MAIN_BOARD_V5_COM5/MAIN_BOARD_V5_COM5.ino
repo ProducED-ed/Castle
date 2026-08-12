@@ -7737,6 +7737,7 @@ const uint8_t MON_COUNT = MON_DIRECT + MON_EXPANDED + 1;   // +1 — датчи�
 uint8_t monPrev[MON_COUNT];
 uint8_t monCnt[MON_COUNT];
 unsigned long monTimer = 0;
+unsigned long monExpTimer = 0;
 unsigned long monPingTimer = 0;
 unsigned long monKnockUntil = 0;
 
@@ -7838,25 +7839,45 @@ void monPoll() {
   if (!monActive) return;
   monPingTowers();
   monPollKnock();
-  // Полный обход мультиплексора стоит ~32 мс (в digitalReadExpander есть
-  // обязательная пауза 1 мс на стабилизацию), поэтому реже, чем прямые пины.
-  if (millis() - monTimer < 150) return;
-  monTimer = millis();
-  for (uint8_t i = 0; i < MON_COUNT; i++) {
+
+  // Прямые входы платы читаем на КАЖДОМ проходе: digitalRead стоит доли
+  // микросекунды. Антидребезг — три совпадения по 10 мс, те же 30 мс, что и у
+  // игровых кнопок. Раньше все входы опрашивались раз в 150 мс и требовали двух
+  // совпадений, то есть геркон надо было удерживать треть секунды, иначе
+  // касание рукой до пульта не доходило вообще.
+  if (millis() - monTimer >= 10) {
+    monTimer = millis();
+    for (uint8_t i = 0; i < MON_DIRECT; i++) {
+      uint8_t v = digitalRead(MON_PINS[i]);
+      if (v != monPrev[i]) {
+        if (++monCnt[i] >= 3) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
+      } else {
+        monCnt[i] = 0;
+      }
+    }
+  }
+
+  // Каналы мультиплексора так часто читать нельзя: полный обход стоит ~32 мс
+  // (в digitalReadExpander обязательная пауза 1 мс на стабилизацию). Оставляем
+  // 150 мс, но от дребезга защищаемся не вторым обходом, а немедленной
+  // перечиткой того же канала — подтверждение приходит в том же проходе.
+  // Держать геркон теперь надо 150 мс вместо 300.
+  //
+  // Помеху длиннее 3 мс такая проверка не отсеет, в отличие от прежней схемы.
+  // Это осознанный размен: монитор — прибор для рук, и пропущенное нажатие
+  // здесь дороже, чем лишняя вспышка плашки. Игровую логику это не затрагивает,
+  // она читает входы своим кодом.
+  if (millis() - monExpTimer < 150) return;
+  monExpTimer = millis();
+  for (uint8_t i = MON_DIRECT; i < MON_COUNT; i++) {
     if (i == MON_KNOCK_IDX) continue;   // пьезо опрошен выше, на каждом проходе
     uint8_t v = monRead(i);
-    if (v != monPrev[i]) {
-      // Антидребезг: значение должно продержаться два опроса подряд.
-      // Без него длинный провод геркона даёт пачку ложных срабатываний — той же
-      // природы, что ловили на двери сов.
-      if (++monCnt[i] >= 2) {
-        monPrev[i] = v;
-        monCnt[i] = 0;
-        monReport(i, v);
-      }
-    } else {
-      monCnt[i] = 0;
-    }
+    if (v == monPrev[i]) continue;
+    if (monRead(i) != v) continue;      // одиночная помеха
+    if (monRead(i) != v) continue;
+    monPrev[i] = v;
+    monCnt[i] = 0;
+    monReport(i, v);
   }
 }
 
