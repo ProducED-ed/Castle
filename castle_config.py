@@ -95,6 +95,12 @@ DEFAULTS = {
         # окажется лишним.
         "replug_before_flash": True,
     },
+    # Как башня подключена к Pi во время прошивки.
+    #   "hub"    — четыре кабеля постоянно сидят в USB-хабе, у каждой башни свой
+    #              порт (так собраны CLC1, CLC2, CLC3);
+    #   "direct" — в Pi воткнут ОДИН кабель от той башни, которую прошиваем.
+    # Дефолт "hub": на замках, где конфига ещё нет, поведение не меняется.
+    "flash_mode": "hub",
     # Серво мальчика на пине 49 главной Mega. Дефолты — то, что было зашито
     # в прошивке CLC3 (DS3218). У Канады другая партия: 544/2400/130/0/500.
     "boy_servo": {
@@ -212,6 +218,12 @@ class CastleConfig:
                 port = STANDARD_HUB_PORTS[tower]
             ports[tower] = port
 
+        mode = str(data.get("flash_mode", DEFAULTS["flash_mode"]))
+        if mode not in ("hub", "direct"):
+            logger.warning(f"CONFIG: неизвестный режим прошивки '{mode}' — беру хаб")
+            mode = DEFAULTS["flash_mode"]
+        data["flash_mode"] = mode
+
         servo = data.setdefault("boy_servo", {})
         for key, (low, high) in SERVO_LIMITS.items():
             try:
@@ -258,6 +270,17 @@ class CastleConfig:
         """Полный путь устройства для avrdude."""
         hub = self.data["usb_hub"]
         return f"{hub['base']}{self.tower_port(tower)}{hub['suffix']}"
+
+    def flash_mode(self):
+        """'hub' — башни постоянно в хабе, 'direct' — один кабель в Pi."""
+        return self.data.get("flash_mode", DEFAULTS["flash_mode"])
+
+    def set_flash_mode(self, mode):
+        if mode not in ("hub", "direct"):
+            return False
+        self.data["flash_mode"] = mode
+        self.save()
+        return True
 
     def hub_ports(self):
         return dict(self.data["usb_hub"]["ports"])
@@ -398,6 +421,7 @@ class CastleConfig:
                 "confirmed": self.hub_confirmed(),
                 "is_standard": self.hub_is_standard(),
             },
+            "flash_mode": self.flash_mode(),
             "boy_servo": self.boy_servo(),
             "servo_limits": {k: list(v) for k, v in SERVO_LIMITS.items()},
             "tailscale": self.tailscale_flags(),

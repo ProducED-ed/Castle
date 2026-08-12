@@ -2693,6 +2693,48 @@ def handle_get_stats():
 # хаба в Pi. Функция castle_setup.usb_replug() оставлена, но НЕ вызывается —
 # на хабе, который умеет возвращаться, она сработает, на этих дешёвых не умеет.
 
+def _flash_target(board_id):
+    """Куда прошивать башню: (путь устройства, текст ошибки).
+
+    В режиме хаба у каждой башни свой порт из конфига. В прямом режиме в Pi
+    воткнут ОДИН кабель, и порт мы не угадываем, а находим: берём единственное
+    USB-serial устройство, кроме главной платы. Так кабель можно втыкать в любое
+    гнездо Pi, а не в заранее оговорённое, и человеку не надо помнить номера.
+
+    Отказ здесь дешевле ошибки: прошить не ту башню — это молча получить квест,
+    где Совы ведут себя как Мастерская, и искать это потом полдня."""
+    if board_id not in TOWERS:
+        return None, ''
+    if castle_cfg.flash_mode() != 'direct':
+        return castle_cfg.tower_dev(board_id), ''
+
+    found = castle_setup.list_serial_ports(hub_prefix='', exclude_tty=ARDUINO_PORT)
+    if not found:
+        return None, ('Прямая прошивка: не вижу ни одной платы на USB. Воткни кабель '
+                      'нужной башни в Raspberry и повтори.')
+    if len(found) > 1:
+        ports = ', '.join(p['port'] for p in found)
+        return None, ('Прямая прошивка: на USB сразу несколько плат (%s). Оставь '
+                      'воткнутой только ту, которую прошиваешь, — иначе прошивка '
+                      'уйдёт не в ту башню.' % ports)
+    return found[0]['path'], ''
+
+
+@socketio.on('setup_flash_mode')
+def setup_flash_mode(data):
+    """Переключить способ подключения башен на время прошивки."""
+    mode = (data or {}).get('mode')
+    if _setup_busy():
+        socketio.emit('setup_flash_mode_result', {'ok': False, 'reason': 'game_running'})
+        return
+    if not castle_cfg.set_flash_mode(mode):
+        socketio.emit('setup_flash_mode_result', {'ok': False, 'reason': 'bad_mode'})
+        return
+    logger.info(f"SETUP: способ прошивки башен — {mode}")
+    socketio.emit('setup_flash_mode_result', {'ok': True, 'mode': mode})
+    socketio.emit('setup_status', _setup_snapshot())
+
+
 @socketio.on('start_flash')
 def handle_flash(board_id):
     global is_system_flashing
@@ -2707,13 +2749,21 @@ def handle_flash(board_id):
                                     'msg': 'Монитор датчиков выключен на время прошивки.\n'})
         sensor_monitor_set({'active': False})
 
+    # Куда именно прошивать башню — зависит от способа подключения. Ошибку
+    # показываем до запуска avrdude: «прошилось не туда» разбирать дороже.
+    tower_dev, tower_err = _flash_target(board_id)
+    if tower_err:
+        socketio.emit('flash_log', {'board': board_id, 'msg': f'\n[SYSTEM] {tower_err} [END]\n'})
+        socketio.emit('flash_failed', {'board': board_id})
+        return
+
     # Dog: специальный 3-шаговый flow (см. ниже после commands)
     if board_id == 'dog':
-        return _handle_dog_flash()
+        return _handle_dog_flash(tower_dev)
 
     commands = {
         'main': 'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN -b 115200 -D -U flash:w:/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex:i',
-        'owls': f'sudo avrdude -v -p atmega2560 -c wiring -P {castle_cfg.tower_dev("owls")} -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
+        'owls': f'sudo avrdude -v -p atmega2560 -c wiring -P {tower_dev} -b 115200 -D -U flash:w:/home/pi/New/Sketches/owls/owls.ino.hex:i',
         # 2026-06-05 (Эдуард): хаб-порты Workshop и Basket физически перепутаны
         # на CLC3 (доказано тестом «втыкай по одному»):
         #   - кабель к башне Workshop → хаб-порт 1.2.3
@@ -2727,8 +2777,8 @@ def handle_flash(board_id):
         # сам опознаёт башни и показывает, правильно ли воткнуты кабели. Порядок
         # выше стал эталоном для всех новых замков, у CLC2 в конфиге своя раскладка.
         # Благодаря этому CastleServer.py на всех замках одинаковый.
-        'basket': f'sudo avrdude -v -p atmega2560 -c wiring -P {castle_cfg.tower_dev("basket")} -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
-        'workshop': f'sudo avrdude -v -p atmega2560 -c wiring -P {castle_cfg.tower_dev("workshop")} -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
+        'basket': f'sudo avrdude -v -p atmega2560 -c wiring -P {tower_dev} -b 115200 -D -U flash:w:/home/pi/New/Sketches/basket3/basket3.ino.hex:i',
+        'workshop': f'sudo avrdude -v -p atmega2560 -c wiring -P {tower_dev} -b 115200 -D -U flash:w:/home/pi/New/Sketches/workshop/workshop.ino.hex:i',
         'train': 'cd /home/pi/New && python3 espota.py -i 192.168.4.202 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/train/train.ino.bin',
         'chest': 'cd /home/pi/New && python3 espota.py -i 192.168.4.203 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/chest/chest.ino.bin',
         'safe': 'cd /home/pi/New && python3 espota.py -i 192.168.4.204 -p 3232 --host_ip 192.168.4.1 -f /home/pi/New/Sketches/safe/safe.ino.bin',
@@ -2844,7 +2894,7 @@ def handle_flash(board_id):
         except: pass
 
 
-def _handle_dog_flash():
+def _handle_dog_flash(dog_dev=None):
     """3-шаговая прошивка Dog (Nano на DMC_TOP):
     1. Mega ← silence.ino (Mega становится "немой" на Serial3 → освобождает RX/TX к Nano)
     2. Nano ← dog.ino (через USB-CH340 на хабе)
@@ -2859,7 +2909,8 @@ def _handle_dog_flash():
     SILENCE_HEX = '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/silence.ino.hex'
     MEGA_HEX    = '/home/pi/New/Sketches/MAIN_BOARD_V5_COM5/MAIN_BOARD_V5_COM5.ino.hex'
     DOG_HEX     = '/home/pi/New/Sketches/dog/dog.ino.hex'
-    DOG_PORT    = castle_cfg.tower_dev('dog')   # раскладка хаба — из castle_config.json
+    # В режиме хаба — порт из раскладки, в прямом — единственная плата на USB.
+    DOG_PORT    = dog_dev or castle_cfg.tower_dev('dog')
 
     avrdude_mega = lambda hex_path: (
         f'sudo avrdude -v -p atmega2560 -c wiring -P /dev/ttyUSB_MAIN '

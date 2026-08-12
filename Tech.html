@@ -279,7 +279,20 @@
             <thead>
                 <tr>
                     <th class="four wide" data-i18n="tbl_board">Башня (Плата)</th>
-                    <th class="three wide" data-i18n="tbl_action">Действие</th>
+                    <th class="three wide">
+                        <span data-i18n="tbl_action">Действие</span>
+                        <!-- Способ подключения башни на время прошивки. Старые
+                             замки (CLC1-3) остаются на хабе, поэтому режим
+                             переключается, а не заменяется. -->
+                        <div style="margin-top:6px; font-weight:normal;">
+                            <select id="flash-mode" onchange="setFlashMode()"
+                                    style="padding:4px; font-size:12px; width:100%;">
+                                <option value="hub" data-i18n="flash_mode_hub">Башни через USB-хаб</option>
+                                <option value="direct" data-i18n="flash_mode_direct">Один кабель напрямую в Pi</option>
+                            </select>
+                            <div id="flash-mode-msg" style="font-size:11px; margin-top:4px; color:#999;"></div>
+                        </div>
+                    </th>
                     <th class="nine wide" data-i18n="tbl_path">Сетевой путь и Даты</th>
                 </tr>
             </thead>
@@ -1170,6 +1183,12 @@
                 autoscroll_hint: "когда выключено — можно спокойно читать старые строки",
                 terminal_init: "=== Терминал инициализирован. Ожидание команд ===",
                 tbl_board: "Башня (Плата)", tbl_action: "Действие", tbl_path: "Сетевой путь и Даты",
+                flash_mode_hub: "Башни через USB-хаб",
+                flash_mode_direct: "Один кабель напрямую в Pi",
+                flash_mode_hint_hub: "Все четыре кабеля сидят в хабе, у каждой башни свой порт.",
+                flash_mode_hint_direct: "Воткни в Raspberry кабель ТОЛЬКО той башни, которую прошиваешь.",
+                flash_mode_saved: "Способ сохранён на замке.",
+                flash_mode_locked: "Идёт игра — способ прошивки не меняем.",
                 board_main: "Главная Плата", board_dog: "Башня Цербер", board_owls: "Башня Совы",
                 board_basket: "Башня Баскетбол", board_workshop: "Башня Мастер", board_train: "Поезд",
                 board_suitcases: "Чемоданы", board_safe: "Сейф", board_wolf: "Волк",
@@ -1498,6 +1517,12 @@
                 autoscroll_hint: "when off — you can scroll up safely to read old lines",
                 terminal_init: "=== Terminal initialized. Waiting for commands ===",
                 tbl_board: "Tower (Board)", tbl_action: "Action", tbl_path: "Network path & Dates",
+                flash_mode_hub: "Towers via USB hub",
+                flash_mode_direct: "One cable straight into the Pi",
+                flash_mode_hint_hub: "All four cables stay in the hub, each tower on its own port.",
+                flash_mode_hint_direct: "Plug ONLY the tower you are flashing into the Raspberry.",
+                flash_mode_saved: "Mode saved on the castle.",
+                flash_mode_locked: "A game is running — not changing the flashing mode.",
                 board_main: "Main Board", board_dog: "Cerberus Tower", board_owls: "Owls Tower",
                 board_basket: "Basketball Tower", board_workshop: "Workshop Tower", board_train: "Train",
                 board_suitcases: "Suitcases", board_safe: "Safe", board_wolf: "Wolf",
@@ -3198,6 +3223,10 @@
             if (!$('#servo-angle-open').is(':focus')) $('#servo-angle-open').val(servo.angle_open);
             if (!$('#servo-move-ms').is(':focus')) $('#servo-move-ms').val(servo.move_ms);
 
+            if (s.flash_mode && s.flash_mode !== flashMode) {
+                flashMode = s.flash_mode;
+            }
+            renderFlashMode();
             monSetActiveUI(!!s.sensor_monitor);
             // Сервер говорит, просит ли кто-то звук из динамиков замка. Если
             // тумблер включён, источник «Динамики замка», а сервер отвечает
@@ -3222,6 +3251,7 @@
             // опрос входов работает только пока квест стоит.
             $('#mon-game-lock').toggle(running);
             $('#setup-mon-toggle').prop('disabled', running);
+            $('#flash-mode').prop('disabled', running);
             var guarded = ['#setup-name-btn', '#setup-ts-rename-btn', '#setup-ts-btn',
                            '#setup-wifi-connect', '#setup-wifi-off', '#setup-hub-identify',
                            '#servo-test-hide', '#servo-test-open'];
@@ -3464,6 +3494,7 @@
             });
             if (monEvents) $('#setup-mon-count').text(T('setup_mon_events') + monEvents);
             monRerenderTexts();
+            renderFlashMode();
         }
 
         socket.on('setup_ports_identify_result', function(d) {
@@ -4074,6 +4105,44 @@
             if (!confirm(T('setup_chk_reset_confirm'))) return;
             socket.emit('setup_checklist_reset');
         }
+
+
+        // ---- способ подключения башен при прошивке ----
+        // Старые замки (CLC1-3) собраны с хабом и останутся на нём, поэтому
+        // режим переключается, а не заменяется. Выбор живёт на замке, а не во
+        // вкладке: прошивают и с телефона, и с ноутбука, и способ подключения —
+        // свойство железа, а не браузера.
+        var flashMode = 'hub';
+        var flashModeSavedUntil = 0;
+
+        function renderFlashMode() {
+            $('#flash-mode').val(flashMode);
+            var txt = T(flashMode === 'direct'
+                ? 'flash_mode_hint_direct' : 'flash_mode_hint_hub');
+            // Подтверждение держим несколько секунд: общий статус прилетает
+            // сразу следом и без этого затирал бы его в ту же миллисекунду.
+            if (Date.now() < flashModeSavedUntil) txt += ' ' + T('flash_mode_saved');
+            $('#flash-mode-msg').text(txt);
+        }
+
+        function setFlashMode() {
+            socket.emit('setup_flash_mode', { mode: $('#flash-mode').val() });
+        }
+
+        socket.on('setup_flash_mode_result', function(d) {
+            if (d && d.ok) {
+                flashMode = d.mode;
+                flashModeSavedUntil = Date.now() + 5000;
+                renderFlashMode();
+                return;
+            }
+            // Не приняли — возвращаем селект к тому, что реально на замке.
+            renderFlashMode();
+            if (d && d.reason === 'game_running') {
+                $('#flash-mode-msg').html('<span class="setup-warn">'
+                    + T('flash_mode_locked') + '</span>');
+            }
+        });
 
         // ---- имя квеста в шапке ----
         socket.on('system_status', function(s) {
