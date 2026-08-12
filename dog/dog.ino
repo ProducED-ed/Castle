@@ -471,7 +471,65 @@ void CheckState() {
   }
 }
 
+
+// ============ МОНИТОР ДАТЧИКОВ ДЛЯ ТЕХ-ПУЛЬТА ============
+// Опрос входов по команде mon:1 от главной платы. Данные уходят ТЕМ ЖЕ каналом,
+// что и игровые события — по UART в Main и дальше на сервер. Читать башню по USB
+// было бы проще, но тогда монитор показывал бы исправность там, где игра датчик
+// не видит: так вышло со стартовым герконом, где обрыв оказался на плате.
+//
+// В игровую логику не вмешивается: только digitalRead и печать изменений.
+// Пока monActive == false — ни одного лишнего действия за проход.
+const uint8_t MON_PINS[] = {
+  A5, 11, 13,        // навесной замок, геркон двери башни (капсула), рыцарь
+  A0, A1,            // локер клетки и геркон скорости вращения платформы
+  A2, A3, 7          // кристалл, галетник «роза», ИК-флаг
+};
+const uint8_t MON_COUNT = sizeof(MON_PINS);
+bool monActive = false;
+uint8_t monPrev[MON_COUNT];
+uint8_t monCnt[MON_COUNT];
+unsigned long monTimer = 0;
+
+void monReport(uint8_t i, uint8_t value) {
+  Serial.print(F("sens:td"));
+  Serial.print(MON_PINS[i]);
+  Serial.print(':');
+  Serial.println(value ? 1 : 0);
+}
+
+bool handleMonCmd(const char *cmd) {
+  if (strncmp(cmd, "mon:", 4) != 0) return false;
+  monActive = (strchr(cmd, '1') != NULL);
+  if (monActive) {
+    // Сразу отдаём состояние всех входов, чтобы пульт не ждал первого шевеления.
+    for (uint8_t i = 0; i < MON_COUNT; i++) {
+      monPrev[i] = digitalRead(MON_PINS[i]);
+      monCnt[i] = 0;
+      monReport(i, monPrev[i]);
+    }
+  }
+  return true;
+}
+
+void monPoll() {
+  if (!monActive) return;
+  if (millis() - monTimer < 120) return;
+  monTimer = millis();
+  for (uint8_t i = 0; i < MON_COUNT; i++) {
+    uint8_t v = digitalRead(MON_PINS[i]);
+    if (v != monPrev[i]) {
+      // Антидребезг: значение держится два опроса подряд (~240 мс).
+      if (++monCnt[i] >= 2) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
+    } else {
+      monCnt[i] = 0;
+    }
+  }
+}
+// ============ /МОНИТОР ============
+
 void loop() {
+  monPoll();                 // монитор датчиков для /tech (только по команде)
   static QuestState previousState = STATE_RESTARTING;
   if (currentQuestState != previousState) {
     String stateName = "UNKNOWN";
@@ -527,7 +585,9 @@ void loop() {
       if (receivedUartMessageIndex > 0) {
         receivedUartMessageBuffer[receivedUartMessageIndex] = '\0';
         // --- NACHALO BLOKA OBRABOTKI KOMAND ---
-        if (strcmp_P(receivedUartMessageBuffer, MSG_MAP_DOG) == 0) {
+        if (handleMonCmd(receivedUartMessageBuffer)) {
+          // монитор тех-пульта — в игровой разбор не пускаем
+        } else if (strcmp_P(receivedUartMessageBuffer, MSG_MAP_DOG) == 0) {
           isActive = 1;
         } else if (strcmp_P(receivedUartMessageBuffer, MSG_MAP_OWL) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_MAP_FISH) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_MAP_TRAIN) == 0 || strcmp_P(receivedUartMessageBuffer, MSG_MAP_OUT) == 0) {
           isActive = 0;

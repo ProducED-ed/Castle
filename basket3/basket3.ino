@@ -129,7 +129,65 @@ void setup() {
   sendLog("Bask: SYS START");
 }
 
+// ============ МОНИТОР ДАТЧИКОВ ДЛЯ ТЕХ-ПУЛЬТА ============
+// Опрос входов по команде mon:1 от главной платы. Данные уходят ТЕМ ЖЕ каналом,
+// что и игровые события — по UART в Main и дальше на сервер. Читать башню по USB
+// было бы проще, но тогда монитор показывал бы исправность там, где игра датчик
+// не видит: так вышло со стартовым герконом, где обрыв оказался на плате.
+//
+// Команда принимается только в состоянии покоя (case 0): монитор и так
+// включается лишь при остановленном квесте, а лезть в приём команд всех
+// игровых состояний ради этого не стоит.
+const uint8_t MON_PINS[] = {
+  40, 42, 44, 46,   // герконы внешней двери комнаты тролля (комбинация)
+  38, 36, 34, 32,   // герконы вращения тролля на платформе в шахте
+  30, 31,           // кнопка помощи, металл
+  26, 27,           // галетник, ИК-флаг
+  A10, 28           // ИК-датчик корзины, мальчик
+};
+const uint8_t MON_COUNT = sizeof(MON_PINS);
+bool monActive = false;
+uint8_t monPrev[MON_COUNT];
+uint8_t monCnt[MON_COUNT];
+unsigned long monTimer = 0;
+
+void monReport(uint8_t i, uint8_t value) {
+  Serial1.print(F("sens:tb"));
+  Serial1.print(MON_PINS[i]);
+  Serial1.print(':');
+  Serial1.println(value ? 1 : 0);
+}
+
+bool handleMonCmd(const String &cmd) {
+  if (!cmd.startsWith("mon:")) return false;
+  monActive = (cmd.indexOf('1') != -1);
+  if (monActive) {
+    for (uint8_t i = 0; i < MON_COUNT; i++) {
+      monPrev[i] = digitalRead(MON_PINS[i]);
+      monCnt[i] = 0;
+      monReport(i, monPrev[i]);
+    }
+  }
+  return true;
+}
+
+void monPoll() {
+  if (!monActive) return;
+  if (millis() - monTimer < 120) return;
+  monTimer = millis();
+  for (uint8_t i = 0; i < MON_COUNT; i++) {
+    uint8_t v = digitalRead(MON_PINS[i]);
+    if (v != monPrev[i]) {
+      if (++monCnt[i] >= 2) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
+    } else {
+      monCnt[i] = 0;
+    }
+  }
+}
+// ============ /МОНИТОР ============
+
 void loop() {
+  monPoll();                 // монитор датчиков для /tech (только по команде)
   // ОПРОС ВСЕХ КНОПОК В КАЖДОМ ЦИКЛЕ (КРИТИЧНО!)
   butt1.tick(); butt2.tick(); butt3.tick(); butt4.tick();
   butt5.tick(); butt6.tick(); butt7.tick(); butt8.tick();
@@ -178,6 +236,7 @@ void loop() {
       while (Serial1.available()) { 
         String buff = Serial1.readStringUntil('\n');
         buff.trim();
+        if (handleMonCmd(buff)) { continue; }   // монитор тех-пульта
         if (buff == "ready") {
           HandleMessagges("ready");
         }

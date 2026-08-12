@@ -252,6 +252,7 @@ void setup() {
 }
 
 void loop() {
+  monPoll();                 // монитор датчиков для /tech (только по команде)
   static int previousState = -1;
   if (state != previousState) {
     previousState = state;
@@ -706,6 +707,63 @@ void CheckState(bool force = false) {
   }
 }
 
+// ============ МОНИТОР ДАТЧИКОВ ДЛЯ ТЕХ-ПУЛЬТА ============
+// Опрос входов по команде mon:1 от главной платы. Данные уходят ТЕМ ЖЕ каналом,
+// что и игровые события — по UART в Main и дальше на сервер. Читать башню по USB
+// было бы проще, но тогда монитор показывал бы исправность там, где игра датчик
+// не видит: ровно так вышло со стартовым герконом, где обрыв был на плате.
+//
+// В игровую логику не вмешивается: только digitalRead и печать изменений.
+// Пока monActive == false — ни одного лишнего действия за проход.
+const uint8_t MON_PINS[] = {
+  31, 29,          // геркон печки, геркон подсказки
+  44, 42, 40, 46,  // герконы верстака 1-4
+  30,              // галетник «солнце»
+  27               // ИК-датчик «флаг»
+};
+const uint8_t MON_COUNT = sizeof(MON_PINS);
+bool monActive = false;
+uint8_t monPrev[MON_COUNT];
+uint8_t monCnt[MON_COUNT];
+unsigned long monTimer = 0;
+
+void monReport(uint8_t i, uint8_t value) {
+  Serial1.print(F("sens:tw"));
+  Serial1.print(MON_PINS[i]);
+  Serial1.print(':');
+  Serial1.println(value ? 1 : 0);
+}
+
+bool handleMonCmd(const String &cmd) {
+  if (!cmd.startsWith("mon:")) return false;
+  monActive = (cmd.indexOf('1') != -1);
+  if (monActive) {
+    // Сразу отдаём состояние всех входов, чтобы пульт не ждал первого шевеления.
+    for (uint8_t i = 0; i < MON_COUNT; i++) {
+      monPrev[i] = digitalRead(MON_PINS[i]);
+      monCnt[i] = 0;
+      monReport(i, monPrev[i]);
+    }
+  }
+  return true;
+}
+
+void monPoll() {
+  if (!monActive) return;
+  if (millis() - monTimer < 120) return;
+  monTimer = millis();
+  for (uint8_t i = 0; i < MON_COUNT; i++) {
+    uint8_t v = digitalRead(MON_PINS[i]);
+    if (v != monPrev[i]) {
+      // Антидребезг: значение держится два опроса подряд (~240 мс).
+      if (++monCnt[i] >= 2) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
+    } else {
+      monCnt[i] = 0;
+    }
+  }
+}
+// ============ /МОНИТОР ============
+
 void handleUartCommands() {
   if (Serial1.available()) {
     String command = Serial1.readStringUntil('\n');
@@ -714,6 +772,8 @@ void handleUartCommands() {
     if (command.endsWith("\r")) {
       command.remove(command.length() - 1);
     }
+
+    if (handleMonCmd(command)) return;   // монитор датчиков тех-пульта
 
     // Безопасный heartbeat от Main: отвечаем "pong" без побочек и без лога CMD.
     if (command == "ping_main") {

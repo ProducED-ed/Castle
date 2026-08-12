@@ -1582,6 +1582,15 @@ void HelpTowersHandler() {
           continue;
         }
 
+        // Монитор датчиков башни: отдаём строку пульту и НЕ пускаем её дальше в
+        // игровой разбор. Пересылка тут уже есть ниже, но выходим сразу, чтобы
+        // строка гарантированно не совпала ни с одной игровой командой.
+        if (serial1Buffer.startsWith("sens:")) {
+          Serial.println(serial1Buffer);
+          serial1Buffer = "";
+          continue;
+        }
+
         Serial.println(serial1Buffer);  // Пересылаем ВСЕ сообщения на сервер
 
         // Обрабатываем специфичные команды, СТРОГОЕ РАВЕНСТВО (Защита от эха логов)
@@ -1654,6 +1663,15 @@ void HelpTowersHandler() {
       if (serial2Buffer.length() > 0) {
         lastSeenBasket = millis();  // Step 3: heartbeat tracking
         if (serial2Buffer == "pong" || serial2Buffer.indexOf("ping_main") != -1) {
+          serial2Buffer = "";
+          continue;
+        }
+
+        // Монитор датчиков башни: отдаём строку пульту и НЕ пускаем её дальше в
+        // игровой разбор. Пересылка тут уже есть ниже, но выходим сразу, чтобы
+        // строка гарантированно не совпала ни с одной игровой командой.
+        if (serial2Buffer.startsWith("sens:")) {
+          Serial.println(serial2Buffer);
           serial2Buffer = "";
           continue;
         }
@@ -1744,6 +1762,15 @@ void HelpTowersHandler() {
           serial3Buffer = "";
           continue;
         }
+
+        // Монитор датчиков башни: отдаём строку пульту и НЕ пускаем её дальше в
+        // игровой разбор. Пересылка тут уже есть ниже, но выходим сразу, чтобы
+        // строка гарантированно не совпала ни с одной игровой командой.
+        if (serial3Buffer.startsWith("sens:")) {
+          Serial.println(serial3Buffer);
+          serial3Buffer = "";
+          continue;
+        }
         Serial.println(serial3Buffer);  // Пересылаем ВСЕ
         if (serial3Buffer == "help") {
           HelpHandler("knight");
@@ -1763,6 +1790,13 @@ void HelpTowersHandler() {
       if (mySerialBuffer.length() > 0) {
         lastSeenOwls = millis();  // Step 3: heartbeat tracking
         if (mySerialBuffer == "pong") { mySerialBuffer = ""; continue; }  // asymmetric filter (как в новой Mega)
+
+        // Монитор датчиков башни — отдаём пульту и не пускаем в игровой разбор.
+        if (mySerialBuffer.startsWith("sens:")) {
+          Serial.println(mySerialBuffer);
+          mySerialBuffer = "";
+          continue;
+        }
 
         Serial.println(mySerialBuffer);  // Пересылаем ВСЕ сообщения на сервер
 
@@ -7718,6 +7752,16 @@ bool handleMonCmd(const String &buff) {
       monReport(i, monPrev[i]);
     }
   }
+  // Раздаём команду башням: датчики башен идут в пульт ТЕМ ЖЕ путём, что и в
+  // игре — по UART в главную плату и дальше на сервер. Читать их по USB было бы
+  // проще, но тогда монитор показывал бы исправность там, где игра датчик не
+  // видит: ровно так было со стартовым герконом, где обрыв оказался на плате.
+  const __FlashStringHelper *cmd = monActive ? F("mon:1") : F("mon:0");
+  Serial1.println(cmd);   delay(5);   // Workshop
+  Serial2.println(cmd);   delay(5);   // Basket
+  Serial3.println(cmd);   delay(5);   // Dog
+  mySerial.println(cmd);  delay(5);   // Owls
+
   Serial.println(monActive ? F("log:confirm:mon_on") : F("log:confirm:mon_off"));
   return true;
 }

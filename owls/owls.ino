@@ -290,6 +290,64 @@ void processOwlCommand(String command) {
 }
 
 
+
+// ============ МОНИТОР ДАТЧИКОВ ДЛЯ ТЕХ-ПУЛЬТА ============
+// Опрос входов по команде mon:1 от главной платы. Данные уходят ТЕМ ЖЕ каналом,
+// что и игровые события — по UART в Main и дальше на сервер. Читать башню по USB
+// было бы проще, но тогда монитор показывал бы исправность там, где игра датчик
+// не видит: так вышло со стартовым герконом, где обрыв оказался на плате.
+//
+// В игровую логику не вмешивается: только digitalRead и печать изменений.
+// Пока monActive == false — ни одного лишнего действия за проход.
+const uint8_t MON_PINS[] = {
+  30, 27, 29, 31,           // галетник «лодка», ИК-флаг, геркон совы, геркон гнома
+  5, A4, A6, A8, A10,       // стартовый геркон (гном по пружине) и плитки 1-4
+  46, 44, 42, 40,           // галетный переключатель левый, позиции 2-5
+  32, 34, 36, 38            // галетный переключатель правый, позиции 1-4
+};
+const uint8_t MON_COUNT = sizeof(MON_PINS);
+bool monActive = false;
+uint8_t monPrev[MON_COUNT];
+uint8_t monCnt[MON_COUNT];
+unsigned long monTimer = 0;
+
+void monReport(uint8_t i, uint8_t value) {
+  Serial1.print(F("sens:to"));
+  Serial1.print(MON_PINS[i]);
+  Serial1.print(':');
+  Serial1.println(value ? 1 : 0);
+}
+
+bool handleMonCmd(const char *cmd) {
+  if (strncmp(cmd, "mon:", 4) != 0) return false;
+  monActive = (strchr(cmd, '1') != NULL);
+  if (monActive) {
+    // Сразу отдаём состояние всех входов, чтобы пульт не ждал первого шевеления.
+    for (uint8_t i = 0; i < MON_COUNT; i++) {
+      monPrev[i] = digitalRead(MON_PINS[i]);
+      monCnt[i] = 0;
+      monReport(i, monPrev[i]);
+    }
+  }
+  return true;
+}
+
+void monPoll() {
+  if (!monActive) return;
+  if (millis() - monTimer < 120) return;
+  monTimer = millis();
+  for (uint8_t i = 0; i < MON_COUNT; i++) {
+    uint8_t v = digitalRead(MON_PINS[i]);
+    if (v != monPrev[i]) {
+      // Антидребезг: значение держится два опроса подряд (~240 мс).
+      if (++monCnt[i] >= 2) { monPrev[i] = v; monCnt[i] = 0; monReport(i, v); }
+    } else {
+      monCnt[i] = 0;
+    }
+  }
+}
+// ============ /МОНИТОР ============
+
 // Функция `handleSerial1Commands` переписана на неблокирующую
 void handleSerial1Commands() {
   while (Serial1.available()) {
@@ -299,8 +357,11 @@ void handleSerial1Commands() {
     if (c == '\n') {
       serial1Buffer.trim(); // Убираем пробелы и \r
       if (serial1Buffer.length() > 0) {
-        // Отправляем команду на обработку
-        processOwlCommand(serial1Buffer);
+        // Монитор тех-пульта — до игрового разбора
+        if (!handleMonCmd(serial1Buffer.c_str())) {
+          // Отправляем команду на обработку
+          processOwlCommand(serial1Buffer);
+        }
       }
       serial1Buffer = ""; // Очищаем буфер для следующей команды
     } else if (c >= 32) { // Добавляем только "печатные" символы
@@ -630,6 +691,7 @@ void setup() {
 
 
 void loop() {
+  monPoll();                 // монитор датчиков для /tech (только по команде)
   static int previousState = -1;
   if (state != previousState) {
     previousState = state;
