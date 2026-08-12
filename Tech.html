@@ -803,6 +803,14 @@
                         <option value="castle" data-i18n="mon_beep_castle">Динамики замка</option>
                         <option value="browser" data-i18n="mon_beep_browser">Это устройство</option>
                     </select>
+                    <!-- Ползунок отпускаешь — писк тут же звучит на новой
+                         громкости: подбирать её вслепую, тыкая датчик после
+                         каждого шага, невозможно. -->
+                    <span style="color:#ddd; font-size:13px;" data-i18n="mon_beep_vol">Громкость</span>
+                    <input type="range" id="mon-beep-volume" min="5" max="100" step="5"
+                           oninput="monBeepVolInput()" onchange="monBeepVolChanged()"
+                           style="width:120px; vertical-align:middle;">
+                    <span id="mon-beep-vol-val" style="color:#777; font-size:12px; min-width:38px;"></span>
                     <button class="ui mini button" id="mon-beep-test" onclick="monBeepTest()">
                         <span data-i18n="mon_beep_test">Проверить звук</span>
                     </button>
@@ -1403,6 +1411,7 @@
                 mon_beep_browser: "Это устройство",
                 mon_beep_blocked: "Браузер не дал включить звук. Нажмите в любом месте страницы и включите тумблер ещё раз.",
                 mon_beep_test: "Проверить звук",
+                mon_beep_vol: "Громкость",
                 mon_beep_no_file: "Замок не смог воспроизвести сигнал: проверьте, что файл pip.mp3 лежит на сервере и включён звук.",
                 sens_galet_on: "Workshop: галетник", sens_galet_off: "Workshop: галетник снят",
                 sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
@@ -1728,6 +1737,7 @@
                 mon_beep_browser: "This device",
                 mon_beep_blocked: "The browser blocked audio playback. Tap anywhere on the page and switch the toggle on again.",
                 mon_beep_test: "Test sound",
+                mon_beep_vol: "Volume",
                 mon_beep_no_file: "The castle could not play the beep: check that pip.mp3 is on the server and the sound is on.",
                 sens_galet_on: "Workshop: rotary switch", sens_galet_off: "Workshop: rotary switch released",
                 sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
@@ -3688,9 +3698,21 @@
         // на котором открыт пульт.
         var monBeepOn = localStorage.getItem('monBeepOn') === '1';
         var monBeepSource = localStorage.getItem('monBeepSource') || 'castle';
+        // Громкость своя у каждого источника: динамики замка и динамик телефона
+        // звучат совершенно по-разному, общий ползунок пришлось бы двигать при
+        // каждом переключении.
+        var monBeepVol = {
+            castle: monBeepVolLoad('monBeepVolCastle', 40),
+            browser: monBeepVolLoad('monBeepVolBrowser', 70)
+        };
         var monBeepAudio = null;
         var monBeepLast = 0;
         var monValues = {};          // последнее известное состояние каждого входа
+
+        function monBeepVolLoad(key, def) {
+            var v = parseInt(localStorage.getItem(key), 10);
+            return (isNaN(v) || v < 5 || v > 100) ? def : v;
+        }
 
         function monBeepInit() {
             if (monBeepAudio) return monBeepAudio;
@@ -3707,29 +3729,53 @@
             localStorage.setItem('monBeepOn', monBeepOn ? '1' : '0');
             localStorage.setItem('monBeepSource', monBeepSource);
             $('#mon-beep-msg').empty();
+            monBeepRenderVol();
             if (monBeepOn && monBeepSource === 'browser') {
                 var a = monBeepInit();
+                var vol = monBeepVol.browser / 100;
                 a.volume = 0;
                 var p = a.play();
                 if (p && p.catch) {
-                    p.then(function() { a.pause(); a.currentTime = 0; a.volume = 1; })
+                    p.then(function() { a.pause(); a.currentTime = 0; a.volume = vol; })
                      .catch(function() {
-                        a.volume = 1;
+                        a.volume = vol;
                         $('#mon-beep-msg').html(
                             '<span class="setup-warn">' + T('mon_beep_blocked') + '</span>');
                      });
                 } else {
-                    a.pause(); a.currentTime = 0; a.volume = 1;
+                    a.pause(); a.currentTime = 0; a.volume = vol;
                 }
             }
             monBeepSend();
+        }
+
+        function monBeepRenderVol() {
+            $('#mon-beep-volume').val(monBeepVol[monBeepSource]);
+            $('#mon-beep-vol-val').text(monBeepVol[monBeepSource] + '%');
+        }
+
+        // Пока тянут ползунок — только цифра. Звук на каждый шаг превратился бы
+        // в очередь писков, а на замке ещё и в очередь сообщений серверу.
+        function monBeepVolInput() {
+            $('#mon-beep-vol-val').text($('#mon-beep-volume').val() + '%');
+        }
+
+        function monBeepVolChanged() {
+            var v = parseInt($('#mon-beep-volume').val(), 10);
+            if (isNaN(v)) return;
+            monBeepVol[monBeepSource] = v;
+            localStorage.setItem(monBeepSource === 'castle'
+                ? 'monBeepVolCastle' : 'monBeepVolBrowser', String(v));
+            monBeepRenderVol();
+            monBeepSend();
+            monBeepTest();          // отпустил ползунок — сразу слышно результат
         }
 
         function monBeepTest() {
             $('#mon-beep-msg').empty();
             if (monBeepSource === 'browser') {
                 var a = monBeepInit();
-                a.volume = 1;
+                a.volume = monBeepVol.browser / 100;
                 try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
                 return;
             }
@@ -3743,7 +3789,8 @@
 
         function monBeepSend() {
             socket.emit('sensor_monitor_sound', {
-                enabled: monBeepOn, source: monBeepSource
+                enabled: monBeepOn, source: monBeepSource,
+                volume: monBeepVol.castle
             });
         }
 
@@ -3760,6 +3807,7 @@
             if (now - monBeepLast < 120) return;      // залп из нескольких входов = один писк
             monBeepLast = now;
             var a = monBeepInit();
+            a.volume = monBeepVol.browser / 100;
             try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
         }
 
@@ -3921,6 +3969,7 @@
             }
             $('#mon-beep-toggle').prop('checked', monBeepOn);
             $('#mon-beep-source').val(monBeepSource);
+            monBeepRenderVol();
             monApplyOpenState();
             // Сервер про выбор звука не знает, пока вкладка о нём не сказала:
             // после перезапуска сервера писк из динамиков замка иначе пропал бы

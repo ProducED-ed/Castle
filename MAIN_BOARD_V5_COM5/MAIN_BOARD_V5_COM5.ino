@@ -7737,6 +7737,7 @@ const uint8_t MON_COUNT = MON_DIRECT + MON_EXPANDED + 1;   // +1 — датчи�
 uint8_t monPrev[MON_COUNT];
 uint8_t monCnt[MON_COUNT];
 unsigned long monTimer = 0;
+unsigned long monPingTimer = 0;
 unsigned long monKnockUntil = 0;
 
 // Идентификатор входа для пульта: "41" — прямой пин, "b2c7" — канал
@@ -7813,8 +7814,29 @@ void monPollKnock() {
   }
 }
 
+// Живость башни плата определяет пассивно: башня сама что-то сказала — значит
+// жива. Но в покое Мастерская и Цербер молчат вообще (Баскетбол и Совы каждые
+// пять секунд переотправляют состояние флага, поэтому и выглядели живыми), и
+// монитор честно, но бесполезно показывал их отвалившимися. Пока монитор
+// включён — спрашиваем сами: все четыре башни отвечают "pong" на "ping_main",
+// обработчик у них работает в любом состоянии.
+//
+// Только при включённом мониторе. Постоянная пульсация в сторону башен ломает
+// прошивку: их UART делится с USB-CH340, и байты от главной платы сбивают
+// синхронизацию avrdude — ровно поэтому перед прошивкой Цербера существует
+// release_serial3.
+void monPingTowers() {
+  if (millis() - monPingTimer < 5000) return;
+  monPingTimer = millis();
+  Serial1.println(F("ping_main"));
+  Serial2.println(F("ping_main"));
+  Serial3.println(F("ping_main"));
+  mySerial.println(F("ping_main"));
+}
+
 void monPoll() {
   if (!monActive) return;
+  monPingTowers();
   monPollKnock();
   // Полный обход мультиплексора стоит ~32 мс (в digitalReadExpander есть
   // обязательная пауза 1 мс на стабилизацию), поэтому реже, чем прямые пины.

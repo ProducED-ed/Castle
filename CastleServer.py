@@ -2698,6 +2698,15 @@ def handle_flash(board_id):
     global is_system_flashing
     global ser
 
+    # Монитор датчиков заставляет главную плату пульсировать "ping_main" в
+    # сторону башен раз в 5 секунд. UART башен делится с USB-CH340, и эти байты
+    # сбивают синхронизацию avrdude — прошивка повисла бы навсегда. Гасим
+    # монитор сами: забыть выключить тумблер проще простого.
+    if sensor_monitor_active:
+        socketio.emit('flash_log', {'board': board_id,
+                                    'msg': 'Монитор датчиков выключен на время прошивки.\n'})
+        sensor_monitor_set({'active': False})
+
     # Dog: специальный 3-шаговый flow (см. ниже после commands)
     if board_id == 'dog':
         return _handle_dog_flash()
@@ -3399,6 +3408,7 @@ SENSOR_BEEP_SRC = os.path.join(AUDIO_DIR, 'pip.mp3')
 SENSOR_BEEP_WAV = '/tmp/pip_beep.wav'
 SENSOR_BEEP_MIN_GAP = 0.12      # залп из нескольких входов = один писк
 sensor_beep_castle = False
+sensor_beep_volume = 0.4        # 0..1, задаётся ползунком на пульте
 _sensor_beep_sound = None
 _sensor_beep_tried = False
 _sensor_beep_last = 0.0
@@ -3827,6 +3837,9 @@ def _sensor_beep():
         return
     _sensor_beep_last = now
     try:
+        # Громкость ставим перед каждым воспроизведением: ползунок могли
+        # подвинуть между писками, а Sound один на всё время работы.
+        _sensor_beep_sound.set_volume(sensor_beep_volume)
         beep_channel.play(_sensor_beep_sound)
     except Exception as e:
         logger.warning(f"MON-BEEP: не удалось воспроизвести: {e}")
@@ -3839,8 +3852,13 @@ def sensor_monitor_sound(data):
     Пульт присылает выбор при каждом подключении — иначе после перезапуска
     сервера писк из замка пропал бы молча, и это выглядело бы как «датчики
     перестали срабатывать»."""
-    global sensor_beep_castle
+    global sensor_beep_castle, sensor_beep_volume
     d = data or {}
+    try:
+        vol = int(d.get('volume', 40))
+    except (TypeError, ValueError):
+        vol = 40
+    sensor_beep_volume = max(0.05, min(1.0, vol / 100.0))
     want = bool(d.get('enabled')) and d.get('source') == 'castle'
     if want and not sensor_beep_castle:
         socketio.start_background_task(_sensor_beep_prepare)
