@@ -3057,14 +3057,6 @@
             'remote', 'inventory'
         ];
 
-        // Человеческие подписи к строкам от Mega — ключи i18n. Незнакомые строки
-        // показываем как есть: словарь тут для удобства, а не фильтр.
-        var SENSOR_LABELS = {
-            'galet_on': 'sens_galet_on', 'galet_off': 'sens_galet_off',
-            'flag3_on': 'sens_flag3_on', 'flag3_off': 'sens_flag3_off',
-            'door_owl': 'sens_door_owl', 'mine': 'sens_mine',
-            'cup': 'sens_cup', 'start': 'sens_start', 'restart': 'sens_restart'
-        };
 
         // Опрос только пока раздел открыт: во время игры вкладка /tech часто
         // висит открытой, и фоновый трафик ей ни к чему.
@@ -3554,7 +3546,11 @@
         function monRenderSensor(pin, value) {
             var m = monMeta(pin);
             var id = 'mon-pin-' + pin;
-            var closed = (value === 0);          // входы с подтяжкой: 0 = сработал
+            // Герконы и кнопки сидят на подтяжке к питанию: 0 = сработал.
+            // ИК-датчики наоборот (LOW_PULL в прошивках башен) — у них
+            // активное состояние это единица. Без этого флаг светился
+            // зелёным, когда его НЕ вставили.
+            var closed = (m[1] === 'ir') ? (value === 1) : (value === 0);
             var chip = $('#' + id);
             if (!chip.length) {
                 chip = $('<span>').attr('id', id).css({
@@ -3652,12 +3648,11 @@
                 return;
             }
 
-            var labelKey = SENSOR_LABELS[d.raw];
-            if (labelKey) {
-                var chip = $('<span class="mon-chip">').text(T(labelKey));
-                $('#setup-mon-flash').prepend(chip);
-                setTimeout(function() { chip.remove(); }, 4000);
-            }
+            // Игровые строки вроде galet_on/flag2_off больше не рисуем
+            // отдельными вспышками: их шлют все башни без разбора, подпись была
+            // привязана к Workshop и вводила в заблуждение, а башни ещё и
+            // переотправляют состояние флага каждые 5 секунд — плашка мигала
+            // сама по себе. Настоящее состояние показывают плашки выше.
             var time = new Date(d.ts * 1000).toLocaleTimeString();
             $('#setup-mon-log').prepend($('<div>').text(time + '  ' + d.raw));
             var log = $('#setup-mon-log');
