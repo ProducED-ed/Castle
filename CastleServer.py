@@ -3895,6 +3895,10 @@ def _emit_sensor_event(line):
     Превышение потолка не копим и не откладываем: монитор нужен для «нажал —
     увидел», а не для полного лога, который и так пишется в castle.log."""
     global _sensor_window_start, _sensor_window_count
+    # Служебное эхо heartbeat пульту не нужно: главная плата опрашивает башни
+    # каждые 5 секунд, а Совы вдобавок логируют каждый такой вопрос.
+    if isinstance(line, str) and ('ping_main' in line or line == 'pong'):
+        return
     now = time.time()
     if now - _sensor_window_start >= 1.0:
         _sensor_window_start = now
@@ -3913,16 +3917,39 @@ def _emit_sensor_event(line):
         # id — строка: "41" прямой пин, "b2c7" канал мультиплексора, "knock".
         if (len(parts) == 3 and parts[2] in ('0', '1')
                 and re.fullmatch(r'[a-z0-9_]{1,8}', parts[1])):
-            payload['pin'] = parts[1]
-            payload['value'] = int(parts[2])
-            # Пищим только на настоящую смену состояния уже известного входа:
-            # при включении монитора платы отдают снимок всех входов разом, и
-            # это была бы сотня писков подряд.
-            prev = _sensor_last_values.get(payload['pin'])
-            _sensor_last_values[payload['pin']] = payload['value']
-            if sensor_beep_castle and prev is not None and prev != payload['value']:
+            pin, value = parts[1], int(parts[2])
+            prev = _sensor_last_values.get(pin)
+            _sensor_last_values[pin] = value
+            # Платы повторяют состояние каждого входа по кругу, чтобы потерянная
+            # строка не заморозила плашку навсегда. СЕРВЕРУ этот повтор нужен, а
+            # пульту — нет. Девять одинаковых сообщений в секунду по вайфаю
+            # замка копятся в очереди, и плашка отстаёт на десятки секунд:
+            # человек жмёт геркон, а пульт показывает позапрошлое нажатие.
+            # Наружу отдаём только настоящие изменения; полную картину пульт
+            # берёт снимком (sensor_monitor_snapshot).
+            if prev == value:
+                return
+            # Пищим только на смену состояния уже известного входа: при
+            # включении монитора платы отдают все входы разом, и это была бы
+            # сотня писков подряд.
+            if sensor_beep_castle and prev is not None:
                 _sensor_beep()
+            payload['pin'] = pin
+            payload['value'] = value
     socketio.emit('sensor_event', payload)
+
+
+@socketio.on('sensor_monitor_snapshot')
+def sensor_monitor_snapshot():
+    """Полная картина входов одним сообщением.
+
+    Нужна, когда пульт открыли или перезагрузили страницу при уже включённом
+    мониторе: поток наружу идёт только по изменениям, и без снимка панель
+    оставалась бы пустой до первого шевеления датчика."""
+    socketio.emit('sensor_snapshot',
+                  {'values': dict(_sensor_last_values),
+                   'active': sensor_monitor_active},
+                  to=request.sid)
 
 
 @socketio.on('sensor_monitor_set')

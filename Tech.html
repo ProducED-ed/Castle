@@ -3754,8 +3754,26 @@
             $('#mon-caret').toggleClass('up', monOpen);
             // Тумблер должен показывать состояние сервера, а не последнее, что
             // помнит вкладка: монитор мог включить кто-то другой.
-            if (monOpen) socket.emit('setup_status');
+            if (monOpen) {
+                socket.emit('setup_status');
+                // Поток наружу идёт только по изменениям, поэтому полную
+                // картину входов запрашиваем отдельно — иначе после открытия
+                // раздела панель пустая до первого шевеления датчика.
+                socket.emit('sensor_monitor_snapshot');
+            }
         }
+
+        // Снимок: рисуем всё разом и без вспышек — это не срабатывания, а
+        // текущее состояние, каким его знает сервер.
+        socket.on('sensor_snapshot', function(d) {
+            if (!d || !d.values) return;
+            monValues = {};
+            $('#setup-mon-sensors').empty();
+            Object.keys(d.values).forEach(function(pin) {
+                monValues[pin] = d.values[pin];
+                monRenderSensor(pin, d.values[pin], true);
+            });
+        });
 
         function monToggle() {
             monOpen = !monOpen;
@@ -3909,6 +3927,9 @@
             socket.emit('sensor_monitor_set', { active: active });
             monSetActiveUI(active);
             monBeepSend();
+            if (active) setTimeout(function() {
+                socket.emit('sensor_monitor_snapshot');
+            }, 4000);          // после того как платы отдали стартовый снимок
             clearTimeout(monSilenceTimer);
             $('#setup-mon-silence').empty();
             if (active) {
