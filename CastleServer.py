@@ -3439,6 +3439,9 @@ def _setup_snapshot():
         'tailscale_busy': _ts_setup_active,
         'wifi_iface_present': castle_setup.iface_exists(iface),
         'sensor_monitor': sensor_monitor_active,
+        # Отдаём наружу, чтобы «почему замок не пищит» можно было увидеть, а не
+        # угадывать: пульт покажет, просит ли он звук именно из динамиков замка.
+        'sensor_beep_castle': sensor_beep_castle,
     })
     return data
 
@@ -3862,6 +3865,9 @@ def sensor_monitor_sound(data):
     want = bool(d.get('enabled')) and d.get('source') == 'castle'
     if want and not sensor_beep_castle:
         socketio.start_background_task(_sensor_beep_prepare)
+    if want != sensor_beep_castle:
+        logger.info("MON-BEEP: звук из динамиков замка %s (источник %s, громкость %d%%)"
+                    % ('ВКЛ' if want else 'выкл', d.get('source'), vol))
     sensor_beep_castle = want
 
 
@@ -3960,7 +3966,6 @@ def sensor_monitor_set(data):
     Прошивки для этого не меняются: события башен и так идут по UART в главную
     плату, а оттуда в сервер. Пока тумблер выключен — накладных расходов ноль."""
     global sensor_monitor_active, _sensor_window_start, _sensor_window_count
-    global sensor_beep_castle
     want = bool((data or {}).get('active'))
     if want and _setup_busy():
         socketio.emit('sensor_monitor_state',
@@ -3973,8 +3978,12 @@ def sensor_monitor_set(data):
     # Снимок всех входов приходит заново — прежние состояния к нему отношения
     # не имеют, иначе включение монитора отзовётся очередью писков.
     _sensor_last_values.clear()
-    if not want:
-        sensor_beep_castle = False
+    # Выбор источника звука тут НЕ трогаем. Раньше выключение монитора сбрасывало
+    # его в «не пищать», а пульт об этом не узнавал и продолжал показывать
+    # тумблер включённым: любой, кто дёрнул монитор со стороны (другая вкладка,
+    # диагностический скрипт, автоматическое выключение перед прошивкой),
+    # молча лишал замок звука. Пищать при выключенном мониторе всё равно
+    # нечему — писк живёт только внутри разбора входящих строк.
     # Главная плата про датчики в покое молчит — просим её начать опрашивать
     # входы. Без этой команды монитор показывал бы только служебные строки.
     serial_write_queue.put('mon:1' if sensor_monitor_active else 'mon:0')

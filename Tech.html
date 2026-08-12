@@ -1419,6 +1419,7 @@
                 mon_beep_browser: "Это устройство",
                 mon_beep_blocked: "Браузер не дал включить звук. Нажмите в любом месте страницы и включите тумблер ещё раз.",
                 mon_beep_test: "Проверить звук",
+                mon_beep_desync: "Сервер не знает про выбранный звук — повторяю запрос.",
                 mon_beep_vol: "Громкость",
                 mon_off_note: "Монитор выключен — состояние входов не показывается. Включите тумблер, иначе замеры будут вслепую.",
                 mon_beep_no_file: "Замок не смог воспроизвести сигнал: проверьте, что файл pip.mp3 лежит на сервере и включён звук.",
@@ -1746,6 +1747,7 @@
                 mon_beep_browser: "This device",
                 mon_beep_blocked: "The browser blocked audio playback. Tap anywhere on the page and switch the toggle on again.",
                 mon_beep_test: "Test sound",
+                mon_beep_desync: "The server does not know about the selected sound — re-sending the request.",
                 mon_beep_vol: "Volume",
                 mon_off_note: "The monitor is off — input states are not shown. Switch it on, otherwise you are measuring blind.",
                 mon_beep_no_file: "The castle could not play the beep: check that pip.mp3 is on the server and the sound is on.",
@@ -3197,6 +3199,16 @@
             if (!$('#servo-move-ms').is(':focus')) $('#servo-move-ms').val(servo.move_ms);
 
             monSetActiveUI(!!s.sensor_monitor);
+            // Сервер говорит, просит ли кто-то звук из динамиков замка. Если
+            // тумблер включён, источник «Динамики замка», а сервер отвечает
+            // «нет» — значит выбор до него не дошёл, и это надо видеть, а не
+            // гадать, почему замок молчит.
+            if (monBeepOn && monBeepSource === 'castle' && s.sensor_beep_castle === false) {
+                setupMsg('#mon-beep-msg', T('mon_beep_desync'), 'warn');
+                monBeepSend();
+            } else if ($('#mon-beep-msg').text() === T('mon_beep_desync')) {
+                $('#mon-beep-msg').empty();
+            }
 
             setupRenderChecklist(s.checklist || {});
             setupApplyLock(!!s.game_running);
