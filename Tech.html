@@ -3642,6 +3642,30 @@
             return box;
         }
 
+        // Порядок плашек внутри группы — как в MON_META, а не как пришло от
+        // платы. Плата обходит входы по номерам пинов и каналов, поэтому
+        // «Сенсор ловли снитча 2» оказывался раньше первого. Датчики без
+        // записи в MON_META уходят в конец группы.
+        var MON_ORDER = (function() {
+            var o = {}, i = 0;
+            for (var k in MON_META) { if (MON_META.hasOwnProperty(k)) o[k] = i++; }
+            return o;
+        })();
+
+        function monOrder(pin) {
+            return MON_ORDER.hasOwnProperty(pin) ? MON_ORDER[pin] : 9999;
+        }
+
+        function monInsertChip(box, chip) {
+            var order = parseInt(chip.attr('data-order'), 10);
+            var before = null;
+            box.children().each(function() {
+                if (before) return;
+                if (parseInt($(this).attr('data-order'), 10) > order) before = this;
+            });
+            if (before) chip.insertBefore(before); else box.append(chip);
+        }
+
         function monRenderSensor(pin, value) {
             var m = monMeta(pin);
             var id = 'mon-pin-' + pin;
@@ -3653,11 +3677,11 @@
             var closed = (m[1] === 'ir' || m[1] === 'touch') ? (value === 1) : (value === 0);
             var chip = $('#' + id);
             if (!chip.length) {
-                chip = $('<span>').attr('id', id).css({
+                chip = $('<span>').attr('id', id).attr('data-order', monOrder(pin)).css({
                     padding: '6px 10px', 'border-radius': '6px',
                     border: '1px solid #444', 'font-size': '13px'
                 });
-                monContainer(m[0], m[1]).find('.mon-chips').append(chip);
+                monInsertChip(monContainer(m[0], m[1]).find('.mon-chips'), chip);
             }
             chip.text(m[2] + (closed ? ' ●' : ' ○'))
                 .css({background: closed ? '#21ba45' : '#222',
