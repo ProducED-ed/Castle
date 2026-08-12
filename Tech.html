@@ -821,6 +821,14 @@
                 </div>
                 <div id="mon-beep-msg" style="margin-top:6px; font-size:12px;"></div>
 
+                <!-- Пока монитор выключен, плашек нет вообще. Оставленные на
+                     экране, они выглядят как живое состояние входов — можно
+                     полчаса мерить датчики, глядя на снимок из прошлого. -->
+                <div id="mon-off-note" class="ui warning message" style="margin-top:10px;">
+                    <i class="power off icon"></i>
+                    <span data-i18n="mon_off_note">Монитор выключен — состояние входов не показывается. Включите тумблер, иначе замеры будут вслепую.</span>
+                </div>
+
                 <div class="ui warning message" style="margin-top:10px;">
                     <i class="info circle icon"></i>
                     <span data-i18n="setup_mon_scope">Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.</span>
@@ -1412,6 +1420,7 @@
                 mon_beep_blocked: "Браузер не дал включить звук. Нажмите в любом месте страницы и включите тумблер ещё раз.",
                 mon_beep_test: "Проверить звук",
                 mon_beep_vol: "Громкость",
+                mon_off_note: "Монитор выключен — состояние входов не показывается. Включите тумблер, иначе замеры будут вслепую.",
                 mon_beep_no_file: "Замок не смог воспроизвести сигнал: проверьте, что файл pip.mp3 лежит на сервере и включён звук.",
                 sens_galet_on: "Workshop: галетник", sens_galet_off: "Workshop: галетник снят",
                 sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
@@ -1738,6 +1747,7 @@
                 mon_beep_blocked: "The browser blocked audio playback. Tap anywhere on the page and switch the toggle on again.",
                 mon_beep_test: "Test sound",
                 mon_beep_vol: "Volume",
+                mon_off_note: "The monitor is off — input states are not shown. Switch it on, otherwise you are measuring blind.",
                 mon_beep_no_file: "The castle could not play the beep: check that pip.mp3 is on the server and the sound is on.",
                 sens_galet_on: "Workshop: rotary switch", sens_galet_off: "Workshop: rotary switch released",
                 sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
@@ -3186,7 +3196,7 @@
             if (!$('#servo-angle-open').is(':focus')) $('#servo-angle-open').val(servo.angle_open);
             if (!$('#servo-move-ms').is(':focus')) $('#servo-move-ms').val(servo.move_ms);
 
-            $('#setup-mon-toggle').prop('checked', !!s.sensor_monitor);
+            monSetActiveUI(!!s.sensor_monitor);
 
             setupRenderChecklist(s.checklist || {});
             setupApplyLock(!!s.game_running);
@@ -3873,9 +3883,31 @@
             try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
         }
 
+        // Состояние монитора приходит из четырёх мест: тумблер, ответ сервера,
+        // общий статус и автоматическое выключение перед прошивкой. Отрисовка
+        // одна на всех, иначе часть путей оставляла бы плашки на экране.
+        function monSetActiveUI(active) {
+            $('#setup-mon-toggle').prop('checked', active);
+            $('#mon-off-note').toggle(!active);
+            if (active) return;
+            // Выключен — значит про входы мы больше ничего не знаем. Оставить
+            // плашки нельзя: они выглядят как живое состояние, и человек
+            // продолжает мерить датчики, глядя на устаревший снимок.
+            monValues = {};
+            monEvents = 0;
+            monLastUpdate = 0;
+            clearTimeout(monSilenceTimer);
+            $('#setup-mon-sensors').empty();
+            $('#setup-mon-count').text('');
+            $('#setup-mon-silence').empty();
+            $('#setup-mon-age').empty();
+            $('#mon-towers').text('—');
+            $('#mon-loop').text('—');
+        }
+
         function setupMonitorToggle(active) {
             socket.emit('sensor_monitor_set', { active: active });
-            monValues = {};
+            monSetActiveUI(active);
             monBeepSend();
             clearTimeout(monSilenceTimer);
             $('#setup-mon-silence').empty();
@@ -3921,7 +3953,7 @@
         }
 
         socket.on('sensor_monitor_state', function(d) {
-            $('#setup-mon-toggle').prop('checked', !!d.active);
+            monSetActiveUI(!!d.active);
         });
 
         socket.on('sensor_event', function(d) {
