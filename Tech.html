@@ -393,7 +393,7 @@
                 <a class="item" data-diag-tab="wolf">Wolf (.201)</a>
                 <a class="item" data-diag-tab="safe">Safe (.204)</a>
                 <a class="item" data-diag-tab="suitcases">Suitcases (.203)</a>
-                <span class="item" style="opacity:0.4;" data-i18n="diag_towers_todo">Башни — TODO</span>
+                <a class="item" data-diag-tab="monitor" data-i18n="diag_tab_monitor">Монитор датчиков</a>
             </div>
 
             <!-- Train pane -->
@@ -674,6 +674,84 @@
                     <pre id="diag-suitcases-log" style="background:#000; color:#a8ff60; font-family:monospace; font-size:11px; padding:8px; height:250px; overflow:auto; border-radius:4px; margin-top:10px; white-space:pre; display:none;"></pre>
                 </div>
             </div>
+
+            <!-- Монитор датчиков. Живёт вкладкой рядом с диагностикой ESP32:
+                 задача та же — посмотреть, что видит железо, — а раньше он был
+                 отдельным разделом ниже по странице, и его приходилось искать.
+                 В отличие от диагностики ESP32 игровую логику НЕ замораживает:
+                 платы просто начинают докладывать состояние входов. -->
+            <div class="ui bottom attached tab segment inverted" data-diag-pane="monitor" style="display:none;">
+
+            <div id="mon-game-lock" class="ui warning message" style="display:none;">
+                <i class="exclamation triangle icon"></i>
+                <span data-i18n="setup_locked">Идёт игра — настройки заблокированы. Дождитесь конца или нажмите Restart.</span>
+            </div>
+
+            <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_mon_hint">
+                Включите монитор — плата начнёт опрашивать входы и покажет их состояние.
+            </div>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div class="ui toggle checkbox">
+                    <input type="checkbox" id="setup-mon-toggle" onchange="setupMonitorToggle(this.checked)">
+                    <label style="color:#ddd;" data-i18n="setup_mon_on">Включить монитор</label>
+                </div>
+                <!-- Писк на срабатывание: датчик проверяют, стоя у железа, и
+                     смотреть в экран одновременно неудобно. Источник звука
+                     выбирается — динамики замка слышно из любой комнаты,
+                     динамик телефона удобнее, когда замок молчит. -->
+                <div class="ui toggle checkbox">
+                    <input type="checkbox" id="mon-beep-toggle" onchange="monBeepChanged()">
+                    <label style="color:#ddd;" data-i18n="mon_beep_on">Звук на срабатывание</label>
+                </div>
+                <select id="mon-beep-source" onchange="monBeepChanged()" style="padding:5px;">
+                    <option value="castle" data-i18n="mon_beep_castle">Динамики замка</option>
+                    <option value="browser" data-i18n="mon_beep_browser">Это устройство</option>
+                </select>
+                <!-- Ползунок отпускаешь — писк тут же звучит на новой
+                     громкости: подбирать её вслепую, тыкая датчик после
+                     каждого шага, невозможно. -->
+                <span style="color:#ddd; font-size:13px;" data-i18n="mon_beep_vol">Громкость</span>
+                <input type="range" id="mon-beep-volume" min="5" max="100" step="5"
+                       oninput="monBeepVolInput()" onchange="monBeepVolChanged()"
+                       style="width:120px; vertical-align:middle;">
+                <span id="mon-beep-vol-val" style="color:#777; font-size:12px; min-width:38px;"></span>
+                <button class="ui mini button" id="mon-beep-test" onclick="monBeepTest()">
+                    <span data-i18n="mon_beep_test">Проверить звук</span>
+                </button>
+                <button class="ui mini button" onclick="setupMonitorClear()">
+                    <span data-i18n="setup_mon_clear">Очистить</span>
+                </button>
+                <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
+            </div>
+            <div id="mon-beep-msg" style="margin-top:6px; font-size:12px;"></div>
+
+            <!-- Пока монитор выключен, плашек нет вообще. Оставленные на
+                 экране, они выглядят как живое состояние входов — можно
+                 полчаса мерить датчики, глядя на снимок из прошлого. -->
+            <div id="mon-off-note" class="ui warning message" style="margin-top:10px;">
+                <i class="power off icon"></i>
+                <span data-i18n="mon_off_note">Монитор выключен — состояние входов не показывается. Включите тумблер, иначе замеры будут вслепую.</span>
+            </div>
+
+            <div class="ui warning message" style="margin-top:10px;">
+                <i class="info circle icon"></i>
+                <span data-i18n="setup_mon_scope">Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.</span>
+            </div>
+
+            <div id="setup-mon-decoded" style="margin-top:10px; color:#ddd;">
+                <div><span data-i18n="setup_mon_towers">Башни отвечают:</span> <span id="mon-towers">—</span></div>
+                <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
+            </div>
+
+            <div id="setup-mon-silence" style="margin-top:8px;"></div>
+            <div id="setup-mon-age" style="color:#777; font-size:12px; margin-top:6px;"></div>
+            <div id="setup-mon-sensors" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+
+            <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
+            <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
+                 background:#000; border:1px solid #333; border-radius:6px; padding:8px;
+                 font-family:monospace; font-size:12px; color:#8f8;"></div>
+            </div>
         </div>
         <!-- ============ /ДИАГНОСТИКА ============ -->
 
@@ -773,96 +851,6 @@
         </div>
         </div>
         <!-- ============ /HUE ============ -->
-
-        <!-- ============ МОНИТОР ДАТЧИКОВ ============
-             Живое состояние входов замка и всех четырёх башен. Раньше был шагом
-             внутри «Первого запуска», но нужен постоянно — и на сборке, и когда
-             у клиента «датчик перестал видеться», — поэтому вынесен в отдельный
-             раздел. Только чтение: игровую логику не трогает, платы опрашивают
-             входы лишь пока тумблер включён. -->
-        <div class="ui inverted segment" id="monitor-segment" style="margin-top: 30px;">
-            <h3 style="cursor:pointer; user-select:none;" onclick="monToggle()">
-                <i class="rss icon"></i> <span data-i18n="mon_section_title">Монитор датчиков</span>
-                <i class="dropdown icon" id="mon-caret" style="float:right;"></i>
-            </h3>
-            <div style="color:#999; font-size:13px; margin-top:-8px;" data-i18n="mon_section_sub">
-                Живое состояние входов замка и всех четырёх башен.
-            </div>
-
-            <div id="monitor-body" style="display:none; margin-top:16px;">
-
-                <div id="mon-game-lock" class="ui warning message" style="display:none;">
-                    <i class="exclamation triangle icon"></i>
-                    <span data-i18n="setup_locked">Идёт игра — настройки заблокированы. Дождитесь конца или нажмите Restart.</span>
-                </div>
-
-                <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_mon_hint">
-                    Включите монитор — плата начнёт опрашивать входы и покажет их состояние.
-                </div>
-                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                    <div class="ui toggle checkbox">
-                        <input type="checkbox" id="setup-mon-toggle" onchange="setupMonitorToggle(this.checked)">
-                        <label style="color:#ddd;" data-i18n="setup_mon_on">Включить монитор</label>
-                    </div>
-                    <!-- Писк на срабатывание: датчик проверяют, стоя у железа, и
-                         смотреть в экран одновременно неудобно. Источник звука
-                         выбирается — динамики замка слышно из любой комнаты,
-                         динамик телефона удобнее, когда замок молчит. -->
-                    <div class="ui toggle checkbox">
-                        <input type="checkbox" id="mon-beep-toggle" onchange="monBeepChanged()">
-                        <label style="color:#ddd;" data-i18n="mon_beep_on">Звук на срабатывание</label>
-                    </div>
-                    <select id="mon-beep-source" onchange="monBeepChanged()" style="padding:5px;">
-                        <option value="castle" data-i18n="mon_beep_castle">Динамики замка</option>
-                        <option value="browser" data-i18n="mon_beep_browser">Это устройство</option>
-                    </select>
-                    <!-- Ползунок отпускаешь — писк тут же звучит на новой
-                         громкости: подбирать её вслепую, тыкая датчик после
-                         каждого шага, невозможно. -->
-                    <span style="color:#ddd; font-size:13px;" data-i18n="mon_beep_vol">Громкость</span>
-                    <input type="range" id="mon-beep-volume" min="5" max="100" step="5"
-                           oninput="monBeepVolInput()" onchange="monBeepVolChanged()"
-                           style="width:120px; vertical-align:middle;">
-                    <span id="mon-beep-vol-val" style="color:#777; font-size:12px; min-width:38px;"></span>
-                    <button class="ui mini button" id="mon-beep-test" onclick="monBeepTest()">
-                        <span data-i18n="mon_beep_test">Проверить звук</span>
-                    </button>
-                    <button class="ui mini button" onclick="setupMonitorClear()">
-                        <span data-i18n="setup_mon_clear">Очистить</span>
-                    </button>
-                    <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
-                </div>
-                <div id="mon-beep-msg" style="margin-top:6px; font-size:12px;"></div>
-
-                <!-- Пока монитор выключен, плашек нет вообще. Оставленные на
-                     экране, они выглядят как живое состояние входов — можно
-                     полчаса мерить датчики, глядя на снимок из прошлого. -->
-                <div id="mon-off-note" class="ui warning message" style="margin-top:10px;">
-                    <i class="power off icon"></i>
-                    <span data-i18n="mon_off_note">Монитор выключен — состояние входов не показывается. Включите тумблер, иначе замеры будут вслепую.</span>
-                </div>
-
-                <div class="ui warning message" style="margin-top:10px;">
-                    <i class="info circle icon"></i>
-                    <span data-i18n="setup_mon_scope">Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.</span>
-                </div>
-
-                <div id="setup-mon-decoded" style="margin-top:10px; color:#ddd;">
-                    <div><span data-i18n="setup_mon_towers">Башни отвечают:</span> <span id="mon-towers">—</span></div>
-                    <div style="margin-top:4px;"><span data-i18n="setup_mon_loop">Цикл главной платы:</span> <span id="mon-loop">—</span></div>
-                </div>
-
-                <div id="setup-mon-silence" style="margin-top:8px;"></div>
-                <div id="setup-mon-age" style="color:#777; font-size:12px; margin-top:6px;"></div>
-                <div id="setup-mon-sensors" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-
-                <div id="setup-mon-flash" style="margin-top:12px; min-height:56px;"></div>
-                <div id="setup-mon-log" style="margin-top:10px; max-height:220px; overflow-y:auto;
-                     background:#000; border:1px solid #333; border-radius:6px; padding:8px;
-                     font-family:monospace; font-size:12px; color:#8f8;"></div>
-            </div>
-        </div>
-        <!-- ============ /МОНИТОР ДАТЧИКОВ ============ -->
 
         <!-- ============ ПЕРВЫЙ ЗАПУСК ============
              Пуско-наладка нового замка без SSH: имя квеста, WiFi, Tailscale,
@@ -1204,7 +1192,7 @@
                 restart_hint: "Страница вернётся автоматически когда сервер поднимется (~5–15 сек). Если за 2 минуты нет — обнови страницу вручную или напиши Глебу.",
                 diag_title: "Диагностика устройств (мультиметр в браузере)",
                 diag_desc: "В режиме диагностики устройство замораживает игровую логику. Каждый сенсор отображается живо; выходы (LED, реле, звук) можно дёргать вручную. Не использовать во время игры!",
-                diag_towers_todo: "Башни — TODO",
+                diag_tab_monitor: "Монитор датчиков",
                 diag_mode_train: "Diag mode ON (замораживает поезд!)",
                 diag_mode_wolf: "Diag mode ON (замораживает волка!)",
                 diag_mode_safe: "Diag mode ON (замораживает сейф!)",
@@ -1431,8 +1419,6 @@
                 setup_mon_board: "Плата",
                 setup_mon_ch: "канал",
                 setup_mon_worst: "худший",
-                mon_section_title: "Монитор датчиков",
-                mon_section_sub: "Живое состояние входов замка и всех четырёх башен.",
                 mon_beep_on: "Звук на срабатывание",
                 mon_beep_castle: "Динамики замка",
                 mon_beep_browser: "Это устройство",
@@ -1538,7 +1524,7 @@
                 restart_hint: "The page will reconnect automatically once the server is back (~5–15 sec). If nothing happens within 2 minutes — refresh manually or contact Gleb.",
                 diag_title: "Device diagnostics (multimeter in the browser)",
                 diag_desc: "In diag mode the device freezes its game logic. Every sensor is displayed live; outputs (LEDs, relays, sound) can be toggled manually. Do not use during a game!",
-                diag_towers_todo: "Towers — TODO",
+                diag_tab_monitor: "Sensor monitor",
                 diag_mode_train: "Diag mode ON (freezes the train!)",
                 diag_mode_wolf: "Diag mode ON (freezes the wolf!)",
                 diag_mode_safe: "Diag mode ON (freezes the safe!)",
@@ -1765,8 +1751,6 @@
                 setup_mon_board: "Board",
                 setup_mon_ch: "channel",
                 setup_mon_worst: "worst",
-                mon_section_title: "Sensor monitor",
-                mon_section_sub: "Live state of every input on the castle and all four towers.",
                 mon_beep_on: "Beep on trigger",
                 mon_beep_castle: "Castle speakers",
                 mon_beep_browser: "This device",
@@ -2398,12 +2382,17 @@
 
         // ============ Переключение табов диагностики ============
         $('#diag-tab-menu a.item').on('click', function() {
-            const tab = $(this).data('diag-tab');
+            diagOpenTab($(this).data('diag-tab'));
+        });
+
+        function diagOpenTab(tab) {
             $('#diag-tab-menu .item').removeClass('active');
-            $(this).addClass('active');
+            $('#diag-tab-menu [data-diag-tab="' + tab + '"]').addClass('active');
             $('[data-diag-pane]').hide();
             $('[data-diag-pane="' + tab + '"]').show();
-        });
+            // Монитору при открытии нужна свежая картина — см. monTabShown().
+            if (tab === 'monitor' && typeof monTabShown === 'function') monTabShown();
+        }
 
         // ============ Общий helper: показать лог любого устройства ============
         function diagShowLog(device) {
@@ -3787,23 +3776,14 @@
         var monHbAt = 0;
         var monSilenceTimer = null;
 
-        // Раздел сворачивается отдельно от «Первого запуска» и помнит своё
-        // состояние: монитор открывают часто, каждый раз раскрывать заново
-        // неудобно.
-        var monOpen = localStorage.getItem('monOpen') === '1';
-
-        function monApplyOpenState() {
-            $('#monitor-body').toggle(monOpen);
-            $('#mon-caret').toggleClass('up', monOpen);
-            // Тумблер должен показывать состояние сервера, а не последнее, что
-            // помнит вкладка: монитор мог включить кто-то другой.
-            if (monOpen) {
-                socket.emit('setup_status');
-                // Поток наружу идёт только по изменениям, поэтому полную
-                // картину входов запрашиваем отдельно — иначе после открытия
-                // раздела панель пустая до первого шевеления датчика.
-                socket.emit('sensor_monitor_snapshot');
-            }
+        // Монитор — вкладка в блоке диагностики. Открыли вкладку — спрашиваем
+        // состояние: тумблер должен показывать сервер, а не то, что помнит
+        // вкладка (монитор мог включить кто-то другой). Плюс снимок: наружу
+        // идут только изменения, и без него панель пустая до первого шевеления
+        // датчика.
+        function monTabShown() {
+            socket.emit('setup_status');
+            socket.emit('sensor_monitor_snapshot');
         }
 
         // Снимок: рисуем всё разом и без вспышек — это не срабатывания, а
@@ -3817,12 +3797,6 @@
                 monRenderSensor(pin, d.values[pin], true);
             });
         });
-
-        function monToggle() {
-            monOpen = !monOpen;
-            localStorage.setItem('monOpen', monOpen ? '1' : '0');
-            monApplyOpenState();
-        }
 
         // ---- писк на срабатывание ----
         // Датчик проверяют руками у железа, а экран в это время может быть в
@@ -4159,14 +4133,11 @@
             }
             setupApplyOpenState();
 
-            if (location.hash === '#monitor') {
-                monOpen = true;
-                localStorage.setItem('monOpen', '1');
-            }
+            // Ссылка /tech#monitor открывает сразу вкладку монитора.
+            if (location.hash === '#monitor') diagOpenTab('monitor');
             $('#mon-beep-toggle').prop('checked', monBeepOn);
             $('#mon-beep-source').val(monBeepSource);
             monBeepRenderVol();
-            monApplyOpenState();
             // Сервер про выбор звука не знает, пока вкладка о нём не сказала:
             // после перезапуска сервера писк из динамиков замка иначе пропал бы
             // молча, и это выглядело бы как «датчики перестали срабатывать».
