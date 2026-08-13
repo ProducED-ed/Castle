@@ -3463,6 +3463,12 @@ SENSOR_BEEP_WAV = '/tmp/pip_beep.wav'
 SENSOR_BEEP_MIN_GAP = 0.12      # залп из нескольких входов = один писк
 sensor_beep_castle = False
 sensor_beep_volume = 0.4        # 0..1, задаётся ползунком на пульте
+# Пульт открывают сразу в нескольких местах: на ПК, на телефоне, в старой
+# вкладке. Каждый при подключении сообщает свой выбор звука, и один общий флаг
+# перетирался тем, кто заговорил последним: одна вкладка включала звук, другая
+# тут же выключала. Снаружи это выглядело как «звук то есть, то нет».
+# Поэтому храним выбор ПОКЛИЕНТНО и включаем звук, если его просит хоть кто-то.
+_beep_want_by_sid = {}
 _sensor_beep_sound = None
 _sensor_beep_tried = False
 _sensor_beep_last = 0.0
@@ -3919,18 +3925,26 @@ def sensor_monitor_sound(data):
     перестали срабатывать»."""
     global sensor_beep_castle, sensor_beep_volume
     d = data or {}
-    try:
-        vol = int(d.get('volume', 40))
-    except (TypeError, ValueError):
-        vol = 40
-    sensor_beep_volume = max(0.05, min(1.0, vol / 100.0))
+    # Громкость меняем только когда ползунок реально двигали. Иначе вкладка,
+    # молча переподключившаяся со старым значением, тихо убавляла бы звук.
+    if d.get('explicit'):
+        try:
+            vol = int(d.get('volume', 40))
+        except (TypeError, ValueError):
+            vol = 40
+        sensor_beep_volume = max(0.05, min(1.0, vol / 100.0))
+
     want = bool(d.get('enabled')) and d.get('source') == 'castle'
-    if want and not sensor_beep_castle:
+    _beep_want_by_sid[request.sid] = want
+    combined = any(_beep_want_by_sid.values())
+    if combined and not sensor_beep_castle:
         socketio.start_background_task(_sensor_beep_prepare)
-    if want != sensor_beep_castle:
-        logger.info("MON-BEEP: звук из динамиков замка %s (источник %s, громкость %d%%)"
-                    % ('ВКЛ' if want else 'выкл', d.get('source'), vol))
-    sensor_beep_castle = want
+    if combined != sensor_beep_castle:
+        logger.info("MON-BEEP: звук из динамиков замка %s (просят %d из %d пультов)"
+                    % ('ВКЛ' if combined else 'выкл',
+                       sum(1 for v in _beep_want_by_sid.values() if v),
+                       len(_beep_want_by_sid)))
+    sensor_beep_castle = combined
 
 
 @socketio.on('sensor_monitor_beep_test')
@@ -4341,9 +4355,13 @@ def handle_check_status():
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    global current_client_sid
+    global current_client_sid, sensor_beep_castle
     if request.sid == current_client_sid:
         current_client_sid = None
+    # Ушедший пульт больше не голосует за звук. Без этой уборки закрытая
+    # вкладка навсегда оставляла бы замок пищащим.
+    if _beep_want_by_sid.pop(request.sid, None) is not None:
+        sensor_beep_castle = any(_beep_want_by_sid.values())
         
 @socketio.on('client_time_sync')
 def handle_client_time(time_string):

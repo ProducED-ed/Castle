@@ -3869,7 +3869,7 @@
                     a.pause(); a.currentTime = 0; a.volume = vol;
                 }
             }
-            monBeepSend();
+            monBeepSend(true);
         }
 
         function monBeepRenderVol() {
@@ -3890,7 +3890,7 @@
             localStorage.setItem(monBeepSource === 'castle'
                 ? 'monBeepVolCastle' : 'monBeepVolBrowser', String(v));
             monBeepRenderVol();
-            monBeepSend();
+            monBeepSend(true);
             monBeepTest();          // отпустил ползунок — сразу слышно результат
         }
 
@@ -3932,10 +3932,14 @@
             try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
         }
 
-        function monBeepSend() {
+        // explicit = пользователь только что сам тронул органы управления.
+        // Пересылка при переподключении идёт без этого признака, и сервер по ней
+        // не меняет громкость: иначе молча ожившая старая вкладка убавляла бы
+        // звук своим прошлым значением.
+        function monBeepSend(explicit) {
             socket.emit('sensor_monitor_sound', {
                 enabled: monBeepOn, source: monBeepSource,
-                volume: monBeepVol.castle
+                volume: monBeepVol.castle, explicit: !!explicit
             });
         }
 
