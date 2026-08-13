@@ -1401,6 +1401,7 @@
                 setup_servo_sent: "Команда отправлена на главную плату…",
                 setup_servo_moved: "Главная плата отчиталась: серво отработал.",
                 setup_servo_no_reply: "Главная плата не ответила. Проверь, что на неё залита свежая прошивка (кнопка «Прошить main» выше) — тестовую команду понимают только новые версии.",
+                setup_servo_no_save_reply: "Замок не ответил на «Сохранить». Проверь связь и нажми ещё раз — введённые значения не потеряны.",
                 setup_servo_saved: "Калибровка сохранена — она переживёт перезагрузку.",
                 setup_servo_bad: "Значения вне допустимых границ.",
                 setup_mon_hint: "Включите монитор — плата начнёт опрашивать входы и покажет их состояние. Замкните геркон или нажмите кнопку рукой: плашка загорится зелёным. Проходить сценарий не нужно. Работает только когда квест не идёт.",
@@ -1732,6 +1733,7 @@
                 setup_servo_sent: "Command sent to the main board…",
                 setup_servo_moved: "Main board reported back: the servo moved.",
                 setup_servo_no_reply: "No reply from the main board. Check that it runs the current firmware (the “Flash main” button above) — only newer versions understand the test command.",
+                setup_servo_no_save_reply: "The castle did not answer the save. Check the link and press again — your values are kept.",
                 setup_servo_saved: "Calibration saved — it survives a reboot.",
                 setup_servo_bad: "Values are out of the allowed range.",
                 setup_mon_hint: "Turn the monitor on — the board starts polling its inputs and shows their state. Close a reed switch or press a button by hand: the chip lights up green. No need to play through the scenario. Works only while no game is running.",
@@ -3208,12 +3210,19 @@
 
             setupBadge('#setup-hub-badge', !!s.usb_hub.confirmed);
 
+            // Поля калибровки не трогаем, пока человек их правит или пока ждём
+            // ответа на «Сохранить». Проверки на фокус мало: после нажатия
+            // кнопки поле фокус теряет, прилетает очередной общий статус — и
+            // введённые 180 молча превращались обратно в 170. Со стороны это
+            // выглядит как «не сохраняется», хотя на замке всё сохранилось.
             var servo = s.boy_servo;
-            if (!$('#servo-pulse-min').is(':focus')) $('#servo-pulse-min').val(servo.pulse_min);
-            if (!$('#servo-pulse-max').is(':focus')) $('#servo-pulse-max').val(servo.pulse_max);
-            if (!$('#servo-angle-hide').is(':focus')) $('#servo-angle-hide').val(servo.angle_hide);
-            if (!$('#servo-angle-open').is(':focus')) $('#servo-angle-open').val(servo.angle_open);
-            if (!$('#servo-move-ms').is(':focus')) $('#servo-move-ms').val(servo.move_ms);
+            if (!servoDirty) {
+                $('#servo-pulse-min').val(servo.pulse_min);
+                $('#servo-pulse-max').val(servo.pulse_max);
+                $('#servo-angle-hide').val(servo.angle_hide);
+                $('#servo-angle-open').val(servo.angle_open);
+                $('#servo-move-ms').val(servo.move_ms);
+            }
 
             if (s.flash_mode && s.flash_mode !== flashMode) {
                 flashMode = s.flash_mode;
@@ -3569,6 +3578,12 @@
         }
 
         // ---- шаг 5: калибровка серво ----
+        // Человек правит калибровку — значит поля принадлежат ему, а не серверу.
+        var servoDirty = false;
+        $(document).on('input',
+            '#servo-pulse-min,#servo-pulse-max,#servo-angle-hide,#servo-angle-open,#servo-move-ms',
+            function() { servoDirty = true; });
+
         function setupServoValues() {
             return {
                 pulse_min: parseInt($('#servo-pulse-min').val(), 10),
@@ -3586,6 +3601,14 @@
         function setupServoSave() {
             $('#servo-save').addClass('loading disabled');
             socket.emit('setup_servo_save', { values: setupServoValues() });
+            // Если ответ не пришёл — а связь на производстве рвётся, — кнопка
+            // иначе крутится вечно и человек считает, что сохранение молча не
+            // сработало. Лучше честно сказать, что ответа нет.
+            clearTimeout(window._servoSaveWait);
+            window._servoSaveWait = setTimeout(function() {
+                $('#servo-save').removeClass('loading disabled');
+                setupMsg('#setup-servo-msg', T('setup_servo_no_save_reply'), 'bad');
+            }, 8000);
         }
 
         socket.on('setup_servo_result', function(d) {
@@ -3606,8 +3629,20 @@
             } else if (d.stage === 'accepted') {
                 clearTimeout(window._servoWait);
             } else if (d.ok) {
+                clearTimeout(window._servoSaveWait);
+                servoDirty = false;
+                // Показываем то, что реально легло на замок: если значение
+                // подрезали границами, человек это увидит сразу.
+                if (d.values) {
+                    $('#servo-pulse-min').val(d.values.pulse_min);
+                    $('#servo-pulse-max').val(d.values.pulse_max);
+                    $('#servo-angle-hide').val(d.values.angle_hide);
+                    $('#servo-angle-open').val(d.values.angle_open);
+                    $('#servo-move-ms').val(d.values.move_ms);
+                }
                 setupMsg('#setup-servo-msg', T('setup_servo_saved'), 'ok');
             } else {
+                clearTimeout(window._servoSaveWait);
                 setupMsg('#setup-servo-msg', T('setup_servo_bad'), 'bad');
             }
         });
