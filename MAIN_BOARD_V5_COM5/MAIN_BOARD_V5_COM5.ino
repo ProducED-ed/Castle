@@ -7732,13 +7732,19 @@ const uint8_t MON_BOARDS[] = { 21, 20, A12, 33 };
 const uint8_t MON_CHANNELS = 8;
 const uint8_t MON_EXPANDED = 4 * MON_CHANNELS;      // 32 канала
 const uint8_t MON_KNOCK_IDX = MON_DIRECT + MON_EXPANDED;
-const uint8_t MON_COUNT = MON_DIRECT + MON_EXPANDED + 1;   // +1 — датчик вибрации
+// RFID на котле — не уровень на пине, а шина 1-Wire: метка «видна» не по
+// напряжению, а по ответу на поиск. Поэтому у него свой слот и свой опрос,
+// как у пьезодатчика, а не строка в MON_PINS.
+const uint8_t MON_RFID_IDX = MON_KNOCK_IDX + 1;
+const uint8_t MON_COUNT = MON_DIRECT + MON_EXPANDED + 2;   // +2 — вибрация и RFID
 
 uint8_t monPrev[MON_COUNT];
 uint8_t monCnt[MON_COUNT];
 unsigned long monTimer = 0;
 unsigned long monPingTimer = 0;
 unsigned long monKnockUntil = 0;
+unsigned long monRfidUntil = 0;
+unsigned long monRfidTimer = 0;
 
 // Идентификатор входа для пульта: "41" — прямой пин, "b2c7" — канал
 // мультиплексора, "knock" — пьезодатчик. Имена подставляет пульт, поэтому в
@@ -7748,6 +7754,8 @@ void monPrintId(uint8_t i) {
     Serial.print(MON_PINS[i]);
   } else if (i == MON_KNOCK_IDX) {
     Serial.print(F("knock"));
+  } else if (i == MON_RFID_IDX) {
+    Serial.print(F("rfid"));
   } else {
     uint8_t e = i - MON_DIRECT;
     Serial.print('b');
@@ -7772,8 +7780,29 @@ uint8_t monRead(uint8_t i) {
     if (analogRead(KnockSens) <= threshold) monKnockUntil = millis() + 900;
     return (millis() < monKnockUntil) ? 0 : 1;
   }
+  if (i == MON_RFID_IDX) {
+    return (millis() < monRfidUntil) ? 0 : 1;
+  }
   uint8_t e = i - MON_DIRECT;
   return digitalReadExpander(e % MON_CHANNELS, MON_BOARDS[e / MON_CHANNELS]);
+}
+
+// Опрос считывателя котла. Поиск по шине занимает единицы миллисекунд, но
+// дёргать его на каждом проходе незачем — раз в 200 мс достаточно, чтобы
+// поймать поднесённую бутылку. Найденную метку держим «активной» ещё 700 мс:
+// иначе быстрое касание мелькнёт быстрее, чем человек посмотрит на экран.
+// Своим буфером, а не общим addr: тот принадлежит игровой логике.
+void monPollRfid() {
+  if (millis() - monRfidTimer < 200) return;
+  monRfidTimer = millis();
+  byte tag[8];
+  if (myRFID.search(tag)) monRfidUntil = millis() + 700;
+  myRFID.reset_search();
+  uint8_t v = (millis() < monRfidUntil) ? 0 : 1;
+  if (v != monPrev[MON_RFID_IDX]) {
+    monPrev[MON_RFID_IDX] = v;
+    monReport(MON_RFID_IDX, v);
+  }
 }
 
 bool handleMonCmd(const String &buff) {
@@ -7847,12 +7876,13 @@ void monPoll() {
   if (!monActive) return;
   monPingTowers();
   monPollKnock();
+  monPollRfid();
   // Полный обход мультиплексора стоит ~32 мс (в digitalReadExpander есть
   // обязательная пауза 1 мс на стабилизацию), поэтому реже, чем прямые пины.
   if (millis() - monTimer < 150) return;
   monTimer = millis();
   for (uint8_t i = 0; i < MON_COUNT; i++) {
-    if (i == MON_KNOCK_IDX) continue;   // пьезо опрошен выше, на каждом проходе
+    if (i == MON_KNOCK_IDX || i == MON_RFID_IDX) continue;   // опрошены выше
     uint8_t v = monRead(i);
     if (v != monPrev[i]) {
       // Антидребезг: значение должно продержаться два опроса подряд.
