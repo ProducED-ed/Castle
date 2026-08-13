@@ -3792,6 +3792,9 @@
             if (!d || !d.values) return;
             monValues = {};
             $('#setup-mon-sensors').empty();
+            // Снимок — это и есть полная картина: всё, что придёт после него,
+            // уже настоящие события.
+            monStartedAt = 0;
             Object.keys(d.values).forEach(function(pin) {
                 monValues[pin] = d.values[pin];
                 monRenderSensor(pin, d.values[pin], true);
@@ -3814,6 +3817,7 @@
         };
         var monBeepAudio = null;
         var monBeepLast = 0;
+        var monStartedAt = 0;      // момент включения монитора, см. monBeepMaybe
         var monValues = {};          // последнее известное состояние каждого входа
 
         function monBeepVolLoad(key, def) {
@@ -3901,14 +3905,17 @@
             });
         }
 
-        // Пищим только на настоящую смену состояния уже известного входа.
-        // Первое появление плашки — не смена: при включении монитора платы
-        // отдают снимок всех входов разом, и это было бы полторы сотни писков.
+        // Пищим на смену состояния. Первое появление плашки — не смена, но
+        // только пока платы отдают стартовый снимок: дальше первое появление
+        // означает, что строка снимка потерялась, а датчик сейчас нажали.
+        // Так пропадал писк на замыкании галетника: плашка появлялась, звука
+        // не было, а на размыкании был.
         function monBeepMaybe(pin, value) {
             var known = monValues.hasOwnProperty(pin);
             var prev = monValues[pin];
             monValues[pin] = value;
-            if (!known || prev === value) return;
+            if (known && prev === value) return;
+            if (!known && Date.now() - monStartedAt < 10000) return;
             if (!monBeepOn || monBeepSource !== 'browser') return;   // замок пищит сам
             var now = Date.now();
             if (now - monBeepLast < 120) return;      // залп из нескольких входов = один писк
@@ -3942,6 +3949,7 @@
 
         function setupMonitorToggle(active) {
             socket.emit('sensor_monitor_set', { active: active });
+            monStartedAt = Date.now();
             monSetActiveUI(active);
             monBeepSend();
             if (active) setTimeout(function() {

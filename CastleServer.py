@@ -3464,6 +3464,13 @@ _sensor_beep_sound = None
 _sensor_beep_tried = False
 _sensor_beep_last = 0.0
 _sensor_last_values = {}        # последнее известное состояние каждого входа
+_sensor_last_flags = {}         # последнее состояние игровых флагов (galet_on/off и т.п.)
+_sensor_started_at = 0.0        # когда включили монитор — см. SENSOR_DUMP_WINDOW
+# Пока платы отдают стартовый снимок, вход, увиденный ВПЕРВЫЕ, — это не
+# срабатывание, а знакомство, и пищать на него нельзя. После этого окна первый
+# же приход входа — уже настоящее событие: строка снимка могла потеряться, а
+# человек в этот момент реально держит геркон.
+SENSOR_DUMP_WINDOW = 10.0
 
 
 def _setup_busy():
@@ -3956,6 +3963,17 @@ def _emit_sensor_event(line):
     # каждые 5 секунд, а Совы вдобавок логируют каждый такой вопрос.
     if isinstance(line, str) and ('ping_main' in line or line == 'pong'):
         return
+    # Башни раз в 5 секунд повторяют состояние своих флагов и галетника, чтобы
+    # потерянный фронт не расходился с реальностью навсегда. Игровому разбору
+    # этот повтор нужен, монитору — нет: в логе пульта он выглядел как поток
+    # событий на пустом месте. Наружу отдаём только смену состояния.
+    if isinstance(line, str):
+        pair = re.fullmatch(r'([a-z0-9_]+)_(on|off)', line)
+        if pair:
+            name, state = pair.group(1), pair.group(2)
+            if _sensor_last_flags.get(name) == state:
+                return
+            _sensor_last_flags[name] = state
     now = time.time()
     if now - _sensor_window_start >= 1.0:
         _sensor_window_start = now
@@ -3986,10 +4004,13 @@ def _emit_sensor_event(line):
             # берёт снимком (sensor_monitor_snapshot).
             if prev == value:
                 return
-            # Пищим только на смену состояния уже известного входа: при
-            # включении монитора платы отдают все входы разом, и это была бы
-            # сотня писков подряд.
-            if sensor_beep_castle and prev is not None:
+            # Пищим на смену состояния. Вход, увиденный впервые, — не смена,
+            # но только пока идёт стартовый снимок: дальше первое появление
+            # означает, что строка снимка потерялась, а датчик сейчас нажали.
+            # Именно так пропадал писк на замыкании галетника Баскетбола:
+            # плашка появлялась, а звука не было, зато на размыкании был.
+            if sensor_beep_castle and (prev is not None
+                                       or now - _sensor_started_at > SENSOR_DUMP_WINDOW):
                 _sensor_beep()
             payload['pin'] = pin
             payload['value'] = value
@@ -4029,6 +4050,8 @@ def sensor_monitor_set(data):
     # Снимок всех входов приходит заново — прежние состояния к нему отношения
     # не имеют, иначе включение монитора отзовётся очередью писков.
     _sensor_last_values.clear()
+    _sensor_last_flags.clear()
+    globals()['_sensor_started_at'] = time.time()
     # Выбор источника звука тут НЕ трогаем. Раньше выключение монитора сбрасывало
     # его в «не пищать», а пульт об этом не узнавал и продолжал показывать
     # тумблер включённым: любой, кто дёрнул монитор со стороны (другая вкладка,
