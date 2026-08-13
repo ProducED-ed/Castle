@@ -592,10 +592,25 @@ $('.ui.dropdown')
 
     //нажатие на старт тоже отправляем данные на сервак и отпускаем флаги
     $('#Start').click(function(){
-      socket.emit('time', 'start');//шлем на сервер
-      resetProgressLatches();
-      finalAlert = 1;
-      start_error = 1;
+      // Подтверждение как у Restart. Кнопки стоят рядом, и случайный Start
+      // посреди игры сбивает отсчёт времени. Диалог одинаковый у обеих, чтобы
+      // гейм-мастеру не приходилось помнить, где спрашивают, а где нет.
+      swal.fire({
+        title: 'Start the quest?',
+        text: 'The timer will start and the game begins.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, start',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true
+      }).then(function(result){
+        if (!result || !(result.isConfirmed || result.value)) return;
+        socket.emit('time', 'start');//шлем на сервер
+        resetProgressLatches();
+        finalAlert = 1;
+        start_error = 1;
+      });
 });
     //нажали на рестарт обрати внимание данные шлем на сервер пока на пульте ничего не отображается
     $('#Restart').click(function(){
