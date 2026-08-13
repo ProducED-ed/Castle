@@ -95,6 +95,15 @@ DEFAULTS = {
         # окажется лишним.
         "replug_before_flash": True,
     },
+    # Звук на срабатывание датчика из динамиков замка. Живёт ЗДЕСЬ, а не в
+    # браузере: монтажник включает его, чтобы проверять датчики на слух, не
+    # завися от связи с пультом. Если бы решение принимал пульт, обрыв вайфая
+    # или закрытая вкладка молча выключали бы звук — ровно то, ради чего его и
+    # выбирали вместо звука из браузера.
+    "sensor_beep": {
+        "castle": False,
+        "volume": 40,       # проценты
+    },
     # Как башня подключена к Pi во время прошивки.
     #   "hub"    — четыре кабеля постоянно сидят в USB-хабе, у каждой башни свой
     #              порт (так собраны CLC1, CLC2, CLC3);
@@ -218,6 +227,13 @@ class CastleConfig:
                 port = STANDARD_HUB_PORTS[tower]
             ports[tower] = port
 
+        beep = data.setdefault("sensor_beep", {})
+        beep["castle"] = bool(beep.get("castle", DEFAULTS["sensor_beep"]["castle"]))
+        try:
+            beep["volume"] = _clamp(int(beep.get("volume", DEFAULTS["sensor_beep"]["volume"])), 5, 100)
+        except (TypeError, ValueError):
+            beep["volume"] = DEFAULTS["sensor_beep"]["volume"]
+
         mode = str(data.get("flash_mode", DEFAULTS["flash_mode"]))
         if mode not in ("hub", "direct"):
             logger.warning(f"CONFIG: неизвестный режим прошивки '{mode}' — беру хаб")
@@ -270,6 +286,22 @@ class CastleConfig:
         """Полный путь устройства для avrdude."""
         hub = self.data["usb_hub"]
         return f"{hub['base']}{self.tower_port(tower)}{hub['suffix']}"
+
+    def sensor_beep(self):
+        """{'castle': bool, 'volume': 5..100} — звук на срабатывание из замка."""
+        return dict(self.data.get("sensor_beep", DEFAULTS["sensor_beep"]))
+
+    def set_sensor_beep(self, castle=None, volume=None):
+        beep = self.data.setdefault("sensor_beep", dict(DEFAULTS["sensor_beep"]))
+        if castle is not None:
+            beep["castle"] = bool(castle)
+        if volume is not None:
+            try:
+                beep["volume"] = _clamp(int(volume), 5, 100)
+            except (TypeError, ValueError):
+                pass
+        self.save()
+        return dict(beep)
 
     def flash_mode(self):
         """'hub' — башни постоянно в хабе, 'direct' — один кабель в Pi."""
@@ -422,6 +454,7 @@ class CastleConfig:
                 "is_standard": self.hub_is_standard(),
             },
             "flash_mode": self.flash_mode(),
+            "sensor_beep": self.sensor_beep(),
             "boy_servo": self.boy_servo(),
             "servo_limits": {k: list(v) for k, v in SERVO_LIMITS.items()},
             "tailscale": self.tailscale_flags(),

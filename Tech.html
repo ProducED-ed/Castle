@@ -1425,7 +1425,6 @@
                 mon_beep_browser: "Это устройство",
                 mon_beep_blocked: "Браузер не дал включить звук. Нажмите в любом месте страницы и включите тумблер ещё раз.",
                 mon_beep_test: "Проверить звук",
-                mon_beep_desync: "Сервер не знает про выбранный звук — повторяю запрос.",
                 mon_beep_vol: "Громкость",
                 mon_off_note: "Монитор выключен — состояние входов не показывается. Включите тумблер, иначе замеры будут вслепую.",
                 mon_beep_no_file: "Замок не смог воспроизвести сигнал: проверьте, что файл pip.mp3 лежит на сервере и включён звук.",
@@ -1757,7 +1756,6 @@
                 mon_beep_browser: "This device",
                 mon_beep_blocked: "The browser blocked audio playback. Tap anywhere on the page and switch the toggle on again.",
                 mon_beep_test: "Test sound",
-                mon_beep_desync: "The server does not know about the selected sound — re-sending the request.",
                 mon_beep_vol: "Volume",
                 mon_off_note: "The monitor is off — input states are not shown. Switch it on, otherwise you are measuring blind.",
                 mon_beep_no_file: "The castle could not play the beep: check that pip.mp3 is on the server and the sound is on.",
@@ -3222,16 +3220,16 @@
             }
             renderFlashMode();
             monSetActiveUI(!!s.sensor_monitor);
-            // Сервер говорит, просит ли кто-то звук из динамиков замка. Если
-            // тумблер включён, источник «Динамики замка», а сервер отвечает
-            // «нет» — значит выбор до него не дошёл, и это надо видеть, а не
-            // гадать, почему замок молчит.
-            if (monBeepOn && monBeepSource === 'castle' && s.sensor_beep_castle === false) {
-                setupMsg('#mon-beep-msg', T('mon_beep_desync'), 'warn');
-                monBeepSend();
-            } else if ($('#mon-beep-msg').text() === T('mon_beep_desync')) {
-                $('#mon-beep-msg').empty();
+            // Звук замка — состояние самого замка. Вкладка его только
+            // показывает: включил один раз, работает независимо от того, открыт
+            // ли пульт и жива ли связь.
+            if (typeof s.sensor_beep_castle === 'boolean') {
+                monBeepCastleOn = s.sensor_beep_castle;
             }
+            if (typeof s.sensor_beep_volume === 'number') {
+                monBeepVol.castle = s.sensor_beep_volume;
+            }
+            monBeepRenderVol();
 
             setupRenderChecklist(s.checklist || {});
             setupApplyLock(!!s.game_running);
@@ -3818,8 +3816,13 @@
         // другой комнате. Источник выбирается: динамики замка слышно отовсюду,
         // но если рядом кто-то работает — удобнее динамик самого устройства,
         // на котором открыт пульт.
+        // Тумблер для «это устройство» — свойство вкладки, живёт в браузере.
+        // Тумблер для «динамики замка» — свойство ЗАМКА, живёт в его конфиге:
+        // звук из замка выбирают именно затем, чтобы он не зависел от связи с
+        // пультом. Вкладка его только показывает и меняет по действию человека.
         var monBeepOn = localStorage.getItem('monBeepOn') === '1';
         var monBeepSource = localStorage.getItem('monBeepSource') || 'castle';
+        var monBeepCastleOn = false;   // что реально включено на замке
         // Громкость своя у каждого источника: динамики замка и динамик телефона
         // звучат совершенно по-разному, общий ползунок пришлось бы двигать при
         // каждом переключении.
@@ -3837,6 +3840,10 @@
             return (isNaN(v) || v < 5 || v > 100) ? def : v;
         }
 
+        // Что показывать и чем пищать — зависит от выбранного источника.
+        function beepIsOn()  { return monBeepSource === 'castle' ? monBeepCastleOn : monBeepOn; }
+        function beepVolume(){ return monBeepVol[monBeepSource]; }
+
         function monBeepInit() {
             if (monBeepAudio) return monBeepAudio;
             monBeepAudio = new Audio('/api/audio/file/pip.mp3');
@@ -3847,10 +3854,21 @@
         // Вызывается из onchange, то есть внутри жеста пользователя — только так
         // мобильный браузер разрешает воспроизведение без клика на каждый звук.
         function monBeepChanged() {
-            monBeepOn = $('#mon-beep-toggle').is(':checked');
+            var checked = $('#mon-beep-toggle').is(':checked');
+            var prevSource = monBeepSource;
             monBeepSource = $('#mon-beep-source').val() || 'castle';
-            localStorage.setItem('monBeepOn', monBeepOn ? '1' : '0');
             localStorage.setItem('monBeepSource', monBeepSource);
+            // Переключили источник — тумблер показывает состояние НОВОГО
+            // источника, а не переносит на него положение от старого.
+            if (monBeepSource === prevSource) {
+                if (monBeepSource === 'castle') {
+                    monBeepCastleOn = checked;
+                    monBeepSend(true);          // сохранится на замке
+                } else {
+                    monBeepOn = checked;
+                    localStorage.setItem('monBeepOn', monBeepOn ? '1' : '0');
+                }
+            }
             $('#mon-beep-msg').empty();
             monBeepRenderVol();
             if (monBeepOn && monBeepSource === 'browser') {
@@ -3869,12 +3887,13 @@
                     a.pause(); a.currentTime = 0; a.volume = vol;
                 }
             }
-            monBeepSend(true);
         }
 
         function monBeepRenderVol() {
-            $('#mon-beep-volume').val(monBeepVol[monBeepSource]);
-            $('#mon-beep-vol-val').text(monBeepVol[monBeepSource] + '%');
+            $('#mon-beep-source').val(monBeepSource);
+            $('#mon-beep-toggle').prop('checked', beepIsOn());
+            $('#mon-beep-volume').val(beepVolume());
+            $('#mon-beep-vol-val').text(beepVolume() + '%');
         }
 
         // Пока тянут ползунок — только цифра. Звук на каждый шаг превратился бы
@@ -3887,10 +3906,12 @@
             var v = parseInt($('#mon-beep-volume').val(), 10);
             if (isNaN(v)) return;
             monBeepVol[monBeepSource] = v;
-            localStorage.setItem(monBeepSource === 'castle'
-                ? 'monBeepVolCastle' : 'monBeepVolBrowser', String(v));
+            if (monBeepSource === 'castle') {
+                monBeepSend(true);              // громкость замка живёт на замке
+            } else {
+                localStorage.setItem('monBeepVolBrowser', String(v));
+            }
             monBeepRenderVol();
-            monBeepSend(true);
             monBeepTest();          // отпустил ползунок — сразу слышно результат
         }
 
@@ -3936,10 +3957,14 @@
         // Пересылка при переподключении идёт без этого признака, и сервер по ней
         // не меняет громкость: иначе молча ожившая старая вкладка убавляла бы
         // звук своим прошлым значением.
+        // Шлём ТОЛЬКО по явному действию человека и только про звук замка.
+        // Автоматических пересылок больше нет: настройка хранится на замке, и
+        // ожившая после обрыва вкладка не должна её трогать.
         function monBeepSend(explicit) {
+            if (!explicit || monBeepSource !== 'castle') return;
             socket.emit('sensor_monitor_sound', {
-                enabled: monBeepOn, source: monBeepSource,
-                volume: monBeepVol.castle, explicit: !!explicit
+                enabled: monBeepCastleOn, source: 'castle',
+                volume: monBeepVol.castle, explicit: true
             });
         }
 
@@ -3989,7 +4014,6 @@
             socket.emit('sensor_monitor_set', { active: active });
             monStartedAt = Date.now();
             monSetActiveUI(active);
-            monBeepSend();
             if (active) setTimeout(function() {
                 socket.emit('sensor_monitor_snapshot');
             }, 4000);          // после того как платы отдали стартовый снимок
@@ -4184,13 +4208,8 @@
             $('#mon-beep-toggle').prop('checked', monBeepOn);
             $('#mon-beep-source').val(monBeepSource);
             monBeepRenderVol();
-            // Сервер про выбор звука не знает, пока вкладка о нём не сказала:
-            // после перезапуска сервера писк из динамиков замка иначе пропал бы
-            // молча, и это выглядело бы как «датчики перестали срабатывать».
-            monBeepSend();
         });
 
-        socket.on('connect', function() { monBeepSend(); });
         // ============ /ПЕРВЫЙ ЗАПУСК ============
     </script>
 </body>
