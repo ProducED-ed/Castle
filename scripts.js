@@ -599,11 +599,28 @@ $('.ui.dropdown')
 });
     //нажали на рестарт обрати внимание данные шлем на сервер пока на пульте ничего не отображается
     $('#Restart').click(function(){
-      socket.emit('time', 'restart');
-      resetProgressLatches();
-      restflag = 0;
-      finalAlert = 0;
-      start_error = 0;
+      // Подтверждение перед рестартом. Просьба сотрудников клиента: кнопка
+      // стоит вплотную к Start, а случайное нажатие посреди игры обнуляет
+      // прохождение и открывает все двери — вернуть это уже нельзя.
+      // focusCancel: случайный Enter не должен запускать рестарт.
+      swal.fire({
+        title: 'Restart the quest?',
+        text: 'The current game will be reset and all doors will open.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, restart',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true
+      }).then(function(result){
+        // isConfirmed — SweetAlert2 v9+, value — более старые сборки.
+        if (!result || !(result.isConfirmed || result.value)) return;
+        socket.emit('time', 'restart');
+        resetProgressLatches();
+        restflag = 0;
+        finalAlert = 0;
+        start_error = 0;
+      });
 });
     // Real Restart-button press → блокируем Ready на 10 сек чтобы Mega успела
     // выполнить OpenAll/RestOn/SendRestartToAll до того как пользователь начнёт
