@@ -3855,20 +3855,21 @@
         // мобильный браузер разрешает воспроизведение без клика на каждый звук.
         function monBeepChanged() {
             var checked = $('#mon-beep-toggle').is(':checked');
-            var prevSource = monBeepSource;
             monBeepSource = $('#mon-beep-source').val() || 'castle';
             localStorage.setItem('monBeepSource', monBeepSource);
-            // Переключили источник — тумблер показывает состояние НОВОГО
-            // источника, а не переносит на него положение от старого.
-            if (monBeepSource === prevSource) {
-                if (monBeepSource === 'castle') {
-                    monBeepCastleOn = checked;
-                    monBeepSend(true);          // сохранится на замке
-                } else {
-                    monBeepOn = checked;
-                    localStorage.setItem('monBeepOn', monBeepOn ? '1' : '0');
-                }
+            // Источник взаимоисключающий: выбрал компьютер — замок замолкает, и
+            // наоборот. Иначе при проверке внешних устройств пищали бы оба
+            // сразу, потому что настройка замка живёт отдельно и сама по себе
+            // не выключается.
+            if (monBeepSource === 'castle') {
+                monBeepCastleOn = checked;
+                monBeepOn = false;
+            } else {
+                monBeepOn = checked;
+                monBeepCastleOn = false;
             }
+            localStorage.setItem('monBeepOn', monBeepOn ? '1' : '0');
+            monBeepSend(true);
             $('#mon-beep-msg').empty();
             monBeepRenderVol();
             if (monBeepOn && monBeepSource === 'browser') {
@@ -3961,7 +3962,7 @@
         // Автоматических пересылок больше нет: настройка хранится на замке, и
         // ожившая после обрыва вкладка не должна её трогать.
         function monBeepSend(explicit) {
-            if (!explicit || monBeepSource !== 'castle') return;
+            if (!explicit) return;
             socket.emit('sensor_monitor_sound', {
                 enabled: monBeepCastleOn, source: 'castle',
                 volume: monBeepVol.castle, explicit: true
