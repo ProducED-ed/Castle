@@ -388,6 +388,31 @@
                 В режиме диагностики устройство замораживает игровую логику.
             </div>
 
+            <!-- Звук на срабатывание датчика. Общий на весь блок: работает и в
+                 мониторе замка, и на вкладках внешних устройств. Настраивать
+                 громкость в двух местах было бы издевательством. -->
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:10px 0;">
+                <div class="ui toggle checkbox">
+                    <input type="checkbox" id="mon-beep-toggle" onchange="monBeepChanged()">
+                    <label style="color:#ddd;" data-i18n="mon_beep_on">Звук на срабатывание</label>
+                </div>
+                <select id="mon-beep-source" onchange="monBeepChanged()" style="padding:5px;">
+                    <option value="castle" data-i18n="mon_beep_castle">Динамики замка</option>
+                    <option value="browser" data-i18n="mon_beep_browser">Это устройство</option>
+                </select>
+                <!-- Ползунок отпускаешь — писк тут же звучит на новой громкости:
+                     подбирать её вслепую, тыкая датчик после каждого шага, нельзя. -->
+                <span style="color:#ddd; font-size:13px;" data-i18n="mon_beep_vol">Громкость</span>
+                <input type="range" id="mon-beep-volume" min="5" max="100" step="5"
+                       oninput="monBeepVolInput()" onchange="monBeepVolChanged()"
+                       style="width:120px; vertical-align:middle;">
+                <span id="mon-beep-vol-val" style="color:#777; font-size:12px; min-width:38px;"></span>
+                <button class="ui mini button" id="mon-beep-test" onclick="monBeepTest()">
+                    <span data-i18n="mon_beep_test">Проверить звук</span>
+                </button>
+                <span id="mon-beep-msg" style="font-size:12px;"></span>
+            </div>
+
             <div class="ui inverted top attached tabular menu" id="diag-tab-menu">
                 <a class="active item" data-diag-tab="train">Train (.202)</a>
                 <a class="item" data-diag-tab="wolf">Wolf (.201)</a>
@@ -695,35 +720,11 @@
                     <input type="checkbox" id="setup-mon-toggle" onchange="setupMonitorToggle(this.checked)">
                     <label style="color:#ddd;" data-i18n="setup_mon_on">Включить монитор</label>
                 </div>
-                <!-- Писк на срабатывание: датчик проверяют, стоя у железа, и
-                     смотреть в экран одновременно неудобно. Источник звука
-                     выбирается — динамики замка слышно из любой комнаты,
-                     динамик телефона удобнее, когда замок молчит. -->
-                <div class="ui toggle checkbox">
-                    <input type="checkbox" id="mon-beep-toggle" onchange="monBeepChanged()">
-                    <label style="color:#ddd;" data-i18n="mon_beep_on">Звук на срабатывание</label>
-                </div>
-                <select id="mon-beep-source" onchange="monBeepChanged()" style="padding:5px;">
-                    <option value="castle" data-i18n="mon_beep_castle">Динамики замка</option>
-                    <option value="browser" data-i18n="mon_beep_browser">Это устройство</option>
-                </select>
-                <!-- Ползунок отпускаешь — писк тут же звучит на новой
-                     громкости: подбирать её вслепую, тыкая датчик после
-                     каждого шага, невозможно. -->
-                <span style="color:#ddd; font-size:13px;" data-i18n="mon_beep_vol">Громкость</span>
-                <input type="range" id="mon-beep-volume" min="5" max="100" step="5"
-                       oninput="monBeepVolInput()" onchange="monBeepVolChanged()"
-                       style="width:120px; vertical-align:middle;">
-                <span id="mon-beep-vol-val" style="color:#777; font-size:12px; min-width:38px;"></span>
-                <button class="ui mini button" id="mon-beep-test" onclick="monBeepTest()">
-                    <span data-i18n="mon_beep_test">Проверить звук</span>
-                </button>
                 <button class="ui mini button" onclick="setupMonitorClear()">
                     <span data-i18n="setup_mon_clear">Очистить</span>
                 </button>
                 <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
             </div>
-            <div id="mon-beep-msg" style="margin-top:6px; font-size:12px;"></div>
 
             <!-- Пока монитор выключен, плашек нет вообще. Оставленные на
                  экране, они выглядят как живое состояние входов — можно
@@ -2499,6 +2500,7 @@
         }
 
         socket.on('wolf_diag_state', function(s) {
+            diagBeepMaybe('wolf', s.in);
             if (!diagWolfActive) return;
             $('#diag-wolf-ts').text(new Date().toLocaleTimeString());
             $('#diag-wolf-rssi').text(s.rssi + ' dBm');
@@ -2541,6 +2543,7 @@
 
         // Snapshot от ESP32 (каждые 200ms)
         socket.on('train_diag_state', function(s) {
+            diagBeepMaybe('train', s.in);
             if (!diagTrainActive) return;
             $('#diag-train-ts').text(new Date().toLocaleTimeString());
             $('#diag-train-rssi').text(s.rssi + ' dBm');
@@ -2750,6 +2753,7 @@
         });
 
         socket.on('suitcases_diag_state', function(s) {
+            diagBeepMaybe('suitcases', s.in);
             if (!diagSuitcasesActive) return;
             diagUpdateSystemMetrics('suitcases', s);
             if (Array.isArray(s.in)) {
@@ -2775,6 +2779,7 @@
         });
 
         socket.on('safe_diag_state', function(s) {
+            diagBeepMaybe('safe', s.in);
             if (!diagSafeActive) return;
             diagUpdateSystemMetrics('safe', s);
             if (Array.isArray(s.in)) {
@@ -3904,6 +3909,28 @@
             if (!d || d.ok) return;
             $('#mon-beep-msg').html('<span class="setup-bad">' + T('mon_beep_no_file') + '</span>');
         });
+
+        // Писк для внешних устройств. Снимок от ESP32 прилетает пять раз в
+        // секунду, поэтому реагируем только на изменение набора входов. Первый
+        // снимок — знакомство: иначе вход в диагностику сразу отзывался бы
+        // писком. Энкодеры намеренно не озвучиваем: пока их крутят, они меняются
+        // непрерывно, и вышла бы сирена вместо подсказки.
+        var diagPrevInputs = {};
+
+        function diagBeepMaybe(device, inputs) {
+            if (!Array.isArray(inputs)) return;
+            var key = inputs.join(',');
+            var prev = diagPrevInputs[device];
+            diagPrevInputs[device] = key;
+            if (prev === undefined || prev === key) return;
+            if (!monBeepOn || monBeepSource !== 'browser') return;   // замок пищит сам
+            var now = Date.now();
+            if (now - monBeepLast < 120) return;
+            monBeepLast = now;
+            var a = monBeepInit();
+            a.volume = monBeepVol.browser / 100;
+            try { a.currentTime = 0; a.play(); } catch (e) { /* браузер запретил */ }
+        }
 
         function monBeepSend() {
             socket.emit('sensor_monitor_sound', {

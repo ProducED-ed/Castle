@@ -3202,6 +3202,9 @@ def _broadcast_diag_state():
 
 @socketio.on('tech_diag_enter')
 def tech_diag_enter(data):
+    # Прошлый снимок к новому сеансу отношения не имеет: без сброса первый же
+    # снимок сравнился бы с позавчерашним и дал ложный писк.
+    _diag_last_inputs.pop((data or {}).get('device'), None)
     device = (data or {}).get('device')
     if not device:
         return
@@ -3465,6 +3468,7 @@ _sensor_beep_tried = False
 _sensor_beep_last = 0.0
 _sensor_last_values = {}        # последнее известное состояние каждого входа
 _sensor_last_flags = {}         # последнее состояние игровых флагов (galet_on/off и т.п.)
+_diag_last_inputs = {}          # последний снимок входов каждого внешнего устройства
 _sensor_started_at = 0.0        # когда включили монитор — см. SENSOR_DUMP_WINDOW
 # Пока платы отдают стартовый снимок, вход, увиденный ВПЕРВЫЕ, — это не
 # срабатывание, а знакомство, и пищать на него нельзя. После этого окна первый
@@ -4015,6 +4019,29 @@ def _emit_sensor_event(line):
             payload['pin'] = pin
             payload['value'] = value
     socketio.emit('sensor_event', payload)
+
+
+def _diag_beep_on_change(device, snap):
+    """Писк на срабатывание датчика внешнего устройства (поезд, волк, сейф, чемоданы).
+
+    Снимок прилетает пять раз в секунду, поэтому пищим только когда набор входов
+    действительно изменился. Первый снимок устройства — знакомство, а не
+    событие: иначе вход в режим диагностики отзывался бы писком.
+
+    Смотрим только 'in' — дискретные датчики. Энкодеры в 'enc' меняются
+    непрерывно, пока их крутят, и озвучивать их значило бы получить сирену."""
+    if not sensor_beep_castle:
+        return
+    try:
+        cur = snap.get('in')
+        if not isinstance(cur, list):
+            return
+        prev = _diag_last_inputs.get(device)
+        _diag_last_inputs[device] = list(cur)
+        if prev is not None and prev != cur:
+            _sensor_beep()
+    except Exception as e:
+        logger.warning(f"MON-BEEP: снимок {device} не разобран: {e}")
 
 
 @socketio.on('sensor_monitor_snapshot')
@@ -5303,6 +5330,7 @@ def handle_data():
         if isinstance(data, dict) and 'diag' in data and isinstance(data['diag'], dict):
             device = request.args.get('device', 'unknown')
             socketio.emit(f'{device}_diag_state', data['diag'])
+            _diag_beep_on_change(device, data['diag'])
             _log_diag_snapshot(device, data['diag'])
             return jsonify({"status": "diag_ok"})
         if 'train_enc' in data:
