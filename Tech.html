@@ -413,6 +413,20 @@
                 <span id="mon-beep-msg" style="font-size:12px;"></span>
             </div>
 
+            <!-- Устройство шлёт снимки ТОЛЬКО в режиме диагностики. Если они
+                 идут, а тумблер выключен — устройство заморожено, и об этом
+                 никто не знает: режим живёт на самом устройстве, а сервер после
+                 перезапуска про него забывает. В таком состоянии оно молча
+                 игнорирует и Restart, и кнопки дверей. -->
+            <div id="diag-frozen" class="ui warning message" style="display:none; margin-bottom:0;">
+                <i class="snowflake icon"></i>
+                <span data-i18n="diag_frozen">Устройство заморожено в диагностике, хотя пульт об этом не знает — игровые команды оно игнорирует.</span>
+                <span id="diag-frozen-dev" style="font-weight:bold;"></span>
+                <button class="ui mini button" style="margin-left:10px;" onclick="diagUnfreeze()">
+                    <span data-i18n="diag_unfreeze">Вывести из диагностики</span>
+                </button>
+            </div>
+
             <div class="ui inverted top attached tabular menu" id="diag-tab-menu">
                 <a class="active item" data-diag-tab="train">Train (.202)</a>
                 <a class="item" data-diag-tab="wolf">Wolf (.201)</a>
@@ -1194,6 +1208,8 @@
                 diag_title: "Диагностика устройств (мультиметр в браузере)",
                 diag_desc: "В режиме диагностики устройство замораживает игровую логику. Каждый сенсор отображается живо; выходы (LED, реле, звук) можно дёргать вручную. Не использовать во время игры!",
                 diag_tab_monitor: "Монитор датчиков",
+                diag_frozen: "Устройство заморожено в диагностике, хотя пульт об этом не знает — игровые команды оно игнорирует:",
+                diag_unfreeze: "Вывести из диагностики",
                 diag_mode_train: "Diag mode ON (замораживает поезд!)",
                 diag_mode_wolf: "Diag mode ON (замораживает волка!)",
                 diag_mode_safe: "Diag mode ON (замораживает сейф!)",
@@ -1526,6 +1542,8 @@
                 diag_title: "Device diagnostics (multimeter in the browser)",
                 diag_desc: "In diag mode the device freezes its game logic. Every sensor is displayed live; outputs (LEDs, relays, sound) can be toggled manually. Do not use during a game!",
                 diag_tab_monitor: "Sensor monitor",
+                diag_frozen: "The device is frozen in diagnostics though the dashboard does not know it — it ignores game commands:",
+                diag_unfreeze: "Leave diagnostics",
                 diag_mode_train: "Diag mode ON (freezes the train!)",
                 diag_mode_wolf: "Diag mode ON (freezes the wolf!)",
                 diag_mode_safe: "Diag mode ON (freezes the safe!)",
@@ -2501,6 +2519,7 @@
 
         socket.on('wolf_diag_state', function(s) {
             diagBeepMaybe('wolf', s.in);
+            diagNoteSnapshot('wolf', diagWolfActive);
             if (!diagWolfActive) return;
             $('#diag-wolf-ts').text(new Date().toLocaleTimeString());
             $('#diag-wolf-rssi').text(s.rssi + ' dBm');
@@ -2544,6 +2563,7 @@
         // Snapshot от ESP32 (каждые 200ms)
         socket.on('train_diag_state', function(s) {
             diagBeepMaybe('train', s.in);
+            diagNoteSnapshot('train', diagTrainActive);
             if (!diagTrainActive) return;
             $('#diag-train-ts').text(new Date().toLocaleTimeString());
             $('#diag-train-rssi').text(s.rssi + ' dBm');
@@ -2754,6 +2774,7 @@
 
         socket.on('suitcases_diag_state', function(s) {
             diagBeepMaybe('suitcases', s.in);
+            diagNoteSnapshot('suitcases', diagSuitcasesActive);
             if (!diagSuitcasesActive) return;
             diagUpdateSystemMetrics('suitcases', s);
             if (Array.isArray(s.in)) {
@@ -2780,6 +2801,7 @@
 
         socket.on('safe_diag_state', function(s) {
             diagBeepMaybe('safe', s.in);
+            diagNoteSnapshot('safe', diagSafeActive);
             if (!diagSafeActive) return;
             diagUpdateSystemMetrics('safe', s);
             if (Array.isArray(s.in)) {
@@ -3973,6 +3995,31 @@
         // писком. Энкодеры намеренно не озвучиваем: пока их крутят, они меняются
         // непрерывно, и вышла бы сирена вместо подсказки.
         var diagPrevInputs = {};
+
+        // Снимки приходят только в диагностике. Пришёл снимок, а тумблер этой
+        // вкладки выключен — устройство заморожено и игровые команды игнорирует.
+        var diagFrozenDev = null, diagFrozenAt = 0;
+
+        function diagNoteSnapshot(device, uiActive) {
+            if (uiActive) return;
+            diagFrozenDev = device;
+            diagFrozenAt = Date.now();
+            $('#diag-frozen-dev').text(device);
+            $('#diag-frozen').show();
+        }
+
+        function diagUnfreeze() {
+            if (!diagFrozenDev) return;
+            socket.emit('tech_diag_exit', { device: diagFrozenDev });
+        }
+
+        // Снимки прекратились — значит вышло из диагностики, баннер убираем.
+        setInterval(function() {
+            if (diagFrozenAt && Date.now() - diagFrozenAt > 6000) {
+                diagFrozenAt = 0; diagFrozenDev = null;
+                $('#diag-frozen').hide();
+            }
+        }, 2000);
 
         function diagBeepMaybe(device, inputs) {
             if (!Array.isArray(inputs)) return;

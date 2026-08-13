@@ -3228,6 +3228,31 @@ def tech_diag_exit(data):
     _active_diag_devices.discard(device)
     _broadcast_diag_state()
 
+def _clear_stale_diag_on_boot():
+    """Вывести внешние устройства из режима диагностики после старта сервера.
+
+    Режим диагностики живёт НА УСТРОЙСТВЕ: получив diag_on, оно замораживает
+    игровую логику и игнорирует все команды, пока не придёт diag_off. Сервер об
+    этом помнит только в памяти процесса — после перезапуска он считает, что
+    диагностики нет, а устройство остаётся замороженным. Тумблер на пульте
+    выключен, следов никаких, и выглядит это как поломка: 13.08.2026 сейф так
+    простоял час, не открывая замок ни на Restart, ни на кнопку двери.
+
+    Хуже того, игровой пульт в этот момент не заблокирован — можно начать квест
+    с замороженным устройством.
+
+    Два прохода: первый когда точка доступа уже поднялась, второй для тех, кто
+    в этот момент ещё грузился."""
+    for delay in (25, 75):
+        eventlet.sleep(delay)
+        for device in ('train', 'wolf', 'suitcases', 'safe'):
+            try:
+                _diag_send(device, 'off')
+            except Exception as e:
+                logger.warning(f"[DIAG] Не удалось снять диагностику с {device}: {e}")
+        logger.info("[DIAG] Снятие возможной диагностики с внешних устройств после старта")
+
+
 @socketio.on('tech_send_serial')
 def tech_send_serial(data):
     """Отправка существующей game-команды на Mega через serial_write_queue.
@@ -9170,6 +9195,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=timer)
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
         socketio.start_background_task(target=story_queue_worker)  # Очередь историй Mine Door/тролль (2026-07-10)
+        socketio.start_background_task(target=_clear_stale_diag_on_boot)  # Снять зависшую диагностику с ESP32
         socketio.start_background_task(target=_apply_mono_on_boot)  # MONO v2: поднять pulse mono-sink по pref (2026-07-14)
         socketio.start_background_task(target=hostapd_bootstrap_watchdog)  # Авто-восстановление если hostapd встал кривой
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
