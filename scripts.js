@@ -1025,33 +1025,23 @@ $('.ui.dropdown')
                 $('#open_mansard_indic').addClass('check');
             }
             if(inp === 'flag1_on') {
-                //используем флажок на всякий
-                if(rFlag==0){
-                    $('#redflag').removeClass('white')//удалим класс white
-                    $('#redflag').addClass('red')//добавим класс red
-                    rFlag = 1;
-                }
+                // 2026-08-14: покраску больше не прячем за защёлкой. Защёлки
+                // не сбрасывались на ready, и в следующей игре флаги так и
+                // оставались белыми, хотя события приходили.
+                $('#redflag').removeClass('white').addClass('red');
+                rFlag = 1;
             }
             if(inp === 'flag2_on') {
-                if(gFlag==0){
-                    $('#greenflag').removeClass('white')
-                    $('#greenflag').addClass('green')
-                    gFlag = 1;
-                }
+                $('#greenflag').removeClass('white').addClass('green');
+                gFlag = 1;
             }
             if(inp === 'flag3_on') {
-                if(bFlag==0){
-                    $('#blueflag').removeClass('white')
-                    $('#blueflag').addClass('blue')
-                    bFlag = 1;
-                }
+                $('#blueflag').removeClass('white').addClass('blue');
+                bFlag = 1;
             }
             if(inp === 'flag4_on') {
-                if(yFlag==0){
-                    $('#yellowflag').removeClass('white')
-                    $('#yellowflag').addClass('yellow')
-                    yFlag = 1;
-                }
+                $('#yellowflag').removeClass('white').addClass('yellow');
+                yFlag = 1;
             }
             if(inp === 'flag1_off') {
                 if(rFlag==1){
@@ -1084,6 +1074,19 @@ $('.ui.dropdown')
 
             if (yFlag == 1 && bFlag ==1 && gFlag == 1 && rFlag == 1){
                  $('#open_mansard_stash').addClass('positive');
+            }
+
+            // Этап флагов засчитан самой главной платой. Это надёжнее, чем
+            // складывать четыре flagN_on на пульте: датчик флага может
+            // дёрнуться сразу после победы и вернуть «флага нет», и кнопка
+            // оставалась белой у пройденного этапа.
+            if (inp === 'flags_done') {
+                $('#open_mansard_stash').addClass('positive');
+                $('#redflag').removeClass('white').addClass('red');
+                $('#greenflag').removeClass('white').addClass('green');
+                $('#blueflag').removeClass('white').addClass('blue');
+                $('#yellowflag').removeClass('white').addClass('yellow');
+                rFlag = gFlag = bFlag = yFlag = 1;
             }
 
             if(inp === 'suitcase') { 
@@ -1488,6 +1491,9 @@ $('.ui.dropdown')
                 $('#greenflag').addClass('white')
                 $('#blueflag').removeClass('blue')
                 $('#blueflag').addClass('white')
+                // Гасим не только иконки, но и защёлки: иначе в следующей игре
+                // события флагов приходят, а красить их «уже некому».
+                rFlag = gFlag = bFlag = yFlag = 0;
                 $('#player_1_score').text('0')
                 $('#player_2_score').text('0')
                 disBut=0;

@@ -3623,6 +3623,13 @@ _sensor_started_at = 0.0        # когда включили монитор —
 # человек в этот момент реально держит геркон.
 SENSOR_DUMP_WINDOW = 10.0
 
+# Строки-состояния, которые платы повторяют по кругу: галетники и флаги, в том
+# числе с приставкой башни. Ключ — что именно, значение — on/off; повтор того же
+# значения в журнал на INFO не пускаем.
+_STATE_LINE_RE = re.compile(
+    r'((?:workshop_|basket_|dog_|owls_|central_)?galet|flag[1-4])_(on|off)')
+_state_line_last = {}
+
 
 def _setup_busy():
     """True, если сейчас идёт игра и трогать настройки нельзя."""
@@ -6985,7 +6992,21 @@ def serial():
                    # 2026-05-26: добавлены фильтры спама от башен (log:*:Received command: ping,
                    # CMD: check_state, CMD: ping_main), чтобы не засорять INFO-лог
                    # и не забивать UI-терминал на /tech.
+                   # Башни повторяют состояние своих входов каждые 5 секунд —
+                   # без этого потерянная строка заморозила бы картину. Но в
+                   # журнале это поток одинаковых строк, в котором тонет всё
+                   # остальное (жалоба 14.08.2026). Повтор с тем же значением
+                   # уводим на DEBUG: в файле он останется, из консоли уйдёт.
+                   is_state_repeat = False
+                   if isinstance(flag, str):
+                       m = _STATE_LINE_RE.fullmatch(flag)
+                       if m:
+                           key, val = m.group(1), m.group(2)
+                           is_state_repeat = (_state_line_last.get(key) == val)
+                           _state_line_last[key] = val
+
                    is_noise = (
+                       is_state_repeat or
                        isinstance(flag, str) and (
                            flag.startswith('log:main:HB ') or
                            'Received command: ping' in flag or
@@ -7719,6 +7740,15 @@ def serial():
                                   logger.debug("Игнорируем повторный flagsendmr")
                               else:
                                   socklist.append('flagsendmr')
+                                  # Пульту: этап пройден. Раньше кнопка Skip у
+                                  # флагов зеленела только когда пульт сам видел
+                                  # все четыре flagN_on — а датчик флага может
+                                  # дёрнуться и отчитаться «флага нет» сразу
+                                  # после победы, и кнопка так и оставалась
+                                  # белой (скриншот CLC4 14.08.2026 19:08).
+                                  socketio.emit('level', 'flags_done', to=None)
+                                  if 'flags_done' not in socklist:
+                                      socklist.append('flags_done')
                                   #----играем эффект 
                                   pygame.mixer.music.stop()
                                   try:
@@ -7762,16 +7792,18 @@ def serial():
                                   def _after_flags():
                                       nonlocal nextTrack
                                       try:
-                                          deadline = time.time() + FLAGS_WAIT_LIMIT
-                                          while (flags.get_num_channels() > 0 and go == 1
-                                                 and time.time() < deadline):
+                                          # Ждём ровно длину звука, а не освобождения
+                                          # канала: канал в pygame отпускать не
+                                          # торопится — 14.08.2026 он не освободился
+                                          # и за 20 секунд, и семь лишних секунд
+                                          # тишины съедал именно этот запас.
+                                          # Длина файла известна точно.
+                                          wait = min(flags.get_length() + 0.2, FLAGS_WAIT_LIMIT)
+                                          deadline = time.time() + wait
+                                          while go == 1 and time.time() < deadline:
                                               eventlet.sleep(0.1)
                                           if go != 1:
                                               return
-                                          if flags.get_num_channels() > 0:
-                                              logger.warning(
-                                                  "FLAGS: канал flags.wav не освободился за "
-                                                  f"{FLAGS_WAIT_LIMIT} с — продолжаем без ожидания")
                                           play_background_music("fon7.mp3", loops=0)
                                           hue_flags_lightshow_async()  # HUE: светомузыка на fon7
                                           play_localized_audio("story_10")
