@@ -54,10 +54,6 @@ byte three3Led = 6;
 
 byte SH1 = 0;
 
-uint8_t speed = 20;           // Скорость волны
-uint8_t blueIntensity = 150;  // Макс. синий
-uint8_t flickerAmount = 1;    // Уровень мерцания
-uint8_t hueShift = 0;         // Сдвиг оттенка (0-255)
 
 unsigned long prevTime = 0;
 unsigned long wolfTimer = 0;
@@ -1196,7 +1192,7 @@ void loop() {
         doorRepeatActive = true;
         repeatDoorTimer = millis();
       }
-      auroraEffect(); // Продолжаем анимацию
+      ghostEffect(); // Продолжаем анимацию
       FastLED.show();
       break;
     case 6:
@@ -1208,7 +1204,7 @@ void loop() {
       }
       if (millis() - prevTime >= updateInterval) {
         prevTime = millis();
-        auroraEffect();
+        ghostEffect();
         FastLED.show();
       }
       break;
@@ -1455,7 +1451,7 @@ void WolfGame() {
   // Проверяем геркон ВОЛКА немедленно ---
   // Это позволяет выиграть "в первой фазе", прервав story_B.
   if (wolfGerk.isHold()) {
-    auroraEffect(); // Включить анимацию
+    ghostEffect(); // Включить анимацию
     FastLED.show();
     myMP3.stop();   // Прервать story_B (или любой другой трек)
     delay(50);
@@ -1519,7 +1515,7 @@ void WolfGame() {
   if (wolfGerk.isHold()) {
     // state++; // Убираем немедленный переход
     doorTimer = millis();
-    auroraEffect();
+    ghostEffect();
     FastLED.show();
     myMP3.stop();
     delay(50);
@@ -1569,39 +1565,55 @@ void OpenLock(byte num) {
   OUTPUTS.digitalWrite(num, LOW);
 }
 
-void auroraEffect() {
-  hueShift++;  // Плавный сдвиг оттенка
+// Голубой призрак — анимация победы над волком. Светящееся пятно медленно
+// плавает по ленте туда-сюда, оставляя за собой мягкий шлейф, и всё это
+// «дышит» яркостью. Волк и дерево ходят вразнобой, поэтому духа видно как
+// одно существо, обходящее поляну, а не как две одинаковые мигалки.
+//
+// 2026-08-14: заменила прежний auroraEffect(). Тот на каждом кадре подмешивал
+// в каждый пиксель random8() — вблизи это читалось как рябь, а не как свечение.
+// Здесь случайности нет вовсе: всё движение — синусы, поэтому картинка плавная
+// при любой частоте вызова.
+static void ghostStrip(CRGB *leds, uint8_t n, uint16_t pos, uint8_t hue, uint8_t breath) {
+  // Шлейф: прошлый кадр не стираем, а притушаем.
+  fadeToBlackBy(leds, n, 36);
 
-  for (int i = 0; i < 10; i++) {
-    // Основа: синий + белый с волнами
-    uint8_t wave1 = beatsin8(speed, 50, blueIntensity, 0, i * 10);
-    uint8_t wave2 = beatsin8(speed + 5, 50, 200, 0, i * 10 + 128);
+  // Холодная дымка, чтобы лента не проваливалась в черноту между проходами.
+  CRGB haze = CHSV(hue, 210, breath / 5 + 6);
+  for (uint8_t i = 0; i < n; i++) leds[i] |= haze;
 
-    // Добавляем мерцание
-    wave1 += random8(-flickerAmount, flickerAmount);
-    wave2 += random8(-flickerAmount, flickerAmount);
+  // Пятно живёт в дробной позиции: две соседние точки делят яркость, поэтому
+  // оно едет плавно, а не перескакивает по светодиодам.
+  uint8_t idx = pos >> 8;
+  uint8_t frac = pos & 0xFF;
+  CRGB core = CHSV(hue, 190, breath);          // ядро голубое, а не выбеленное
+  CRGB halo = CHSV(hue + 6, 220, breath / 3);
 
-    // Ограничиваем и смешиваем цвета
-    wave1 = constrain(wave1, 50, 255);
-    wave2 = constrain(wave2, 50, 255);
+  CRGB a = core; a.nscale8_video(255 - frac);
+  CRGB b = core; b.nscale8_video(frac);
+  if (idx < n) leds[idx] += a;
+  if (idx + 1 < n) leds[idx + 1] += b;
 
-    // Создаём цвет (бело-голубой с оттенком)
-    wolfLed[i] = CRGB(
-      wave2 / 3,              // R (белый)
-      wave2 / 3 + wave1 / 4,  // G (лёгкий зелёный оттенок)
-      wave1 + wave2 / 2       // B (синий + белый)
-    );
+  // Ореол по бокам — размывает края, без него пятно выглядит точкой.
+  if (idx > 0) leds[idx - 1] += halo;
+  if (idx + 2 < n) leds[idx + 2] += halo;
+}
 
-    threeLed[i] = CRGB(
-      wave2 / 3,              // R (белый)
-      wave2 / 3 + wave1 / 4,  // G (лёгкий зелёный оттенок)
-      wave1 + wave2 / 2       // B (синий + белый)
-    );
+void ghostEffect() {
+  const uint8_t N = 10;
+  // Кадр считаем не чаще 20 мс: функцию зовут и из быстрого цикла, и по
+  // таймеру, а скорость шлейфа не должна зависеть от того, кто её позвал.
+  static uint32_t lastFrame = 0;
+  if (millis() - lastFrame < 20) return;
+  lastFrame = millis();
 
-    // Добавляем динамический оттенок (опционально)
-    wolfLed[i] += CHSV(hueShift + i * 2, 100, 20);
-    threeLed[i] += CHSV(hueShift + i * 2, 100, 20);
-  }
+  uint8_t hue = 138 + (sin8(millis() / 40) >> 5);   // лёд ↔ бирюза, очень медленно
+  uint8_t breath = beatsin8(9, 80, 210);            // общее «дыхание»
+  uint16_t posWolf = beatsin16(7, 0, (N - 1) * 255);
+  uint16_t posTree = beatsin16(5, 0, (N - 1) * 255, 0, 21845);   // дерево вразнобой
+
+  ghostStrip(wolfLed, N, posWolf, hue, breath);
+  ghostStrip(threeLed, N, posTree, hue + 4, breath);
 }
 
 void handlePlayerQueries() {

@@ -7629,7 +7629,17 @@ def serial():
                                   #    копились и обрабатывались пачкой — отсюда жалоба
                                   #    «аудио не успевает, звуки не в такт действиям».
                                   # Теперь ждём только свой звук и в фоне.
+                                  # 2026-08-14. nextTrack переехал ВНУТРЬ задачи и
+                                  # ставится только когда fon7 реально заиграл.
+                                  # Раньше он выставлялся здесь же, сразу: главный
+                                  # цикл в ту же секунду видел «музыка молчит»
+                                  # (её только что остановили) плюс nextTrack == 1
+                                  # и запускал fon8 со story_11 — ещё до того, как
+                                  # доиграл flags.wav. story_10 после этого не
+                                  # звучала вообще: канал историй был занят
+                                  # story_11 (лог CLC4 14.08.2026 10:46:48).
                                   def _after_flags():
+                                      nonlocal nextTrack
                                       while flags.get_num_channels() > 0 and go == 1:
                                           eventlet.sleep(0.1)
                                       if go != 1:
@@ -7637,9 +7647,8 @@ def serial():
                                       play_background_music("fon7.mp3", loops=0)
                                       hue_flags_lightshow_async()  # HUE: светомузыка на время fon7
                                       play_localized_audio("story_10")
+                                      nextTrack = 1
                                   socketio.start_background_task(_after_flags)
-
-                                  nextTrack = 1
                               
 
                          if "door_owl" in flag:
