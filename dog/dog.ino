@@ -914,7 +914,17 @@ void loop() {
       }
     }
   }
-  if (isDoorOpened && !isDoorClosedAfterOpen && digitalRead(CAPSULE_REED_PIN) == LOW) {
+  // Дверь закрыта — заводим таймер повторного импульса.
+  //
+  // 2026-08-14, CLC4. Раньше сюда пускал флаг isDoorOpened, а он ставится
+  // только по ПОДТВЕРЖДЁННОМУ герконом открытию (капсула ушла в HIGH). Замок
+  // дверь отталкивает, а не распахивает: если игрок прикрыл её сразу, геркон
+  // HIGH мог не увидеть вовсе — и повторного импульса не было уже никогда.
+  // Навесной замок при этом отработан (isPadlockActivated), второй раз он не
+  // сработает, и войти к собаке нельзя ничем, кроме скипа с пульта.
+  // Считаем от снятия навесного замка: с этого момента ЛЮБАЯ закрытая дверь
+  // получает импульс раз в DOOR_REOPEN_DELAY.
+  if (isPadlockActivated && !isDoorClosedAfterOpen && digitalRead(CAPSULE_REED_PIN) == LOW) {
     isDoorClosedAfterOpen = true;
     doorCloseTime = currentMillis;
     if (!endReedTriggeredWithFastSpin) {
@@ -925,10 +935,16 @@ void loop() {
     }
   }
   if (isDoorClosedAfterOpen && (currentMillis - doorCloseTime >= DOOR_REOPEN_DELAY)) {
-    digitalWrite(DOOR_LOCK_PIN, HIGH);
-    doorLockActiveTime = currentMillis;
-    doorLockEngaged = true;
+    // Флаг снимаем всегда: пока дверь закрыта, условие выше заведёт таймер
+    // заново — так и получается импульс раз в 5 секунд.
     isDoorClosedAfterOpen = false;
+    // А толкаем только если дверь и правда всё ещё закрыта. Иначе игрок,
+    // вошедший в первые 5 секунд, получал бы лишний щелчок в спину.
+    if (digitalRead(CAPSULE_REED_PIN) == LOW) {
+      digitalWrite(DOOR_LOCK_PIN, HIGH);
+      doorLockActiveTime = currentMillis;
+      doorLockEngaged = true;
+    }
   }
   int currentKnightReedState = digitalRead(KNIGHT_REED_PIN);
   if (lastKnightReedState == HIGH && currentKnightReedState == LOW) {
