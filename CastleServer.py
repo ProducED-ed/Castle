@@ -1413,6 +1413,9 @@ beep_channel = pygame.mixer.Channel(8)
 # Во сколько раз приглушается фон на время истории. Доля от выставленной
 # громкости, а не абсолютная величина: иначе на тихих делениях приглушать
 # нечего — цель оказывается громче самого фона.
+# Сколько ждать конца flags.wav, прежде чем продолжить этап без него.
+# Файл длится 13 секунд; предел нужен на случай, когда канал не освобождается.
+FLAGS_WAIT_LIMIT = 20
 STORY_DUCK_RATIO = 0.25
 
 #------эффекты в формате wav (ЗВУКИ ОСТАВЛЯЕМ КАК ОБЪЕКТЫ, ЭТО ПРАВИЛЬНО)
@@ -7689,7 +7692,13 @@ def serial():
                                   socklist.append('flagsendmr')
                                   #----играем эффект 
                                   pygame.mixer.music.stop()
-                                  play_effect(flags)
+                                  try:
+                                      play_effect(flags)
+                                  except Exception as e:
+                                      # Сбой эффекта не должен уносить с собой весь этап:
+                                      # ниже стоит запуск фоновой задачи, без которой
+                                      # не будет ни фона, ни story_10, ни story_11.
+                                      logger.error(f"FLAGS: не сыграл flags.wav: {e}")
                                   send_esp32_command(ESP32_API_TRAIN_URL, "flag_off")
                                   send_esp32_command(ESP32_API_TRAIN_URL, "stage_3")
 
@@ -7713,16 +7722,36 @@ def serial():
                                   # доиграл flags.wav. story_10 после этого не
                                   # звучала вообще: канал историй был занят
                                   # story_11 (лог CLC4 14.08.2026 10:46:48).
+                                  # 14.08.2026, второй заход. Ждать канал БЕЗ предела
+                                  # нельзя: 17:54 канал flags.wav так и не
+                                  # освободился, и этап остался вообще без звука —
+                                  # ни фона, ни story_10, ни story_11 (её теперь
+                                  # запускает nextTrack, который ставится в конце).
+                                  # Ждём не дольше FLAGS_WAIT_LIMIT и в любом случае
+                                  # идём дальше: молчащий квест хуже, чем реплика,
+                                  # наложенная на хвост эффекта.
                                   def _after_flags():
                                       nonlocal nextTrack
-                                      while flags.get_num_channels() > 0 and go == 1:
-                                          eventlet.sleep(0.1)
-                                      if go != 1:
-                                          return
-                                      play_background_music("fon7.mp3", loops=0)
-                                      hue_flags_lightshow_async()  # HUE: светомузыка на время fon7
-                                      play_localized_audio("story_10")
-                                      nextTrack = 1
+                                      try:
+                                          deadline = time.time() + FLAGS_WAIT_LIMIT
+                                          while (flags.get_num_channels() > 0 and go == 1
+                                                 and time.time() < deadline):
+                                              eventlet.sleep(0.1)
+                                          if go != 1:
+                                              return
+                                          if flags.get_num_channels() > 0:
+                                              logger.warning(
+                                                  "FLAGS: канал flags.wav не освободился за "
+                                                  f"{FLAGS_WAIT_LIMIT} с — продолжаем без ожидания")
+                                          play_background_music("fon7.mp3", loops=0)
+                                          hue_flags_lightshow_async()  # HUE: светомузыка на fon7
+                                          play_localized_audio("story_10")
+                                      except Exception as e:
+                                          # Без этого исключение уносит с собой и nextTrack:
+                                          # этап встаёт намертво, а в журнале тишина.
+                                          logger.error(f"FLAGS: сбой после flags.wav: {e}")
+                                      finally:
+                                          nextTrack = 1
                                   socketio.start_background_task(_after_flags)
                               
 
