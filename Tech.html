@@ -241,22 +241,6 @@
             <div id="audio-upload-status" style="margin-top:10px; font-size:13px;"></div>
         </div>
 
-        <!-- Панель теста адресной ленты (ball-flight + кубок) -->
-        <div id="strip-test-panel" style="margin-bottom:20px; border:1px solid #444; border-radius:8px; padding:15px; background:#111;">
-            <h4 style="color:#fff; margin-bottom:6px;"><i class="lightbulb icon"></i> <span data-i18n="strip_title">Тест адресной ленты (кубок / полёт мяча)</span></h4>
-            <div style="color:#aaa; font-size:0.85em; margin-bottom:12px;" data-i18n="strip_hint">Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-                <button class="ui green small button" onclick="stripTest('lt_all')"><i class="lightbulb icon"></i> <span data-i18n="strip_all">Вся лента (бел.)</span></button>
-                <button class="ui grey small button" onclick="stripTest('lt_off')"><i class="power off icon"></i> <span data-i18n="strip_off">Выключить</span></button>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <span style="color:#fff;" data-i18n="strip_pixel">Пиксель №</span>
-                <input type="number" id="strip-pixel" value="65" min="0" max="199" style="width:80px; padding:6px; border-radius:4px; border:1px solid #555; background:#222; color:#fff;"/>
-                <button class="ui blue small button" onclick="stripTestPixel(2)"><span data-i18n="strip_s2">Лента 2 (кубок)</span></button>
-                <button class="ui teal small button" onclick="stripTestPixel(1)"><span data-i18n="strip_s1">Лента 1</span></button>
-            </div>
-            <div style="color:#7f8c8d; font-size:0.82em; margin-top:8px;" data-i18n="strip_range">Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)</div>
-        </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <button class="ui inverted basic small button" id="btn-autoscroll" onclick="toggleAutoscroll()">
@@ -275,6 +259,19 @@
         <div id="main-terminal" class="main-terminal">=== Терминал инициализирован. Ожидание команд ===
 </div>
 
+        
+        <!-- ============ ПРОШИВКА ============
+             Таблица прошивки плат. Свёрнута по умолчанию: к ней возвращаются
+             редко, а места она занимала целый экран. -->
+        <div class="ui inverted segment" id="sec-flash" style="margin-top: 20px;">
+            <h3 style="cursor:pointer; user-select:none;" onclick="techSectionToggle('flash')">
+                <i class="download icon"></i> <span data-i18n="sec_flash_title">Прошивка плат</span>
+                <i class="dropdown icon" id="sec-flash-caret" style="float:right;"></i>
+            </h3>
+            <div style="color:#999; font-size:13px; margin-top:-8px;" data-i18n="sec_flash_subtitle">
+                Заливка прошивок в главную плату, башни и внешние ESP32.
+            </div>
+            <div id="sec-flash-body" style="display:none; margin-top:16px;">
         <table class="ui celled inverted table">
             <thead>
                 <tr>
@@ -380,10 +377,20 @@
                 </tr>
             </tbody>
         </table>
-        
-        <!-- ============ ДИАГНОСТИКА УСТРОЙСТВ ============ -->
-        <div class="diag-section">
-            <h3><i class="microchip icon"></i><span data-i18n="diag_title">Диагностика устройств (мультиметр в браузере)</span></h3>
+            </div>
+        </div>
+        <!-- ============ /ПРОШИВКА ============ -->
+
+        <!-- ============ ДИАГНОСТИКА УСТРОЙСТВ ============
+             Свёрнута по умолчанию. Внутри же — тест адресной ленты и Hue:
+             это тоже «потыкать железо руками», и разбросанные по странице
+             блоки одного смысла искать было негде. -->
+        <div class="diag-section" id="sec-diag">
+            <h3 style="cursor:pointer; user-select:none;" onclick="techSectionToggle('diag')">
+                <i class="microchip icon"></i><span data-i18n="diag_title">Диагностика устройств (мультиметр в браузере)</span>
+                <i class="dropdown icon" id="sec-diag-caret" style="float:right;"></i>
+            </h3>
+            <div id="sec-diag-body" style="display:none;">
             <div style="color:#888; font-size:13px; margin-bottom:10px;" data-i18n="diag_desc">
                 В режиме диагностики устройство замораживает игровую логику.
             </div>
@@ -791,8 +798,22 @@
                  background:#000; border:1px solid #333; border-radius:6px; padding:8px;
                  font-family:monospace; font-size:12px; color:#8f8;"></div>
             </div>
+        <!-- Панель теста адресной ленты (ball-flight + кубок) -->
+        <div id="strip-test-panel" style="margin-bottom:20px; border:1px solid #444; border-radius:8px; padding:15px; background:#111;">
+            <h4 style="color:#fff; margin-bottom:6px;"><i class="lightbulb icon"></i> <span data-i18n="strip_title">Тест адресной ленты (кубок / полёт мяча)</span></h4>
+            <div style="color:#aaa; font-size:0.85em; margin-bottom:12px;" data-i18n="strip_hint">Работает в режиме отдыха/рестарта. lt2:N зажигает один пиксель ленты 2 зелёным — так можно найти индекс пикселя кубка.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                <button class="ui green small button" onclick="stripTest('lt_all')"><i class="lightbulb icon"></i> <span data-i18n="strip_all">Вся лента (бел.)</span></button>
+                <button class="ui grey small button" onclick="stripTest('lt_off')"><i class="power off icon"></i> <span data-i18n="strip_off">Выключить</span></button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <span style="color:#fff;" data-i18n="strip_pixel">Пиксель №</span>
+                <input type="number" id="strip-pixel" value="65" min="0" max="199" style="width:80px; padding:6px; border-radius:4px; border:1px solid #555; background:#222; color:#fff;"/>
+                <button class="ui blue small button" onclick="stripTestPixel(2)"><span data-i18n="strip_s2">Лента 2 (кубок)</span></button>
+                <button class="ui teal small button" onclick="stripTestPixel(1)"><span data-i18n="strip_s1">Лента 1</span></button>
+            </div>
+            <div style="color:#7f8c8d; font-size:0.82em; margin-top:8px;" data-i18n="strip_range">Диапазоны: Лента 1 — пиксели 0–151 · Лента 2 — пиксели 0–100 (кубок = №65)</div>
         </div>
-        <!-- ============ /ДИАГНОСТИКА ============ -->
 
         <!-- ============ УМНОЕ ОСВЕЩЕНИЕ HUE + УМНАЯ РОЗЕТКА ============ -->
         <div class="ui two column stackable grid" style="margin-top: 30px;">
@@ -890,6 +911,10 @@
         </div>
         </div>
         <!-- ============ /HUE ============ -->
+            </div>
+        </div>
+        <!-- ============ /ДИАГНОСТИКА ============ -->
+
 
         <!-- ============ ПЕРВЫЙ ЗАПУСК ============
              Пуско-наладка нового замка без SSH: имя квеста, WiFi, Tailscale,
@@ -1232,6 +1257,8 @@
                 diag_title: "Диагностика устройств (мультиметр в браузере)",
                 diag_desc: "В режиме диагностики устройство замораживает игровую логику. Каждый сенсор отображается живо; выходы (LED, реле, звук) можно дёргать вручную. Не использовать во время игры!",
                 diag_tab_monitor: "Монитор датчиков",
+                sec_flash_title: "Прошивка плат",
+                sec_flash_subtitle: "Заливка прошивок в главную плату, башни и внешние ESP32.",
                 cmd_title: "Команды устройства",
                 cmd_hint: "Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.",
                 cmd_grp_game: "Игра",
@@ -1580,6 +1607,8 @@
                 diag_title: "Device diagnostics (multimeter in the browser)",
                 diag_desc: "In diag mode the device freezes its game logic. Every sensor is displayed live; outputs (LEDs, relays, sound) can be toggled manually. Do not use during a game!",
                 diag_tab_monitor: "Sensor monitor",
+                sec_flash_title: "Firmware flashing",
+                sec_flash_subtitle: "Flashing the main board, the towers and the external ESP32 devices.",
                 cmd_title: "Device commands",
                 cmd_hint: "The same commands the server sends during the game. They change device state — press deliberately while a game is running.",
                 cmd_grp_game: "Game",
@@ -3327,6 +3356,32 @@
         });
         // ===== /АУДИО-МЕНЕДЖЕР =====
 
+        // ============ РАЗДЕЛЫ ПУЛЬТА ============
+        // Пульт открывают ради одной задачи, а не ради всего сразу: большие
+        // блоки свёрнуты и раскрываются нажатием на заголовок. Состояние живёт
+        // в localStorage — вернувшись, человек застаёт ту же картину, что оставил.
+        // «Первый запуск» устроен так же, но своей функцией: он ещё и включает
+        // опрос сервера, пока открыт.
+        var TECH_SECTIONS = ['flash', 'diag'];
+
+        function techSectionApply(key) {
+            var open = localStorage.getItem('techSec_' + key) === '1';
+            $('#sec-' + key + '-body').toggle(open);
+            $('#sec-' + key + '-caret').toggleClass('up', open);
+        }
+
+        function techSectionToggle(key) {
+            var open = localStorage.getItem('techSec_' + key) === '1';
+            localStorage.setItem('techSec_' + key, open ? '0' : '1');
+            techSectionApply(key);
+        }
+
+        function techSectionOpen(key) {
+            localStorage.setItem('techSec_' + key, '1');
+            techSectionApply(key);
+        }
+        // ============ /РАЗДЕЛЫ ПУЛЬТА ============
+
         // ============ ПЕРВЫЙ ЗАПУСК ============
         // Пуско-наладка нового замка без консоли. Раздел свёрнут по умолчанию и
         // опрашивает сервер только пока открыт — во время игры лишний трафик и
@@ -4463,8 +4518,12 @@
             }
             setupApplyOpenState();
 
-            // Ссылка /tech#monitor открывает сразу вкладку монитора.
-            if (location.hash === '#monitor') diagOpenTab('monitor');
+            TECH_SECTIONS.forEach(techSectionApply);
+            // Ссылка /tech#monitor открывает сразу вкладку монитора — вместе с
+            // разделом, иначе вкладка переключится внутри свёрнутого блока.
+            if (location.hash === '#monitor') { techSectionOpen('diag'); diagOpenTab('monitor'); }
+            if (location.hash === '#diag') techSectionOpen('diag');
+            if (location.hash === '#flash') techSectionOpen('flash');
             $('#mon-beep-toggle').prop('checked', monBeepOn);
             $('#mon-beep-source').val(monBeepSource);
             monBeepRenderVol();
