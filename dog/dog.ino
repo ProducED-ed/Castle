@@ -460,25 +460,22 @@ bool debounced(bool raw, bool &stable, bool &pending, unsigned long &since) {
 }
 
 void CheckState() {
-  static bool roseStable = false, rosePending = false;
-  static bool flagStable = false, flagPending = false;
-  static unsigned long roseSince = 0, flagSince = 0, lastResend = 0;
+  // Вызывается ТОЛЬКО по команде (ready / check_state), из loop() её никто не
+  // зовёт — в отличие от Сов и Мастерской. Поэтому копить состояние дебаунса
+  // между вызовами здесь нельзя: между двумя ready проходят минуты, а
+  // накопитель делает шаг лишь в момент вызова. Первый ready после того, как
+  // галетник вернули на место, рапортовал ПРЕЖНЕЕ состояние, и проверка Ready
+  // ловила фантом: 14.08.2026 18:42 пришли galet_on + flag3_on, а 18:43 те же
+  // входы уже off, хотя никто ничего не трогал.
+  // Меряем здесь и сейчас: даём входу устояться и читаем его один раз.
+  delay(FLAG_DEBOUNCE_MS);
+  bool rose = !digitalRead(A3);   // Роза (A3): активный ноль
+  bool flag = digitalRead(7);     // Флаг (7): активная единица
 
-  // Роза (A3): Active LOW.  Флаг (7): Active HIGH
-  bool changedRose = debounced(!digitalRead(A3), roseStable, rosePending, roseSince);
-  bool changedFlag = debounced(digitalRead(7),   flagStable, flagPending, flagSince);
-
-  bool resend = (millis() - lastResend >= FLAG_RESEND_MS);
-  if (resend) lastResend = millis();
-
-  if (changedRose || resend) {
-    Serial.println(roseStable ? "galet_on" : "galet_off");
-    _restartGalet = roseStable;
-  }
-  if (changedFlag || resend) {
-    Serial.println(flagStable ? "flag3_on" : "flag3_off");
-    _restartFlag = flagStable;
-  }
+  Serial.println(rose ? "galet_on" : "galet_off");
+  _restartGalet = rose;
+  Serial.println(flag ? "flag3_on" : "flag3_off");
+  _restartFlag = flag;
 }
 
 
