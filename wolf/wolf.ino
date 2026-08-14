@@ -90,6 +90,16 @@ bool lightCircut3;
 int language = 1;
 bool cloudFiPlaying = false;
 bool hintFlag = 1;
+// 2026-08-14. Подсказки жили ТОЛЬКО на событии «трек доиграл» от DFPlayer, а
+// эти события на ESP32 теряются (см. историю с Сейфом). Одно потерянное
+// событие — и hintFlag навсегда остаётся нулём: геркон нажимают, а подсказки
+// нет до конца партии. Ровно это видели на CLC4: сперва замолчал Волк, потом
+// Поезд. Страховка по времени: через HINT_REARM_MS подсказка разрешается сама.
+// Правило: рядом с каждым hintFlag = 0 обязателен hintPlayedAt —
+//   millis() — если подсказку надо разрешить обратно по таймеру,
+//   0        — если разрешать будет другой код (старт, ready, конец истории).
+unsigned long hintPlayedAt = 0;
+const unsigned long HINT_REARM_MS = 20000;
 
 // --- Системные треки (1-4) ---
 const int TRACK_FON_WOLF = 1;
@@ -650,6 +660,7 @@ void setup() {
         state = 7;
         doorRepeatActive = false;
         hintFlag = 0;
+        hintPlayedAt = 0;        // разрешит start/ready, а не таймер
         myMP3.stop();
         OUTPUTS.digitalWrite(moonLed, HIGH);
         OUTPUTS.digitalWrite(leftCloudLed, HIGH);
@@ -679,6 +690,7 @@ void setup() {
         state = 0;
         doorRepeatActive = false;
         hintFlag = 1;
+        hintPlayedAt = 0;
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
 		dayOffPending = false;    // 2026-08-07: снимаем отложенное гашение от прошлой игры
@@ -687,6 +699,8 @@ void setup() {
       if (body == "\"ready\"") {
         state = 0;
         doorRepeatActive = false;
+        hintFlag = 1;            // готовность = подсказки снова разрешены
+        hintPlayedAt = 0;
         myMP3.stop();
 		wolfEndConfirmed = false; // ИЗМЕНЕНИЕ: Сбрасываем флаг
 		dayOffPending = false;    // 2026-08-07: снимаем отложенное гашение от прошлой игры
@@ -930,6 +944,11 @@ void loop() {
     return;  // Пропускаем остальную логику во время салюта
   }
 
+  // Страховка: событие «трек доиграл» от DFPlayer могло потеряться.
+  if (!hintFlag && hintPlayedAt != 0 && millis() - hintPlayedAt > HINT_REARM_MS) {
+    hintFlag = 1;
+    hintPlayedAt = 0;
+  }
   helpButton.tick();
   if (helpButton.isPress() && ghostFlag == 0) {
     if (state == 0 && hintFlag) {
@@ -960,8 +979,13 @@ void loop() {
         sendLogToServer("{\"log\":\"Wolf: Playing Hint 0 (PL)\"}");
       }
       hintFlag = 0;
+      hintPlayedAt = millis();
     }
-    if (state > 0 && state < 3 && hintFlag) {
+    // 2026-08-14: было state < 3, то есть на этапах 3 (левое облако) и 4 (сам
+    // волк) кнопка подсказки не делала НИЧЕГО. Игрок доходит до волка — и
+    // остаётся без помощи. Пять подсказок рассчитаны на всю игру, поэтому
+    // отдаём их до победы (state 5).
+    if (state > 0 && state < 5 && hintFlag) {
       Serial.println("1");
       myMP3.pause();  // Ставим фоновую музыку на паузу
       delay(50);
@@ -1105,6 +1129,7 @@ void loop() {
         hint_counter=0;
       }
       hintFlag=0;
+      hintPlayedAt = millis();
     }
     if (state > 4 && hintFlag) {
       if (language == 1) {
@@ -1132,6 +1157,7 @@ void loop() {
         sendLogToServer("{\"log\":\"Wolf: Playing Hint 6 (PL)\"}");
       }
       hintFlag = 0;
+      hintPlayedAt = millis();
     }
   }
 
@@ -1656,6 +1682,7 @@ void handlePlayerQueries() {
       Serial.print("Завершился трек: ");
       Serial.println(finishedTrack);
       hintFlag = 1;
+      hintPlayedAt = 0;
 
       // ДОБАВЛЕННЫЙ БЛОК ДЛЯ СНЯТИЯ "ЗАМКА"
       if (finishedTrack == TRACK_STORY_9_B_RU ||

@@ -93,6 +93,16 @@ bool musicFlag3 = 0;
 int language = 1;
 int hint_counter = 0;
 bool hintFlag = 1;
+// 2026-08-14. Подсказки жили ТОЛЬКО на событии «трек доиграл» от DFPlayer, а
+// эти события на ESP32 теряются (см. историю с Сейфом). Одно потерянное
+// событие — и hintFlag навсегда остаётся нулём: геркон нажимают, а подсказки
+// нет до конца партии. Ровно это видели на CLC4: сперва замолчал Волк, потом
+// Поезд. Страховка по времени: через HINT_REARM_MS подсказка разрешается сама.
+// Правило: рядом с каждым hintFlag = 0 обязателен hintPlayedAt —
+//   millis() — если подсказку надо разрешить обратно по таймеру,
+//   0        — если разрешать будет другой код (конец истории, новая сцена).
+unsigned long hintPlayedAt = 0;
+const unsigned long HINT_REARM_MS = 20000;
 bool trainSensorLatched = false; // Запоминание нажатия
 bool isRestartMode = false;
 bool lastColorOk = false;
@@ -670,6 +680,7 @@ void setup() {
         state = 0;
         // FutureLeds[4] = -1;
         hintFlag = 1;
+        hintPlayedAt = 0;
         mapClicksDisabled = false;
         isStartTrain = 0; // На всякий случай сбрасываем и это
 		    trainEndConfirmed = false; // Сбрасываем флаг
@@ -731,6 +742,7 @@ void setup() {
                    
                    state = 0; 
                    hintFlag = 1;
+                   hintPlayedAt = 0;
                    trainEndConfirmed = false;
                    
                    FastLED.show(); 
@@ -777,6 +789,7 @@ void setup() {
         state = 0;
         FastLED.show();
         hintFlag = 0;
+        hintPlayedAt = millis();   // не молчать вечно, если история не доиграет
         mapClicksDisabled = false;
 		    trainEndConfirmed = false; // Сбрасываем флаг
         ghostIgnoreStartTime = 0;
@@ -867,6 +880,7 @@ void setup() {
         
         state = 0; // Переход в режим ожидания (где будет анимация)
         hintFlag = 0;
+        hintPlayedAt = millis();   // не молчать вечно, если история не доиграет
         
         enc1Pos = 0;
         enc2Pos = 0;
@@ -1559,6 +1573,13 @@ void loop() {
       Serial.println();
   }
 
+  // Страховка: событие «трек доиграл» от DFPlayer могло потеряться, а на нём
+  // держится возврат hintFlag в единицу.
+  if (!hintFlag && hintPlayedAt != 0 && millis() - hintPlayedAt > HINT_REARM_MS) {
+    hintFlag = 1;
+    hintPlayedAt = 0;
+  }
+
   // 2026-08-07: подсказка не должна перебивать вступление этапа поезда.
   // myMP3.pause() + новый трек убивают TRACK_TRAIN_ON или STORY_15, а вместе
   // с ними и событие «трек доиграл», на котором держится запуск игры. Раньше
@@ -1597,6 +1618,7 @@ void loop() {
         SendData("{\"log\":\"Train: Playing Hint 0 (PL)\"}");
       }
       hintFlag = 0;
+      hintPlayedAt = millis();
     }
     else if (state > 0 && state < 3 && hintFlag) {
       myMP3.pause();  // Ставим фоновую музыку на паузу
@@ -1708,6 +1730,7 @@ void loop() {
         }
       }
       hintFlag = 0;
+      hintPlayedAt = millis();
       hint_counter++;
       if (hint_counter > 3) {
         hint_counter = 0;
@@ -1739,6 +1762,7 @@ void loop() {
         SendData("{\"log\":\"Train: Playing Hint 7 (PL)\"}");
       }
       hintFlag = 0;
+      hintPlayedAt = millis();
     }
     else if (state >= 3 && hintFlag && !isTrollEnd) {
       if (hint_counter == 0) {
@@ -1794,6 +1818,7 @@ void loop() {
         }
       }
       hintFlag = 0;
+      hintPlayedAt = millis();
       hint_counter++;
       if (hint_counter > 1) {
         hint_counter = 0;
@@ -2409,6 +2434,7 @@ void handlePlayerQueries() {
     if (type == 11) {  // должно быть 5
       int finishedTrack = myMP3.read();
       hintFlag = 1;
+      hintPlayedAt = 0;
 	  if (resumeEngineSound) {
         // Подсказка завершилась. Сбрасываем флаги, чтобы TrainGame() снова запустила звук.
         musicFlag1 = false;
@@ -2424,6 +2450,7 @@ void handlePlayerQueries() {
         trackTimer = millis();
         flagTrack = 1;
         hintFlag = 0;
+        hintPlayedAt = millis();   // story_15 может не отдать событие конца
       }
       if ((finishedTrack == TRACK_STORY_15_RU) || (finishedTrack == TRACK_STORY_15_EN) || (finishedTrack == TRACK_STORY_15_AR) ||
           (finishedTrack == TRACK_STORY_15_FR) || (finishedTrack == TRACK_STORY_15_UK) || (finishedTrack == TRACK_STORY_15_PL)) {
@@ -2440,6 +2467,7 @@ void handlePlayerQueries() {
         flagTrack = 1;
         isTrainEnd = 1;
         hintFlag = 1;
+        hintPlayedAt = 0;
       }
     }
   }
