@@ -1577,6 +1577,7 @@ void loop() {
   MapGerkon();
   MapLeds();
   StartTimer();
+  TrainHeadlightHint();   // подсветка прожектора, пока идёт таймер карты
 
   static unsigned long debugTimer = 0;
   if (millis() - debugTimer > 1000) {
@@ -2159,6 +2160,35 @@ bool isLedActive(int ledNumber) {
     }
   }
   return false; // Нет, не активен
+}
+
+// ---- Фара поезда подсказывает, куда идти (14.08.2026, просьба Эдуарда) ----
+// Игрок коснулся поезда на карте — у него девять секунд таймера, чтобы дойти до
+// башни и коснуться палочкой прожектора. Всё это время светодиод в самом
+// прожекторе мягко пульсирует оранжевым: видно, куда именно тыкать. Таймер
+// вышел или этап начался — гаснет, дальше лентой распоряжается игра.
+// Какой из трёх светодиодов поезда стоит в фаре, на глаз не определить, поэтому
+// номер вынесен в константу: leds1[1..3] — это те же три, что зажигает кнопка
+// «Поезд оранжевый» в диагностике.
+const int TRAIN_HEADLIGHT_LED = 2;
+
+void TrainHeadlightHint() {
+  static bool active = false;
+  static unsigned long lastFrame = 0;
+  bool want = (isStartTimer && mapState == "train");
+
+  if (want) {
+    if (millis() - lastFrame < 30) return;   // ~30 кадров в секунду достаточно
+    lastFrame = millis();
+    active = true;
+    uint8_t v = beatsin8(60, 12, 255);       // плавная волна, полный цикл ~2 с
+    leds1[TRAIN_HEADLIGHT_LED] = CRGB(v, (uint8_t)((v * 42) / 100), 0);  // оранжевый
+    FastLED.show();
+  } else if (active) {
+    active = false;
+    leds1[TRAIN_HEADLIGHT_LED] = CRGB::Black;
+    FastLED.show();
+  }
 }
 
 void MapLeds() {
