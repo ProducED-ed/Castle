@@ -2107,6 +2107,12 @@ app.secret_key = 'super_secret_quest_key' # Нужно для работы "За
 ADMIN_PASSWORD = 'questquest' # ПАРОЛЬ ОТ СЕТИ CASTLE
 app.config['SECRET_KEY'] = 'secret!'
 app.static_folder = 'static'
+# Flask 1.1 по умолчанию отдаёт статику и send_file с max-age 12 часов: браузер
+# держит старый пульт до полусуток и после обновления показывает вчерашнюю
+# страницу («перезапустил сервер — изменений нет»). Ставим 0: файл всё равно
+# перевыдаётся только при изменении (условный запрос по Last-Modified/ETag),
+# но браузер каждый раз спрашивает, а не берёт вслепую из кэша.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 def text_to_wlan1_reset():
     """Принудительная перезагрузка интерфейса wlan1"""
     try:
