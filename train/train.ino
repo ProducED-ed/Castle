@@ -796,6 +796,11 @@ void setup() {
       }
 
       if (body == "\"projector\"") {
+        // 2026-08-14 (просьба Эдуарда): вместе с этапом зажигаем свет потолка
+        // (U6 P0 «LED CEILING»). Раньше его включала только команда
+        // train_light_on в начале квеста, и если она терялась или свет успевали
+        // погасить, комната к этапу поезда оставалась тёмной.
+        OUTPUTS.digitalWrite(0, HIGH);
         myMP3.playMp3Folder(TRACK_TRAIN_ON);
         SendData("{\"log\":\"Train: Playing Train On sound\"}");
         trainOnStartedAt = millis();  // 2026-08-07: скип с пульта идёт по той же
