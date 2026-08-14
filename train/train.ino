@@ -2170,7 +2170,7 @@ bool isLedActive(int ledNumber) {
 // Какой из трёх светодиодов поезда стоит в фаре, на глаз не определить, поэтому
 // номер вынесен в константу: leds1[1..3] — это те же три, что зажигает кнопка
 // «Поезд оранжевый» в диагностике.
-const int TRAIN_HEADLIGHT_LED = 2;
+const int TRAIN_HEADLIGHT_LED = 3;   // 14.08: второй не угадали, пробуем третий
 
 void TrainHeadlightHint() {
   static bool active = false;
