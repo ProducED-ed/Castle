@@ -5311,7 +5311,11 @@ def Remote(check):
              #-----активируем блок
              socketio.emit('level', 'active_crystals',to=None)
              socklist.append('active_crystals')
-        if check == 'crystals':
+        # 'crystals' — кнопка «Open Door» у Crystal Space, 'crystals_open' —
+        # кнопка «Open» в строке Crystals (Brain Room). В игре обе означают одно:
+        # уровень пройден, локер в комнату воспоминаний открыт. Локер отпирает
+        # сама Mega по команде crystals — команду принимает уровень SealSpace.
+        if check in ('crystals', 'crystals_open'):
              #-----отправка клиенту 
              socketio.emit('level', 'crystals',to=None)
              #-----добавить в историю
@@ -5405,8 +5409,13 @@ def Remote(check):
              serial_write_queue.put('open_high_tower_door')
         if check=='spell':
              serial_write_queue.put('open_low_tower_door')
-        if check=='crystals':
+        if check in ('crystals', 'crystals_open'):
              serial_write_queue.put('open_memory_door')
+        # Кнопка Dog Game подписана «Skip | Open»: в игре скипает этап, в покое
+        # открывает клетку Цербера. Это был единственный локер замка, который с
+        # пульта открыть было нечем.
+        if check=='dog':
+             serial_write_queue.put('open_dog_cage')
         if check=='basket':
              pass
         if check=='crime':

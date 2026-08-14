@@ -956,6 +956,7 @@ $('.ui.dropdown')
             }
             if (inp === 'active_crystals') {
                 $('#crystals').removeClass('disabled');
+                $('#open_memory_door_button').removeClass('disabled');
             }
             if (inp === 'active_open_memory_stash') {
                 $('#open_memory_stash').removeClass('disabled');
@@ -1564,6 +1565,7 @@ $('.ui.dropdown')
                 $('#dog').addClass('disabled');
                 $('#cat').addClass('disabled');
                 $('#open_potions_stash').addClass('disabled');
+                $('#open_memory_door_button').addClass('disabled');
                 $('#owl').addClass('disabled');
                 $('#owls').addClass('disabled');
                 $('#train').addClass('disabled');
@@ -1831,6 +1833,9 @@ $('.ui.dropdown')
     });
     $('#crystals').click(function(){
         socket.emit('Remote','crystals')
+    });
+    $('#open_memory_door_button').click(function(){
+        socket.emit('Remote','crystals_open')
     });
     $('#open_memory_stash').click(function(){
         socket.emit('Remote','open_memory_stash')

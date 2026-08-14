@@ -325,7 +325,7 @@
                                     </div>
                                     <div class="ui clearing inverted segment"style="border: #737373 1px solid;"> 
                                         <h3 class="ui left floated header">Dog Game</h3>
-                                        <button class="ui right floated small inverted button door_check " id="dog"><i class="icon" id="dog_indic"></i>Skip</button>
+                                        <button class="ui right floated small inverted button door_check " id="dog"><i class="icon" id="dog_indic"></i>Skip | Open</button>
                                     </div>
                                 </div>
                                 <h3 class="ui center aligned header" style="color: white;">Potion Room</h3>
@@ -502,6 +502,9 @@
                                     <div class="ui inverted clearing  segment"style="border: #737373 1px solid;">
                                         <h3 class="ui left floated header">Crystals</h3>
                                         <button class="ui right floated small inverted button door_check" id="open_memory_stash">Skip</button>
+                                        <!-- Локер в комнату воспоминаний: у Crystal Space своя кнопка,
+                                             но она гаснет в рестарте, и открыть этот локер с пульта было нечем. -->
+                                        <button class="ui right floated small inverted button door_check" id="open_memory_door_button"><i class="icon" id="open_memory_door_button_indic"></i>Open</button>
                                         <br><br><br>
                                         <div class="ui green inverted progress" data-value="0" data-total="2" id="items_memory">
                                             <div class="bar">

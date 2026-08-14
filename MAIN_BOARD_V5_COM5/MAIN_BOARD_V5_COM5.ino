@@ -1529,6 +1529,8 @@ void PowerOn() {
     else if (buff == "open_potion_door") OpenDoor(PotionsRoomDoor);
     else if (buff == "open_owl_door") mySerial.println(F("open_door"));
     else if (buff == "open_dog_door") Serial3.println(F("open_door"));
+    // Клетка Цербера — отдельный локер: у двери своя команда open_door.
+    else if (buff == "open_dog_cage") Serial3.println(F("open_cage"));
     else if (buff == "open_low_tower_door") OpenDoor(HightTowerDoor);
     else if (buff == "open_high_tower_door") OpenDoor(HightTowerDoor2);
     else if (buff == "open_library_door") OpenDoor(LibraryDoor);
@@ -7239,6 +7241,8 @@ void RestOn() {
       delay(50);
       mySerial.println(F("open_door"));
     } else if (buff == "open_dog_door") Serial3.println(F("open_door"));
+    // Клетка Цербера — отдельный локер: у двери своя команда open_door.
+    else if (buff == "open_dog_cage") Serial3.println(F("open_cage"));
     else if (buff == "open_low_tower_door") OpenDoor(HightTowerDoor);
     else if (buff == "open_high_tower_door") OpenDoor(HightTowerDoor2);
     else if (buff == "open_library_door") OpenDoor(LibraryDoor);

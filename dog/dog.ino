@@ -598,6 +598,16 @@ void loop() {
           digitalWrite(10, HIGH);  // Включаем светодиод на пине 10
           delay(500);              // Ждем 500 мс
           digitalWrite(10, LOW);   // Выключаем светодиод
+        } else if (strcmp_P(receivedUartMessageBuffer, PSTR("open_cage")) == 0) {
+          // Клетка (платформа) с пульта. Единственный локер замка, который
+          // нельзя было открыть кнопкой: open_door отпирает дверь (D10), а
+          // клетка висит на D5 и отщёлкивалась только по ready/restart и по
+          // прохождению игры. Импульс держим тем же таймером, что и на
+          // рестарте, — не блокируя цикл.
+          digitalWrite(CAGE_LOCK_PIN, HIGH);
+          cageLockRestartTime = currentMillis;
+          cageLockRestartActive = true;
+          sendLog("Cage opened from pult");
         } 
         else if (strcmp_P(receivedUartMessageBuffer, PSTR("check_state")) == 0) {
           _restartFlag = 0;
