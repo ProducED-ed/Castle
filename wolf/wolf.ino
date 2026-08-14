@@ -203,16 +203,20 @@ bool ghostFlag = 0;
 // Аналогичная защита стоит в chest.ino (там баг и проявился у клиента CLC2).
 bool stageFinished = false;
 
-// === СЛОЖНОСТЬ ЭТАПА ВОЛКА (2026-07-31, запрос Эдуарда) ===
+// === РЕЖИМ ЭТАПА ВОЛКА ===
 // Переключатель в Settings на пульте. Сервер присылает wolf_mode_normal /
-// wolf_mode_hard, состояние переживает рестарт (сервер шлёт его при старте).
+// wolf_mode_easy, состояние переживает рестарт (сервер шлёт его при старте).
 //
-// НОРМАЛЬНЫЙ (по умолчанию): отпустили луну — НИЧЕГО не происходит, прогресс
-//   сохраняется. Таймер отката не запускается вовсе.
-// СЛОЖНЫЙ: отпустили луну — через MOON_RELEASE_TIMEOUT_MS всё гаснет и этап
-//   откатывается в state=1. Вернули луну раньше — таймер сбрасывается.
-bool wolfHardMode = false;
-const unsigned long MOON_RELEASE_TIMEOUT_MS = 5000;   // только в сложном режиме
+// 14.08.2026 смысл тумблера перевернули: во всём квесте включённый тумблер
+// теперь означает ЛЁГКИЙ режим — раньше у Волка он означал сложный, а у
+// Чемоданов лёгкий, и это путало.
+//
+// НОРМАЛЬНЫЙ (по умолчанию): отпустили луну — через MOON_RELEASE_TIMEOUT_MS
+//   всё гаснет и этап откатывается в state=1. Вернули луну раньше — таймер
+//   сбрасывается.
+// ЛЁГКИЙ: отпустили луну — НИЧЕГО не происходит, прогресс сохраняется.
+bool wolfEasyMode = false;
+const unsigned long MOON_RELEASE_TIMEOUT_MS = 5000;   // только в нормальном режиме
 
 // GRACE ДЛЯ ОБЛАКОВ (оба режима). Раньше разрыв цепи облаков в WolfGame()
 // откатывал этап МГНОВЕННО — хватало микро-дрожания руки в момент касания
@@ -766,17 +770,17 @@ void setup() {
       }
       // Режим сложности этапа (2026-07-31). Сервер шлёт при переключении
       // тумблера и при старте квеста, чтобы состояние пережило рестарт ESP32.
-      if (body == "\"wolf_mode_normal\"") {
-        wolfHardMode = false;
+      if (body == "\"wolf_mode_easy\"") {
+        wolfEasyMode = true;
         delayActive = false;               // снимаем возможный отсчёт отката
-        sendLogToServer("{\"log\":\"Wolf: difficulty = NORMAL (no moon rollback)\"}");
-        server.send(200, "application/json", "{\"status\":\"wolf_mode_normal\"}");
+        sendLogToServer("{\"log\":\"Wolf: mode = EASY (no moon rollback)\"}");
+        server.send(200, "application/json", "{\"status\":\"wolf_mode_easy\"}");
         return;
       }
-      if (body == "\"wolf_mode_hard\"") {
-        wolfHardMode = true;
-        sendLogToServer("{\"log\":\"Wolf: difficulty = HARD (moon rollback 5s)\"}");
-        server.send(200, "application/json", "{\"status\":\"wolf_mode_hard\"}");
+      if (body == "\"wolf_mode_normal\"") {
+        wolfEasyMode = false;
+        sendLogToServer("{\"log\":\"Wolf: mode = NORMAL (moon rollback 5s)\"}");
+        server.send(200, "application/json", "{\"status\":\"wolf_mode_normal\"}");
         return;
       }
 
@@ -1316,17 +1320,17 @@ void CloudGame() {
       OUTPUTS.digitalWrite(moonLed, LOW);
       delayStartTime = millis();
       delayActive = true;
-      Serial.println(wolfHardMode ? "Moon released - hard mode timer started"
-                                  : "Moon released - normal mode, no rollback");
+      Serial.println(wolfEasyMode ? "Moon released - easy mode, no rollback"
+                                  : "Moon released - normal mode timer started");
     }
 
-    if (wolfHardMode && delayActive &&
+    if (!wolfEasyMode && delayActive &&
         millis() - delayStartTime >= MOON_RELEASE_TIMEOUT_MS) {
       OUTPUTS.digitalWrite(moonLed, HIGH);
       OUTPUTS.digitalWrite(rightCloudLed, HIGH);
       state = 1;
       delayActive = false;
-      Serial.println("Hard mode: moon timeout - state = 1");
+      Serial.println("Normal mode: moon timeout - state = 1");
     }
   } else {
     // MoonGerk снова нажат - сбрасываем таймер
@@ -1370,17 +1374,17 @@ void LeftCloudGame() {
       OUTPUTS.digitalWrite(moonLed, LOW);
       delayStartTime = millis();
       delayActive = true;
-      Serial.println(wolfHardMode ? "Moon released - hard mode timer started"
-                                  : "Moon released - normal mode, no rollback");
+      Serial.println(wolfEasyMode ? "Moon released - easy mode, no rollback"
+                                  : "Moon released - normal mode timer started");
     }
 
-    if (wolfHardMode && delayActive &&
+    if (!wolfEasyMode && delayActive &&
         millis() - delayStartTime >= MOON_RELEASE_TIMEOUT_MS) {
       OUTPUTS.digitalWrite(moonLed, HIGH);
       OUTPUTS.digitalWrite(rightCloudLed, HIGH);
       state = 1;
       delayActive = false;
-      Serial.println("Hard mode: moon timeout - state = 1");
+      Serial.println("Normal mode: moon timeout - state = 1");
     }
   } else {
     // MoonGerk снова нажат - сбрасываем таймер

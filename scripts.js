@@ -2143,15 +2143,16 @@ $('.ui.dropdown')
 				}
 			});
 
-			// --- Переключатель сложности этапа Волка (2026-07-31) ---
-			// Применяется сразу: режим влияет только на реакцию прошивки при
-			// отпускании луны, ветвление сценария не затрагивает.
-			let wolfHardSyncing = false;
-			$('#wolf-hard-toggle-container').checkbox({
+			// --- Переключатель режима этапа Волка ---
+			// 14.08.2026: включённый тумблер теперь означает ЛЁГКИЙ режим, как у
+			// Чемоданов. Применяется сразу: режим влияет только на реакцию
+			// прошивки при отпускании луны, ветвление сценария не затрагивает.
+			let wolfEasySyncing = false;
+			$('#wolf-easy-toggle-container').checkbox({
 				onChange: function() {
-					if (wolfHardSyncing) return;   // изменение пришло ОТ сервера
-					let isChecked = $('#wolf-hard-checkbox').is(':checked');
-					socket.emit('toggle_wolf_hard', isChecked);
+					if (wolfEasySyncing) return;   // изменение пришло ОТ сервера
+					let isChecked = $('#wolf-easy-checkbox').is(':checked');
+					socket.emit('toggle_wolf_easy', isChecked);
 				}
 			});
 
@@ -2176,14 +2177,14 @@ $('.ui.dropdown')
 				chestEasySyncing = false;
 			});
 
-			socket.on('wolf_hard_state', function(state) {
-				wolfHardSyncing = true;
+			socket.on('wolf_easy_state', function(state) {
+				wolfEasySyncing = true;
 				if (state) {
-					$('#wolf-hard-toggle-container').checkbox('set checked');
+					$('#wolf-easy-toggle-container').checkbox('set checked');
 				} else {
-					$('#wolf-hard-toggle-container').checkbox('set unchecked');
+					$('#wolf-easy-toggle-container').checkbox('set unchecked');
 				}
-				wolfHardSyncing = false;
+				wolfEasySyncing = false;
 			});
 			// ----------------------------------------------------
 
