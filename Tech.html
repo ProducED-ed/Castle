@@ -1168,9 +1168,34 @@
                     <div id="setup-servo-msg" style="margin-top:8px;"></div>
                 </div>
 
-                <!-- ---- Шаг 6: чек-лист приёмки ---- -->
+                <!-- ---- Шаг 6: верстак Мастерской ---- -->
                 <div class="ui inverted segment">
                     <h4><span class="setup-step">6</span>
+                        <span data-i18n="setup_wb_title">Верстак Мастерской: герконы и светодиоды</span></h4>
+                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_wb_hint">
+                        Включите тест и по очереди замкните каждый геркон верстака. Должен загораться светодиод РЯДОМ с ним. Если светится чужой — поменяйте местами провода светодиодов или герконов, это сборка, а не код.
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                        <button class="ui small button" id="setup-wb-reeds" onclick="setupWbTest('reeds')">
+                            <i class="hand point up outline icon"></i> <span data-i18n="setup_wb_start">Тест герконов</span>
+                        </button>
+                        <button class="ui small button" id="setup-wb-broom" onclick="setupWbTest('broom')">
+                            <i class="magic icon"></i> <span data-i18n="setup_wb_broom">Комбинация метлы</span>
+                        </button>
+                        <button class="ui small button" id="setup-wb-helmet" onclick="setupWbTest('helmet')">
+                            <i class="chess rook icon"></i> <span data-i18n="setup_wb_helmet">Комбинация шлема</span>
+                        </button>
+                        <button class="ui small button" id="setup-wb-off" onclick="setupWbTest('off')">
+                            <i class="power off icon"></i> <span data-i18n="setup_wb_off">Выключить</span>
+                        </button>
+                    </div>
+                    <div id="setup-wb-chips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                    <div id="setup-wb-msg" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ---- Шаг 6: чек-лист приёмки ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">7</span>
                         <span data-i18n="setup_chk_title">Чек-лист приёмки</span>
                         <span class="setup-badge" id="setup-chk-badge"></span></h4>
                     <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_chk_hint">
@@ -1538,6 +1563,16 @@
                 sens_flag3_on: "Dog: флаг 3", sens_flag3_off: "Dog: флаг 3 снят",
                 sens_door_owl: "Owls: дверь сов", sens_mine: "Basket: мина",
                 sens_cup: "Кубок", sens_start: "Старт квеста", sens_restart: "Restart",
+                setup_wb_title: "Верстак Мастерской: герконы и светодиоды",
+                setup_wb_hint: "Включите тест и по очереди замкните каждый геркон верстака. Должен загораться светодиод РЯДОМ с ним. Если светится чужой — поменяйте местами провода светодиодов или герконов, это сборка, а не код.",
+                setup_wb_start: "Тест герконов",
+                setup_wb_broom: "Комбинация метлы",
+                setup_wb_helmet: "Комбинация шлема",
+                setup_wb_off: "Выключить",
+                setup_wb_reed: "Геркон",
+                setup_wb_sent: "Команда отправлена…",
+                setup_wb_active: "Мастерская в режиме теста — смотрите на верстак.",
+                setup_wb_stopped: "Тест выключен, лента верстака возвращена игре.",
                 setup_chk_title: "Чек-лист приёмки",
                 setup_chk_hint: "То, что можно проверить только руками. Сохраняется на замке.",
                 setup_chk_reset: "Сбросить чек-лист",
@@ -1889,6 +1924,16 @@
                 sens_flag3_on: "Dog: flag 3", sens_flag3_off: "Dog: flag 3 removed",
                 sens_door_owl: "Owls: owl door", sens_mine: "Basket: mine",
                 sens_cup: "Cup", sens_start: "Quest start", sens_restart: "Restart",
+                setup_wb_title: "Workshop bench: reed switches and LEDs",
+                setup_wb_hint: "Start the test and close each bench reed switch in turn. The LED NEXT TO it must light up. If a different one lights, swap the LED or reed wiring — this is assembly, not code.",
+                setup_wb_start: "Reed switch test",
+                setup_wb_broom: "Broom combination",
+                setup_wb_helmet: "Helmet combination",
+                setup_wb_off: "Stop",
+                setup_wb_reed: "Reed",
+                setup_wb_sent: "Command sent…",
+                setup_wb_active: "Workshop is in test mode — look at the bench.",
+                setup_wb_stopped: "Test stopped, the bench strip is back to the game.",
                 setup_chk_title: "Acceptance checklist",
                 setup_chk_hint: "The parts that can only be checked by hand. Stored on the castle.",
                 setup_chk_reset: "Reset checklist",
@@ -3533,7 +3578,10 @@
             $('#flash-mode').prop('disabled', running);
             var guarded = ['#setup-name-btn', '#setup-ts-rename-btn', '#setup-ts-btn',
                            '#setup-wifi-connect', '#setup-wifi-off', '#setup-hub-identify',
-                           '#servo-test-hide', '#servo-test-open'];
+                           '#servo-test-hide', '#servo-test-open',
+                           // «Выключить» не блокируем: если тест верстака остался
+                           // включённым, погасить его нужно тем более во время игры.
+                           '#setup-wb-reeds', '#setup-wb-broom', '#setup-wb-helmet'];
             guarded.forEach(function(sel) { $(sel).toggleClass('disabled', running); });
         }
 
@@ -4484,6 +4532,57 @@
                 '<span class="setup-' + (done === CHECKLIST_ITEMS.length ? 'ok' : 'warn') + '">'
                 + done + ' / ' + CHECKLIST_ITEMS.length + '</span>');
         }
+
+        // ---- шаг 6: верстак Мастерской ----
+        // Проверка пар «геркон → светодиод» после сборки. Плашки на пульте
+        // показывают, какой геркон замкнут СЕЙЧАС; глазами при этом смотрят на
+        // сам верстак — совпало или нет, видно только там.
+        var WB_REEDS = 4;
+        var wbMode = 'off';
+        var wbState = {};
+
+        function setupWbRender() {
+            var box = $('#setup-wb-chips').empty();
+            if (wbMode !== 'reeds') return;
+            for (var i = 1; i <= WB_REEDS; i++) {
+                var on = wbState[i] === 1;
+                box.append($('<div>').addClass('diag-chip' + (on ? ' on' : ' off'))
+                    .append($('<span>').addClass('dot'))
+                    .append($('<span>').text(T('setup_wb_reed') + ' ' + i)));
+            }
+        }
+
+        function setupWbTest(mode) {
+            wbState = {};
+            $('#setup-wb-reeds, #setup-wb-broom, #setup-wb-helmet')
+                .removeClass('green').filter('#setup-wb-' + mode).addClass('green');
+            if (mode === 'off') $('#setup-wb-reeds, #setup-wb-broom, #setup-wb-helmet').removeClass('green');
+            wbMode = mode;
+            setupWbRender();
+            setupMsg('#setup-wb-msg', T('setup_wb_sent'), 'warn');
+            socket.emit('setup_workbench_test', { mode: mode });
+        }
+
+        socket.on('setup_workbench_result', function(d) {
+            if (d.reason === 'game_running') {
+                setupMsg('#setup-wb-msg', T('setup_locked'), 'bad');
+                return;
+            }
+            // stage 'active' — Мастерская отчиталась, что режим включён именно у
+            // неё. Без этого «отправлено» ничего не значит: башня могла молчать.
+            if (d.stage === 'active') {
+                wbMode = d.mode;
+                setupWbRender();
+                setupMsg('#setup-wb-msg',
+                         d.mode === 'off' ? T('setup_wb_stopped') : T('setup_wb_active'),
+                         d.mode === 'off' ? 'warn' : 'ok');
+            }
+        });
+
+        socket.on('setup_workbench_event', function(d) {
+            wbState[d.reed] = d.state;
+            setupWbRender();
+        });
 
         function setupChecklistReset() {
             if (!confirm(T('setup_chk_reset_confirm'))) return;

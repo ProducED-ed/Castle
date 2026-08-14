@@ -1531,6 +1531,10 @@ void PowerOn() {
     else if (buff == "open_high_tower_door") OpenDoor(HightTowerDoor2);
     else if (buff == "open_library_door") OpenDoor(LibraryDoor);
     else if (buff == "open_workshop_door") Serial1.println(F("open_door"));
+    // Тест верстака с тех-пульта (wbtest_reeds / wbtest_broom / wbtest_helmet /
+    // wbtest_off) — главная плата только передаёт строку Мастерской. Разбор
+    // команд с USB живёт в двух местах (покой и игра), поэтому и здесь, и там.
+    else if (buff.startsWith("wbtest_")) Serial1.println(buff);
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println(F("open_door"));
@@ -7220,6 +7224,10 @@ void RestOn() {
     else if (buff == "open_high_tower_door") OpenDoor(HightTowerDoor2);
     else if (buff == "open_library_door") OpenDoor(LibraryDoor);
     else if (buff == "open_workshop_door") Serial1.println(F("open_door"));
+    // Тест верстака с тех-пульта (wbtest_reeds / wbtest_broom / wbtest_helmet /
+    // wbtest_off) — главная плата только передаёт строку Мастерской. Разбор
+    // команд с USB живёт в двух местах (покой и игра), поэтому и здесь, и там.
+    else if (buff.startsWith("wbtest_")) Serial1.println(buff);
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println(F("open_door"));

@@ -115,6 +115,15 @@ const uint32_t BROOM_COMBINATION[] = {
   workbenchStrip.Color(128, 0, 128)
 };
 
+bool wbTestActive = false;
+byte wbTestCombo = 0;                     // 0 живой тест, 1 метла, 2 шлем
+byte wbTestPrev[NUM_LEDS_WORKBENCH] = { 0, 0, 0, 0 };
+unsigned long wbTestChanged[NUM_LEDS_WORKBENCH] = { 0, 0, 0, 0 };
+const unsigned long WB_TEST_DEBOUNCE = 60;
+const int WB_REED_PINS[NUM_LEDS_WORKBENCH] = {
+  REED_WORKBENCH1_PIN, REED_WORKBENCH2_PIN, REED_WORKBENCH3_PIN, REED_WORKBENCH4_PIN
+};
+
 bool helmetServoActivated = false;
 bool broomServoActivated = false;
 
@@ -155,6 +164,9 @@ uint32_t calculateFireColor(float heatValue);
 void handleCelebrationEffect();
 void setWorkbenchLedColor(int ledIndex, uint32_t color);
 void handleWorkbenchReedSwitches();
+void wbTestReset();
+bool handleWbTestCmd(const String &cmd);
+void handleWorkbenchTest();
 void updateWorkbenchLeds();
 void activateHelmetServo();
 void activateBroomServo();
@@ -291,7 +303,10 @@ void loop() {
   handleUartCommands(); 
 
   // Логика для светодиодов верстака (workbenchStrip)
-  if (fireworkActive) {
+  if (wbTestActive) {
+    // Тест с тех-пульта забирает ленту верстака себе — и только её.
+    handleWorkbenchTest();
+  } else if (fireworkActive) {
     // Фейерверк "перехватывает" управление лентой верстака
     handleFirework();
   } else {
@@ -769,6 +784,76 @@ void monPoll() {
 }
 // ============ /МОНИТОР ============
 
+// ============ ТЕСТ ВЕРСТАКА ============
+// На производстве светодиод и геркон верстака легко оказываются в разных
+// гнёздах: в игре человек касается первого геркона, а загорается третий
+// светодиод, и понять это можно только пройдя весь этап. Здесь пара
+// «геркон → светодиод» проверяется напрямую: замкнул первый — светится первый.
+// Не совпало — переставляют железо на верстаке, код тут ни при чём.
+// Отдельно — показ комбинаций метлы и шлема теми же цветами, что в игре:
+// так видно, что лента вообще передаёт нужные оттенки.
+// Режим включается только с тех-пульта при остановленном квесте и трогает
+// ТОЛЬКО ленту верстака: игровая логика не замораживается (после майской
+// истории с зависанием квеста ни один режим диагностики её не перехватывает).
+
+void wbTestReset() {
+  workbenchStrip.clear();
+  workbenchStrip.show();
+  for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) {
+    wbTestPrev[i] = 0;
+    wbTestChanged[i] = 0;
+  }
+}
+
+bool handleWbTestCmd(const String &cmd) {
+  if (!cmd.startsWith("wbtest")) return false;
+
+  if (cmd == "wbtest_off") {
+    wbTestActive = false;
+    wbTestCombo = 0;
+    wbTestReset();
+    // Возвращаем ленту игре: пусть переинициализирует её со своих состояний.
+    workbenchLedsInitialized = false;
+    for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) workbenchLedStates[i] = 0;
+    Serial1.println(F("wbtest:off"));
+    return true;
+  }
+
+  wbTestActive = true;
+  wbTestCombo = (cmd == "wbtest_broom") ? 1 : (cmd == "wbtest_helmet") ? 2 : 0;
+  wbTestReset();
+  if (wbTestCombo) {
+    for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) {
+      workbenchStrip.setPixelColor(i, wbTestCombo == 1 ? BROOM_COMBINATION[i]
+                                                       : HELMET_COMBINATION[i]);
+    }
+    workbenchStrip.show();
+  }
+  Serial1.println(wbTestCombo == 1 ? F("wbtest:broom")
+                                   : wbTestCombo == 2 ? F("wbtest:helmet")
+                                                      : F("wbtest:reeds"));
+  return true;
+}
+
+void handleWorkbenchTest() {
+  if (wbTestCombo) return;                // комбинация просто светит, опрос не нужен
+  unsigned long now = millis();
+  for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) {
+    byte level = (digitalRead(WB_REED_PINS[i]) == LOW) ? 1 : 0;   // замкнут = LOW
+    if (level == wbTestPrev[i]) continue;
+    if (now - wbTestChanged[i] < WB_TEST_DEBOUNCE) continue;
+    wbTestChanged[i] = now;
+    wbTestPrev[i] = level;
+    workbenchStrip.setPixelColor(i, level ? WORKBENCH_COLOR_WHITE_50 : 0);
+    workbenchStrip.show();
+    Serial1.print(F("wbtest:reed:"));
+    Serial1.print(i + 1);
+    Serial1.print(':');
+    Serial1.println(level);
+  }
+}
+// ============ /ТЕСТ ВЕРСТАКА ============
+
 void handleUartCommands() {
   if (Serial1.available()) {
     String command = Serial1.readStringUntil('\n');
@@ -779,6 +864,7 @@ void handleUartCommands() {
     }
 
     if (handleMonCmd(command)) return;   // монитор датчиков тех-пульта
+    if (handleWbTestCmd(command)) return;  // тест верстака с тех-пульта
 
     // Безопасный heartbeat от Main: отвечаем "pong" без побочек и без лога CMD.
     if (command == "ping_main") {

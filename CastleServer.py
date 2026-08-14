@@ -3924,6 +3924,27 @@ def setup_servo_save(data):
     socketio.emit('setup_status', _setup_snapshot())
 
 
+# ---------- шаг 5b: проверка верстака Мастерской ----------
+WORKBENCH_TEST_MODES = ('reeds', 'broom', 'helmet', 'off')
+
+
+@socketio.on('setup_workbench_test')
+def setup_workbench_test(data):
+    """Тест пар «геркон → светодиод» верстака и показ игровых комбинаций.
+
+    Сама проверка живёт в прошивке Мастерской: сервер только передаёт режим и
+    ловит обратные строки wbtest:. Во время игры режим не включаем — он
+    забирает ленту верстака себе."""
+    mode = (data or {}).get('mode')
+    if mode not in WORKBENCH_TEST_MODES:
+        return
+    if _setup_busy() and mode != 'off':
+        return _setup_denied('setup_workbench_result')
+    serial_write_queue.put(f'wbtest_{mode}')
+    logger.info(f"SETUP: тест верстака -> {mode}")
+    socketio.emit('setup_workbench_result', {'ok': True, 'stage': 'sent', 'mode': mode})
+
+
 # ---------- шаг 6: чек-лист приёмки ----------
 @socketio.on('setup_checklist_set')
 def setup_checklist_set(data):
@@ -6683,6 +6704,21 @@ def serial():
                    # Подтверждение от главной платы, что серво реально отработал.
                    # Без него кнопка «проверить» слепая: команда ушла, а двинулся
                    # ли привод — видно только глазами.
+                   # Тест верстака: строки идут от Мастерской через главную
+                   # плату. wbtest:reed:<1..4>:<0|1> — замкнули геркон, светодиод
+                   # с тем же номером должен загореться прямо на верстаке.
+                   if isinstance(flag, str) and flag.startswith('wbtest:'):
+                       parts = flag.split(':')
+                       if len(parts) == 4 and parts[1] == 'reed':
+                           try:
+                               socketio.emit('setup_workbench_event',
+                                             {'reed': int(parts[2]), 'state': int(parts[3])})
+                           except ValueError:
+                               pass
+                       elif len(parts) == 2:
+                           socketio.emit('setup_workbench_result',
+                                         {'ok': True, 'stage': 'active', 'mode': parts[1]})
+
                    if flag == "log:confirm:boytest_ok":
                        logger.info("SETUP: главная плата отчиталась — серво отработал")
                        socketio.emit('setup_servo_result', {'ok': True, 'stage': 'moved'})
