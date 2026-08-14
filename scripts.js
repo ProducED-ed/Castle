@@ -1327,6 +1327,9 @@ $('.ui.dropdown')
                     percent: 100
                  });
                     $('#open_memory_stash').addClass('positive');
+                    // Локер комнаты воспоминаний зеленеет вместе со Skip:
+                    // этап пройден — обе кнопки этапа выглядят одинаково.
+                    $('#open_memory_door_button').addClass('positive');
                 }
                 finalAlert=0
             }
