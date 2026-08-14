@@ -1238,6 +1238,12 @@
                 cmd_grp_lang: "Язык озвучки",
                 cmd_grp_vol: "Громкость",
                 cmd_grp_other: "Этапы и прочее",
+                lang_name_1: "русский",
+                lang_name_2: "английский",
+                lang_name_3: "арабский",
+                lang_name_4: "французский",
+                lang_name_5: "украинский",
+                lang_name_6: "польский",
                 cmd_sent: "Отправлено:",
                 cmd_failed: "Не отправлено:",
                 diag_frozen: "Устройство заморожено в диагностике, хотя пульт об этом не знает — игровые команды оно игнорирует:",
@@ -1580,6 +1586,12 @@
                 cmd_grp_lang: "Voice language",
                 cmd_grp_vol: "Volume",
                 cmd_grp_other: "Stages and other",
+                lang_name_1: "Russian",
+                lang_name_2: "English",
+                lang_name_3: "Arabic",
+                lang_name_4: "French",
+                lang_name_5: "Ukrainian",
+                lang_name_6: "Polish",
                 cmd_sent: "Sent:",
                 cmd_failed: "Not sent:",
                 diag_frozen: "The device is frozen in diagnostics though the dashboard does not know it — it ignores game commands:",
@@ -2491,24 +2503,81 @@
                     row.append($('<div>').css({color: '#999', 'font-size': '12px',
                                               'margin-bottom': '3px'})
                                .attr('data-i18n', pair[0]).text(T(pair[0])));
-                    var wrap = $('<div>').css({display: 'flex', 'flex-wrap': 'wrap', gap: '4px'});
-                    pair[1].forEach(function(cmd) {
-                        wrap.append($('<button>')
-                            .addClass('ui mini button')
-                            .css({'font-family': 'monospace', 'font-size': '11px'})
-                            .text(cmd)
-                            .on('click', function() { sendDeviceCommand(dev, cmd, this); }));
-                    });
+                    var wrap = $('<div>').css({display: 'flex', 'flex-wrap': 'wrap', gap: '4px',
+                                               'align-items': 'center'});
+                    if (pair[0] === 'cmd_grp_lang') {
+                        // Шесть языков — не шесть кнопок: номер набирается в поле, как угол серво.
+                        renderLangPicker(wrap, dev, pair[1]);
+                    } else {
+                        pair[1].forEach(function(cmd) {
+                            wrap.append($('<button>')
+                                .addClass('ui mini button')
+                                .css({'font-family': 'monospace', 'font-size': '11px'})
+                                .text(cmd)
+                                .on('click', function() { sendDeviceCommand(dev, cmd, this); }));
+                        });
+                    }
                     row.append(wrap);
                     box.append(row);
                 });
             });
         }
 
-        function sendDeviceCommand(device, command, btn) {
+        // Номера озвучки на замке: 1 ru, 2 en, 3 ar, 4 fr, 5 uk, 6 pl (порядок из CastleServer).
+        function langNameById(n) {
+            var key = 'lang_name_' + n;
+            var name = T(key);
+            return name === key ? '' : name;
+        }
+
+        // Название языка рисуется из JS, атрибут data-i18n его не покрывает.
+        function langPickerRerenderNames() {
+            $('.dev-lang-name').each(function() {
+                var n = parseInt($(this).data('lang'), 10);
+                $(this).text(n ? langNameById(n) : '');
+            });
+        }
+
+        function renderLangPicker(wrap, dev, cmds) {
+            var max = cmds.length;                       // языков ровно столько, сколько команд
+            var inp = $('<input>').attr({type: 'number', min: 1, max: max, value: 1,
+                                         id: 'dev-lang-' + dev})
+                                  .css({width: '70px'});
+            var btn = $('<button>').addClass('ui mini button')
+                                   .css({'font-family': 'monospace', 'font-size': '11px'})
+                                   .text('language_1');
+            var name = $('<span>').addClass('dev-lang-name')
+                                  .css({color: '#999', 'font-size': '12px'})
+                                  .attr('data-lang', 1)
+                                  .text(langNameById(1));
+            function current() {
+                var n = parseInt(inp.val(), 10);
+                if (!(n >= 1 && n <= max)) return 0;     // пустое поле или мусор
+                return n;
+            }
+            function refresh() {
+                var n = current();
+                btn.text(n ? 'language_' + n : 'language_?').toggleClass('disabled', !n);
+                name.attr('data-lang', n).text(n ? langNameById(n) : '');
+            }
+            inp.on('input change', refresh);
+            btn.on('click', function() {
+                var n = current();
+                if (!n) return;
+                // refresh после разблокировки: снятие 'disabled' по таймеру иначе
+                // оживляет кнопку и с пустым полем.
+                sendDeviceCommand(dev, 'language_' + n, this, refresh);
+            });
+            wrap.append(inp, btn, name);
+        }
+
+        function sendDeviceCommand(device, command, btn, onUnlock) {
             $(btn).addClass('loading disabled');
             socket.emit('tech_device_command', { device: device, command: command });
-            setTimeout(function() { $(btn).removeClass('loading disabled'); }, 800);
+            setTimeout(function() {
+                $(btn).removeClass('loading disabled');
+                if (onUnlock) onUnlock();
+            }, 800);
         }
 
         socket.on('tech_device_command_result', function(d) {
@@ -3625,6 +3694,7 @@
             if (monEvents) $('#setup-mon-count').text(T('setup_mon_events') + monEvents);
             monRerenderTexts();
             renderFlashMode();
+            langPickerRerenderNames();
         }
 
         socket.on('setup_ports_identify_result', function(d) {
