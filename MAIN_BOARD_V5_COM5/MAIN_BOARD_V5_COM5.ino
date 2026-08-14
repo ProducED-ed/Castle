@@ -506,6 +506,14 @@ bool Scroll21On;
 bool Scroll31On;
 bool Scroll41On;
 bool dragonFlag;
+// Повтор подсказки дракона (story_2_r). Раньше таймер заводился на старте
+// квеста, а первые 80 секунд занимает вступление — повтор звучал через 40
+// секунд реального поиска и выдавал содержание story_2_b авансом. Теперь
+// отсчёт начинается только КОГДА story_2_b доиграла, то есть когда игрок уже
+// коснулся кристалла и услышал реплику целиком. Не static: статические
+// переменные переживают restart и оставляют состояние от прошлой партии.
+bool dragonRepeatArmed = false;
+bool prevFlagSound = true;   // flagSound по умолчанию 1 — стартуем с той же
 
 bool isPotionEnd;
 bool isDogEnd;
@@ -1516,7 +1524,11 @@ void PowerOn() {
       isOwlDoorOpened = false;
       isTrainStarted = false;
       isBankerFirstHint = true;
-      dragonTimer = millis();
+      // dragonTimer здесь больше НЕ заводим: повтор дракона начинает
+      // отсчёт от конца story_2_b, а не от старта квеста.
+      dragonRepeatArmed = false;
+      prevFlagSound = true;
+      dragonFlag = 0;
       boyStateInitialized = false;
       waitingForBasketConfirm = false;
       basketRetryCount = 0;
@@ -2113,15 +2125,25 @@ void StartDoor() {
     // ---------------------------
 
     dragonFlag = 0;
+    dragonRepeatArmed = false;
+    prevFlagSound = true;
     KayTimer = millis();
     level++;
   }
 
-  // Таймер для повтора подсказки дракона
-  if (millis() - dragonTimer >= 120000) {
-    if (!dragonFlag) {
-      Serial.println(F("dragon_crystal_repeat"));
-    }
+  // story_2_b доиграла — сервер снимает заглушку звука (soundoff → flagSound 1).
+  // Именно этот фронт, при уже выставленном dragonFlag, и есть момент, с
+  // которого имеет смысл напоминать сказанное драконом.
+  if (flagSound && !prevFlagSound && dragonFlag && !dragonRepeatArmed) {
+    dragonRepeatArmed = true;
+    dragonTimer = millis();
+  }
+  prevFlagSound = flagSound;
+
+  // Повтор подсказки дракона — раз в 2 минуты, пока не открыта стартовая дверь
+  // (дверь открылась → level++ → StartDoor() больше не вызывается).
+  if (dragonRepeatArmed && millis() - dragonTimer >= 120000) {
+    Serial.println(F("dragon_crystal_repeat"));
     dragonTimer = millis();
   }
 
@@ -2155,6 +2177,8 @@ void StartDoor() {
       if (boyServo.attached()) { boyServo.detach(); }
 
       dragonFlag = 0;
+      dragonRepeatArmed = false;
+      prevFlagSound = true;
       KayTimer = millis();
       level++;
     }
@@ -6893,6 +6917,11 @@ void ClearSatelliteBuffers() {
 void RestOn() {
   waitingForBasketConfirm = false;  // Глушим таймер
   basketRetryCount = 0;
+  // Рестарт и готовность: состояние подсказки дракона от прошлой партии
+  // не должно доживать до новой.
+  dragonRepeatArmed = false;
+  prevFlagSound = true;
+  dragonFlag = 0;
   monPoll();                        // монитор датчиков для /tech (в покое)
   // Строки от башен разбирает только HelpTowersHandler(), а он вызывается
   // из smartDelay() — то есть работает лишь пока плата чего-то ждёт внутри
