@@ -204,9 +204,9 @@
 
 ## 7. Большая «карта» — поиск 5 ингредиентов: `MapGame()` — level=7
 
-🎯 Игроки получают карту со «слотами» (key/fish/owl/train) и должны положить нужный артефакт в каждый слот → запускается мини-игра в башне. **Все 5 ингредиентов:** Potion, Crystal (Dog), Owl (Owls), Train (Train ESP32), Troll/Metal (Basket).
+🎯 Карта — это барельеф, на нём свои барельефы: **ключ, рыбка, сова, поезд**. Игрок касается нужного барельефа **волшебной палочкой** (в палочке магнит, под барельефом геркон) → запускается мини-игра в соответствующей башне. Никаких артефактов в слоты не кладут. **Все 5 ингредиентов:** Potion, Crystal (Dog), Owl (Owls), Train (Train ESP32), Troll/Metal (Basket).
 
-### 7.1 Слот «Cat»: открытие комнаты зельеварения
+### 7.1 Барельеф «Cat»: открытие комнаты зельеварения
 - [ ] 👆 На карте «cat» рычаг → `!digitalReadExpander(0, board1)` (геркон 1 на board1, addr 000, Y=21) или пульт → **Cat Open Door**
 - [ ] 👁️ Mega шлёт `door_witch` → 🔧 OpenLock(PotionsRoomDoor) → реле A3 импульс
 - [ ] 👁️ 🔧 CauldronRoomStrip (NeoPixel, pin 12, 12 диодов) → плавное появление цвета `Color(255, 197, 143)` (255 шагов × 2 мс)
@@ -229,15 +229,16 @@
 - [ ] 👁️ После `isPotionEnd` → ждать `digitalReadExpander(4, board1)` (геркон финального предмета) → шлёт `item_find:potion` → потионная пульсация (GoldStrip + CauldronStrip)
 - [ ] Альтернатива: **Bottles Open Potions Stash (Skip)**
 
-### 7.3 Слот «Owl»: 🏰 Owls tower
-- [ ] 👆 На карте — артефакт "Owl" в слот → server → Mega → mySerial `owl` → башня Owls активирует игру
+### 7.3 Барельеф «Owl»: 🏰 Owls tower
+- [ ] 👆 Коснуться палочкой барельефа совы на карте → server → Mega → mySerial `owl` → башня Owls активирует игру
 - [ ] 👁️ Башня Owls: подсветка двери `PIN_LOKER_DOOR` (23) — открытие, светодиоды плиток `tileLeds[4]`
-- [ ] 👆 Нажать `PIN_HERKON_OWA` (29) → owl button → башня шлёт `door_owl` → Mega шлёт `door_owl`
+- [ ] 👆 Коснуться совы на башне — `PIN_HERKON_OWA` (29) → башня шлёт `door_owl` → Mega шлёт `door_owl`
+- [ ] 👆 То же засчитывается касанием **совы студента в центральной комнате** (геркон главной платы 38): Mega шлёт башне `owl_touch`, башня проверяет те же условия. Сделано 14.08.2026 — игроки путали двух сов
 - [ ] 👆 Решить пазл с 4 плитками + 2 галетных переключателями (Left D46/44/42/40, Right D32/34/36/38)
 - [ ] 👁️ Башня шлёт `owl_end` → Mega `light_off` всем башням → isOwlEnd=true
 - [ ] Альтернатива: пульт → **Owl Open Door** или **Owls Skip**
 
-### 7.4 Слот «Train»: 📡 Train ESP32
+### 7.4 Барельеф «Train»: 📡 Train ESP32
 - [ ] 👆 На карте — артефакт "Train" → server → Train ESP32 → запускает MapLeds + поезд
 - [ ] 👁️ Train: 30 NeoPixels (LED_PIN 17), 4 на DATA_PIN1 (5), TUNNEL_LED (23), UF_LED (19)
 - [ ] 👆 Игрок крутит 3 энкодера, ждёт зелёного цвета на табло → жмёт «start»
@@ -245,7 +246,7 @@
 - [ ] 👁️ Train шлёт `train_active` → `train_end` → Mega шлёт Serial2 `start_troll` (будит тролля) → isTrainEnd=true
 - [ ] Альтернатива: пульт → **Train Skip**, **Projector Skip**
 
-### 7.5 Слот «Pedlock/Dog»: 🏰 Dog tower
+### 7.5 Барельеф «Pedlock/Dog»: 🏰 Dog tower
 - [ ] 👆 Игрок открывает навесной замок `PADLOCK_REED_PIN` (A5) → башня шлёт лог `Padlock open` → Mega `door_dog`
 - [ ] 👆 Дальше — поверни колесо, найди кристалл, рыцарь и т.д. (см. resetQuestState/activateEndStage в dog.ino)
 - [ ] 👁️ 🔧 VIBRO_MOTOR_PIN (6) — мотор-вибратор работает в pattern `VIBRO_ON_DURATIONS[]`
@@ -258,7 +259,7 @@
 - [ ] 👁️ Финал: `END_REED_PIN` (A1) → лог `FINISHED` или `WIN: Dog locked` → Mega `dog_lock` → isDogEnd=true
 - [ ] Альтернатива: пульт → **Pedlock Open Door**, **Dog Skip**
 
-### 7.6 Слот «Mine/Troll»: 🏰 Basket tower (троль в пещере)
+### 7.6 Барельеф «Mine/Troll»: 🏰 Basket tower (троль в пещере)
 - [ ] 👆 Артефакт «Mine» на карту → Mega шлёт `Serial2 mine` → башня Basket открывает пещеру
 - [ ] 👆 Игроки находят 3 куска руды (aluminium / bronze / copper)
 - [ ] 👁️ Каждый кусок: башня шлёт `aluminium`/`bronze`/`copper` → Mega `cave_search1/2/3` → audio
