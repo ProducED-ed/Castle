@@ -459,6 +459,12 @@
                     </span>
                 </div>
 
+                <div style="margin-top:14px;">
+                    <div style="color:#ddd; font-weight:bold; margin-bottom:2px;" data-i18n="cmd_title">Команды устройства</div>
+                    <div style="color:#888; font-size:12px; margin-bottom:8px;" data-i18n="cmd_hint">Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.</div>
+                    <div id="dev-cmds-train"></div>
+                    <div id="dev-cmds-msg-train" style="font-size:12px; margin-top:6px;"></div>
+                </div>
                 <div id="diag-train-body" style="display:none; margin-top:1em;">
                     <h4 data-i18n="diag_sensors_live">Сенсоры (live)</h4>
                     <div class="diag-grid" id="diag-train-inputs"></div>
@@ -535,6 +541,12 @@
                     </span>
                 </div>
 
+                <div style="margin-top:14px;">
+                    <div style="color:#ddd; font-weight:bold; margin-bottom:2px;" data-i18n="cmd_title">Команды устройства</div>
+                    <div style="color:#888; font-size:12px; margin-bottom:8px;" data-i18n="cmd_hint">Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.</div>
+                    <div id="dev-cmds-wolf"></div>
+                    <div id="dev-cmds-msg-wolf" style="font-size:12px; margin-top:6px;"></div>
+                </div>
                 <div id="diag-wolf-body" style="display:none; margin-top:1em;">
                     <h4 data-i18n="diag_sensors_raw">Сенсоры (live)</h4>
                     <div class="diag-grid" id="diag-wolf-inputs"></div>
@@ -617,6 +629,12 @@
                     </span>
                 </div>
 
+                <div style="margin-top:14px;">
+                    <div style="color:#ddd; font-weight:bold; margin-bottom:2px;" data-i18n="cmd_title">Команды устройства</div>
+                    <div style="color:#888; font-size:12px; margin-bottom:8px;" data-i18n="cmd_hint">Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.</div>
+                    <div id="dev-cmds-safe"></div>
+                    <div id="dev-cmds-msg-safe" style="font-size:12px; margin-top:6px;"></div>
+                </div>
                 <div id="diag-safe-body" style="display:none; margin-top:1em;">
                     <h4 data-i18n="diag_sensors_live">Сенсоры (live)</h4>
                     <div class="diag-grid" id="diag-safe-inputs"></div>
@@ -673,6 +691,12 @@
                     </span>
                 </div>
 
+                <div style="margin-top:14px;">
+                    <div style="color:#ddd; font-weight:bold; margin-bottom:2px;" data-i18n="cmd_title">Команды устройства</div>
+                    <div style="color:#888; font-size:12px; margin-bottom:8px;" data-i18n="cmd_hint">Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.</div>
+                    <div id="dev-cmds-suitcases"></div>
+                    <div id="dev-cmds-msg-suitcases" style="font-size:12px; margin-top:6px;"></div>
+                </div>
                 <div id="diag-suitcases-body" style="display:none; margin-top:1em;">
                     <h4 data-i18n="cases_inputs">Кнопки + геркон (live)</h4>
                     <div class="diag-grid" id="diag-suitcases-inputs"></div>
@@ -1208,6 +1232,14 @@
                 diag_title: "Диагностика устройств (мультиметр в браузере)",
                 diag_desc: "В режиме диагностики устройство замораживает игровую логику. Каждый сенсор отображается живо; выходы (LED, реле, звук) можно дёргать вручную. Не использовать во время игры!",
                 diag_tab_monitor: "Монитор датчиков",
+                cmd_title: "Команды устройства",
+                cmd_hint: "Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.",
+                cmd_grp_game: "Игра",
+                cmd_grp_lang: "Язык озвучки",
+                cmd_grp_vol: "Громкость",
+                cmd_grp_other: "Этапы и прочее",
+                cmd_sent: "Отправлено:",
+                cmd_failed: "Не отправлено:",
                 diag_frozen: "Устройство заморожено в диагностике, хотя пульт об этом не знает — игровые команды оно игнорирует:",
                 diag_unfreeze: "Вывести из диагностики",
                 diag_mode_train: "Diag mode ON (замораживает поезд!)",
@@ -1542,6 +1574,14 @@
                 diag_title: "Device diagnostics (multimeter in the browser)",
                 diag_desc: "In diag mode the device freezes its game logic. Every sensor is displayed live; outputs (LEDs, relays, sound) can be toggled manually. Do not use during a game!",
                 diag_tab_monitor: "Sensor monitor",
+                cmd_title: "Device commands",
+                cmd_hint: "The same commands the server sends during the game. They change device state — press deliberately while a game is running.",
+                cmd_grp_game: "Game",
+                cmd_grp_lang: "Voice language",
+                cmd_grp_vol: "Volume",
+                cmd_grp_other: "Stages and other",
+                cmd_sent: "Sent:",
+                cmd_failed: "Not sent:",
                 diag_frozen: "The device is frozen in diagnostics though the dashboard does not know it — it ignores game commands:",
                 diag_unfreeze: "Leave diagnostics",
                 diag_mode_train: "Diag mode ON (freezes the train!)",
@@ -2413,6 +2453,72 @@
             if (tab === 'monitor' && typeof monTabShown === 'function') monTabShown();
         }
 
+        // Штатные команды устройств. Список снят из прошивок, тот же,
+        // что проверяет сервер: кнопка не может послать то, чего железо не знает.
+        var DEVICE_COMMANDS = {
+            train: [
+                ['cmd_grp_game', ['start', 'ready', 'restart', 'skip', 'firework', 'day_on', 'day_off']],
+                ['cmd_grp_lang', ['language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6']],
+                ['cmd_grp_vol', ['volume_up', 'volume_down']],
+                ['cmd_grp_other', ['case_finish', 'confirm_train_end', 'fish_finish', 'fish_open', 'flag_off', 'flag_on', 'ghost_game', 'ghost_game_end', 'ghost_knock', 'item_end', 'item_find', 'key_finish', 'key_open', 'map_disable_clicks', 'map_enable_clicks', 'owl_finish', 'owl_open', 'projector', 'safe_finish', 'set_time', 'stage_1', 'stage_10', 'stage_11', 'stage_12', 'stage_2', 'stage_3', 'stage_4', 'stage_5', 'stage_6', 'stage_7', 'stage_8', 'stage_9', 'train_end', 'train_light_off', 'train_light_on', 'train_on', 'train_uf_light_off', 'train_uf_light_on', 'troll_finish', 'wolf_finish']],
+            ],
+            wolf: [
+                ['cmd_grp_game', ['start', 'game', 'ready', 'restart', 'skip', 'open_door', 'firework', 'day_on', 'day_off']],
+                ['cmd_grp_lang', ['language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6']],
+                ['cmd_grp_vol', ['volume_up', 'volume_down']],
+                ['cmd_grp_other', ['confirm_wolf_end', 'ghost_game', 'ghost_game_end', 'wolf_mode_hard', 'wolf_mode_normal']],
+            ],
+            suitcases: [
+                ['cmd_grp_game', ['start', 'game', 'ready', 'restart', 'skip', 'open_door', 'firework', 'day_on', 'day_off']],
+                ['cmd_grp_lang', ['language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6']],
+                ['cmd_grp_vol', ['volume_up', 'volume_down']],
+                ['cmd_grp_other', ['confirm_suitcase_end']],
+            ],
+            safe: [
+                ['cmd_grp_game', ['start', 'game', 'ready', 'restart', 'skip', 'open_door', 'day_on', 'day_off']],
+                ['cmd_grp_lang', ['language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6']],
+                ['cmd_grp_vol', ['volume_up', 'volume_down']],
+                ['cmd_grp_other', ['confirm_safe_end']],
+            ],
+        };
+
+        function renderDeviceCommands() {
+            Object.keys(DEVICE_COMMANDS).forEach(function(dev) {
+                var box = $('#dev-cmds-' + dev);
+                if (!box.length || box.children().length) return;
+                DEVICE_COMMANDS[dev].forEach(function(pair) {
+                    var row = $('<div>').css({'margin-bottom': '6px'});
+                    row.append($('<div>').css({color: '#999', 'font-size': '12px',
+                                              'margin-bottom': '3px'})
+                               .attr('data-i18n', pair[0]).text(T(pair[0])));
+                    var wrap = $('<div>').css({display: 'flex', 'flex-wrap': 'wrap', gap: '4px'});
+                    pair[1].forEach(function(cmd) {
+                        wrap.append($('<button>')
+                            .addClass('ui mini button')
+                            .css({'font-family': 'monospace', 'font-size': '11px'})
+                            .text(cmd)
+                            .on('click', function() { sendDeviceCommand(dev, cmd, this); }));
+                    });
+                    row.append(wrap);
+                    box.append(row);
+                });
+            });
+        }
+
+        function sendDeviceCommand(device, command, btn) {
+            $(btn).addClass('loading disabled');
+            socket.emit('tech_device_command', { device: device, command: command });
+            setTimeout(function() { $(btn).removeClass('loading disabled'); }, 800);
+        }
+
+        socket.on('tech_device_command_result', function(d) {
+            var box = $('#dev-cmds-msg-' + d.device);
+            if (!box.length) return;
+            box.html(d.ok
+                ? '<span class="setup-ok">' + T('cmd_sent') + ' ' + d.command + '</span>'
+                : '<span class="setup-bad">' + T('cmd_failed') + ' ' + d.command + '</span>');
+        });
+
         // ============ Общий helper: показать лог любого устройства ============
         function diagShowLog(device) {
             socket.emit('tech_diag_log_request', { device: device, lines: 200 });
@@ -3261,6 +3367,7 @@
                 monBeepVol.castle = s.sensor_beep_volume;
             }
             monBeepRenderVol();
+            renderDeviceCommands();
 
             setupRenderChecklist(s.checklist || {});
             setupApplyLock(!!s.game_running);

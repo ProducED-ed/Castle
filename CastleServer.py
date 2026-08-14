@@ -3319,6 +3319,43 @@ def tech_diag_command(data):
     logger.debug(f"[DIAG] {device}: {cmd}")
     _diag_send(device, cmd)
 
+# Команды, которые понимает каждое внешнее устройство. Список снят прямо из
+# прошивок (строки `body == "\"cmd\""`), чтобы кнопки на пульте не разошлись с
+# тем, что железо реально умеет. diag_on/diag_off сюда НЕ входят намеренно:
+# режим диагностики включается своей кнопкой, которая ведёт учёт состояния, а
+# отправка мимо неё оставила бы устройство замороженным втихую.
+DEVICE_COMMANDS = {
+    'train': ('case_finish', 'confirm_train_end', 'day_off', 'day_on', 'firework', 'fish_finish', 'fish_open', 'flag_off', 'flag_on', 'ghost_game', 'ghost_game_end', 'ghost_knock', 'item_end', 'item_find', 'key_finish', 'key_open', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'map_disable_clicks', 'map_enable_clicks', 'owl_finish', 'owl_open', 'projector', 'ready', 'restart', 'safe_finish', 'set_time', 'skip', 'stage_1', 'stage_10', 'stage_11', 'stage_12', 'stage_2', 'stage_3', 'stage_4', 'stage_5', 'stage_6', 'stage_7', 'stage_8', 'stage_9', 'start', 'train_end', 'train_light_off', 'train_light_on', 'train_on', 'train_uf_light_off', 'train_uf_light_on', 'troll_finish', 'volume_down', 'volume_up', 'wolf_finish',),
+    'wolf': ('confirm_wolf_end', 'day_off', 'day_on', 'firework', 'game', 'ghost_game', 'ghost_game_end', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up', 'wolf_mode_hard', 'wolf_mode_normal',),
+    'suitcases': ('confirm_suitcase_end', 'day_off', 'day_on', 'firework', 'game', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up',),
+    'safe': ('confirm_safe_end', 'day_off', 'day_on', 'game', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up',),
+}
+
+
+@socketio.on('tech_device_command')
+def tech_device_command(data):
+    """Отправить внешнему устройству одну из его штатных команд с /tech."""
+    d = data or {}
+    device, command = d.get('device'), d.get('command')
+    allowed = DEVICE_COMMANDS.get(device, ())
+    if command not in allowed:
+        logger.warning(f"[CMD] Отклонена команда '{command}' для '{device}'")
+        socketio.emit('tech_device_command_result',
+                      {'ok': False, 'device': device, 'command': command,
+                       'reason': 'not_allowed'}, to=request.sid)
+        return
+    url = DIAG_DEVICE_URLS.get(device)
+    if not url:
+        socketio.emit('tech_device_command_result',
+                      {'ok': False, 'device': device, 'command': command,
+                       'reason': 'no_device'}, to=request.sid)
+        return
+    logger.info(f"[CMD] /tech -> {device}: {command}")
+    send_esp32_command(url, command, debounce=False)
+    socketio.emit('tech_device_command_result',
+                  {'ok': True, 'device': device, 'command': command}, to=request.sid)
+
+
 @socketio.on('tech_diag_log_request')
 def tech_diag_log_request(data):
     """Отдаёт последние N строк snapshot-лога для пост-мортем анализа.
