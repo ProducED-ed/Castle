@@ -97,6 +97,17 @@
             .tech-sec-flash h3 i.icon { color: #3498db; }
             .tech-sec-diag  h3 i.icon { color: #e67e22; }
             .tech-sec-setup h3 i.icon { color: #9b59b6; }
+            /* Плашка-уведомление в шапке раздела. Нужна, чтобы «плату забыли
+               прошить» было видно на свёрнутом разделе: раньше это выяснялось
+               только если раскрыть таблицу и сверить две даты глазами. */
+            .tech-sec-badge { margin-left: auto; display: none; align-items: center; gap: 6px;
+                              padding: 5px 11px; border-radius: 999px; font-size: 12.5px;
+                              font-weight: bold; line-height: 1.2; max-width: 55%;
+                              background: #4a3a00; color: #ffc107; border: 1px solid #6b5400; }
+            .tech-sec-badge.shown { display: inline-flex; }
+            .tech-sec-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .tech-sec-badge.never { background: #4a1010; color: #ff6b6b; border-color: #7a2020; }
+            .tech-sec-head .tech-sec-badge + .tech-sec-caret { margin-left: 0; }
             .diag-section h3 { color: #fff; }
             .diag-section h4 { color: #ddd; margin: 1em 0 0.5em; border-bottom: 1px solid #333; padding-bottom: 4px; }
             .diag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -308,6 +319,7 @@
                     <h3><i class="download icon"></i><span data-i18n="sec_flash_title">Прошивка плат</span></h3>
                     <div class="tech-sec-sub" data-i18n="sec_flash_subtitle">Заливка прошивок в главную плату, башни и внешние ESP32.</div>
                 </div>
+                <span class="tech-sec-badge" id="flash-badge"></span>
                 <i class="chevron down icon tech-sec-caret"></i>
             </div>
             <div class="tech-sec-body" id="sec-flash-body" style="display:none;">
@@ -1545,6 +1557,9 @@
                 setup_hub_extra_ports: "Портов в хабе найдено: ",
                 setup_hub_flashing: "Идёт прошивка — опознание недоступно.",
                 flash_stale: "Файл прошивки новее того, что залито в плату — плату нужно прошить.",
+                flash_badge_never: "Не прошиты:",
+                flash_badge_stale: "Нужно прошить:",
+                flash_badge_hint: "Плата ни разу не прошивалась или файл прошивки новее того, что в неё залито. Разверните раздел и прошейте.",
                 setup_hub_no_banner: "Ни одна башня не представилась. Почти всегда это значит, что на башнях прошивка без опознавательного баннера — прошейте Owls, Workshop и Basket текущей версией (таблица выше) и повторите опознание.",
                 setup_servo_title: "Калибровка серво мальчика",
                 setup_servo_hint: "Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните. Угол 0–180 — это НЕ градусы привода, а положение внутри диапазона импульса: библиотека Arduino жёстко режет всё выше 180. У привода на 270° или 360° полный ход уже укладывается в эти 0–180. Не хватает хода — расширяйте импульсы мин/макс, а не угол.",
@@ -1916,6 +1931,9 @@
                 setup_hub_extra_ports: "Ports found in the hub: ",
                 setup_hub_flashing: "Flashing in progress — identification is unavailable.",
                 flash_stale: "The firmware file is newer than what is on the board — the board needs flashing.",
+                flash_badge_never: "Never flashed:",
+                flash_badge_stale: "Needs flashing:",
+                flash_badge_hint: "The board was never flashed, or the firmware file is newer than what is on it. Expand the section and flash it.",
                 setup_hub_no_banner: "No tower announced itself. Almost always this means the towers run firmware without the identification banner — flash Owls, Workshop and Basket with the current version (table above) and identify again.",
                 setup_servo_title: "Boy servo calibration",
                 setup_servo_hint: "Servos come in different batches. Dial the values in with the test buttons, then save. The 0–180 angle is NOT servo degrees but a position inside the pulse range: the Arduino library hard-clamps anything above 180. On a 270° or 360° servo the full travel already fits into that 0–180. Need more travel — widen the min/max pulse, not the angle.",
@@ -2028,6 +2046,11 @@
             currentLang = l;
             localStorage.setItem('techLang', l);
             applyI18n();
+            // Плашка «нужно прошить» рисуется из данных, а не из разметки, и
+            // applyI18n её не трогает. Даты приходят редко (при подключении и
+            // после прошивки), поэтому просим их заново — иначе на смене языка
+            // плашка остаётся на старом.
+            if (typeof socket !== 'undefined' && socket.connected) socket.emit('get_board_stats');
         }
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.flag-btn').forEach(function(b) {
@@ -2098,7 +2121,39 @@
             return m ? new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]) : null;
         }
 
+        // Человеческое имя платы берём из самой таблицы, а не из отдельного
+        // словаря: так оно всегда совпадает с тем, что написано в строке, и
+        // переводится вместе с ней.
+        function boardTitle(board) {
+            var t = $('#last-' + board).closest('tr').find('h4').first().text();
+            return (t || board).trim();
+        }
+
+        // Итог по всем платам выносим на шапку раздела: свёрнутый раздел должен
+        // сам сказать, что плату забыли прошить. На CLC4 непрошитая башня Сов
+        // молча дожила до тестов — заметили только по неработающей двери.
+        function renderFlashBadge(never, stale) {
+            var badge = $('#flash-badge');
+            var names = never.concat(stale);
+            if (!names.length) {
+                badge.removeClass('shown never').empty().attr('title', '');
+                return;
+            }
+            var shown = names.slice(0, 3).join(', ');
+            if (names.length > 3) shown += ' +' + (names.length - 3);
+            // «Не прошиты» — только когда все платы в списке действительно ни
+            // разу не прошивались. В смешанном случае это была бы неправда, там
+            // общий заголовок «нужно прошить», а красный цвет остаётся.
+            var label = (never.length && !stale.length) ? 'flash_badge_never' : 'flash_badge_stale';
+            badge.addClass('shown')
+                 .toggleClass('never', never.length > 0)
+                 .attr('title', T('flash_badge_hint'))
+                 .html('<i class="exclamation triangle icon"></i>' +
+                       '<span>' + T(label) + ' ' + shown + '</span>');
+        }
+
         socket.on('board_stats_data', function(stats) {
+            var neverList = [], staleList = [];
             for (const [board, data] of Object.entries(stats)) {
                 $('#mtime-' + board).text(data.mtime);
                 $('#last-' + board).text(data.last_flash);
@@ -2120,7 +2175,9 @@
                             .attr('title', T('flash_stale'))
                             .text('⚠'));
                 }
+                if (stale) (flashAt ? staleList : neverList).push(boardTitle(board));
             }
+            renderFlashBadge(neverList, staleList);
         });
 
         // --- Иконки статуса устройств / сетей в заголовке ---
