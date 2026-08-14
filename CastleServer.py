@@ -8494,21 +8494,24 @@ def serial():
                               #----играем эффект 
                               play_effect(item_add)
                          if flag=="broom":
-                              #----играем эффект 
+                              #----играем эффект
                               play_effect(craft_success)
                               socketio.emit('level', 'broom', to=None)
                               socklist.append('broom')
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)    
+                              # Метлу и шлем делают подряд, а истории про них
+                              # длинные: ждём не только эффект, но и чужую
+                              # историю, иначе вторая обрывает первую.
+                              while (effects_are_busy() or story_busy()) and go == 1:
+                                  eventlet.sleep(0.1)
                               play_localized_audio("story_33")
 
                          if flag=="helmet":
-                              #----играем эффект 
+                              #----играем эффект
                               play_effect(craft_success)
                               socketio.emit('level', 'helmet', to=None)
                               socklist.append('helmet')
-                              while effects_are_busy() and go == 1: 
-                                  eventlet.sleep(0.1)    
+                              while (effects_are_busy() or story_busy()) and go == 1:
+                                  eventlet.sleep(0.1)
                               play_localized_audio("story_34")
 
                          if flag=="story_35":
@@ -8521,7 +8524,16 @@ def serial():
                               socklist.append('workshop')
                               hue_light_async(True, 40)  # HUE: свет на 40% как Workshop пройден
                               send_esp32_command(ESP32_API_TRAIN_URL, "item_end")
-                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_6") 
+                              send_esp32_command(ESP32_API_TRAIN_URL, "stage_6")
+
+                              # 2026-08-14, CLC4: story_34 оборвалась через
+                              # секунду после старта. Мастерская заканчивается
+                              # ровно тем предметом, про который эта история и
+                              # рассказывает: башня шлёт story_35 сразу за
+                              # helmet/broom. Ждём канал историй — ровно как
+                              # перед story_36 и story_37 ниже.
+                              while story_busy() and go == 1:
+                                  eventlet.sleep(0.1)
                               play_localized_audio("story_35")
 
                               while story_busy()==True and go == 1: 
