@@ -141,6 +141,14 @@ unsigned long cageLockInitialOpenTime = 0;
 bool cageLockInitialOpenActive = false;
 const long CAGE_LOCK_INITIAL_OPEN_DURATION = 500;  // 0.5 sekundy
 
+// Импульс клетки по команде с пульта (open_cage). Свои переменные, а не общие
+// с рестартом: гашение рестартного импульса живёт внутри проверки состояния
+// квеста, и команда, пришедшая в другом состоянии, оставила бы соленоид под
+// током навсегда.
+unsigned long cagePultOpenTime = 0;
+bool cagePultOpenActive = false;
+const long CAGE_LOCK_PULT_OPEN_DURATION = 500;  // 0.5 sekundy
+
 // Dlya neblokiruyushchego otkrytiya lokera "kletka" pri "end"
 unsigned long cageLockEndOpenTime = 0;
 bool cageLockEndOpenActive = false;
@@ -263,6 +271,8 @@ void resetQuestState() {
   vibroPulseState = false;
   cageLockInitialOpenTime = 0;
   cageLockInitialOpenActive = false;
+  cagePultOpenTime = 0;
+  cagePultOpenActive = false;
   cageLockEndOpenTime = 0;
   cageLockEndOpenActive = false;
   endReedTriggeredWithFastSpin = false;
@@ -605,8 +615,8 @@ void loop() {
           // прохождению игры. Импульс держим тем же таймером, что и на
           // рестарте, — не блокируя цикл.
           digitalWrite(CAGE_LOCK_PIN, HIGH);
-          cageLockRestartTime = currentMillis;
-          cageLockRestartActive = true;
+          cagePultOpenTime = currentMillis;
+          cagePultOpenActive = true;
           sendLog("Cage opened from pult");
         } 
         else if (strcmp_P(receivedUartMessageBuffer, PSTR("check_state")) == 0) {
@@ -854,6 +864,12 @@ void loop() {
       Serial.println((__FlashStringHelper *)MSG_FLAG2);
     }
     lastFlagSensorState = currentFlagSensorState;
+  }
+  // Гасим БЕЗУСЛОВНО, в любом состоянии квеста: соленоид под током дольше
+  // полусекунды — сгоревший соленоид.
+  if (cagePultOpenActive && (currentMillis - cagePultOpenTime >= CAGE_LOCK_PULT_OPEN_DURATION)) {
+    digitalWrite(CAGE_LOCK_PIN, LOW);
+    cagePultOpenActive = false;
   }
   if (cageLockInitialOpenActive && (currentMillis - cageLockInitialOpenTime >= CAGE_LOCK_INITIAL_OPEN_DURATION)) {
     digitalWrite(CAGE_LOCK_PIN, LOW);
