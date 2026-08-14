@@ -4068,6 +4068,15 @@ def _sensor_beep():
     if now - _sensor_beep_last < SENSOR_BEEP_MIN_GAP:
         return
     if _sensor_beep_sound is None:
+        # Готовим сигнал по первому же поводу пикнуть. Раньше подготовку
+        # запускали только тумблер (по явному действию) и кнопка «Проверить
+        # звук», а настройка живёт на замке: после перезапуска сервера или
+        # перезагрузки страницы тумблер уже включён, готовить некому — и
+        # монитор молчал, пока не нажмёшь «Проверить звук» (жалоба 14.08.2026).
+        # Этот писк пропадёт, следующий уже прозвучит: конвертация занимает
+        # доли секунды, а держать её в горячем пути нельзя.
+        if not _sensor_beep_tried:
+            socketio.start_background_task(_sensor_beep_prepare)
         return
     _sensor_beep_last = now
     try:
@@ -4260,6 +4269,10 @@ def sensor_monitor_set(data):
     _sensor_last_values.clear()
     _sensor_last_flags.clear()
     globals()['_sensor_started_at'] = time.time()
+    # Включили монитор при включённом звуке замка — готовим сигнал заранее,
+    # чтобы не потерять даже первое срабатывание.
+    if want and sensor_beep_castle and _sensor_beep_sound is None and not _sensor_beep_tried:
+        socketio.start_background_task(_sensor_beep_prepare)
     # Выбор источника звука тут НЕ трогаем. Раньше выключение монитора сбрасывало
     # его в «не пищать», а пульт об этом не узнавал и продолжал показывать
     # тумблер включённым: любой, кто дёрнул монитор со стороны (другая вкладка,

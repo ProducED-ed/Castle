@@ -4279,6 +4279,24 @@
             return monBeepAudio;
         }
 
+        // Браузер не даёт играть звук, пока человек не тронул страницу. После
+        // перезагрузки /tech писк монитора молчал до нажатия «Проверить звук» —
+        // сама кнопка и была тем недостающим жестом. Разблокируем на первом же
+        // клике по странице: беззвучно проигрываем и сразу останавливаем.
+        function monBeepUnlock() {
+            try {
+                var a = monBeepInit();
+                a.muted = true;
+                var p = a.play();
+                var done = function() {
+                    try { a.pause(); a.currentTime = 0; } catch (e) {}
+                    a.muted = false;
+                };
+                if (p && p.then) p.then(done).catch(function() { a.muted = false; });
+                else done();
+            } catch (e) {}
+        }
+
         // Вызывается из onchange, то есть внутри жеста пользователя — только так
         // мобильный браузер разрешает воспроизведение без клика на каждый звук.
         function monBeepChanged() {
@@ -4719,6 +4737,7 @@
             // появлялись, только когда что-нибудь заставляло сервер прислать
             // статус — например переключатель звука.
             renderDeviceCommands();
+            $(document).one('click touchstart', monBeepUnlock);
         });
 
         // ============ /ПЕРВЫЙ ЗАПУСК ============
