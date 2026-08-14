@@ -114,7 +114,7 @@ unsigned long lastDebounceTime_1 = 0;
 // КАЖДОГО срабатывания геркона 1 (не только первого — блок story_28
 // ниже отрабатывает единожды из-за флага story28_played, поэтому
 // взвод таймера вынесен в отдельную проверку).
-const unsigned long BALL_SENSOR_LOCKOUT_MS = 5000;
+const unsigned long BALL_SENSOR_LOCKOUT_MS = 20000;  // 14.08.2026: было 5000 — шарик успевал задеть датчик и позже
 unsigned long reed1TriggeredAt = 0;          // millis() последнего срабатывания геркона 1
 unsigned long lastReed1LockoutDebounce = 0;  // отдельный дебаунс для взвода таймера
 unsigned long lastBallIgnoreLog = 0;         // троттлинг лога игнорирования
