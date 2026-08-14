@@ -45,7 +45,10 @@
                         
                         <br>
                         <!--боковое меню добавить какую нибудь вкладку довольно легко используй класс segment смотри по образу внизу -->
-                        <div class="ui sidebar inverted vertical menu" style="overflow: hidden !important;">
+                        <!-- 14.08.2026: было overflow: hidden — панель настроек длиннее экрана, и
+     нижние переключатели (Волк, Чемоданы) на небольших экранах было не
+     достать вообще. Разрешаем прокрутку внутри панели. -->
+                        <div class="ui sidebar inverted vertical menu" style="overflow-y: auto !important; overflow-x: hidden !important;">
     
 							<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow-y: auto !important; -webkit-overflow-scrolling: touch; padding-bottom: 400px;">
 								
@@ -200,6 +203,13 @@
 										 <div class="ui toggle checkbox" id="wolf-hard-toggle-container" style="margin-top: 15px;">
 											 <input type="checkbox" id="wolf-hard-checkbox">
 											 <div class="ui tiny header "style="color: white;">Wolf: hard mode<br>(on = releasing the moon resets the stage after 5s)</div>
+										 </div>
+                                     </div>
+
+									 <div class="ui clearing inverted  segment"style="border: 2px #D3D3D3 solid ; border-radius: 10px;">
+										 <div class="ui toggle checkbox" id="chest-easy-toggle-container" style="margin-top: 15px;">
+											 <input type="checkbox" id="chest-easy-checkbox">
+											 <div class="ui tiny header "style="color: white;">Suitcases: easy mode<br>(on = any one button opens the puzzle, no holding)</div>
 										 </div>
                                      </div>
 									 

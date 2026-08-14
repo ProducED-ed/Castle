@@ -26,6 +26,13 @@ int insideLed = 23;
 int ledsSym[] = {25,5,18,19};
 int state = 0;
 bool isMistake = false;
+// Лёгкий режим этапа чемоданов. Тумблер в Settings игрового пульта, сервер
+// присылает chest_mode_easy / chest_mode_normal и досылает выбор при каждом
+// старте — ESP32 могла перезагрузиться и забыть его.
+// Нормальный: четыре кнопки по порядку с удержанием, потом ИК-датчик при
+// удержанных кнопках. Лёгкий: любая одна кнопка открывает сборку, дальше
+// достаточно замкнуть ИК-датчик, ничего удерживать не нужно.
+bool chestEasyMode = false;
 
 int SHERIF_EM2 = 21;
 
@@ -501,6 +508,18 @@ void setup() {
         dayOffPending = true;
         dayOffTimer = millis();
       }
+      if (body == "\"chest_mode_easy\"") {
+        chestEasyMode = true;
+        sendLogToServer("{\"log\":\"Chest: easy mode ON\"}");
+        server.send(200, "application/json", "{\"status\":\"chest_mode_easy\"}");
+        return;
+      }
+      if (body == "\"chest_mode_normal\"") {
+        chestEasyMode = false;
+        sendLogToServer("{\"log\":\"Chest: easy mode OFF\"}");
+        server.send(200, "application/json", "{\"status\":\"chest_mode_normal\"}");
+        return;
+      }
       if (body == "\"volume_up\"") {
         value = value + 1;
         if (value >= 30) value = 30;
@@ -949,7 +968,10 @@ void SymbolEye() {
     butt3.tick();
     butt4.tick();
 
-  if (!digitalRead(eyeSymbolGerkon) && butt1.isHold() && butt2.isHold() && butt3.isHold() && butt4.isHold()) {
+  // В лёгком режиме кнопки держать не нужно: собрал пазл — этап закрыт.
+  bool holdOk = chestEasyMode || (butt1.isHold() && butt2.isHold()
+                                  && butt3.isHold() && butt4.isHold());
+  if (!digitalRead(eyeSymbolGerkon) && holdOk) {
     if (millis() - eyeSymbolTimer >= 500) {
       
       // --- НАЧАЛО ИЗМЕНЕНИЯ ---
@@ -973,7 +995,7 @@ void SymbolEye() {
   }
   else eyeSymbolTimer = millis();
   
-  if(!butt1.isHold() || !butt2.isHold() || !butt3.isHold() || !butt4.isHold()){
+  if(!chestEasyMode && (!butt1.isHold() || !butt2.isHold() || !butt3.isHold() || !butt4.isHold())){
     state = 1; // Возвращаемся к предыдущему состоянию, если кнопки отпустили
     for (int i = 0; i < arrayLenght; i++)
     {
@@ -985,7 +1007,39 @@ void SymbolEye() {
 
 
 //символы следим за кнопками светим адреской
+// Лёгкий режим: достаточно НАЖАТЬ любую из четырёх кнопок. Порядок и удержание
+// не проверяются, значит ошибиться нельзя — красный тут не загорается вовсе.
+void EasyButtons() {
+  butt1.tick();
+  butt2.tick();
+  butt3.tick();
+  butt4.tick();
+
+  int idx = -1;
+  if (butt1.isPress()) idx = 0;
+  else if (butt2.isPress()) idx = 1;
+  else if (butt3.isPress()) idx = 2;
+  else if (butt4.isPress()) idx = 3;
+  if (idx < 0) return;
+
+  Serial.println("trubutmr");
+  // Зажигаем символ именно той кнопки, которую нажали.
+  for (int i = 0; i <= 255; i++) {
+    analogWrite(ledsSym[idx], i);
+    delay(3);
+  }
+  Serial.println("4stage");
+  symbolBrightness = 0;
+  playStory7();
+  delay(500);
+  state = 2;
+}
+
 void ButtonSymbols() {
+  if (chestEasyMode) {
+    EasyButtons();
+    return;
+  }
   if(!isMistake){
     switch (buttonSequence) {
       case 0:
@@ -1015,7 +1069,12 @@ void ButtonSymbols() {
 
 void Mistake(){
   if(millis()-mistakeTimer <= pause_duration){
-      digitalWrite(mistakeLed, HIGH);
+      // 14.08.2026: те же две секунды, но красный ПУЛЬСИРУЕТ — ровный свет
+      // рядом с горящими символами не читался как «ошибка». Синусоида, полный
+      // цикл секунда, то есть два вдоха за окно ошибки.
+      float phase = (millis() - mistakeTimer) / 1000.0 * 2.0 * PI;
+      uint8_t v = 12 + (uint8_t)((sin(phase - PI / 2.0) * 0.5 + 0.5) * 243.0);
+      analogWrite(mistakeLed, v);
       iterator = 0;
       symbolBrightness = 0;
       symbolFadeTimer = millis();
@@ -1030,11 +1089,46 @@ void Mistake(){
   }
   else{
     isMistake = false;
+    analogWrite(mistakeLed, 0);
     digitalWrite(mistakeLed, LOW);
   }
 }
 
 
+
+// Реплика «этап открыт, собирай пазл». Играет и в нормальном режиме (после
+// четырёх кнопок), и в лёгком (после первой же кнопки) — поэтому вынесена сюда.
+void playStory7() {
+    if(!storyFlag){
+    myMP3.pause(); // Ставим фоновую музыку на паузу
+    delay(50);
+    if(language == 1) {
+      myMP3.playMp3Folder(TRACK_STORY_7_RU);
+      sendLogToServer("{\"log\":\"Chest: Playing Story 7 (RU)\"}");
+    }
+    if(language == 2) {
+      myMP3.playMp3Folder(TRACK_STORY_7_EN);
+      sendLogToServer("{\"log\":\"Chest: Playing Story 7 (EN)\"}");
+    }
+    if(language == 3) {
+      myMP3.playMp3Folder(TRACK_STORY_7_AR);
+      sendLogToServer("{\"log\":\"Chest: Playing Story 7 (AR)\"}");
+    }
+    if(language == 4) {
+      myMP3.playMp3Folder(TRACK_STORY_7_FR);
+      sendLogToServer("{\"log\":\"Chest: Playing Story 7 (FR)\"}");
+    }
+    if(language == 5) {
+      myMP3.playMp3Folder(TRACK_STORY_7_UK);
+      sendLogToServer("{\"log\":\"Chest: Playing Story 7 (UK)\"}");
+    }
+    if(language == 6) {
+      myMP3.playMp3Folder(TRACK_STORY_7_PL);
+      sendLogToServer("{\"log\":\"Chest: Playing Story 7 (PL)\"}");
+    }
+    storyFlag = 1;
+  }
+}
 
 //логика для кнопок
 void _Button_1() {
@@ -1183,36 +1277,7 @@ void _Button_4() {
     {
       analogWrite(ledsSym[i], 255);
     }
-    if(!storyFlag){
-      myMP3.pause(); // Ставим фоновую музыку на паузу
-      delay(50);
-      if(language == 1) {
-        myMP3.playMp3Folder(TRACK_STORY_7_RU);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (RU)\"}");
-      }
-      if(language == 2) {
-        myMP3.playMp3Folder(TRACK_STORY_7_EN);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (EN)\"}");
-      }
-      if(language == 3) {
-        myMP3.playMp3Folder(TRACK_STORY_7_AR);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (AR)\"}");
-      }
-      if(language == 4) {
-        myMP3.playMp3Folder(TRACK_STORY_7_FR);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (FR)\"}");
-      }
-      if(language == 5) {
-        myMP3.playMp3Folder(TRACK_STORY_7_UK);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (UK)\"}");
-      }
-      if(language == 6) {
-        myMP3.playMp3Folder(TRACK_STORY_7_PL);
-        sendLogToServer("{\"log\":\"Chest: Playing Story 7 (PL)\"}");
-      }
-      storyFlag = 1;
-    }
-    
+    playStory7();
     delay(500);
     state++;
   }

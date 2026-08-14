@@ -645,6 +645,41 @@ def _push_wolf_mode():
 
 wolf_hard_mode = _load_wolf_hard_preference()
 
+# --- Лёгкий режим этапа Чемоданов (14.08.2026) ---
+# Устроено как у Волка: выбор живёт на замке в pref-файле и переживает
+# перезапуск, а ESP32 получает его при каждом старте — она могла перезагрузиться
+# и забыть. Дефолт — нормальный режим.
+CHEST_PREF_FILE = '/home/pi/castle_chest_easy_pref'
+
+
+def _load_chest_easy_preference():
+    try:
+        with open(CHEST_PREF_FILE) as f:
+            return f.read().strip() == '1'
+    except FileNotFoundError:
+        return False
+    except Exception as e:
+        logger.error(f"Chest pref read error: {e}")
+        return False
+
+
+def _save_chest_easy_preference(state):
+    try:
+        with open(CHEST_PREF_FILE, 'w') as f:
+            f.write('1' if state else '0')
+    except Exception as e:
+        logger.error(f"Chest pref save error: {e}")
+
+
+def _push_chest_mode():
+    """Отправить текущий режим на ESP32 Чемоданов."""
+    cmd = "chest_mode_easy" if chest_easy_mode else "chest_mode_normal"
+    send_esp32_command(ESP32_API_SUITCASE_URL, cmd)
+
+
+chest_easy_mode = _load_chest_easy_preference()
+
+
 # 2026-07-14 MONO v2: mono-сведение на уровне PulseAudio.
 # module-remap-sink channels=1 поверх USB-карты: pulse сводит stereo→mono
 # во float (0.5/0.5, без клиппинга) и дублирует на оба физических выхода.
@@ -3222,6 +3257,7 @@ def tech_jump_basket():
     spell_stage_enabled_runtime = spell_stage_enabled
     # Досылаем режим сложности Волка — ESP32 могла перезагрузиться и забыть его
     _push_wolf_mode()
+    _push_chest_mode()
     logger.info(f"SPELL: этап на эту игру — "
                 f"{'ВКЛЮЧЁН' if spell_stage_enabled_runtime else 'ВЫКЛЮЧЕН'}")
 
@@ -3402,7 +3438,7 @@ def tech_diag_command(data):
 DEVICE_COMMANDS = {
     'train': ('case_finish', 'confirm_train_end', 'day_off', 'day_on', 'firework', 'fish_finish', 'fish_open', 'flag_off', 'flag_on', 'ghost_game', 'ghost_game_end', 'ghost_knock', 'item_end', 'item_find', 'key_finish', 'key_open', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'map_disable_clicks', 'map_enable_clicks', 'owl_finish', 'owl_open', 'projector', 'ready', 'restart', 'safe_finish', 'set_time', 'skip', 'stage_1', 'stage_10', 'stage_11', 'stage_12', 'stage_2', 'stage_3', 'stage_4', 'stage_5', 'stage_6', 'stage_7', 'stage_8', 'stage_9', 'start', 'train_end', 'train_light_off', 'train_light_on', 'train_on', 'train_uf_light_off', 'train_uf_light_on', 'troll_finish', 'volume_down', 'volume_up', 'wolf_finish',),
     'wolf': ('confirm_wolf_end', 'day_off', 'day_on', 'firework', 'game', 'ghost_game', 'ghost_game_end', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up', 'wolf_mode_hard', 'wolf_mode_normal',),
-    'suitcases': ('confirm_suitcase_end', 'day_off', 'day_on', 'firework', 'game', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up',),
+    'suitcases': ('chest_mode_easy', 'chest_mode_normal', 'confirm_suitcase_end', 'day_off', 'day_on', 'firework', 'game', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up',),
     'safe': ('confirm_safe_end', 'day_off', 'day_on', 'game', 'language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6', 'open_door', 'ready', 'restart', 'skip', 'start', 'volume_down', 'volume_up',),
 }
 
@@ -4382,6 +4418,8 @@ def handle_connect():
     socketio.emit('spell_stage_state', spell_stage_enabled, to=request.sid)
     # 2026-07-31: состояние переключателя сложности Волка
     socketio.emit('wolf_hard_state', wolf_hard_mode, to=request.sid)
+    # 2026-08-14: состояние переключателя лёгкого режима Чемоданов
+    socketio.emit('chest_easy_state', chest_easy_mode, to=request.sid)
     # Отправка всей истории новому клиенту ---
     # Отправляем один раз при подключении, чтобы 'синхронизировать' клиента
     # Мы отправляем только этому 'sid', чтобы не спамить других
@@ -9210,6 +9248,25 @@ def handle_wolf_hard_toggle(is_checked):
     _push_wolf_mode()
     logger.info(f"WOLF: режим {'СЛОЖНЫЙ (откат луны 5с)' if new_state else 'НОРМАЛЬНЫЙ (без отката)'}")
     socketio.emit('wolf_hard_state', new_state, to=None)
+
+
+# --- Обработчик переключателя лёгкого режима Чемоданов (2026-08-14) ---
+@socketio.on('toggle_chest_easy')
+def handle_chest_easy_toggle(is_checked):
+    """Лёгкий режим этапа Чемоданов.
+
+    Как и у Волка, применяется сразу: режим меняет только правила внутри
+    этапа (любая кнопка вместо последовательности, ИК-датчик без удержания),
+    а ветвление сценария не трогает."""
+    global chest_easy_mode
+    new_state = bool(is_checked)
+    if new_state == chest_easy_mode:
+        return  # повторный emit при reconnect
+    _save_chest_easy_preference(new_state)
+    chest_easy_mode = new_state
+    _push_chest_mode()
+    logger.info(f"CHEST: режим {'ЛЁГКИЙ (любая кнопка, без удержания)' if new_state else 'НОРМАЛЬНЫЙ'}")
+    socketio.emit('chest_easy_state', new_state, to=None)
 
 
 # --- Обработчик переключателя этапа Spell (2026-07-29) ---

@@ -2155,6 +2155,27 @@ $('.ui.dropdown')
 				}
 			});
 
+			// --- Переключатель лёгкого режима Чемоданов (2026-08-14) ---
+			// Применяется сразу: режим меняет только правила внутри этапа.
+			let chestEasySyncing = false;
+			$('#chest-easy-toggle-container').checkbox({
+				onChange: function() {
+					if (chestEasySyncing) return;   // изменение пришло ОТ сервера
+					let isChecked = $('#chest-easy-checkbox').is(':checked');
+					socket.emit('toggle_chest_easy', isChecked);
+				}
+			});
+
+			socket.on('chest_easy_state', function(state) {
+				chestEasySyncing = true;
+				if (state) {
+					$('#chest-easy-toggle-container').checkbox('set checked');
+				} else {
+					$('#chest-easy-toggle-container').checkbox('set unchecked');
+				}
+				chestEasySyncing = false;
+			});
+
 			socket.on('wolf_hard_state', function(state) {
 				wolfHardSyncing = true;
 				if (state) {
