@@ -3626,6 +3626,35 @@ void logBottleTag() {
   Serial.println();
 }
 
+// Метка прочиталась целиком, или это мусор с линии?
+//
+// OneWire::search() отдаёт true, просто прочитав 64 бита: контрольную сумму она
+// НЕ проверяет, это забота вызывающего. Мы её не проверяли — и любая помеха на
+// линии приходила в игру как «поднесли не ту бутылку»: игрок получал ошибку,
+// звук падения и 30 секунд блокировки за неисправное железо.
+//
+// 2026-08-15, CLC2: считыватель котла отдавал 08 00 00 00 00 00 00 00 вместо
+// 01 C9 00 00 00 00 00 34 — один случайный бит и дальше нули (линия
+// проваливается сразу после старта обмена). Битую метку теперь игнорируем: для
+// игры это «ничего не поднесли», а в лог уходит отдельная строка, по которой
+// сразу видно, что дело в проводе, а не в реквизите и не в коде.
+bool bottleTagValid() {
+  if (OneWire::crc8(addr, 7) == addr[7]) return true;
+  static unsigned long lastBadTagLog = 0;
+  // Котёл опрашивается каждый проход цикла: без ограничения битая линия
+  // завалит лог сотнями строк в секунду и утопит в них всё остальное.
+  if (millis() - lastBadTagLog > 2000) {
+    lastBadTagLog = millis();
+    Serial.print(F("log:main:bottle tag BAD CRC"));
+    for (int i = 0; i < 8; i++) {
+      Serial.print(' ');
+      Serial.print(addr[i], HEX);
+    }
+    Serial.println();
+  }
+  return false;
+}
+
 // Это та самая метка, которую мы только что засчитали, и грейс ещё идёт?
 bool isGracedTag(byte *a) {
   if (!hasLastAccepted) return false;
@@ -3678,6 +3707,8 @@ void Bottles() {
 ///////первая бутылка
 void FirstBottle() {
   if (myRFID.search(addr)) {
+    // Битая метка — считаем, что ничего не подносили (см. bottleTagValid).
+    if (!bottleTagValid()) return;
     // Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle1Timer = millis();
     byte result = 1;
@@ -3758,6 +3789,8 @@ void FirstBottle() {
 ///////вторая бутылка
 void SecondBottle() {
   if (myRFID.search(addr)) {
+    // Битая метка — считаем, что ничего не подносили (см. bottleTagValid).
+    if (!bottleTagValid()) return;
     // ИСПРАВЛЕНИЕ: Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle2Timer = millis();
     byte result = 1;
@@ -3838,6 +3871,8 @@ void SecondBottle() {
 //////третья бутылка
 void ThirdBottle() {
   if (myRFID.search(addr)) {
+    // Битая метка — считаем, что ничего не подносили (см. bottleTagValid).
+    if (!bottleTagValid()) return;
     // Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle3Timer = millis();
     byte result = 1;
@@ -3918,6 +3953,8 @@ void ThirdBottle() {
 /////четвертая бутылка
 void FourBottle() {
   if (myRFID.search(addr)) {
+    // Битая метка — считаем, что ничего не подносили (см. bottleTagValid).
+    if (!bottleTagValid()) return;
     // Обновляем таймер КАЖДЫЙ раз, когда видим бутылку
     Bottle4Timer = millis();
     byte result = 1;
