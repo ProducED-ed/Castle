@@ -246,8 +246,11 @@ unsigned long story15StartedAt = 0;   // millis() запуска STORY_15, 0 = �
 // минуты после касания. Ставим запас вдвое от реальной длины: сторож всё так же
 // не мешает штатному событию (оно приходит раньше), но провал вместо 80 секунд
 // становится примерно десятисекундным.
+// С 14.08.2026 этап играет ОДНУ историю: звук train_on лежит внутри файлов
+// story_15, все языки по 13 секунд. Сторож train_on остался только для команды
+// train_on с пульта и по игровой цепочке не взводится.
 const unsigned long TRAIN_ON_MAX_MS = 8000UL;   // трек 4 с
-const unsigned long STORY15_MAX_MS  = 26000UL;  // самая длинная история 13 с
+const unsigned long STORY15_MAX_MS  = 26000UL;  // история 13 с, запас двойной
 
 bool isTrainClick = false;
 bool isOwlClick = false;
@@ -808,10 +811,9 @@ void setup() {
         // train_light_on в начале квеста, и если она терялась или свет успевали
         // погасить, комната к этапу поезда оставалась тёмной.
         OUTPUTS.digitalWrite(0, HIGH);
-        myMP3.playMp3Folder(TRACK_TRAIN_ON);
-        SendData("{\"log\":\"Train: Playing Train On sound\"}");
-        trainOnStartedAt = millis();  // 2026-08-07: скип с пульта идёт по той же
-        story15StartedAt = 0;         // цепочке DFPlayer — сторож нужен и здесь
+        // 14.08.2026: сразу история, без промежуточного train_on — см. случай
+        // касания геркона выше.
+        playStory15();
         ActiveLeds[0] = 9;
         ClickLeds[0] = -1;
         isStartTrain = 0;
@@ -1883,9 +1885,12 @@ void loop() {
           // DIAG: подтверждаем что pin1 LIVE LOW в момент срабатывания
           SendData("{\"log\":\"Train DIAG: CONDITION FIRED — pin1=LOW (live), mapState=train, isStartTrain=0\"}");
           Serial.println("Train click detected!");
-          myMP3.playMp3Folder(TRACK_TRAIN_ON);
-          trainOnStartedAt = millis();  // 2026-08-07: взводим сторож цепочки
-          story15StartedAt = 0;
+          // 14.08.2026: отдельный трек train_on больше не играем — его звук
+          // Эдуард положил в начало самих файлов story_15. Раньше цепочка была
+          // train_on → (событие «доиграл») → story_15, и на потерянном событии
+          // она вставала: между двумя треками появлялась дыра на все секунды
+          // сторожа. Одним треком терять нечего.
+          playStory15();
 
           // 2026-08-07: этап поезда начался — таймер карты больше не нужен.
           // Раньше он досчитывал свои 9 секунд и сбрасывал state в 0 прямо
@@ -2457,13 +2462,8 @@ void handlePlayerQueries() {
       Serial.print("Завершился трек: ");
       Serial.println(finishedTrack);
       delay(100);
-      if (finishedTrack == TRACK_TRAIN_ON && !flagTrack) {
-        playStory15();        // 2026-08-07: тот же блок, вынесен в функцию
-        trackTimer = millis();
-        flagTrack = 1;
-        hintFlag = 0;
-        hintPlayedAt = millis();   // story_15 может не отдать событие конца
-      }
+      // Трек train_on этап больше не запускает (его звук внутри story_15), но
+      // сама команда train_on с пульта осталась — цепочку за собой она не тянет.
       if ((finishedTrack == TRACK_STORY_15_RU) || (finishedTrack == TRACK_STORY_15_EN) || (finishedTrack == TRACK_STORY_15_AR) ||
           (finishedTrack == TRACK_STORY_15_FR) || (finishedTrack == TRACK_STORY_15_UK) || (finishedTrack == TRACK_STORY_15_PL)) {
         state = 2;
