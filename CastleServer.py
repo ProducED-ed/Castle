@@ -7627,7 +7627,14 @@ def serial():
                               if 'flag1_on' not in socklist: socklist.append('flag1_on')
                               
                               # --- СТРАХОВКА ПОБЕДЫ: Если все 4 флага на месте, завершаем уровень ---
-                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              # Один раз за игру: башни повторяют состояние флага
+                              # каждые 5 секунд, и без этой защёлки страховка
+                              # дёргала соленоид m2lck каждые 5 секунд до конца
+                              # партии (лог CLC4 14.08.2026 18:15).
+                              if ('flag1_on' in socklist and 'flag2_on' in socklist
+                                      and 'flag3_on' in socklist and 'flag4_on' in socklist
+                                      and 'm2lck_sent' not in socklist):
+                                  socklist.append('m2lck_sent')
                                   serial_write_queue.put('m2lck')
 
                          if "flag2_on" in flag:
@@ -7636,8 +7643,11 @@ def serial():
                               socketio.emit('level', 'flag2_on',to=None)
                               if 'flag2_on' not in socklist: socklist.append('flag2_on')
                               
-                              # --- СТРАХОВКА ПОБЕДЫ ---
-                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              # --- СТРАХОВКА ПОБЕДЫ (один раз за игру, см. flag1_on) ---
+                              if ('flag1_on' in socklist and 'flag2_on' in socklist
+                                      and 'flag3_on' in socklist and 'flag4_on' in socklist
+                                      and 'm2lck_sent' not in socklist):
+                                  socklist.append('m2lck_sent')
                                   serial_write_queue.put('m2lck')
 
                          if "flag3_on" in flag:
@@ -7646,8 +7656,11 @@ def serial():
                               socketio.emit('level', 'flag3_on',to=None)
                               if 'flag3_on' not in socklist: socklist.append('flag3_on')
                               
-                              # --- СТРАХОВКА ПОБЕДЫ ---
-                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              # --- СТРАХОВКА ПОБЕДЫ (один раз за игру, см. flag1_on) ---
+                              if ('flag1_on' in socklist and 'flag2_on' in socklist
+                                      and 'flag3_on' in socklist and 'flag4_on' in socklist
+                                      and 'm2lck_sent' not in socklist):
+                                  socklist.append('m2lck_sent')
                                   serial_write_queue.put('m2lck')
 
                          if "flag4_on" in flag:
@@ -7656,8 +7669,11 @@ def serial():
                               socketio.emit('level', 'flag4_on',to=None)
                               if 'flag4_on' not in socklist: socklist.append('flag4_on') 
                               
-                              # --- СТРАХОВКА ПОБЕДЫ ---
-                              if 'flag1_on' in socklist and 'flag2_on' in socklist and 'flag3_on' in socklist and 'flag4_on' in socklist:
+                              # --- СТРАХОВКА ПОБЕДЫ (один раз за игру, см. flag1_on) ---
+                              if ('flag1_on' in socklist and 'flag2_on' in socklist
+                                      and 'flag3_on' in socklist and 'flag4_on' in socklist
+                                      and 'm2lck_sent' not in socklist):
+                                  socklist.append('m2lck_sent')
                                   serial_write_queue.put('m2lck')
 
                          # --- Обработка снятия флагов (также ищем подстроку) ---
