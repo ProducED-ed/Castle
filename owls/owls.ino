@@ -190,6 +190,22 @@ void processOwlCommand(String command) {
     owlCommandReceived = false;
   }
 
+  // Сова студента в центральной комнате. Игроки регулярно путают её с совой на
+  // башне: обе «совы», обе на пути. Главная плата шлёт эту команду при касании
+  // её геркона, а решение принимаем ЗДЕСЬ — теми же условиями, что и для своего
+  // геркона (этап активирован картой + прошёл guard). Иначе получился бы старый
+  // owl_door, который открывал дверь безусловно (см. ниже, почему его убрали).
+  if (command == "owl_touch") {
+    if (owlCommandReceived && (millis() - owlArmedAt > OWL_GUARD_MS)) {
+      owlCommandReceived = false;
+      Serial.println("door_owl");
+      Serial1.println("door_owl");
+      delay(50);
+      sendLog("Owl touched in the central room.");
+      state = 1;
+    }
+  }
+
   // 2026-05-25: handler "owl_door" удалён. Он немедленно слал door_owl без
   // проверки геркона PIN_HERKON_OWA — дублировал и ломал правильную логику
   // ниже (line ~351): owlCommandReceived=true + геркон → door_owl. После

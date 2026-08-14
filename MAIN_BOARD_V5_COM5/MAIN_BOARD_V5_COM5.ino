@@ -1915,7 +1915,17 @@ void HelpHandler(String from) {
     // Студент
     if (studentButton.isPress()) {
       bool sent = false;
-      if (level > 1 && level < 4) {
+      // На этой же фигуре сидит сова студента, и игроки путают её с совой на
+      // башне Сов. Пока этап сов идёт — касание засчитываем как касание совы:
+      // башня сама проверит, что этап активирован картой, и откроет свой локер.
+      // Подсказку в этот момент не играем, иначе поверх открытия двери звучал
+      // бы совет искать сову.
+      if (mapGame_g == "owl" && !isOwlEnd) {
+        mySerial.println(F("owl_touch"));
+        Serial.println(F("log:main:owl_touch from student owl"));
+        // sent НЕ ставим: он гасит flagSound, то есть глушит ВСЕ подсказки до
+        // ответа сервера о конце звука. Звука тут нет — глушить нечего.
+      } else if (level > 1 && level < 4) {
         Serial.println(studentHints[getSmartHint(2, 0, 1)]);
         sent = true;
       } else if (level > 3 && level < 11) {
