@@ -3552,6 +3552,21 @@ void rememberAccepted(byte *a) {
   lastAcceptedAt = millis();
 }
 
+// Диагностика бутылок (2026-08-14, по просьбе с поддержки CLC2). Котёл счёл
+// метку чужой — печатаем её целиком. Ожидаемые метки лежат в validHex:
+// 1 C9 …34, 1 CA …6D, 1 CB …5A, 1 CC …DF. Одна игра — и видно однозначно:
+// пришла чужая метка → потеряли или подменили бутылку (лечится реквизитом);
+// пришла правильная, а этап не засчитан → виноват код;
+// строки нет вообще → метка не читается, смотреть провод к котлу.
+void logBottleTag() {
+  Serial.print(F("log:main:bottle tag"));
+  for (int i = 0; i < 8; i++) {
+    Serial.print(' ');
+    Serial.print(addr[i], HEX);
+  }
+  Serial.println();
+}
+
 // Это та самая метка, которую мы только что засчитали, и грейс ещё идёт?
 bool isGracedTag(byte *a) {
   if (!hasLastAccepted) return false;
@@ -3633,6 +3648,7 @@ void FirstBottle() {
       }
       // Неправильная бутылка
       if (FirstBottleFalse) {
+        logBottleTag();
         Serial.println(F("mistake_bottle"));
         FirstBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
@@ -3712,6 +3728,7 @@ void SecondBottle() {
       }
       // Неправильная бутылка
       if (SecondBottleFalse) {
+        logBottleTag();
         Serial.println(F("mistake_bottle"));
         SecondBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
@@ -3791,6 +3808,7 @@ void ThirdBottle() {
       }
       // Неправильная бутылка
       if (ThirdBottleFalse) {
+        logBottleTag();
         Serial.println(F("mistake_bottle"));
         ThirdBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
@@ -3876,6 +3894,7 @@ void FourBottle() {
       }
       // Неправильная бутылка
       if (FourBottleFalse) {
+        logBottleTag();
         Serial.println(F("mistake_bottle"));
         FourBottleFalse = 0;  // "Защелкиваем" ошибку
         Bottle = 0;
