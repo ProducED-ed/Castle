@@ -95,6 +95,8 @@ Servo boyServo;
 // Флаг монитора датчиков объявлен здесь, до состояний ожидания:
 // PowerOn/RestOn проверяют его раньше, чем идёт сам блок монитора.
 bool monActive = false;
+// Тест верстака Мастерской включён с /tech — в покое надо слушать её UART.
+bool wbTestOn = false;
 
 // --- КАЛИБРОВКА СЕРВО МАЛЬЧИКА (пин 49) ---
 // 2026-08-09: раньше эти числа были зашиты в коде, и под Канаду приходилось
@@ -1317,7 +1319,7 @@ void PowerOn() {
   // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
   // доходили. Читаем их здесь, но ТОЛЬКО при включённом мониторе: при
   // выключенном поведение платы не меняется ни на такт.
-  if (monActive) {
+  if (monActive || wbTestOn) {
     // Живость башен определяется ПАССИВНО: loop() смотрит, есть ли байты в
     // буфере, и намеренно их не читает. HelpTowersHandler() буферы вычерпывает,
     // поэтому отметку живости ставим ДО него — иначе башни, которые говорят
@@ -1534,7 +1536,24 @@ void PowerOn() {
     // Тест верстака с тех-пульта (wbtest_reeds / wbtest_broom / wbtest_helmet /
     // wbtest_off) — главная плата только передаёт строку Мастерской. Разбор
     // команд с USB живёт в двух местах (покой и игра), поэтому и здесь, и там.
-    else if (buff.startsWith("wbtest_")) Serial1.println(buff);
+    // Флаг нужен, чтобы в покое читать UART Мастерской: без него ответы
+    // wbtest:reed: доходили до пульта только при включённом мониторе.
+    else if (buff.startsWith("wbtest_")) {
+      bool wbOn = (buff != "wbtest_off");
+      // Пока в покое UART башен никто не читал, в буферах накопился мусор. Если
+      // начать читать его «как есть», в игровой разбор посыплются старые флаги
+      // (galet_on, flag4_on) да ещё склеенные переполнением (flag2flag2_off), а
+      // ответ на нашу команду утонет в этой пачке. Поэтому на включении чистим
+      // буферы ВСЕХ башен до отправки: читать мы начинаем сразу все четыре.
+      if (wbOn && !wbTestOn) {
+        while (Serial1.available())  Serial1.read();
+        while (Serial2.available())  Serial2.read();
+        while (Serial3.available())  Serial3.read();
+        while (mySerial.available()) mySerial.read();
+      }
+      wbTestOn = wbOn;
+      Serial1.println(buff);
+    }
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println(F("open_door"));
@@ -6868,7 +6887,7 @@ void RestOn() {
   // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
   // доходили. Читаем их здесь, но ТОЛЬКО при включённом мониторе: при
   // выключенном поведение платы не меняется ни на такт.
-  if (monActive) {
+  if (monActive || wbTestOn) {
     // Живость башен определяется ПАССИВНО: loop() смотрит, есть ли байты в
     // буфере, и намеренно их не читает. HelpTowersHandler() буферы вычерпывает,
     // поэтому отметку живости ставим ДО него — иначе башни, которые говорят
@@ -7227,7 +7246,24 @@ void RestOn() {
     // Тест верстака с тех-пульта (wbtest_reeds / wbtest_broom / wbtest_helmet /
     // wbtest_off) — главная плата только передаёт строку Мастерской. Разбор
     // команд с USB живёт в двух местах (покой и игра), поэтому и здесь, и там.
-    else if (buff.startsWith("wbtest_")) Serial1.println(buff);
+    // Флаг нужен, чтобы в покое читать UART Мастерской: без него ответы
+    // wbtest:reed: доходили до пульта только при включённом мониторе.
+    else if (buff.startsWith("wbtest_")) {
+      bool wbOn = (buff != "wbtest_off");
+      // Пока в покое UART башен никто не читал, в буферах накопился мусор. Если
+      // начать читать его «как есть», в игровой разбор посыплются старые флаги
+      // (galet_on, flag4_on) да ещё склеенные переполнением (flag2flag2_off), а
+      // ответ на нашу команду утонет в этой пачке. Поэтому на включении чистим
+      // буферы ВСЕХ башен до отправки: читать мы начинаем сразу все четыре.
+      if (wbOn && !wbTestOn) {
+        while (Serial1.available())  Serial1.read();
+        while (Serial2.available())  Serial2.read();
+        while (Serial3.available())  Serial3.read();
+        while (mySerial.available()) mySerial.read();
+      }
+      wbTestOn = wbOn;
+      Serial1.println(buff);
+    }
     else if (buff == "open_safe_door") OpenDoor(BankStashDoor);
     else if (buff == "open_memory_door") OpenDoor(MemoryRoomDoor);
     else if (buff == "open_basket_door") Serial2.println(F("open_door"));

@@ -866,6 +866,12 @@ void handleUartCommands() {
     if (handleMonCmd(command)) return;   // монитор датчиков тех-пульта
     if (handleWbTestCmd(command)) return;  // тест верстака с тех-пульта
 
+    // Началась игра — тест верстака выключаем сами: забытый включённым, он
+    // держал бы ленту верстака у себя весь этап Мастерской.
+    if (wbTestActive && (command == "ready" || command == "start" || command == "restart")) {
+      handleWbTestCmd("wbtest_off");
+    }
+
     // Безопасный heartbeat от Main: отвечаем "pong" без побочек и без лога CMD.
     if (command == "ping_main") {
       Serial1.println("pong");
