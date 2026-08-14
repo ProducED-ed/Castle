@@ -3033,6 +3033,72 @@ def _handle_dog_flash(dog_dev=None):
         except: pass
 
 
+# --- ПРОШЛЫЕ ЛОГИ (/tech): хвост файла, при нужде — из ротаций ---
+# Живой поток показывает только то, что случилось после нажатия кнопки. Когда
+# разбираешь вчерашний инцидент, нужен именно хвост файла, а иногда и поиск по
+# нему: «когда в последний раз приходил flagsendmr».
+LOG_TAIL_MAX_LINES = 5000
+LOG_TAIL_MAX_BYTES = 8 * 1024 * 1024      # сколько максимум читаем с конца одного файла
+
+
+def _read_tail_lines(path, max_bytes=LOG_TAIL_MAX_BYTES):
+    """Прочитать хвост файла, не поднимая его целиком в память."""
+    with open(path, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        start = max(0, size - max_bytes)
+        f.seek(start)
+        data = f.read()
+    text = data.decode('utf-8', errors='replace')
+    if start:
+        # первая строка почти наверняка обрезана посередине — выбрасываем
+        text = text.split('\n', 1)[-1]
+    return text.splitlines()
+
+
+def _log_files_newest_first():
+    """castle.log, затем ротации castle1..3.log (namer выше делает такие имена)."""
+    names = ['logs/castle.log'] + [f'logs/castle{i}.log' for i in (1, 2, 3)]
+    return [n for n in names if os.path.exists(n)]
+
+
+@socketio.on('tech_log_tail')
+def tech_log_tail(data):
+    """Последние N строк лога, при желании только со словом needle.
+
+    Идём от свежего файла к старым и останавливаемся, как только набрали N
+    строк: при пустом фильтре это всегда один файл, при узком — доберём из
+    ротаций, поэтому «искать за прошлую неделю» тоже работает."""
+    d = data or {}
+    try:
+        limit = int(d.get('lines', 300))
+    except (TypeError, ValueError):
+        limit = 300
+    limit = max(1, min(limit, LOG_TAIL_MAX_LINES))
+    needle = str(d.get('filter') or '')[:120].strip().lower()
+
+    collected, used = [], []
+    for path in _log_files_newest_first():
+        try:
+            lines = _read_tail_lines(path)
+        except Exception as e:
+            logger.warning(f"LOG TAIL: не прочитать {path}: {e}")
+            continue
+        if needle:
+            lines = [ln for ln in lines if needle in ln.lower()]
+        if not lines:
+            continue
+        used.append(os.path.basename(path))
+        take = limit - len(collected)
+        collected = lines[-take:] + collected
+        if len(collected) >= limit:
+            break
+
+    socketio.emit('tech_log_tail_result',
+                  {'ok': True, 'lines': collected, 'count': len(collected),
+                   'limit': limit, 'filter': needle, 'files': used},
+                  to=request.sid)
+
 # --- ЧТЕНИЕ ЛОГОВ (Эмулятор tail -f на чистом Python) ---
 live_log_active = False
 

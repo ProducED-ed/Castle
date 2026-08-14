@@ -277,6 +277,24 @@
                 <div id="test-audio-status" style="font-size:0.8em; color:#aaa; white-space:nowrap;" data-i18n="test_audio_status_full">Игровые звуки (полные)</div>
             </div>
         </div>
+        <!-- Прошлые логи: живой поток показывает только то, что случилось после
+             нажатия кнопки, а разбирают обычно вчерашнее. -->
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <span style="color:#7f8c8d; font-size:0.85em;" data-i18n="logtail_title">Прошлые логи:</span>
+            <select id="log-tail-lines" style="padding:4px; font-size:12px;">
+                <option value="200">200</option>
+                <option value="500" selected>500</option>
+                <option value="1500">1500</option>
+                <option value="5000">5000</option>
+            </select>
+            <span style="color:#7f8c8d; font-size:0.85em;" data-i18n="logtail_lines">строк</span>
+            <input type="text" id="log-tail-filter" style="padding:4px; font-size:12px; width:220px;"
+                   data-i18n-attr="placeholder|logtail_filter_ph"/>
+            <button class="ui inverted basic small button" id="log-tail-btn" onclick="loadLogTail()">
+                <i class="history icon"></i> <span data-i18n="logtail_load">Показать</span>
+            </button>
+            <span id="log-tail-msg" style="color:#7f8c8d; font-size:0.85em;"></span>
+        </div>
         <div id="main-terminal" class="main-terminal">=== Терминал инициализирован. Ожидание команд ===
 </div>
 
@@ -1308,6 +1326,16 @@
                 sec_diag_subtitle: "Живое состояние датчиков и выходов, тест ленты, свет и розетка.",
                 sec_flash_title: "Прошивка плат",
                 sec_flash_subtitle: "Заливка прошивок в главную плату, башни и внешние ESP32.",
+                logtail_title: "Прошлые логи:",
+                logtail_lines: "строк",
+                logtail_filter_ph: "фильтр: слово или команда",
+                logtail_load: "Показать",
+                logtail_wait: "читаю файл…",
+                logtail_fail: "не прочитать лог",
+                logtail_head: "ПРОШЛЫЕ ЛОГИ, строк:",
+                logtail_filter_is: "фильтр",
+                logtail_empty: "Ничего не найдено. Попробуйте другое слово или больше строк.",
+                logtail_end: "КОНЕЦ ПРОШЛЫХ ЛОГОВ (ниже пойдёт живой поток)",
                 cmd_title: "Команды устройства",
                 cmd_hint: "Те же команды, что шлёт сервер по ходу игры. Меняют состояние устройства — во время прохождения жать осознанно.",
                 cmd_grp_game: "Игра",
@@ -1669,6 +1697,16 @@
                 sec_diag_subtitle: "Live sensor and output state, LED strip test, light and smart plug.",
                 sec_flash_title: "Firmware flashing",
                 sec_flash_subtitle: "Flashing the main board, the towers and the external ESP32 devices.",
+                logtail_title: "Past logs:",
+                logtail_lines: "lines",
+                logtail_filter_ph: "filter: word or command",
+                logtail_load: "Show",
+                logtail_wait: "reading the file…",
+                logtail_fail: "could not read the log",
+                logtail_head: "PAST LOGS, lines:",
+                logtail_filter_is: "filter",
+                logtail_empty: "Nothing found. Try another word or more lines.",
+                logtail_end: "END OF PAST LOGS (live stream continues below)",
                 cmd_title: "Device commands",
                 cmd_hint: "The same commands the server sends during the game. They change device state — press deliberately while a game is running.",
                 cmd_grp_game: "Game",
@@ -2256,6 +2294,35 @@
         socket.on('live_log_data', function(line) {
             // Логи делаем чуть более тусклыми, чтобы они отличались от прошивки
             appendToTerminal(line, '#bdc3c7');
+        });
+
+        // --- ПРОШЛЫЕ ЛОГИ ---
+        // Живой поток начинается с момента нажатия, поэтому вчерашний инцидент
+        // им не посмотреть. Здесь берём хвост файла, при фильтре — и из ротаций.
+        function loadLogTail() {
+            var n = parseInt($('#log-tail-lines').val(), 10) || 500;
+            var f = $('#log-tail-filter').val() || '';
+            $('#log-tail-btn').addClass('loading disabled');
+            $('#log-tail-msg').text(T('logtail_wait'));
+            socket.emit('tech_log_tail', { lines: n, filter: f });
+        }
+
+        socket.on('tech_log_tail_result', function(d) {
+            $('#log-tail-btn').removeClass('loading disabled');
+            if (!d || !d.ok) { $('#log-tail-msg').text(T('logtail_fail')); return; }
+            // Терминал чистим: смешивать прошлое с живым потоком — верный способ
+            // прочитать вчерашнюю строку как сегодняшнюю.
+            terminal.innerHTML = '';
+            terminal.dataset.touched = '1';
+            var head = '=== ' + T('logtail_head') + ' ' + d.count
+                     + (d.filter ? ' · ' + T('logtail_filter_is') + ' «' + d.filter + '»' : '')
+                     + (d.files && d.files.length ? ' · ' + d.files.join(', ') : '') + ' ===';
+            appendToTerminal(head, '#3498db');
+            if (!d.count) appendToTerminal(T('logtail_empty'), '#e67e22');
+            d.lines.forEach(function(line) { appendToTerminal(line, '#bdc3c7'); });
+            appendToTerminal('=== ' + T('logtail_end') + ' ===', '#3498db');
+            terminal.scrollTop = terminal.scrollHeight;
+            $('#log-tail-msg').text('');
         });
 
         // --- ТЕСТ АДРЕСНОЙ ЛЕНТЫ (кубок / полёт мяча) ---
