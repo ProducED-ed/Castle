@@ -3561,7 +3561,6 @@
                 monBeepVol.castle = s.sensor_beep_volume;
             }
             monBeepRenderVol();
-            renderDeviceCommands();
 
             setupRenderChecklist(s.checklist || {});
             setupApplyLock(!!s.game_running);
@@ -4648,6 +4647,11 @@
             $('#mon-beep-toggle').prop('checked', monBeepOn);
             $('#mon-beep-source').val(monBeepSource);
             monBeepRenderVol();
+            // Кнопки команд рисуются из зашитой таблицы и данных с сервера не
+            // ждут. Раньше вызов жил в обработчике setup_status, и они
+            // появлялись, только когда что-нибудь заставляло сервер прислать
+            // статус — например переключатель звука.
+            renderDeviceCommands();
         });
 
         // ============ /ПЕРВЫЙ ЗАПУСК ============
