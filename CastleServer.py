@@ -4060,6 +4060,26 @@ def setup_workbench_test(data):
     socketio.emit('setup_workbench_result', {'ok': True, 'stage': 'sent', 'mode': mode})
 
 
+BRAIN_TEST_MODES = ('reeds', 'all', 'off') + tuple(f'g{i}' for i in range(1, 9))
+
+
+@socketio.on('setup_brain_test')
+def setup_brain_test(data):
+    """Диагностика Комнаты Мозга: пары «геркон → группа диодов» и обход групп.
+
+    Проверка живёт в прошивке главной платы, сервер только передаёт режим и
+    ловит обратные строки brtest:. Во время игры не включаем — режим забирает
+    ленту комнаты себе."""
+    mode = (data or {}).get('mode')
+    if mode not in BRAIN_TEST_MODES:
+        return
+    if _setup_busy() and mode != 'off':
+        return _setup_denied('setup_brain_result')
+    serial_write_queue.put(f'brtest_{mode}')
+    logger.info(f"SETUP: диагностика Комнаты Мозга -> {mode}")
+    socketio.emit('setup_brain_result', {'ok': True, 'stage': 'sent', 'mode': mode})
+
+
 # ---------- шаг 6: чек-лист приёмки ----------
 @socketio.on('setup_checklist_set')
 def setup_checklist_set(data):
@@ -6856,6 +6876,21 @@ def serial():
                                pass
                        elif len(parts) == 2:
                            socketio.emit('setup_workbench_result',
+                                         {'ok': True, 'stage': 'active', 'mode': parts[1]})
+
+                   # Диагностика Комнаты Мозга. Живёт в прошивке главной платы,
+                   # сюда приходят её ответы: brtest:reed:<1..4>:<0|1> — кристалл
+                   # поставили или убрали, brtest:on / brtest:off — режим принят.
+                   if isinstance(flag, str) and flag.startswith('brtest:'):
+                       parts = flag.split(':')
+                       if len(parts) == 4 and parts[1] == 'reed':
+                           try:
+                               socketio.emit('setup_brain_event',
+                                             {'reed': int(parts[2]), 'state': int(parts[3])})
+                           except ValueError:
+                               pass
+                       elif len(parts) == 2:
+                           socketio.emit('setup_brain_result',
                                          {'ok': True, 'stage': 'active', 'mode': parts[1]})
 
                    if flag == "log:confirm:boytest_ok":

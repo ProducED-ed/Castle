@@ -811,7 +811,7 @@
                 <span data-i18n="setup_locked">Идёт игра — настройки заблокированы. Дождитесь конца или нажмите Restart.</span>
             </div>
 
-            <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_mon_hint">
+            <div class="setup-note" data-i18n="setup_mon_hint">
                 Включите монитор — плата начнёт опрашивать входы и покажет их состояние.
             </div>
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
@@ -995,7 +995,7 @@
                     <h4><span class="setup-step">1</span>
                         <span data-i18n="setup_name_title">Имя квеста</span>
                         <span class="setup-badge" id="setup-name-badge"></span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_name_hint">
+                    <div class="setup-note" data-i18n="setup_name_hint">
                         Формат castle-clc-N. Это же имя видно в Tailscale и в реестре клиентов.
                     </div>
                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -1018,7 +1018,7 @@
                     <h4><span class="setup-step">2</span>
                         <span data-i18n="setup_wifi_title">Wi-Fi для интернета</span>
                         <span class="setup-badge" id="setup-wifi-badge"></span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_wifi_hint">
+                    <div class="setup-note" data-i18n="setup_wifi_hint">
                         Нажмите «Найти сети» и выберите нужную из списка — так не ошибётесь в названии.
                     </div>
                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
@@ -1061,7 +1061,7 @@
                     <h4><span class="setup-step">3</span>
                         <span data-i18n="setup_ts_title">Tailscale (удалённый доступ)</span>
                         <span class="setup-badge" id="setup-ts-badge"></span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_ts_hint">
+                    <div class="setup-note" data-i18n="setup_ts_hint">
                         Нужен интернет (шаг 2). С ключом из админки всё пройдёт само, без ключа появится ссылка.
                     </div>
                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -1107,7 +1107,7 @@
                     <h4><span class="setup-step">4</span>
                         <span data-i18n="setup_hub_title">Раскладка USB-хаба</span>
                         <span class="setup-badge" id="setup-hub-badge"></span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_hub_hint">
+                    <div class="setup-note" data-i18n="setup_hub_hint">
                         Проверяем, что кабель каждой башни воткнут в свой порт хаба. Если перепутать — «Прошить Workshop» уйдёт физически в Basket, прошивка пройдёт «успешно», а башня будет вести себя странно.
                     </div>
 
@@ -1169,7 +1169,7 @@
                 <div class="ui inverted segment">
                     <h4><span class="setup-step">5</span>
                         <span data-i18n="setup_servo_title">Калибровка серво мальчика</span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_servo_hint">
+                    <div class="setup-note" data-i18n="setup_servo_hint">
                         Сервоприводы приходят разными партиями. Подберите значения кнопками проверки, затем сохраните.
                     </div>
                     <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
@@ -1184,7 +1184,7 @@
                         <label style="color:#ddd;"><span data-i18n="setup_servo_ms">Время хода, мс</span><br>
                             <input type="number" id="servo-move-ms" style="width:100px; padding:5px;"></label>
                     </div>
-                    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                    <div class="setup-toolbar">
                         <button class="ui small button" id="servo-test-hide" onclick="setupServoTest('hide')">
                             <i class="arrow down icon"></i> <span data-i18n="setup_servo_t_hide">Проверить «прячется»</span>
                         </button>
@@ -1202,10 +1202,10 @@
                 <div class="ui inverted segment">
                     <h4><span class="setup-step">6</span>
                         <span data-i18n="setup_wb_title">Верстак Мастерской: герконы и светодиоды</span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_wb_hint">
+                    <div class="setup-note" data-i18n="setup_wb_hint">
                         Включите тест и по очереди замкните каждый геркон верстака. Должен загораться светодиод РЯДОМ с ним. Если светится чужой — поменяйте местами провода светодиодов или герконов, это сборка, а не код. Плашки герконов ниже показывают, какой геркон замкнут прямо сейчас.
                     </div>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                    <div class="setup-toolbar">
                         <button class="ui small button" id="setup-wb-reeds" onclick="setupWbTest('reeds')">
                             <i class="hand point up outline icon"></i> <span data-i18n="setup_wb_start">Тест герконов</span>
                         </button>
@@ -1223,12 +1223,38 @@
                     <div id="setup-wb-msg" style="margin-top:8px;"></div>
                 </div>
 
-                <!-- ---- Шаг 6: чек-лист приёмки ---- -->
+                <!-- ---- Шаг 7: Комната Мозга ---- -->
                 <div class="ui inverted segment">
                     <h4><span class="setup-step">7</span>
+                        <span data-i18n="setup_br_title">Комната Мозга: кристаллы и подсветка</span></h4>
+                    <div class="setup-note" data-i18n="setup_br_hint">
+                        Гнёзда кристаллов снаружи одинаковые, и при монтаже одинаково легко перепутать провода герконов и порядок групп на ленте. «Тест кристаллов» связывает пару: поставьте кристалл в гнездо — под ним должна загореться группа своего цвета, а плашка ниже показать тот же номер. Загорелась чужая группа — переставлены провода, это сборка, а не код.
+                    </div>
+                    <div class="setup-toolbar">
+                        <button class="ui small button" id="setup-br-reeds" onclick="setupBrTest('reeds')">
+                            <i class="gem outline icon"></i> <span data-i18n="setup_br_start">Тест кристаллов</span>
+                        </button>
+                        <button class="ui small button" id="setup-br-all" onclick="setupBrTest('all')">
+                            <i class="lightbulb icon"></i> <span data-i18n="setup_br_all">Все диоды</span>
+                        </button>
+                        <button class="ui small button" id="setup-br-off" onclick="setupBrTest('off')">
+                            <i class="power off icon"></i> <span data-i18n="setup_br_off">Выключить</span>
+                        </button>
+                    </div>
+                    <div class="setup-sub" data-i18n="setup_br_sockets">Гнёзда кристаллов (диоды 0–15)</div>
+                    <div class="setup-toolbar" id="setup-br-sockets"></div>
+                    <div class="setup-sub" data-i18n="setup_br_cells">Ячейки символов (диоды 16–31)</div>
+                    <div class="setup-toolbar" id="setup-br-cells"></div>
+                    <div id="setup-br-chips" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
+                    <div id="setup-br-msg" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ---- Шаг 8: чек-лист приёмки ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">8</span>
                         <span data-i18n="setup_chk_title">Чек-лист приёмки</span>
                         <span class="setup-badge" id="setup-chk-badge"></span></h4>
-                    <div style="color:#bbb; font-size:13px; margin-bottom:10px;" data-i18n="setup_chk_hint">
+                    <div class="setup-note" data-i18n="setup_chk_hint">
                         То, что можно проверить только руками. Сохраняется на замке.
                     </div>
                     <div id="setup-checklist"></div>
@@ -1240,12 +1266,48 @@
         </div>
 
         <style>
-            .setup-step {
-                display:inline-block; width:22px; height:22px; line-height:22px;
-                text-align:center; border-radius:50%; background:#2185d0; color:#fff;
-                font-size:12px; margin-right:8px;
+            /* Шаги «Первого запуска». Раздел читается сверху вниз и целиком
+               состоит из текста, поэтому вся вёрстка здесь — про иерархию:
+               где кончается один шаг и начинается следующий, что в шаге
+               пояснение, а что — органы управления. */
+            #setup-body .ui.inverted.segment {
+                background:#212528; border:none; box-shadow:none;
+                border-left:3px solid #9b59b6; border-radius:0 10px 10px 0;
+                padding:16px 18px; margin:0 0 14px 0;
             }
-            .setup-badge { font-size:12px; font-weight:normal; margin-left:10px; }
+            #setup-body .ui.inverted.segment > h4 {
+                display:flex; align-items:center; gap:10px;
+                margin:0 0 12px 0; font-size:15px; color:#fff;
+            }
+            .setup-step {
+                flex:0 0 auto;
+                display:inline-block; width:26px; height:26px; line-height:26px;
+                text-align:center; border-radius:50%; background:#9b59b6; color:#fff;
+                font-size:13px; font-weight:bold;
+            }
+            /* Плашка состояния всегда у правого края — глазу не надо её искать
+               в конце заголовка переменной длины. */
+            .setup-badge { font-size:12px; font-weight:normal; margin-left:auto; }
+            /* Пояснение к шагу: отдельный блок, а не серый текст вплотную к
+               кнопкам. Так видно, где инструкция, а где то, что можно нажать. */
+            .setup-note {
+                color:#b0b0b0; font-size:13px; line-height:1.5;
+                background:rgba(255,255,255,0.03); border-left:2px solid #3d3f42;
+                padding:9px 12px; border-radius:0 6px 6px 0; margin-bottom:12px;
+            }
+            .setup-toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+            /* Подзаголовок внутри шага — для групп кнопок. */
+            .setup-sub {
+                color:#8a8a8a; font-size:11px; letter-spacing:0.06em;
+                text-transform:uppercase; margin:14px 0 2px;
+            }
+            /* Цветная метка группы диодов. Цвет обязан совпадать с прошивкой:
+               по нему монтажник и опознаёт, какая группа сейчас горит. */
+            .setup-swatch {
+                display:inline-block; width:10px; height:10px; border-radius:50%;
+                margin-right:7px; vertical-align:middle;
+                box-shadow:0 0 0 1px rgba(0,0,0,0.5);
+            }
             .setup-ok { color:#21ba45; }
             .setup-warn { color:#fbbd08; }
             .setup-bad { color:#db2828; }
@@ -1616,6 +1678,19 @@
                 setup_wb_sent: "Команда отправлена…",
                 setup_wb_active: "Мастерская в режиме теста — смотрите на верстак.",
                 setup_wb_stopped: "Тест выключен, лента верстака возвращена игре.",
+                setup_br_title: "Комната Мозга: кристаллы и подсветка",
+                setup_br_hint: "Гнёзда кристаллов снаружи одинаковые, и при монтаже одинаково легко перепутать провода герконов и порядок групп на ленте. «Тест кристаллов» связывает пару: поставьте кристалл в гнездо — под ним должна загореться группа своего цвета, а плашка ниже показать тот же номер. Загорелась чужая группа — переставлены провода, это сборка, а не код.",
+                setup_br_start: "Тест кристаллов",
+                setup_br_all: "Все диоды",
+                setup_br_off: "Выключить",
+                setup_br_sockets: "Гнёзда кристаллов (диоды 0\u201315)",
+                setup_br_cells: "Ячейки символов (диоды 16\u201331)",
+                setup_br_socket: "Гнездо",
+                setup_br_cell: "Ячейка",
+                setup_br_crystal: "Кристалл",
+                setup_br_sent: "Команда отправлена…",
+                setup_br_active: "Главная плата в режиме теста — смотрите на комнату.",
+                setup_br_stopped: "Тест выключен, лента комнаты возвращена игре.",
                 setup_chk_title: "Чек-лист приёмки",
                 setup_chk_hint: "То, что можно проверить только руками. Сохраняется на замке.",
                 setup_chk_reset: "Сбросить чек-лист",
@@ -1990,6 +2065,19 @@
                 setup_wb_sent: "Command sent…",
                 setup_wb_active: "Workshop is in test mode — look at the bench.",
                 setup_wb_stopped: "Test stopped, the bench strip is back to the game.",
+                setup_br_title: "Brain Room: crystals and lighting",
+                setup_br_hint: "The crystal sockets look identical from outside, and during assembly it is equally easy to swap the reed wires and the order of LED groups. \"Crystal test\" links the pair: put a crystal into a socket — the group underneath must light up in its own colour and the chip below must show the same number. A different group lighting up means the wires are swapped: assembly, not code.",
+                setup_br_start: "Crystal test",
+                setup_br_all: "All LEDs",
+                setup_br_off: "Stop",
+                setup_br_sockets: "Crystal sockets (LEDs 0\u201315)",
+                setup_br_cells: "Symbol cells (LEDs 16\u201331)",
+                setup_br_socket: "Socket",
+                setup_br_cell: "Cell",
+                setup_br_crystal: "Crystal",
+                setup_br_sent: "Command sent…",
+                setup_br_active: "Main board is in test mode — look at the room.",
+                setup_br_stopped: "Test stopped, the room strip is back to the game.",
                 setup_chk_title: "Acceptance checklist",
                 setup_chk_hint: "The parts that can only be checked by hand. Stored on the castle.",
                 setup_chk_reset: "Reset checklist",
@@ -2051,6 +2139,7 @@
             // после прошивки), поэтому просим их заново — иначе на смене языка
             // плашка остаётся на старом.
             if (typeof socket !== 'undefined' && socket.connected) socket.emit('get_board_stats');
+            if (typeof setupBrButtons === 'function') setupBrButtons();
         }
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.flag-btn').forEach(function(b) {
@@ -4725,6 +4814,81 @@
             setupWbRender();
         });
 
+        // ---- Комната Мозга: кристаллы и группы подсветки ----
+        // Цвета обязаны совпадать с brGroupColor() в прошивке главной платы:
+        // по цвету монтажник и опознаёт группу, не пересчитывая диоды.
+        var BR_GROUPS = [
+            { id: 'g1', color: '#fa0000', kind: 'socket', n: 1 },
+            { id: 'g2', color: '#00c800', kind: 'socket', n: 2 },
+            { id: 'g3', color: '#3390fa', kind: 'socket', n: 3 },
+            { id: 'g4', color: '#fac800', kind: 'socket', n: 4 },
+            { id: 'g5', color: '#fa32c8', kind: 'cell', n: 1 },
+            { id: 'g6', color: '#00dcdc', kind: 'cell', n: 2 },
+            { id: 'g7', color: '#fa5a00', kind: 'cell', n: 3 },
+            { id: 'g8', color: '#c8c8c8', kind: 'cell', n: 4 }
+        ];
+        var brState = {};
+        var brMode = 'off';
+
+        function setupBrButtons() {
+            ['socket', 'cell'].forEach(function(kind) {
+                var box = $(kind === 'socket' ? '#setup-br-sockets' : '#setup-br-cells').empty();
+                BR_GROUPS.filter(function(g) { return g.kind === kind; }).forEach(function(g) {
+                    box.append($('<button>')
+                        .addClass('ui small button setup-group-btn')
+                        .attr('id', 'setup-br-' + g.id)
+                        .on('click', function() { setupBrTest(g.id); })
+                        .append($('<span>').addClass('setup-swatch').css('background', g.color))
+                        .append($('<span>').text(T(kind === 'socket' ? 'setup_br_socket' : 'setup_br_cell') + ' ' + g.n)));
+                });
+            });
+        }
+
+        function setupBrRender() {
+            var box = $('#setup-br-chips').empty();
+            if (brMode !== 'reeds') return;
+            for (var i = 1; i <= 4; i++) {
+                var on = brState[i] === 1;
+                var color = BR_GROUPS[i - 1].color;
+                box.append($('<div>').addClass('diag-chip' + (on ? ' on' : ' off'))
+                    .append($('<span>').addClass('dot').css(on ? { background: color, 'box-shadow': '0 0 6px ' + color } : {}))
+                    .append($('<span>').text(T('setup_br_crystal') + ' ' + i)));
+            }
+        }
+
+        function setupBrTest(mode) {
+            brState = {};
+            $('#sec-setup .setup-group-btn, #setup-br-reeds, #setup-br-all').removeClass('green');
+            if (mode !== 'off') $('#setup-br-' + mode).addClass('green');
+            brMode = mode;
+            setupBrRender();
+            setupMsg('#setup-br-msg', T('setup_br_sent'), 'warn');
+            socket.emit('setup_brain_test', { mode: mode });
+        }
+
+        socket.on('setup_brain_result', function(d) {
+            if (d.reason === 'game_running') {
+                setupMsg('#setup-br-msg', T('setup_locked'), 'bad');
+                return;
+            }
+            // stage 'active' — плата отчиталась, что режим включён именно у неё.
+            if (d.stage === 'active') {
+                if (d.mode === 'off') {
+                    brMode = 'off';
+                    $('#sec-setup .setup-group-btn, #setup-br-reeds, #setup-br-all').removeClass('green');
+                }
+                setupBrRender();
+                setupMsg('#setup-br-msg',
+                         d.mode === 'off' ? T('setup_br_stopped') : T('setup_br_active'),
+                         d.mode === 'off' ? 'warn' : 'ok');
+            }
+        });
+
+        socket.on('setup_brain_event', function(d) {
+            brState[d.reed] = d.state;
+            setupBrRender();
+        });
+
         function setupChecklistReset() {
             if (!confirm(T('setup_chk_reset_confirm'))) return;
             socket.emit('setup_checklist_reset');
@@ -4794,6 +4958,7 @@
             // появлялись, только когда что-нибудь заставляло сервер прислать
             // статус — например переключатель звука.
             renderDeviceCommands();
+            setupBrButtons();   // кнопки групп Комнаты Мозга — из таблицы, не с сервера
             $(document).one('click touchstart', monBeepUnlock);
         });
 

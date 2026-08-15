@@ -570,6 +570,144 @@ void noteWorkshopState(const String &s) {
   }
 }
 
+// ---------- Диагностика Комнаты Мозга (шаг «Первого запуска») ----------
+//
+// Снаружи все четыре гнезда кристаллов одинаковые, и при монтаже одинаково
+// легко перепутать и провода герконов, и порядок групп на ленте. Проверяем то
+// же, что и на верстаке Мастерской: пару «геркон → своя группа диодов», плюс
+// обход групп по одной, чтобы сверить их физическое расположение.
+//
+// Лента комнаты одна (memory_Led, 41 диод на пине 11), игра использует 32:
+//   гнёзда кристаллов 1-4 → диоды 0-3, 4-7, 8-11, 12-15
+//   ячейки символов 1-4   → диоды 16-19, 20-23, 24-27, 28-31
+// Остальные диоды ленты в игре не участвуют, поэтому тест их не трогает.
+const byte BR_GROUP_COUNT = 8;
+const byte BR_GROUP_SIZE = 4;
+const byte BR_LEDS_USED = BR_GROUP_COUNT * BR_GROUP_SIZE;  // 32
+const byte BR_CRYSTAL_PINS[4] = { firstCrystal, secondCrystal, thirdCrystal, fourCrystal };
+
+byte brTestMode = 0;  // 0 — выключено, 1 — режим герконов, 2 — статичная картинка
+bool brReedStable[4] = { false, false, false, false };
+bool brReedPending[4] = { false, false, false, false };
+unsigned long brReedSince[4] = { 0, 0, 0, 0 };
+const unsigned long BR_REED_DEBOUNCE_MS = 60;
+
+// У каждой группы свой цвет: монтажник видит, КАКАЯ группа загорелась, не
+// пересчитывая диоды. Те же цвета подписаны на плашках тех-пульта.
+uint32_t brGroupColor(byte g) {
+  switch (g) {
+    case 0: return memory_Led.Color(250, 0, 0);      // гнездо 1 — красный
+    case 1: return memory_Led.Color(0, 250, 0);      // гнездо 2 — зелёный
+    case 2: return memory_Led.Color(0, 80, 250);     // гнездо 3 — синий
+    case 3: return memory_Led.Color(250, 200, 0);    // гнездо 4 — жёлтый
+    case 4: return memory_Led.Color(250, 0, 200);    // ячейка 1 — розовый
+    case 5: return memory_Led.Color(0, 220, 220);    // ячейка 2 — бирюзовый
+    case 6: return memory_Led.Color(250, 90, 0);     // ячейка 3 — оранжевый
+    default: return memory_Led.Color(160, 160, 160); // ячейка 4 — белый
+  }
+}
+
+void brSetGroup(byte g, bool on) {
+  byte first = g * BR_GROUP_SIZE;
+  uint32_t color = on ? brGroupColor(g) : 0;
+  for (byte i = 0; i < BR_GROUP_SIZE; i++) memory_Led.setPixelColor(first + i, color);
+}
+
+void brTestClear() {
+  for (byte i = 0; i < BR_LEDS_USED; i++) memory_Led.setPixelColor(i, 0);
+  memory_Led.show();
+}
+
+// Тик режима герконов. Кристалл на месте — геркон замкнут (LOW), как и в игре
+// (giftGame читает через `!digitalRead`). Меряем напрямую, без GyverButton:
+// антидребезг здесь свой и мягкий, чтобы длинный провод не сыпал ложными.
+void brTestTick() {
+  if (brTestMode != 1) return;
+  static unsigned long lastPoll = 0;
+  if (millis() - lastPoll < 20) return;
+  lastPoll = millis();
+
+  bool changed = false;
+  for (byte i = 0; i < 4; i++) {
+    bool closed = (digitalRead(BR_CRYSTAL_PINS[i]) == LOW);
+    if (closed != brReedPending[i]) {
+      brReedPending[i] = closed;
+      brReedSince[i] = millis();
+    } else if (closed != brReedStable[i] && millis() - brReedSince[i] >= BR_REED_DEBOUNCE_MS) {
+      brReedStable[i] = closed;
+      brSetGroup(i, closed);
+      changed = true;
+      Serial.print(F("brtest:reed:"));
+      Serial.print(i + 1);
+      Serial.print(':');
+      Serial.println(closed ? 1 : 0);
+    }
+  }
+  if (changed) memory_Led.show();
+}
+
+// Разбор команд с тех-пульта. true — строка наша, дальше её не разбирать.
+//   brtest_reeds — режим «геркон → своя группа»
+//   brtest_g1..g8 — зажечь одну группу (1-4 гнёзда, 5-8 ячейки)
+//   brtest_all   — все 32 диода белым, поиск мёртвых пикселей
+//   brtest_off   — выключить
+bool handleBrTestCmd(const String &buff) {
+  if (!buff.startsWith("brtest_")) return false;
+  String mode = buff.substring(7);
+
+  if (mode == "off") {
+    brTestMode = 0;
+    brTestClear();
+    Serial.println(F("brtest:off"));
+    return true;
+  }
+
+  // Включение любого режима: яркость выставляем явно — игра её по ходу
+  // приглушает до 50, и тест на чужой яркости выглядел бы «тусклым браком».
+  memory_Led.setBrightness(150);
+
+  if (mode == "reeds") {
+    brTestMode = 1;
+    brTestClear();
+    // Сразу показываем текущее положение кристаллов, не дожидаясь движения:
+    // монтажник видит картину как есть, а не пустую ленту.
+    for (byte i = 0; i < 4; i++) {
+      brReedStable[i] = (digitalRead(BR_CRYSTAL_PINS[i]) == LOW);
+      brReedPending[i] = brReedStable[i];
+      brSetGroup(i, brReedStable[i]);
+      Serial.print(F("brtest:reed:"));
+      Serial.print(i + 1);
+      Serial.print(':');
+      Serial.println(brReedStable[i] ? 1 : 0);
+    }
+    memory_Led.show();
+    Serial.println(F("brtest:on"));
+    return true;
+  }
+
+  if (mode == "all") {
+    brTestMode = 2;
+    for (byte i = 0; i < BR_LEDS_USED; i++) memory_Led.setPixelColor(i, memory_Led.Color(160, 160, 160));
+    memory_Led.show();
+    Serial.println(F("brtest:on"));
+    return true;
+  }
+
+  if (mode.length() == 2 && mode[0] == 'g') {
+    byte g = mode[1] - '1';
+    if (g < BR_GROUP_COUNT) {
+      brTestMode = 2;
+      brTestClear();
+      brSetGroup(g, true);
+      memory_Led.show();
+      Serial.println(F("brtest:on"));
+    }
+    return true;
+  }
+
+  return true;  // своя команда, но незнакомая — молча съедаем
+}
+
 // --- НОВАЯ СИСТЕМА УМНЫХ ПОДСКАЗОК ---
 int hintSteps[20] = { 0 };
 unsigned long hintTimes[20] = { 0 };
@@ -1351,6 +1489,7 @@ void PowerOn() {
   waitingForBasketConfirm = false;  // Глушим таймер
   basketRetryCount = 0;
   monPoll();                        // монитор датчиков для /tech (в покое)
+  brTestTick();                     // диагностика Комнаты Мозга (в покое)
   // Строки от башен разбирает только HelpTowersHandler(), а он вызывается
   // из smartDelay() — то есть работает лишь пока плата чего-то ждёт внутри
   // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
@@ -1377,6 +1516,7 @@ void PowerOn() {
     if (handleBoyCal(buff)) continue;
     if (handleBoyTest(buff)) continue;
     if (handleMonCmd(buff)) continue;
+    if (handleBrTestCmd(buff)) continue;
 
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
@@ -7008,6 +7148,7 @@ void RestOn() {
   prevFlagSound = true;
   dragonFlag = 0;
   monPoll();                        // монитор датчиков для /tech (в покое)
+  brTestTick();                     // диагностика Комнаты Мозга (в покое)
   // Строки от башен разбирает только HelpTowersHandler(), а он вызывается
   // из smartDelay() — то есть работает лишь пока плата чего-то ждёт внутри
   // игровых сцен. В покое башни не слушает никто, и их датчики до пульта не
@@ -7246,6 +7387,7 @@ void RestOn() {
     if (handleBoyCal(buff)) continue;
     if (handleBoyTest(buff)) continue;
     if (handleMonCmd(buff)) continue;
+    if (handleBrTestCmd(buff)) continue;
 
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();
