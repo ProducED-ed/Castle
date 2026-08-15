@@ -541,6 +541,35 @@ String trollHints[] = { "hint_26_b", "hint_26_c", "hint_26_z" };
 String workshopHints[] = { "hint_32_b", "hint_32_c", "hint_32_d", "hint_32_e", "hint_32_z" };
 String directorHints[] = { "hint_49_b", "hint_49_c", "hint_50_b", "hint_50_c", "hint_51_b", "hint_51_c", "hint_56_b" };
 
+// Что прямо сейчас происходит в Мастерской. Раньше главная плата эти строки
+// только пересылала серверу и своего состояния не держала — а подсказкам оно
+// нужно: пока печка холодная, первое, что надо сказать, это «разожги печь»
+// (hint_32_b); когда она уже разгорелась, напоминать про розжиг нечего.
+byte workshopFireStage = 0;       // 0..3, приходит от башни строками fire0..fire3
+bool workshopBroomDone = false;   // метла собрана (строка broom)
+bool workshopHelmetDone = false;  // шлем собран (строка helmet)
+byte workshopHotHintStep = 0;     // шаг цепочки подсказок при разгоревшейся печке
+
+// Запоминаем состояние Мастерской по её же сообщениям. Зовётся из ОБОИХ
+// парсеров Serial1 — плата читает башню в двух разных местах.
+void noteWorkshopState(const String &s) {
+  if (s == "fire0" || s == "fire1") {
+    workshopFireStage = (s == "fire1") ? 1 : 0;
+    // Печка остыла: раскраска верстака при падении ниже второго уровня
+    // теряется (см. updateWorkbenchLeds в workshop.ino), поэтому и цепочку
+    // подсказок начинаем заново — с hint_32_c.
+    workshopHotHintStep = 0;
+  } else if (s == "fire2") {
+    workshopFireStage = 2;
+  } else if (s == "fire3") {
+    workshopFireStage = 3;
+  } else if (s == "broom") {
+    workshopBroomDone = true;
+  } else if (s == "helmet") {
+    workshopHelmetDone = true;
+  }
+}
+
 // --- НОВАЯ СИСТЕМА УМНЫХ ПОДСКАЗОК ---
 int hintSteps[20] = { 0 };
 unsigned long hintTimes[20] = { 0 };
@@ -1650,6 +1679,8 @@ void HelpTowersHandler() {
 
         Serial.println(serial1Buffer);  // Пересылаем ВСЕ сообщения на сервер
 
+        noteWorkshopState(serial1Buffer);
+
         // Обрабатываем специфичные команды, СТРОГОЕ РАВЕНСТВО (Защита от эха логов)
         if (serial1Buffer == "fire1") {
           Serial.println(F("fire1"));
@@ -2072,7 +2103,22 @@ void HelpHandler(String from) {
     if (from == "workshop") {
       bool sent = false;
       if (level == 10) {
-        Serial.println(workshopHints[getSmartHint(13, 0, 3)]);
+        if (workshopFireStage >= 2) {
+          // Печка уже разгорелась — про розжиг (hint_32_b) говорить нечего.
+          // Цепочка всегда начинается с hint_32_c, а дальше идёт по кругу
+          // только то, что ещё не собрано: hint_32_d — про метлу, hint_32_e —
+          // про шлем. Собранное выпадает из цепочки сразу, на следующем же
+          // запросе: список собирается заново в момент нажатия.
+          byte chain[3];
+          byte n = 0;
+          chain[n++] = 1;                           // hint_32_c
+          if (!workshopBroomDone) chain[n++] = 2;   // hint_32_d
+          if (!workshopHelmetDone) chain[n++] = 3;  // hint_32_e
+          Serial.println(workshopHints[chain[workshopHotHintStep % n]]);
+          workshopHotHintStep++;
+        } else {
+          Serial.println(workshopHints[getSmartHint(13, 0, 3)]);
+        }
         sent = true;
       } else if (level > 10 && level < 18) {
         Serial.println(workshopHints[4]);
@@ -3403,6 +3449,8 @@ void Oven() {
       Serial.println(buff);
       continue;
     }
+    noteWorkshopState(buff);
+
     if (buff == "help") {
       HelpHandler("workshop");
     } else if (buff == "fire1") {
@@ -7169,6 +7217,12 @@ void RestOn() {
     for (int i = 0; i < 20; i++) {
       hintSteps[i] = 0;
     }
+    // Состояние Мастерской для подсказок — тоже с чистого листа: печка холодная,
+    // ничего не собрано, цепочка «печка горит» с начала.
+    workshopFireStage = 0;
+    workshopBroomDone = false;
+    workshopHelmetDone = false;
+    workshopHotHintStep = 0;
 
     // Ставим флаг, что инициализация завершена.
     // Больше в этот блок мы не зайдем, пока не выйдем из уровня 25.
