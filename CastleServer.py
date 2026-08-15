@@ -5083,7 +5083,7 @@ def Remote(check):
              check_three_games_day_off()
         #-----нажали пропустить флаги     
         if check=='open_mansard_stash':
-             #----отправка на клиента 
+             #----отправка на клиента
              socketio.emit('level', 'flag1_on',to=None)
              socketio.emit('level', 'flag2_on',to=None)
              socketio.emit('level', 'flag3_on',to=None)
@@ -5093,6 +5093,13 @@ def Remote(check):
              socklist.append('flag2_on')
              socklist.append('flag3_on')
              socklist.append('flag4_on')
+             # Этап закрыт скипом — для пульта это то же самое, что честная
+             # победа. Без этого башни своими повторами состояния («страховка
+             # засчёта», раз в несколько секунд) перекрашивали иконки флагов
+             # обратно в белый: физически флаги в держателях никто не ставил.
+             socketio.emit('level', 'flags_done', to=None)
+             if 'flags_done' not in socklist:
+                 socklist.append('flags_done')
              #-----отправили на мегу
              serial_write_queue.put('m2lck')
 

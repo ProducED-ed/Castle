@@ -119,6 +119,11 @@ $('.ui.dropdown')
 
 
 //флаги
+     // Этап флагов засчитан главной платой. После этого иконки перестают
+     // слушать датчики: башни каждые несколько секунд повторяют состояние
+     // флагов (страховка засчёта), и повтор flag4_off перекрашивал жёлтый
+     // обратно в белый через секунды после того, как этап уже пройден.
+     var flagsStageDone = 0;
      var rFlag = 0;
      var gFlag=0;
      var yFlag=0;
@@ -530,6 +535,7 @@ $('.ui.dropdown')
 
     function resetProgressLatches() {
         caveClicks = 0;
+        flagsStageDone = 0;
         rFlag = 0;
         gFlag = 0;
         yFlag = 0;
@@ -1044,28 +1050,28 @@ $('.ui.dropdown')
                 yFlag = 1;
             }
             if(inp === 'flag1_off') {
-                if(rFlag==1){
+                if(rFlag==1 && !flagsStageDone){
                     $('#redflag').removeClass('red')//удалим класс red 
                     $('#redflag').addClass('white')//добавим класс white
                     rFlag = 0;
                 }
             }
             if(inp === 'flag2_off') {
-                if(gFlag==1){
+                if(gFlag==1 && !flagsStageDone){
                     $('#greenflag').removeClass('green')
                     $('#greenflag').addClass('white')
                     gFlag = 0;
                 }
             }
             if(inp === 'flag3_off') {
-                if(bFlag==1){
+                if(bFlag==1 && !flagsStageDone){
                     $('#blueflag').removeClass('blue')
                     $('#blueflag').addClass('white')
                     bFlag = 0;
                 }
             }
             if(inp === 'flag4_off') {
-                if(yFlag==1){
+                if(yFlag==1 && !flagsStageDone){
                     $('#yellowflag').removeClass('yellow')
                     $('#yellowflag').addClass('white')
                     yFlag = 0;
@@ -1087,6 +1093,7 @@ $('.ui.dropdown')
                 $('#blueflag').removeClass('white').addClass('blue');
                 $('#yellowflag').removeClass('white').addClass('yellow');
                 rFlag = gFlag = bFlag = yFlag = 1;
+                flagsStageDone = 1;
             }
 
             if(inp === 'suitcase') { 
@@ -1497,6 +1504,7 @@ $('.ui.dropdown')
                 // Гасим не только иконки, но и защёлки: иначе в следующей игре
                 // события флагов приходят, а красить их «уже некому».
                 rFlag = gFlag = bFlag = yFlag = 0;
+                flagsStageDone = 0;
                 $('#player_1_score').text('0')
                 $('#player_2_score').text('0')
                 disBut=0;
