@@ -187,6 +187,10 @@ $('.ui.dropdown')
  //настройка подключения не менять
      output = document.getElementById('output');//присвоим переменной значение элемента с id output 
      socket = io.connect('http://' + document.domain + ':' + location.port);//строка подключения сокетов
+     // socket объявлен внутри этого ready-блока, то есть он ЛОКАЛЬНЫЙ. Любой код
+     // в отдельном $(document).ready его не видит (на этом спотыкнулся чат
+     // гейммастера: обработчики молча не регистрировались). Публикуем ссылку.
+     window.socket = socket;
 	 //socket = io.connect('http://127.0.0.1:3000');
      socket.on('connect', function() {//если наш сервер подключен он отправит сообщение коннектед
 	     console.log('Connected to server');
@@ -2288,5 +2292,79 @@ $('.ui.dropdown')
         else if(data.status == 'disconnected') {
             msg.text(data.message).css('color', 'grey');
         }
+    });
+});
+
+// ================= ЧАТ ГЕЙММАСТЕРА =================
+// Показывает, какие подсказки получила команда: персонаж, id и текст на языке
+// игры. История хранится НА СЕРВЕРЕ (chat_history при подключении) — обновление
+// страницы её не стирает, чистится только на Start и Restart.
+//
+// Никаких опросов по таймеру: только события от сервера. Опрос с фронта на
+// setInterval однажды уже завалил сервер стеком обработчиков.
+$(document).ready(function() {
+    // Берём соединение, поднятое основным блоком: jQuery выполняет ready-колбэки
+    // в порядке регистрации, а тот блок объявлен выше в этом же файле.
+    var socket = window.socket;
+    if (!socket) { console.error('Чат: соединение не найдено'); return; }
+    var chatUnseen = 0;
+
+    function chatRender(entry, fresh) {
+        $('#chat_empty').hide();
+        var msg = $('<div>').addClass('chat-msg' + (fresh ? ' fresh' : ''));
+        msg.append($('<span>').addClass('time').text(entry.t || ''));
+        msg.append($('<span>').addClass('who').text((entry.who || '—') + ':'));
+        msg.append($('<span>').addClass('hid').text(entry.id || ''));
+        if (entry.text) msg.append($('<div>').addClass('text').text(entry.text));
+        $('#chat_body').append(msg);
+        // Прокрутка к последнему: чат читают снизу, как переписку.
+        var box = document.getElementById('chat_body');
+        if (box) box.scrollTop = box.scrollHeight;
+    }
+
+    function chatBadge() {
+        if (chatUnseen > 0 && !$('#chat_panel').hasClass('open')) {
+            $('#chat_badge').text(chatUnseen).show();
+        } else {
+            $('#chat_badge').hide();
+        }
+    }
+
+    $('#chat_toggle').click(function() {
+        $('#chat_panel').toggleClass('open');
+        if ($('#chat_panel').hasClass('open')) {
+            chatUnseen = 0;
+            var box = document.getElementById('chat_body');
+            if (box) box.scrollTop = box.scrollHeight;
+        }
+        chatBadge();
+    });
+    $('#chat_close').click(function() {
+        $('#chat_panel').removeClass('open');
+        chatBadge();
+    });
+
+    socket.on('chat_history', function(list) {
+        $('#chat_body').empty();
+        chatUnseen = 0;
+        if (!list || !list.length) {
+            $('#chat_empty').show();
+        } else {
+            list.forEach(function(e) { chatRender(e, false); });
+        }
+        chatBadge();
+    });
+
+    socket.on('chat_entry', function(entry) {
+        chatRender(entry, true);
+        if (!$('#chat_panel').hasClass('open')) chatUnseen++;
+        chatBadge();
+    });
+
+    socket.on('chat_clear', function() {
+        $('#chat_body').empty();
+        $('#chat_empty').show();
+        chatUnseen = 0;
+        chatBadge();
     });
 });

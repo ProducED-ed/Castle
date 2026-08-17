@@ -1,0 +1,751 @@
+{
+ "_комментарий": "Выгружено из Google-таблицы скриптом tools/export_hint_texts.py. Руками не править: правится таблица, потом прогон скрипта.",
+ "esp32": {
+  "chest": [
+   "hint_7_a",
+   "hint_7_b",
+   "hint_7_c",
+   "hint_7_d",
+   "hint_7_z"
+  ],
+  "safe": [
+   "hint_28_a",
+   "hint_28_b",
+   "hint_28_c",
+   "hint_28_z"
+  ],
+  "train": [
+   "hint_15_a",
+   "hint_15_b",
+   "hint_15_c",
+   "hint_15_d",
+   "hint_15_e",
+   "hint_16_c",
+   "hint_16_d",
+   "hint_16_z"
+  ],
+  "wolf": [
+   "hint_9_a",
+   "hint_9_b",
+   "hint_9_c",
+   "hint_9_d",
+   "hint_9_e",
+   "hint_9_f",
+   "hint_9_z"
+  ]
+ },
+ "speakers": {
+  "hint_10_b": "Профессор",
+  "hint_10_c": "Профессор",
+  "hint_11_b": "Профессор",
+  "hint_11_c": "Профессор",
+  "hint_11_z": "Профессор",
+  "hint_14_b": "Гном",
+  "hint_14_c": "Гном",
+  "hint_14_z": "Гном",
+  "hint_15_a": "Поезд",
+  "hint_15_b": "Поезд",
+  "hint_15_c": "Поезд",
+  "hint_15_d": "Поезд",
+  "hint_15_e": "Поезд",
+  "hint_16_c": "Поезд",
+  "hint_16_d": "Поезд",
+  "hint_16_z": "Поезд",
+  "hint_17_c": "Ведьма",
+  "hint_17_d": "Ведьма",
+  "hint_17_z": "Ведьма",
+  "hint_19_c": "Рыцарь",
+  "hint_19_d": "Рыцарь",
+  "hint_19_z": "Рыцарь",
+  "hint_23_b": "Гоблин-банкир",
+  "hint_23_c": "Гоблин-банкир",
+  "hint_23_z": "Гоблин-банкир",
+  "hint_26_b": "Тролль",
+  "hint_26_c": "Тролль",
+  "hint_26_z": "Тролль",
+  "hint_28_a": "Сейф",
+  "hint_28_b": "Сейф",
+  "hint_28_c": "Сейф",
+  "hint_28_z": "Сейф",
+  "hint_2_b": "Дракон Сигнус",
+  "hint_2_c": "Дракон Сигнус",
+  "hint_2_z": "Дракон Сигнус",
+  "hint_32_b": "Борис (кузнец)",
+  "hint_32_c": "Борис (кузнец)",
+  "hint_32_d": "Борис (кузнец)",
+  "hint_32_e": "Борис (кузнец)",
+  "hint_32_z": "Борис (кузнец)",
+  "hint_37_b": "Студент",
+  "hint_37_c": "Студент",
+  "hint_38_b": "Студент",
+  "hint_3_b": "Студент",
+  "hint_3_c": "Студент",
+  "hint_44_b": "Студент",
+  "hint_44_c": "Студент",
+  "hint_49_b": "Директор",
+  "hint_49_c": "Директор",
+  "hint_50_b": "Директор",
+  "hint_50_c": "Директор",
+  "hint_51_b": "Директор",
+  "hint_51_c": "Директор",
+  "hint_56_b": "Директор",
+  "hint_5_b": "Дракон Сигнус",
+  "hint_5_c": "Дракон Сигнус",
+  "hint_5_z": "Дракон Сигнус",
+  "hint_6_b": "Профессор",
+  "hint_6_c": "Профессор",
+  "hint_7_a": "Чемоданы",
+  "hint_7_b": "Чемоданы",
+  "hint_7_c": "Чемоданы",
+  "hint_7_d": "Чемоданы",
+  "hint_7_z": "Чемоданы",
+  "hint_9_a": "Волк",
+  "hint_9_b": "Волк",
+  "hint_9_c": "Волк",
+  "hint_9_d": "Волк",
+  "hint_9_e": "Волк",
+  "hint_9_f": "Волк",
+  "hint_9_z": "Волк"
+ },
+ "texts": {
+  "hint_10_b": {
+   "ar": "تأملوا السطح بعناية، عليه توجد رموز ستساعدكم.",
+   "ar_kw": "تَفَحَّص السَّقْفَ جَيِّدا؛ هُنَاكَ عَلَامَات عَلَيْهِ سَتُسَاعِدُك",
+   "en": "Examine the roof carefully; there are signs on it that will help you.",
+   "fr": "Examinez le toit attentivement ; il y a des signes dessus qui vous aideront.",
+   "pl": "Dokładnie obejrzyjcie dach, są na nim znaki, które wam pomogą.",
+   "ru": "Внимательно осмотрите крышу, на ней есть знаки, которые помогут вам",
+   "uk": "Уважно огляньте дах, на ньому є знаки, які допоможуть вам."
+  },
+  "hint_10_c": {
+   "ar": "الأمر بسيط. توجد آثار أقدام مرسومة على السطح. كل عَلَم يجب أن يوضع على آثار أقدام الحيوان المرسوم عليه. طابقوها.",
+   "ar_kw": "الأَمْرُ بَسِيط. هُنَاكَ آثَارٌ مَرْسُومَة عَلَى السَّقْف. يَجِبُ وَضْعُ كُلِّ عَلَمٍ عَلَى آثَارِ الحَيَوَان المَرْسُومِ عَلَيْه. طَابِقْهَا مَعًا.",
+   "en": "It's simple. There are tracks drawn on the roof. Each flag must be placed on the tracks of the animal pictured on it. Match them up.",
+   "fr": "C'est simple. Il y a des empreintes dessinées sur le toit. Chaque drapeau doit être placé sur les empreintes de l'animal qui y est représenté. Faites-les correspondre.",
+   "pl": "To proste. Na dachu są narysowane ślady. Każda flaga musi stać na śladach zwierzęcia, które jest na niej przedstawione. Dopasujcie je.",
+   "ru": "Все просто. На крыше нарисованы следы. Каждый флаг должен стоять на следах того животного, которое на нем изображено. Сопоставьте их",
+   "uk": "Усе просто. На даху намальовані сліди. Кожен прапор має стояти на слідах тієї тварини, яка на ньому зображена. Співставте їх."
+  },
+  "hint_11_b": {
+   "ar": "الرموز على الخريطة ليست دائماً حَرْفية، أحياناً عليكم التفكير في العلاقة بينهم . عليكم البحث على الجانب الخارجي للقلعة وعلى الرصيف.",
+   "ar_kw": "الرُّمُوزُ عَلَى الخَرِيطَة لَيْسَتْ دَائِمًا حَرْفِيَّة؛ أَحْيَانًا عَلَيْكَ التَّفْكِيرُ فِي العَلَاقَةِ بَيْنَهَا. يَجِبُ أَنْ تَنْظُرَ إِلَى خَارِجِ القَلْعَةِ وَإِلَى المِنَصَّة.",
+   "en": "The symbols on the map aren't always literal; sometimes you need to think about the connection. You should look on the outside of the Castle and on the platform.",
+   "fr": "Les symboles sur la carte ne sont pas toujours littéraux ; parfois vous devez penser au lien. Vous devriez chercher à l'extérieur du Château et sur le quai.",
+   "pl": "Symbole na mapie nie zawsze są dosłowne, czasem trzeba pomyśleć o powiązaniu. Szukać należy na zewnątrz Zamku i na peronie.",
+   "ru": "Символы на карте не всегда буквальны, иногда нужно подумать о связи. Искать нужно на внешней стороне Замка и на перроне.",
+   "uk": "Символи на карті не завжди буквальні, іноді потрібно подумати про зв'язок. Шукати потрібно на зовнішній стороні Замку та на пероні."
+  },
+  "hint_11_c": {
+   "ar": "اسمعوا وتذكروا. البومة على الخريطة هي البومة على برج القلعة. السمكة على الخريطة هي القطة على القفل تنتظرها. المفتاح هو القفل على البرج. والفانوس على الخريطة هو كشاف القطار.",
+   "ar_kw": "اسْتَمِعْ وَتَذَكَّرْ. البُومَةُ عَلَى الخَرِيطَة هِيَ البُومَةُ المَوْجُودَةُ عَلَى بُرْجِ القَلْعَة. السَّمَكَة عَلَى الخَرِيطَة هِيَ القِطَّةُ عَلَى القُفْلِ الَّتِي تَنْتَظِرُهَا. المِفْتَاحُ هُوَ القُفْلُ المَوْجُودُ عَلَى البُرْج. وَالفَانُوسُ عَلَى الخَرِيطَةِ هُوَ كَشَّافُ القِطَار.",
+   "en": "Listen and remember. The owl on the map is the owl on the Castle tower. The fish on the map is the cat on the lock, waiting for it. The key is the lock on the tower. And the lantern on the map is the train's searchlight.",
+   "fr": "Écoutez et retenez. Le hibou sur la carte est le hibou sur la tour du Château. Le poisson sur la carte correspond au chat sur le cadenas, qui l'attend. La clé est le cadenas sur la tour. Et la lanterne sur la carte est le projecteur du train.",
+   "pl": "Słuchajcie i zapamiętajcie. Sowa na mapie to sowa na wieży Zamku. Ryba na mapie to kot na kłódce, który na nią czeka. Klucz to kłódka na wieży. A latarnia na mapie to szperacz pociągu.",
+   "ru": "Слушайте и запоминайте. Сова на карте — это сова на башне Замка. Рыба на карте — это кошка на замке, которая ее ждет. Ключ — это замок на башне. А фонарь на карте — это прожектор поезда.",
+   "uk": "Слухайте і запам'ятовуйте. Сова на карті — це сова на вежі Замку. Риба на карті — це кішка на замку, яка на неї чекає. Ключ — це замок на вежі. А ліхтар на карті — це прожектор поїзда."
+  },
+  "hint_11_z": {
+   "ar": "لقد أبليتم بلاءً حسناً. تم إنجاز المهام الأولية التي تتطلب الفطنة والخريطة. الآن، ستكون الخريطة بمثابة دليل فقط، لتوضح لكم طريقكم التالي. لا أكثر.",
+   "ar_kw": "لَقَدْ قُمْتَ بِعَمَلٍ رَائِع. المَهَامُّ الأَوَّلِيَّة، الَّتِي احْتَاجَتْ إِلَى ذَكَاء وَالخَرِيطَة، اكْتَمَلَت. الآنَ سَتَعْمَلُ الخَرِيطَة فَقَطْ كَدَلِيلٍ يُرِيكَ طَرِيقَكَ التَّالي، لَا أَكْثَرَ.",
+   "en": "You've done a great job. The initial tasks, which required wits and the map, are complete. Now the map will only serve as a guide, showing you your next path. Nothing more.",
+   "fr": "Vous avez fait du bon travail. Les tâches initiales, qui nécessitaient de l'esprit et la carte, sont terminées. Maintenant, la carte servira seulement de guide, vous montrant votre prochain chemin. Rien de plus.",
+   "pl": "Świetnie sobie poradziliście. Początkowe zadania, wymagające sprytu i mapy, zostały wykonane. Teraz mapa będzie służyć jedynie jako przewodnik, wskazując wam dalszą drogę. Nic ponadto.",
+   "ru": "Вы отлично справились. Первоначальные задания, требующие смекалки и карты, выполнены. Теперь карта будет служить лишь проводником, указывая ваш дальнейший путь. Не более",
+   "uk": "Ви чудово впоралися. Початкові завдання, що вимагали кмітливості та карти, виконані. Тепер карта буде слугувати лише провідником, вказуючи ваш подальший шлях. Не більше того."
+  },
+  "hint_14_b": {
+   "ar": "أديروني، وفانوسي سيضيء شعار العائلة الصحيحة. انظروا إلى الأبراج! نوري يصل إلى هناك أيضاً، ويُظهر لكم شيئاً هاماً.",
+   "ar_kw": "أَدِرْنِي، وَسَيُضِيء فَانُوسِي شِعَارَ العَائِلَةِ الصَّحِيحِ. انْظُرْ إِلَى الأَبْرَاجِ! ضَوْئِي يَصِلُ إِلَيْهَا أَيْضًا، وَيُظْهِرُ لَكَ شَيْئًا مُهِما.",
+   "en": "Turn me, and my lantern will light up the coat of arms of the right family. Look at the towers! My light reaches there too, showing you something important.",
+   "fr": "Tournez-moi, et ma lanterne éclairera le blason de la bonne famille. Regardez les tours ! Ma lumière atteint aussi cet endroit, vous montrant quelque chose d'important.",
+   "pl": "Obróćcie mnie, a moja latarnia oświetli herb właściwej rodziny. Spójrzcie na wieże! Moje światło dociera również tam, pokazując wam coś ważnego.",
+   "ru": "Поверните меня, и мой фонарь осветит герб нужной семьи. Взгляните на башни! Мой свет дотягивается и туда, показывая вам что-то важное.",
+   "uk": "Поверніть мене, і мій ліхтар освітить герб потрібної родини. Погляньте на вежі! Моє світло сягає і туди, показуючи вам щось важливе."
+  },
+  "hint_14_c": {
+   "ar": "أديروني حتى يضيء الفانوس بشعاراً للعائلة. اجمعوا في عقلكم كل اللوحات في العلية وابحثوا عن الرمزين المرسومين تحت الشعار المضاء. الآن، مع توجيه الفانوس نحو الشعار المختار، ضعوا هذين الرمزين على المفاتيح التي بجانبي. ثم كرروا هذا لجميع الشعارات الأربعة.",
+   "ar_kw": "أَدِرْنِي بِحَيْثُ يُضِيءُ الفَانُوس أَحَدَ الشِّعَارَات. اجْمَعْ ذِهْنِيًّا جَمِيعَ اللَّوْحَات المَوْجُودَة فِي العَلِّيَّات، وَاكْتَشِفْ أَيَّ رَمْزَيْنِ مَرْسُومَيْنِ تَحْتَ الشِّعَارِ المُضَاء. الآنَ، وَبَيْنَمَا تُوَجِّهُ الفَانُوسَ نَحْوَ الشِّعَار المُخْتَار، اضْبِطْ هَذَيْنِ الرَّمْزَيْنِ عَلَى المَفَاتِيحِ المَوْجُودَة بِجَانبي. كَرِّرْ هَذَا مَعَ الشِّعَارَاتِ الأَرْبَعَة جَمِيعِها.",
+   "en": "Turn me so the lantern lights up a coat of arms. Mentally combine all the plaques in the attics and find which two symbols are drawn under the lit-up coat of arms. Now, while pointing the lantern at the chosen coat of arms, set these two symbols on the switches next to me. Repeat this for all 4 coats of arms.",
+   "fr": "Tournez-moi pour que la lanterne éclaire un blason. Combinez mentalement toutes les plaques dans les greniers et trouvez quels sont les deux symboles dessinés sous le blason éclairé. Maintenant, tout en pointant la lanterne vers le blason choisi, réglez ces deux symboles sur les interrupteurs à côté de moi. Répétez cela pour les 4 blasons.",
+   "pl": "Obracajcie mnie, aby latarnia oświetliła herb. W myślach połączcie wszystkie tabliczki na strychach i znajdźcie, jakie dwa symbole są narysowane pod oświetlonym herbem. A teraz, kierując latarnią na wybrany herb, ustawcie te dwa symbole na przełącznikach obok mnie. I tak dla wszystkich 4 herbów.",
+   "ru": "Поворачивайте меня, чтобы фонарь осветил герб. Мысленно объедените все таблички на чердаках и найдите, какие два символа нарисованы под подсвеченным гербом. А теперь, указывая фонарем на выбранный герб, выставьте эти два символа на переключателях рядом со мной. И так все 4 герба.",
+   "uk": "Повертайте мене, щоб ліхтар освітив герб. Умовно об'єднайте всі таблички на горищах і знайдіть, які два символи намальовані під підсвіченим гербом. А тепер, вказуючи ліхтарем на обраний герб, виставте ці два символи на перемикачах поруч зі мною. І так всі 4 герби."
+  },
+  "hint_14_z": {
+   "ar": "جميع الرسائل قد أرسلت لكم. وإذا ضللتم، فالخريطة ستساعدكم",
+   "ar_kw": "تَمَّ إِرْسَالُ جَمِيعِ الرَّسَائِل. وَإِذَا تُهت، فَسَتَقُودُكَ الخَرِيطَة.",
+   "en": "All letters have been sent. And if you get lost, the map will guide you.",
+   "fr": "Toutes les lettres ont été envoyées. Et si vous vous perdez, la carte vous guidera.",
+   "pl": "Wszystkie listy zostały wysłane. A jeśli się zgubiliście, to mapa wam podpowie.",
+   "ru": "Все письма отправлены. А если вы заблудились, то карта подскажет.",
+   "uk": "Всі листи відправлені. А якщо ви заблукали, то карта підкаже."
+  },
+  "hint_15_a": {
+   "ar": "تتم صيانة فنية للقطار. أنظمة التحكم غير نشطة. انتظروا تعليمات إضافية.",
+   "ar_kw": "القِطَار يَخْضَعُ لِصِيَانَةٍ تِقْنِيَّة. أَنْظِمَةُ التَّحَكُّم غَيْر مُفَعَّلَة. يُرْجَى انْتِظَار التَّعْلِيمَات الإِضَافِيَّة.",
+   "en": "The train is undergoing technical maintenance. The control systems are inactive. Please wait for further instructions.",
+   "fr": "Le train est en maintenance technique. Les systèmes de contrôle sont inactifs. Veuillez attendre d'autres instructions.",
+   "pl": "Trwa obsługa techniczna składu. Systemy sterowania są nieaktywne. Czekajcie na dalsze instrukcje.",
+   "ru": "Производится техническое обслуживание состава. Системы управления неактивны. Ожидайте дальнейших инструкций.",
+   "uk": "Проводиться технічне обслуговування потяга. Системи управління неактивні. Чекайте подальших інструкцій."
+  },
+  "hint_15_b": {
+   "ar": "إذا كان لديكم خطأ في نظام الإضاءة، فالمطلوب معايرة قوة الكشاف حتى يصبح التوهج ثابتاً.",
+   "ar_kw": "إِذَا كَانَ لَدَيْكَ خَطَأٌ فِي نِظَامِ الإِضَاءَة، فَعَلَيْكَ مُعَايَرَة قُوَّةِ الكَشَّافِ حَتَّى يُصْدِرَ تَوَهُّجًا ثَابِتا.",
+   "en": "If you have a lighting system error, you need to calibrate the searchlight's power until it produces a steady glow.",
+   "fr": "Si vous avez une erreur de système d'éclairage, vous devez calibrer la puissance du projecteur jusqu'à ce qu'il produise une lueur constante.",
+   "pl": "Jeśli macie błąd systemu oświetleniowego, wymagana jest kalibracja mocy reflektora aż do uzyskania stałego świecenia.",
+   "ru": "Если у вас ошибка системы освещения, то требуется калибровка мощности прожектора до постоянного свечения.",
+   "uk": "Якщо у вас помилка системи освітлення, то потрібне калібрування потужності прожектора до постійного світіння."
+  },
+  "hint_15_c": {
+   "ar": "إذا كان لديكم خطأ في نظام تحديد ألوان البوابة، فاضبطوا اللون الأرجواني المحدد على الكشاف.",
+   "ar_kw": "إِذَا كَانَ لَدَيْكَ خَطَأٌ فِي نِظَامِ تَحْدِيدِ لَوْنِ البَوَّابَةِ، فَاضْبِط اللَّوْنَ البَنَفْسَجِيَّ المَطْلُوبَ عَلَى الكَشَّاف.",
+   "en": "If you have a portal color identification system error, set the prescribed purple color on the searchlight.",
+   "fr": "Si vous avez une erreur de système d'identification de couleur du portail, réglez la couleur violette prescrite sur le projecteur.",
+   "pl": "Jeśli macie błąd w systemie identyfikacji kolorów portalu, ustawcie przepisany fioletowy kolor na reflektorze.",
+   "ru": "Если у вас ошибка системы цветовой идентификации портала, установите предписанный фиолетовый цвет на прожекторе.",
+   "uk": "Якщо у вас помилка системи колірної ідентифікації порталу, встановіть приписаний фіолетовий колір на прожекторі."
+  },
+  "hint_15_d": {
+   "ar": "إذا كان لديكم خطأ في وحدة الطاقة، فهذا يعني أن تردد المحرك البخاري لا يتوافق مع معايير البدء. يتطلب الأمر ضبط الصوت حتى يصبح له أزيز منتظم ومستقر.",
+   "ar_kw": "إِذَا كَانَ لَدَيْكَ خَطَأٌ فِي وَحْدَةِ الطَّاقَة، فَهَذَا يَعْنِي أَنَّ تَرَدُّدَ المُحَرِّكِ البُخَارِيِّ لَا يُطَابِقُ مَعَايِيرَ التَّشْغِيل. عَلَيْكَ تَعْدِيلُ الصَّوْتِ حَتَّى يُصْبِحَ صَوْتُ المُحَرِّكِ سَلِسًا وَثَابِتًا.",
+   "en": "If you have a power unit error, it means the steam engine's frequency doesn't match the starting parameters. You need to adjust the sound until it becomes a smooth, stable chugging.",
+   "fr": "Si vous avez une erreur d'unité de puissance, cela signifie que la fréquence de la machine à vapeur ne correspond pas aux paramètres de démarrage. Vous devez ajuster le son jusqu'à ce qu'il devienne un rythme doux et stable.",
+   "pl": "Jeśli macie błąd w zespole napędowym, oznacza to, że częstotliwość silnika parowego nie odpowiada parametrom początkowym. Wymagana jest regulacja dźwięku aż do uzyskania równego, stabilnego sapania.",
+   "ru": "Если у вас ошибка силовой установки. Значит частота парового двигателя не соответствует стартовым параметрам. Требуется настройка звука до ровного, стабильного пыхтения.",
+   "uk": "Якщо у вас помилка силової установки, це означає, що частота парового двигуна не відповідає стартовим параметрам. Потрібне налаштування звуку до рівного, стабільного пихтіння."
+  },
+  "hint_15_e": {
+   "ar": "لتفعيل البوابة، قوموا بثلاثة تعديلات. بالمنظم الأول، غيروا لون الضوء إلى الأرجواني. بالثاني، احصلوا على توهج ثابت من الكشاف. وبالثالث، اضبطوا صوت المحرك حتى يصبح أزيراً عاملاً ومستقراً.",
+   "ar_kw": "لِتَفْعِيلِ البَوَّابَة، قُمْ بِثَلَاثَةِ تَعْدِيلَات. اسْتَخْدِم المُنَظِّمَ الأَوَّل لِتَغْيِير الضَّوْء إِلَى اللَّوْنِ البَنَفْسَجِيّ. وَبِالثَّاني اجْعَل الكَشَّافَ يُصْدِرُ تَوَهُّجًا ثَابِتا. وَبِالثَّالِثِ اضْبِطْ صَوْتَ المُحَرِّك إِلَى صَوْتِ تَشْغِيل ثَابِت وَسَلِيم.",
+   "en": "To activate the portal, make three adjustments. Use the first regulator to change the light to purple. With the second, get the searchlight to produce a constant glow. With the third, adjust the engine sound to a stable, working chugging.",
+   "fr": "Pour activer le portail, effectuez trois ajustements. Utilisez le premier régulateur pour changer la lumière en violet. Avec le second, faites en sorte que le projecteur produise une lueur constante. Avec le troisième, ajustez le son du moteur pour un halètement stable et fonctionnel.",
+   "pl": "Aby aktywować portal, wykonajcie trzy ustawienia. Pierwszym regulatorem zmieńcie kolor światła na fioletowy. Drugim — uzyskajcie stałe świecenie reflektora. Trzecim — ustawcie dźwięk silnika na stabilne, pracujące sapanie.",
+   "ru": "Для активации портала выполните три настройки. Первым регулятором измените цвет света на фиолетовый. Вторым - добейтесь постоянного свечения прожектора. Третьим — настройте звук двигателя до стабильного рабочего пыхтения.",
+   "uk": "Для активації порталу виконайте три налаштування. Першим регулятором змініть колір світла на фіолетовий. Другим - дочекайтесь постійного світіння прожектора. Третім — налаштуйте звук двигуна до стабільного робочого пихтіння."
+  },
+  "hint_16_c": {
+   "ar": "لفتح كهف الغول، استخدموا الرموز من البوابة. على جدار أحد أبراج القلعة، المسوا نفس الرموز.",
+   "ar_kw": "لِفَتْحِ كَهْفِ التِّرُولِ، اسْتَخْدِمِ الرُّمُوز المَوْجُودَةَ عَلى البَوَّابَة. وَعَلَى جِدَار أَحَدِ أَبْرَاجِ القَلْعَة، الْمِسْ نَفْسَ تِلْكَ الرُّمُوز.",
+   "en": "To open the troll cave, use the symbols from the portal. On the wall of one of the castle towers, touch those same symbols.",
+   "fr": "Pour ouvrir la grotte des trolls, utilisez les symboles du portail. Sur le mur de l'une des tours du château, touchez ces mêmes symboles.",
+   "pl": "Aby otworzyć jaskinię trolli, użyjcie symboli z portalu. Na ścianie jednej z wież zamku, dotknijcie tych samych symboli.",
+   "ru": "Чтобы открыть пещеру троллей, используйсте символы из портала. На стене одной из башен замка, коснитесь тех же символов.",
+   "uk": "Щоб відкрити печеру тролів, використайте символи з порталу. На стіні однієї з веж замку, торкніться тих самих символів."
+  },
+  "hint_16_d": {
+   "ar": "تسلسل الرموز للوصول إلى المنجم هو: 4, 2, 1, 3, 2. الخطأ في التسلسل سيؤدي إلى إعادة الضبط.",
+   "ar_kw": "تَسَلْسُلُ الرُّمُوز لِفَتْحِ مَدْخَلِ المَنْجَم هُوَ: ٢،٣،١،٢،٤. أَيُّ تَسَلْسُلٍ خَاطِئ سَيُؤَدِّي إِلَى إِعَادَة الضَّبْط.",
+   "en": "The sequence of symbols for mine shaft access is: 4, 2, 1, 3, 2. An incorrect sequence will result in a reset.",
+   "fr": "La séquence de symboles pour l'accès au puits de mine est : 4, 2, 1, 3, 2. Une séquence incorrecte entraînera une réinitialisation.",
+   "pl": "Kolejność symboli, aby uzyskać dostęp do szybu: 4, 2, 1, 3, 2. Błąd w kolejności spowoduje zresetowanie.",
+   "ru": "Последовательность символов для доступа в шахту: 4,2,1,3,2. Ошибка в последовательности приведет к сбросу.",
+   "uk": "Послідовність символів для доступу до шахти: 4, 2, 1, 3, 2. Помилка в послідовності призведе до скидання."
+  },
+  "hint_16_z": {
+   "ar": "اكتملت المعايرة بنجاح. تم تفعيل البوابة. مدخل منجم الغيلان مفتوح.",
+   "ar_kw": "اكْتَمَلَت المُعَايَرَة. تَمَّ تَفْعِيلُ البَوَّابَة. مَدْخَلُ مَنْجَمِ التِّرُولِ مَفْتُوح.",
+   "en": "Calibration is complete. The portal has been activated. The entrance to the troll mine is open.",
+   "fr": "Le calibrage est terminé. Le portail a été activé. L'entrée de la mine des trolls est ouverte.",
+   "pl": "Kalibracja została pomyślnie zakończona. Portal jest aktywny. Wejście do kopalni trolli jest otwarte.",
+   "ru": "Калибровка успешно завершена. Портал активирован. Вход в шахту троллей открыт",
+   "uk": "Калібрування успішно завершено. Портал активовано. Вхід до шахти тролів відкрито."
+  },
+  "hint_17_c": {
+   "ar": "لا تسكبوا أي شيء عشوائياً! للإكسير وصفة دقيقة! الترتيب مهم، وإلا سينفجر كل شيء! استمعوا للإناء، سيخبركم إذا أخذتم المكون الصحيح.",
+   "ar_kw": "لَا تَسْكُبْ كُلَّ شَيْءٍ دُفْعَة وَاحِدَة! الجُرْعَةُ الجَيِّدَة لَهَا وَصْفَة! التَّرْتِيبُ مُهِم، وَإِلَّا سَيَنْفَجِرُ كُلُّ شَيْء! اسْتَمِعْ إِلَى القِدْر؛ سَيُخْبِرُكَ إِنْ كُنْتَ قَدْ وَضَعْتَ المُكَوِّنَ الصَّحِيح.",
+   "en": "Don't just pour everything in! A good potion has a recipe! The order is important, or everything will explode! Listen to the cauldron; it will tell you if you've got the right ingredient.",
+   "fr": "Ne versez pas tout n'importe comment ! Une bonne potion a une recette ! L'ordre est important, sinon tout explosera ! Écoutez le chaudron ; il vous dira si vous avez le bon ingrédient.",
+   "pl": "Nie wlewajcie wszystkiego, co popadnie! Dobry eliksir ma swój przepis! Kolejność jest ważna, w przeciwnym razie wszystko wybuchnie! Słuchajcie kotła, on wam podpowie, czy wzięliście właściwy składnik.",
+   "ru": "Не лейте всё подряд! У хорошего зелья есть рецепт! Порядок важен, иначе всё взорвется! Слушайте котел, он подскажет, правильный ли вы взяли ингредиент",
+   "uk": "Не лийте все поспіль! У хорошого зілля є рецепт! Порядок важливий, інакше все вибухне! Слухайте котел, він підкаже, чи правильний інгредієнт ви взяли."
+  },
+  "hint_17_d": {
+   "ar": "ما هذا الهراء! مساعدون عديمو الفائدة! اسمعوا جيداً، لن أكرر كلامي! بالترتيب: أولاً، الزجاجة التي عليها سمل المٌعَين! ثم، تلك التي تشبه الأخطبوط! بعدها، القارورة التي عليها جماجم! وفي النهاية، الإكسير المنعش! هذا كل شيء! هيا افعلوا!",
+   "ar_kw": "يَا لَكُمْ مِنْ مُسَاعِدِينَ عَدِيمِي الفَائِدَةِ! اسْمَعُوا جَيِّدًا، لَنْ أُكَرِّرَ نَفْسِي! بِالتَّرْتِيب: أَوَّلًا، الزُّجَاجَةُ ذَاتُ الشَّكْلِ المُعَيَّنِيّ! ثُمَّ الَّتِي تُشْبِهُ الأُخْطُبُوط! بَعْدَهَا القَارُورَةُ الَّتِي عَلَيْهَا جَمَاجِم! وَأَخِيرًا جُرْعَةُ الحَيَاة! هَذَا كُلُّ شَيْء! افْعَلُوهَا!",
+   "en": "What a bunch of useless helpers! Listen up, I won't repeat myself! In order: first, the bottle with the rhombus! Then, the one that looks like an octopus! Next, the vial with the skulls! And finally, the life-giving potion! That's it! Do it!",
+   "fr": "Quelle bande d'assistants inutiles ! Écoutez bien, je ne le répéterai pas ! Dans l'ordre : d'abord, la bouteille avec le losange ! Ensuite, celle qui ressemble à une pieuvre ! Puis, la fiole avec les crânes ! Et enfin, la potion vivifiante ! C'est tout ! Faites-le !",
+   "pl": "Co za bezsensowni pomocnicy! Słuchajcie mnie, nie będę powtarzać! Po kolei: najpierw butelka z rombem! Potem — ta, która wygląda jak ośmiornica! Następnie — fiolka z czaszkami! I na koniec — życiodajny eliksir! Koniec! Róbcie to!",
+   "ru": "Ну что за бестолковые помощники! Слушайте сюда, повторять не буду! По порядку: сначала бутылка с ромбом! Потом — та, что похожа на осьминога! Затем — склянка с черепами! И в конце — живительное зелье! Всё! Делайте!",
+   "uk": "Що за безглузді помічники! Слухайте сюди, повторювати не буду! По порядку: спочатку пляшка з ромбом! Потім — та, що схожа на восьминога! Потім — склянка з черепами! І в кінці — життєдайне зілля! Усе! Робіть!"
+  },
+  "hint_17_z": {
+   "ar": "لماذا تلمسني بتلك العصا السحرية! جرعة الإكسير جاهزة. إنها تغلي في القدر.",
+   "ar_kw": "لِمَاذَا تُلَوِّحُ بِي بِتِلْكَ العَصَا السِّحْرِيَّة! الجُرْعَةُ جَاهِزَة. إِنَّهَا تَغْلِي دَاخِلَ القِدْر.",
+   "en": "Why are you poking me with that magic wand! The potion is ready. It's bubbling in the cauldron.",
+   "fr": "Pourquoi me piquez-vous avec cette baguette magique ! La potion est prête. Elle bouillonne dans le chaudron.",
+   "pl": "Czemu mnie szturchasz tą magiczną różdżką! Eliksir jest gotowy. Bąbelkuje w kotle.",
+   "ru": "Что ты в меня тычешь! Зелье готово. Оно в котле пузырится.",
+   "uk": "Чого ти в мене тицяєш чарівною паличкою! Зілля готове. Воно в казані булькає."
+  },
+  "hint_19_c": {
+   "ar": "الوحش يحرس الكريستال. يجب عليكم إدارته بعيداً... ببطء... حتى تستقر المنصة في مكانها وتصدر صوت طقطقة.",
+   "ar_kw": "الوَحْشُ يَحْرُسُ البَلُّورَة. عَلَيْكَ أَنْ تُدِيرَهُ بَعِيدا... بِبُطْء... حَتَّى تَتَحَرَّكَ المَنَصَّة إِلى مَكَانِهَا وَيَصْدُر صَوْتُ الطَّقْطَقَة.",
+   "en": "The monster is guarding the crystal. You need to turn it away... Slowly... until the platform moves into place and clicks.",
+   "fr": "Le monstre garde le cristal. Vous devez le détourner... Doucement... jusqu'à ce que la plateforme se mette en place et s'enclenche.",
+   "pl": "Stwór strzeże kryształu. Trzeba go odwrócić... Powoli... aż platforma wskoczy na swoje miejsce i kliknie.",
+   "ru": "Чудище охраняет кристалл. Его нужно отвернуть... Потихонечку... пока платформа не встанет на место и не щелкнет",
+   "uk": "Чудовисько охороняє кристал. Його потрібно відвернути... Потихеньку... поки платформа не стане на місце і не клацне."
+  },
+  "hint_19_d": {
+   "ar": "أديروا القفص... ولكن ببطء شديد جداً! يجب أن يستقر بهدوء في مكانه ويصدر صوت طقطقة. هذه هي الطريقة الوحيدة لكي لا يستيقظ!",
+   "ar_kw": "أَدِر القَفَص... لَكِنْ بِبُطْء شَدِيدٍ جدا! يَجِبُ أَنْ يَسْتَقِرَّ بِهُدُوءٍ وَيُصْدِرَ صَوْتَ الطَّقْطَقَة. هَذِهِ هِيَ الطَّرِيقَة الوَحِيدَة كَيْ لَا يَسْتَيْقِظ!",
+   "en": "Rotate the cage... but very, very slowly! It needs to quietly click into place. That's the only way he won't wake up!",
+   "fr": "Faites tourner la cage... mais très, très lentement ! Elle doit s'enclencher silencieusement. C'est la seule façon pour qu'il ne se réveille pas !",
+   "pl": "Obracajcie klatkę... ale bardzo, bardzo powoli! Musi cicho zaskoczyć na swoim miejscu. Tylko w ten sposób się nie obudzi!",
+   "ru": "Вращайте клетку... но очень-очень медленно! Нужно, чтобы она тихонько защелкнулась на месте. Только так он не проснётся!",
+   "uk": "Обертайте клітку... але дуже-дуже повільно! Потрібно, щоб вона тихенько зафіксувалася на місці. Тільки так він не прокинеться!"
+  },
+  "hint_19_z": {
+   "ar": "لقد فعلتم كل شيء! الكريستال معكم! ماذا تنتظرون؟! اذهبوا قبل أن يتقلب مرة أخرى في نومه!",
+   "ar_kw": "لَقَدْ فَعَلْتَهَا! حَصَلْتَ عَلَى البَلُّورَة! مَاذَا تَنْتَظِرُ؟! اخْرُجْ مِنْ هُنَا قَبْلَ أَنْ يَنْقَلِبَ مُجَدَّدًا أَثْنَاءَ نَوْمِه!",
+   "en": "You've done it! You have the crystal! What are you waiting for?! Get out of here before he rolls back over in his sleep!",
+   "fr": "Vous l'avez fait ! Vous avez le cristal ! Qu'attendez-vous ?! Sortez d'ici avant qu'il ne se retourne dans son sommeil !",
+   "pl": "Już wszystko zrobiliście! Macie kryształ! Na co czekacie?! Uciekajcie, zanim przewróci się z powrotem przez sen!",
+   "ru": "Вы уже все сделали! Кристалл у вас! Чего вы ждете?! Уходите, пока он не перевернулся обратно во сне!",
+   "uk": "Ви вже все зробили! Кристал у вас! Чого ви чекаєте?! Ідіть, поки він не перекинувся назад уві сні!"
+  },
+  "hint_23_b": {
+   "ar": "ليست كل الإجابات في بنكي! هذه الساحرة من اللوحة... لقد تركت أدلة خارج هذه الغرفة أيضاً. ابحثوا عن لوحتها الثانية.",
+   "ar_kw": "لَيْسَتْ كُلُّ الإِجَابَاتِ فِي بَنْكِي! تِلْكَ السَّاحِرَة المَوْجُودَة فِي اللَّوْحَة... لَقَدْ تَرَكَتْ أَدِلَّتَهَا خَارِجَ هَذِهِ الغُرْفَة أَيْضا. ابْحَثْ عَنْ لَوْحَتِهَا الثَّانِيَة.",
+   "en": "Not all the answers are in my bank! This sorceress from the portrait... she left her clues outside this room as well. Look for her second portrait.",
+   "fr": "Toutes les réponses ne sont pas dans ma banque ! Cette sorcière du portrait... elle a laissé ses indices en dehors de cette pièce aussi. Cherchez son second portrait.",
+   "pl": "Nie wszystkie odpowiedzi są w moim banku! Ta czarodziejka z portretu... zostawiła swoje wskazówki również poza tym pokojem. Szukajcie jej drugiego portretu.",
+   "ru": "Не все ответы находятся в моем банке! Эта волшебница с портрета... она и за пределами этой комнаты оставила свои подсказки. Ищите ее второй портрет.",
+   "uk": "Не всі відповіді знаходяться в моєму банку! Ця чарівниця з портрета... вона і за межами цієї кімнати залишила свої підказки. Шукайте її другий портрет."
+  },
+  "hint_23_c": {
+   "ar": "ما هذا النوع من الزبائن... اسمعوا! في اللوحة الموجودة في هذه الغرفة، يوجد تسلسل للرموز. وفي لوحة مماثلة في الخارج، يوجد موقع هذه الرموز على الخزنة! طابقوا الاثنين وأديروا المقبض حتى تسمعوا صوت طقطقة عند كل رمز. هذا كل شيء!",
+   "ar_kw": "ما شَأْنُ هَؤُلَاءِ الزَّبَائِن... اسْمَعْ! اللَّوْحَةُ فِي هَذِهِ الغُرْفَة تَحْتَوِي عَلَى تَسَلْسُلِ الرُّمُوز. وَاللَّوْحَة نَفْسُها خَارِجًا تَحْتَوِي عَلَى أَمَاكِن الرُّمُوز عَلَى الخَزْنَة! طَابِقْهَا ثُمَّ أَدِر القُرْصَ حَتَّى تَسْمَعَ صَوْتَ طَقْطَقَة عِنْدَ كُلِّ رَمْز. هَذَا كُلُّ شَيْء!",
+   "en": "What's with these customers... Listen! The painting in this room has the sequence of symbols. The same painting outside has the symbols' location on the safe! Match them up and turn the dial until you hear a click on each symbol. That's it!",
+   "fr": "Qu'est-ce qu'ils ont ces clients... Écoutez ! Le tableau dans cette pièce a la séquence de symboles. Le même tableau à l'extérieur a l'emplacement des symboles sur le coffre ! Faites-les correspondre et tournez le cadran jusqu'à ce que vous entendiez un clic sur chaque symbole. C'est tout !",
+   "pl": "Co to za klienci... Słuchajcie! Na obrazie w tym pokoju jest kolejność symboli. Na identycznym obrazie na zewnątrz jest położenie tych symboli na sejfie! Dopasujcie jedno do drugiego i kręćcie pokrętłem, aż usłyszycie kliknięcie przy każdym symbolu. Koniec!",
+   "ru": "Ну что за клиенты пошли... Слушайте! На картине в этой комнате — последовательность символов. На такой же картине снаружи — расположение этих символов на сейфе! Сопоставьте одно с другим и крутите ручку, пока не услышите щелчок на каждом символе. Всё!",
+   "uk": "Ну що за клієнти... Слухайте! На картині в цій кімнаті — послідовність символів. На такій же картині ззовні — розташування цих символів на сейфі! Співставте одне з іншим і крутіть ручку, поки не почуєте клацання на кожному символі. Усе!"
+  },
+  "hint_23_z": {
+   "ar": "تم حل اللغز، وفتح القفل. ماذا تريدون أيضاً؟ توقيعي؟ لا تشتتوني، لدي تقرير مالي عاجل!",
+   "ar_kw": "تَمَّ حَلُّ اللُّغْز، وَالخَزْنَةُ فُتِحَت. مَاذَا تُرِيدُ أَيْضًا؟ تَوْقِيعِي؟ لَا تُشَتِّتْنِي؛ لَدَيَّ تَقْرِيرٌ مَالِيّ عَاجِلٌ يَجِبُ أَنْ أُنْهِيَه!",
+   "en": "The puzzle is solved, the safe is open. What else do you need? My autograph? Don't distract me; I have an urgent financial report to finish!",
+   "fr": "L'énigme est résolue, le coffre est ouvert. De quoi d'autre avez-vous besoin ? Mon autographe ? Ne me distrayez pas ; j'ai un rapport financier urgent à terminer !",
+   "pl": "Zagadka rozwiązana, zamek otwarty. Czego jeszcze chcecie? Mojego autografu? Nie przeszkadzajcie, mam pilny raport finansowy do zrobienia!",
+   "ru": "Загадка решена, замок открыт. Чего еще вам нужно? Мой автограф? Не отвлекайте, у меня финансовый отчет горит!",
+   "uk": "Загадка розгадана, замок відкрито. Чого ще вам треба? Мій автограф? Не відволікайте, у мене фінансовий звіт горить!"
+  },
+  "hint_26_b": {
+   "ar": "همم... الجدار... يلمع. مثل نجمة سقطت. يجب... أن ألقي نظرة عن قرب.",
+   "ar_kw": "همم... الجِدَار... إِنَّهُ يَلْمَع. مِثْلَ نَجْمٍ سَاقِط. يَجِبُ أَن... أُلْقِيَ نَظْرَةً أَقْرَب.",
+   "en": "Hmm... The wall... it's glistening. Like a fallen star. I should... take a closer look.",
+   "fr": "Hmm... Le mur... il scintille. Comme une étoile tombée. Je devrais... regarder de plus près.",
+   "pl": "Hmm... Ściana... lśni. Jak spadająca gwiazda. Muszę... przyjrzeć się bliżej.",
+   "ru": "Хм-м... Стена... блестит. Как звезда упала. Надо... посмотреть поближе.",
+   "uk": "Хм-м... Стіна... блищить. Як зірка впала. Треба... подивитися ближче."
+  },
+  "hint_26_c": {
+   "ar": "إذا رأيتَ لمعاناً على الحائط، أدِرني نحوه. كرر هذا حتى نجد المعدن النجمي.",
+   "ar_kw": "إِذَا رَأَيْتَ لَمَعَانًا عَلَى الجِدَار، فَوَجِّهْنِي نَحْوَه. اسْتَمِرَّ بِذَلِكَ حَتَّى نَجِدَ مَعْدِن النُّجُوم.",
+   "en": "If you see a gleam on the wall, turn me toward it. Keep doing this until we find the star metal.",
+   "fr": "Si tu vois une lueur sur le mur, tourne-moi vers elle. Continue à faire ça jusqu'à ce qu'on trouve le métal stellaire.",
+   "pl": "Jeśli widzisz błysk na ścianie — obróć mnie tam. Powtarzaj, dopóki nie znajdziemy gwiezdnego metalu.",
+   "ru": "Увидел блеск на стене — поверни меня туда. Повторяй, пока не найдем звездный металл.",
+   "uk": "Побачив блиск на стіні — поверни мене туди. Повторюй, поки не знайдемо зоряний метал."
+  },
+  "hint_26_z": {
+   "ar": "وجدناه بالفعل. المعدن معك. معدن جيد. لماذا لا تزال تسأل؟ العمل... ينتظر.",
+   "ar_kw": "لَقَدْ وَجَدْنَاهُ بِالفِعْل. لَدَيْكَ المَعْدَنُ. إِنَّهُ مَعْدَنٌ جَيِّد. لِمَاذَا مَا زِلْتَ تَسْأَلُ؟ العَمَلُ... يَنْتَظِر.",
+   "en": "We've already found it. You have the metal. It's good metal. Why are you still asking? The work... is waiting.",
+   "fr": "Nous l'avons déjà trouvé. Tu as le métal. C'est du bon métal. Pourquoi demandes-tu encore ? Le travail... attend.",
+   "pl": "Już znaleźliśmy. Masz metal. Dobry metal. Po co jeszcze pytasz? Praca... czeka.",
+   "ru": "Нашли уже. Металл у тебя. Хороший металл. Зачем еще спрашиваешь? Работа... ждет",
+   "uk": "Вже знайшли. Метал у тебе. Хороший метал. Чого ще питаєш? Робота... чекає."
+  },
+  "hint_28_a": {
+   "ar": "ممنوع اللمس! لا تلمسوا أي شيء! المتاهة مغلقة اليوم للتلميع! تعالوا عندما يصبح كل شيء لامعاً... ربما!",
+   "ar_kw": "لَا تَلْمِسْ! لَا تَلْمِسْ أَيَّ شَيْء! المتَاهَة مُغْلَقَة اليَوْم مِنْ أَجْلِ التَّلْمِيع! عُدْ عِنْدَمَا يُصْبِحُ كُلُّ شَيْءٍ لَامِع... رُبَّما!",
+   "en": "Don't touch! Don't touch anything! The labyrinth is closed for polishing today! Come back when everything is sparkling... maybe!",
+   "fr": "Ne touchez pas ! Ne touchez à rien ! Le labyrinthe est fermé pour polissage aujourd'hui ! Revenez quand tout étincellera... peut-être !",
+   "pl": "Nie dotykać! Nic nie dotykać! Labirynt jest dziś zamknięty z powodu polerowania! Wróćcie, gdy wszystko będzie błyszczeć... może!",
+   "ru": "Не трогать! Ничего не трогать! Лабиринт сегодня закрыт на полировку! Приходите, когда все будет сверкать... может быть!",
+   "uk": "Не чіпати! Нічого не чіпати! Лабіринт сьогодні закритий на полірування! Приходьте, коли все буде блищати... можливо!"
+  },
+  "hint_28_b": {
+   "ar": "هيا! حركوا الأذرع! الجوهرة لن تتدحرج بمفردها! أريدها لمجموعتي! أسرعوا!",
+   "ar_kw": "هَيَّا! حَرِّكِ الرَّافِعَات! اللُّؤْلُؤَةُ لَنْ تَتَحَرَّكَ وَحْدَها! أُرِيدُهَا لِمَجْمُوعَتِي! أَسْرِعْ!",
+   "en": "Come on! Work the levers! The pearl won't roll on its own! I want it for my collection! Faster!",
+   "fr": "Allez ! Actionnez les leviers ! La perle ne va pas rouler toute seule ! Je la veux pour ma collection ! Plus vite !",
+   "pl": "Dalej! Ruszajcie dźwigniami! Perła sama się nie potoczy! Chcę ją do swojej kolekcji! Szybciej!",
+   "ru": "Ну же! Шевелите рычагами! Жемчужина сама не покатится! Хочу ее себе в коллекцию! Быстрее!",
+   "uk": "Ну ж! Ворушіть важелями! Перлина сама не покотиться! Хочу її собі в колекцію! Швидше!"
+  },
+  "hint_28_c": {
+   "ar": "ميلوا المتاهة بأذرع الروافع! دحرجوا الجوهرة لتتجاوز كل الثقوب نحو السهم الأبيض! لا تدحرجوها إلى فمي! واضح؟!",
+   "ar_kw": "اسْتَخْدِم الرَّافِعَتَيْن لِإِمَالَةِ المَتَاهَة! دَحْرِجِ اللُّؤْلُؤَةَ مُتَجَاوِزَة جَمِيعَ الحُفَر بِاتِّجَاهِ السَّهْمِ الأَبْيَض! لَا تَجْعَلْهَا تَدْخُل فَمِي! فَهِمْت؟!",
+   "en": "Use the two levers to tilt the labyrinth! Roll the pearl past all the holes towards the white arrow! Don't roll it into my mouth! Got it?!",
+   "fr": "Utilisez les deux leviers pour incliner le labyrinthe ! Faites rouler la perle au-delà de tous les trous vers la flèche blanche ! Ne la faites pas rouler dans ma bouche ! Compris ?!",
+   "pl": "Dwiema dźwigniami przechylajcie labirynt! Przetoczcie perłę obok wszystkich dziur do białej strzałki! Nie toczyć do mojej paszczy! Jasne?!",
+   "ru": "Двумя рычагами наклоняйте лабиринт! Прокатите жемчужину мимо всех дырок к белой стрелке! В мой рот не катить! Ясно?!",
+   "uk": "Двома важелями нахиляйте лабіринт! Покотіть перлину повз усі дірки до білої стрілки! В мою пащу не котити! Ясно?!"
+  },
+  "hint_28_z": {
+   "ar": "(صرير سعيد) يا جوهرتي الثمينة! اذهبوا! لا تزعجوني، أريد أن أتأملها.",
+   "ar_kw": "(صَرْخَةُ فَرَح) لُؤْلُؤَتِي الثَّمِينَة! اذْهَبِ الآن! لَا تُزْعِجْنِي، أُرِيدُ أَنْ أَتَأَمَّلَهَا",
+   "en": "(Happy squeal) My precious pearl! Go away! Don't disturb me, I want to admire it.",
+   "fr": "(Couinement joyeux) Ma précieuse perle ! Allez-vous-en ! Ne me dérangez pas, je veux l'admirer.",
+   "pl": "(Szczęśliwy pisk) Moja prześliczna perło! Idźcie stąd! Nie przeszkadzajcie mi się nią zachwycać.",
+   "ru": "Счастливый писк) Моя прелестная жемчужина! Уходите! Не мешайте мне любоваться.",
+   "uk": "(Щасливий писк) Моя чарівна перлина! Ідіть! Не заважайте мені милуватися."
+  },
+  "hint_2_b": {
+   "ar": "بوابة القلعة مغلقة، لكن المفتاح أقرب مما تظنون. أنا، حارسها، تركته في العلن، لكن في نفس الوقت أخفيته.",
+   "ar_kw": "بوَابَةُ القَلْعَة مُغْلَقَة، لَكِنَّ المفْتَاحَ أَقْرَبُ مِمَّا تَظُنُّون. أَنا، حَارِسُهَا، تَرَكْتُهُ أَمَامَ أَعْيُنِ الجَمِيع، وَلَكِنَّهُ مَا زَالَ مَخْفِيًّا",
+   "en": "The Castle Gate is sealed, but the key is closer than you think. I, its guardian, left it in plain sight, yet concealed it.",
+   "fr": "La Porte du Château est scellée, mais la clé est plus proche que vous ne le pensez. Moi, son gardien, je l'ai laissée bien en vue, tout en la dissimulant.",
+   "pl": "Brama Zamku jest zapieczętowana, ale klucz do niej jest bliżej, niż myślicie. Ja, jej strażnik, zostawiłem go na widoku, a jednocześnie ukryłem.",
+   "ru": "Врата Замка запечатаны, но ключ к ним ближе, чем вы думаете. Я, его страж, оставил его на виду, но в то же время укрыл",
+   "uk": "Брама Замку запечатана, але ключ до неї ближче, ніж ви думаєте. Я, його страж, залишив його на видноті, але водночас приховав."
+  },
+  "hint_2_c": {
+   "ar": "أرى كل شيء من الأعالي، لكن ما تبحثون عنه مخبأ عن السماء. انظروا تحت جناحي.",
+   "ar_kw": "أَنا أَرَى كُلَّ شَيْءٍ مِن الأَعْلَى، لَكِنْ مَا تَبْحَثُونَ عَنْهُ مَخْفِيٌّ عَن السَّمَاء. ابْحَثُوا تَحْتَ جَنَاحَيّ.",
+   "en": "I see everything from above, but what you seek is hidden from the sky. Look under my wing.",
+   "fr": "Je vois tout d'en haut, mais ce que vous cherchez est caché du ciel. Regardez sous mon aile.",
+   "pl": "Widzę wszystko z góry, ale to, czego szukacie, jest ukryte przed niebem. Zajrzyjcie pod moje skrzydło.",
+   "ru": "Я вижу все с высоты, но то, что вы ищете, скрыто от неба. Загляните под мое крыло",
+   "uk": "Я бачу все з висоти, але те, що ви шукаєте, приховано від неба. Зазирніть під моє крило."
+  },
+  "hint_2_z": {
+   "ar": "ششش... السماء نائمة... وحارسها كذلك... الهدوء يعم الآن. حاولوا مجدداً لاحقاً...",
+   "ar_kw": "ششش... السَّمَاءُ نَائِمَة... وَحَارِسُهَا أَيْضًا... المَكَانُ هَادِئ الآن. حَاوِلُوا مَرَّةً أُخْرَى لَاحِقًا.",
+   "en": "Shhh... the sky is resting... and its guardian too... It is quiet now. Try again later...",
+   "fr": "Chut... le ciel se repose... et son gardien aussi... C'est calme maintenant. Réessayez plus tard...",
+   "pl": "Ciii... niebo odpoczywa... i jego strażnik też... Teraz jest cisza. Spróbujcie później...",
+   "ru": "Тссс... небо отдыхает... и его страж тоже... Сейчас тишина. Попробуйте позже...",
+   "uk": "Тссс... небо відпочиває... і його страж також... Зараз тиша. Спробуйте пізніше..."
+  },
+  "hint_32_b": {
+   "ar": "راقبوا النار! فبدون حرارة جيدة، لن ينجح السحر. انفخوا في الفرن لجعل اللهب قوياً. إذا انطفأت، سيتبدد كل السحر.",
+   "ar_kw": "رَاقِبِ النَّارَ جَيِّدا! بِدُونِ حَرَارَةٍ جَيِّدَة لَنْ يَنْجَحَ السِّحْر. انْفُخْ فِي الفُرْن لِتَقْوِيَةِ اللَّهَب. إِذَا انْطَفَأَ، سَيَخْتَفِي كُلُّ السِّحْر.",
+   "en": "Keep an eye on the fire! Without good heat, the magic won't work. Blow into the furnace to make the flame strong. If it goes out, all the magic will disappear.",
+   "fr": "Gardez un œil sur le feu ! Sans une bonne chaleur, la magie ne fonctionnera pas. Soufflez dans la fournaise pour rendre la flamme forte. Si elle s'éteint, toute la magie disparaîtra.",
+   "pl": "Uważajcie na ogień! Bez dobrego żaru magia nie zadziała. Dmuchajcie w piec, żeby płomień był silny. Jeśli zgaśnie, cała magia zniknie.",
+   "ru": "Следите за огнем! Без хорошего жара волшебство не сработает. Дуйте в печь, чтобы пламя было сильным. Если оно погаснет, вся магия рассеется",
+   "uk": "Слідкуйте за вогнем! Без хорошого жару чаклунство не спрацює. Дуйте в піч, щоб полум'я було сильним. Якщо воно згасне, вся магія розвіється."
+  },
+  "hint_32_c": {
+   "ar": "طاولة العمل هي اللوحة القماشية، والمكونات هي الألوان. استخدموا العصا السحرية لنقل جوهر كل مكون إلى مكانه على طاولة العمل. انظروا إلى المخطط، ولن تخطئوا.",
+   "ar_kw": "طَاوِلَةُ العَمَلِ هِيَ لَوْحَتُكَ الفَنِّيَّة، وَالمُكَوِّنَاتُ هِيَ أَلْوَانُك. اسْتَخْدِمِ العَصَا السِّحْرِيَّة لِنَقْلِ جَوْهَر كُلِّ مُكَوِّنٍ إِلَى مَكَانِهِ عَلَى الطَّاوِلَة. اتَّبِعِ المُخَطَّط وَلَنْ تُخْطِئ.",
+   "en": "The workbench is your canvas, and the ingredients are your paints. Use the magic wand to transfer the essence of each component to its place on the workbench. Follow the blueprint, and you won't make a mistake.",
+   "fr": "L'établi est votre toile, et les ingrédients sont vos peintures. Utilisez la baguette magique pour transférer l'essence de chaque composant à sa place sur l'établi. Suivez le plan, et vous ne ferez pas d'erreur.",
+   "pl": "Stół warsztatowy to płótno, a składniki to farby. Użyjcie magicznej różdżki, aby przenieść esencję każdego składnika na jego miejsce na stole. Patrzcie na rysunek, a nie popełnicie błędu.",
+   "ru": "Верстак — это холст, а ингредиенты — краски. Используйте волшебную палочку, чтобы перенести сущность каждого компонента на его место на верстаке. Смотрите на чертеж, и не ошибетесь.",
+   "uk": "Верстак — це полотно, а інгредієнти — фарби. Використайте чарівну паличку, щоб перенести сутність кожного компонента на його місце на верстаку. Дивіться на креслення, і не помилитеся."
+  },
+  "hint_32_d": {
+   "ar": "لصنع المكنسة، استمعوا جيداً! حافظوا على نار قوية في الفرن! وعلى طاولة العمل، رتبوا المكونات هكذا:\n\nفي الأعلى على اليسار: المعدن النجمي الأزرق من كهف الغيلان.\n\nفي الأعلى على اليمين: جلد الثعبان من رصيف القطار.\n\nفي الأسفل على اليسار: المعدن النجمي الأزرق مرة أخرى.\n\nوفي الأسفل على اليمين: الإكسير الطائر الأرجواني من الساحرة.\n\nافعلوا ذلك، وسوف ينجح الأمر!",
+   "ar_kw": "لِصُنْعِ المِكْنَسَةِ، اسْتَمِعْ جَيِّدا! أَبْقِ النَّارَ قَوِيَّة فِي الفُرْن! وَعَلَى طَاوِلَة العَمَلِ رَتِّبِ العَنَاصِرَ هَكَذَا:\nأَعْلَى اليَسَار: مَعْدِنُ النُّجُومِ الأَزْرَقُ مِنْ كَهْفِ التِّرُول.\nأَعْلَى اليَمِين: جِلْدُ الأَفْعَى مِنْ مِنَصَّةِ القِطَار.\nأَسْفَلُ اليَسَار: مَعْدِنُ النُّجُومِ الأَزْرَقُ مَرَّة أُخْرَى.\nأَسْفَلُ اليَمِين: جُرْعَةُ الطَّيَرَان البَنَفْسَجِيَّة الخَاصَّة بِالسَّاحِرَة.\nافْعَلْ ذَلِكَ بِهَذِهِ الطَّرِيقَةِ وَسَتَنْجَح!",
+   "en": "To make the broom, listen carefully! Keep the fire in the furnace strong! On the workbench, arrange it like this:\n\nTop left: the blue Star Metal from the troll cave.\n\nTop right: the Snake Skin from the train platform.\n\nBottom left: the blue Star Metal again.\n\nBottom right: the purple Flying Potion from the witch.\n\nDo it this way, and you'll succeed!",
+   "fr": "Pour fabriquer le balai, écoutez attentivement ! Gardez le feu dans la fournaise fort ! Sur l'établi, disposez-le comme ceci :\n\n\nEn haut à gauche : le Métal Stellaire bleu de la grotte des trolls.\n\nEn haut à droite : la Peau de Serpent du quai de la gare.\n\nEn bas à gauche : le Métal Stellaire bleu à nouveau.\n\nEn bas à droite : la Potion Volante violette de la sorcière.\n\n\nFaites-le ainsi, et vous réussirez !",
+   "pl": "Aby zrobić miotłę, słuchajcie uważnie! Utrzymujcie silny ogień w piecu! A na stole warsztatowym układajcie tak:\n\nu góry po lewej — błękitny Gwiezdny Metal z jaskini trolli.\n\nu góry po prawej — Wężowa Skóra z peronu przy pociągu.\n\nna dole po lewej — ponownie błękitny Gwiezdny Metal.\n\na na dole po prawej — fioletowy Latający Eliksir od wiedźmy.\n\nZróbcie tak, a uda wam się!",
+   "ru": "Чтобы сделать метлу, слушайте внимательно! Поддерживайте сильный огонь в печи! А на верстаке выкладывайте так: вверху слева — голубой Звездный Металл из пещеры троллей, вверху справа — Змеиная Кожа на перроне у поезда, внизу слева — снова голубой Звездный Металл, а внизу справа — фиолетовое Летучее Зелье от ведьмы. Сделаете так, и получится!",
+   "uk": "Щоб зробити мітлу, слухайте уважно! Підтримуйте сильний вогонь у печі! А на верстаку викладайте так:\n\nвгорі ліворуч — блакитний Зоряний Метал з печери тролів.\n\nвгорі праворуч — Зміїна Шкіра на пероні біля поїзда.\n\nвнизу ліворуч — знову блакитний Зоряний Метал.\n\nа внизу праворуч — фіолетове Летюче Зілля відьми.\n\nЗробите так, і вийде!"
+  },
+  "hint_32_e": {
+   "ar": "الآن من أجل الخوذة! لا تنسوا النار! الوصفة كالتالي:\n\nفي الأعلى على اليسار — جلد الثعبان من الرصيف\n\nفي الأعلى على اليمين — سبيكة ذهبية من البنك\nفي الأسفل على اليسار — سبيكة ذهبية أخرى\nوفي الأسفل على اليمين — الكريستال البرتقالي من قرب الكلب ذي الرؤوس الثلاثة.",
+   "ar_kw": "وَالآنَ مِنْ أَجْلِ الخُوذَة! لَا تَنْسَ النَّار! الوَصْفَةُ كَالتَّالي:\nأَعْلَى اليَسَار — جِلْدُ الأَفْعَى مِنَ المِنَصَّة\nأَعْلَى اليَمِين — السَّبِيكَةُ الذَّهَبِيَّة مِنَ البَنْك\nأَسْفَلُ اليَسَار — السَّبِيكَةُ الذَّهَبِيَّة مَرَّةً أُخْرَى\nأَسْفَلُ اليَمِين — البَلُّورَةُ البُرْتُقَالِيَّة مِنْ قُرْب الكَلْب ذِي الرُّؤُوس الثَّلَاثَة.",
+   "en": "Now for the helmet! Don't forget the fire! The recipe is as follows:\n\ntop left — the Snake Skin from the platform\n\ntop right — the gold Ingot from the bank\n\nbottom left — the gold Ingot again\n\nbottom right — the orange Crystal from near the three-headed dog.",
+   "fr": "Maintenant pour le casque ! N'oubliez pas le feu ! La recette est la suivante :\n\n\nen haut à gauche — la Peau de Serpent du quai\n\nen haut à droite — le Lingot d'or de la banque\n\nen bas à gauche — le Lingot d'or à nouveau\n\nen bas à droite — le Cristal orange près du chien à trois têtes.",
+   "pl": "Teraz za hełm! Nie zapominajcie o ogniu! Przepis jest następujący:\n\nu góry po lewej — Wężowa Skóra z peronu\n\nu góry po prawej — złoty Sztabek z banku\n\nna dole po lewej — ponownie złoty Sztabek\n\na na dole po prawej — pomarańczowy Kryształ obok psa o trzech głowach.",
+   "ru": "Теперь за шлем! Не забывайте про огонь! Рецепт такой: вверху слева — Змеиная Кожа с перрона, вверху справа — золотой Слиток из банка, внизу слева — снова золотой Слиток, и внизу справа — оранжевый Кристалл около трёх голового пса.",
+   "uk": "Тепер за шолом! Не забувайте про вогонь! Рецепт такий:\n\nвгорі ліворуч — Зміїна Шкіра з перону\n\nвгорі праворуч — золотий Злиток з банку\n\nвнизу ліворуч — знову золотий Злиток\n\nа внизу праворуч — помаранчевий Кристал біля триголового пса."
+  },
+  "hint_32_z": {
+   "ar": "عمل رائع ، لقد تم إنجاز كل العمل يا أصدقائي! المكنسة والخوذة جاهزتان! لقد عملتم بجد، والآن يمكنكم أن تستريحوا.",
+   "ar_kw": "(ضَحْكَةٌ رَاضِيَة) لَقَد انْتَهَى العَمَلُ كُلُّهُ يَا أَصْدِقَائي! المِكْنَسَةُ وَالخُوذَةُ أَصْبَحَتَا جَاهِزَتَيْن! لَقَدْ عَمِلْتُمْ بِشَكْلٍ رَائِع؛ يُمْكِنُكُم الآنَ الرَّاحَة",
+   "en": "(Satisfied laughter) All the work is already done, my friends! Both the broom and the helmet are ready! You've worked splendidly; now you can rest.",
+   "fr": "(Rire satisfait) Tout le travail est déjà fait, mes amis ! Le balai et le casque sont prêts ! Vous avez travaillé magnifiquement ; maintenant vous pouvez vous reposer.",
+   "pl": "(Zadowolony śmiech) Cała praca już wykonana, moi przyjaciele! Zarówno miotła, jak i hełm są gotowe! Świetnie się spisaliście, teraz możecie odpocząć.",
+   "ru": "(Довольный смех) Вся работа уже сделана, друзья мои! И метла, и шлем готовы! Вы славно потрудились, теперь можно и отдохнуть",
+   "uk": "(Задоволений сміх) Вся робота вже зроблена, друзі мої! І мітла, і шолом готові! Ви чудово попрацювали, тепер можна й відпочити."
+  },
+  "hint_37_b": {
+   "ar": "انتظروا... الشبح يظهر في وقت معين... ربما علينا أن نبدأ بالوقت أيضاً؟ انظروا إلى الساعة!",
+   "ar_kw": "انْتَظِرْ لَحْظَةً... الشَّبَحُ يَظْهَرُ فِي وَقْتٍ مُعَيَّن... رُبَّمَا عَلَيْنَا أَنْ نَبْدَأَ بِالوَقْتِ أَيْضا؟ انْظُرْ إِلَى السَّاعَة!",
+   "en": "Wait a minute... The ghost appears at a certain time... Maybe we should start with time, too? Look at the clock!",
+   "fr": "Attendez une minute... Le fantôme apparaît à une certaine heure... Peut-être devrions-nous commencer par le temps, nous aussi ? Regardez l'horloge !",
+   "pl": "Zaczekajcie... Duch pojawia się o określonej porze... Może my też powinniśmy zacząć od czasu? Spójrzcie na zegar!",
+   "ru": "Погодите... Призрак появляется в определенное время... Может, и нам нужно начать со времени? Взгляните на часы!",
+   "uk": "Стривайте... Привид з'являється в певний час... Може, і нам треба почати з часу? Гляньте на годинник!"
+  },
+  "hint_37_c": {
+   "ar": "افعلوا هذا: أولاً إستخدموا العصا، و إلمسوا الرقم 12 على الساعة. وبعد ذلك، ابحثوا عن الرقم 27 على الجدران وإلمسوه.",
+   "ar_kw": "افْعَلِ التَّالي: أَوَّلًا, الْمِس الرَّقْم ١٢ عَلَى السَّاعَة. ثُمَّ ابْحَثْ عَن الرَّقْم ٢٧ بَيْنَ الأَرْقَامِ الظَّاهِرَة عَلَى الجُدْرَان، وَالْمِسْهُ بِالعَصا!",
+   "en": "Do this: first, touch the number 12 on the clock. Then, find the number 27 among those that appear on the walls, and touch it with the wand!",
+   "fr": "Faites ceci : d'abord, touchez le chiffre 12 sur l'horloge. Ensuite, trouvez le nombre 27 parmi ceux qui apparaissent sur les murs, et touchez-le avec la baguette !",
+   "pl": "Zróbcie tak: najpierw dotknijcie cyfry 12 na zegarze. A potem szukajcie liczby 27 spośród tych, które pojawiły się na ścianach, i dotknijcie jej różdżką!",
+   "ru": "Делайте так: сначала коснитесь цифры 12 на часах. А потом ищите число 27 среди тех, что появились на стенах, и коснитесь его палочкой!",
+   "uk": "Робіть так: спочатку торкніться цифри 12 на годиннику. А потім шукайте число 27 серед тих, що з'явилися на стінах, і торкніться його паличкою!"
+  },
+  "hint_38_b": {
+   "ar": "اطرقوا في المكان الذي تسمعون منه الصوت!",
+   "ar_kw": "اطْرُقْ عَائِدًا مِنَ المَكَان الَّذي تَسْمَعُ مِنْهُ الصَّوْت!",
+   "en": "Knock back from where you hear the sound!",
+   "fr": "Frappez en retour de là où vous entendez le son !",
+   "pl": "Zapukajcie tam, skąd dobiega dźwięk!",
+   "ru": "Постучите в ответ там, откуда слышен звук!",
+   "uk": "Постукайте у відповідь там, звідки чути звук!"
+  },
+  "hint_3_b": {
+   "ar": "انتظروا... الشبح يظهر في وقت محدد... ربما علينا أن نبدأ بالوقت أيضاً؟ انظروا إلى الساعة!",
+   "ar_kw": "انْتَظِرُوا... الشَّبَح يَظْهَرُ فِي وَقْتٍ مُحَدَّد... رُبَّمَا يَجِبُ أَنْ نَبْدَأَ بِالوَقْتِ أَيْضًا؟ انْظُرُوا إِلَى السَّاعَة!",
+   "en": "Wait... The ghost appears at a specific time... Maybe we should start with time, too? Take a look at the clock!",
+   "fr": "Attendez... Le fantôme apparaît à un moment précis... Peut-être devrions-nous commencer par le temps, nous aussi ? Jetez un œil à l'horloge !",
+   "pl": "Zaczekajcie... Duch pojawia się o określonej porze... Może my też powinniśmy zacząć od czasu? Spójrzcie na zegar!",
+   "ru": "Погодите... Призрак появляется в определенное время... Может, и нам нужно начать со времени? Взгляните на часы!",
+   "uk": "Зачекайте... Привид з'являється в певний час... Може, й нам треба почати з часу? Погляньте на годинник!"
+  },
+  "hint_3_c": {
+   "ar": "أولاً، المسوا الرقم 12 على الساعة. بعد ذلك، ابحثوا عن الرقم 42 بين الأرقام التي تظهر على الجدران و المسوه بالعصا السحرية!",
+   "ar_kw": "أَوَّلًا، الْمَسُوا الرَّقْمَ 12 عَلَى السَّاعَة. ثُمَّ ابْحَثُوا عَن الرَّقْم 42 بَيْنَ الأَرْقَامِ الظَّاهِرَة عَلَى الجُدْرَان، وَالْمِسُوهُ بِالعَصَا السِّحْرِيَّة!",
+   "en": "First, touch the number 12 on the clock. Then, find the number 42 among those that appear on the walls and touch it with the magic wand!",
+   "fr": "Faites ceci : d'abord, touchez le chiffre 12 sur l'horloge. Ensuite, trouvez le nombre 42 parmi ceux qui apparaissent sur les murs et touchez-le avec la baguette magique !",
+   "pl": "Najpierw dotknijcie cyfry 12 na zegarze. A potem znajdźcie liczbę 42 wśród tych, które pojawiły się na ścianach, i dotknijcie jej magiczną różdżką!",
+   "ru": "Делайте так: сначала коснитесь цифры 12 на часах. А потом ищите число 42 среди тех, что появились на стенах, и коснитесь его палочкой!",
+   "uk": "Спершу торкніться цифри 12 на годиннику. А потім шукайте число 42 серед тих, що з'явилися на стінах, і торкніться його чарівною паличкою!"
+  },
+  "hint_44_b": {
+   "ar": "أتذكرون ذلك الطرق على الرصيف؟ الشبح لم يقودنا إلى هناك عبثاً! تلك المجموعة من النجوم على الحجر... أنا متأكد، إنها مفتاح هذا الباب في المكتبة!",
+   "ar_kw": "تَتَذَكَّرُ ذَلِكَ الطَّرْقَ عِنْدَ المِنَصَّة؟ الشَّبَحُ لَمْ يَقُدْنَا إِلَى هُنَاكَ بِلَا سَبَب! ذَلِكَ النَّمَطُ النَّجْمِيُّ عَلَى الحَجَر... أَنَا مُتَأَكِّد أَنَّهُ مِفْتَاحُ هَذَا البَابِ فِي المَكْتَبَة!",
+   "en": "Remember that knocking at the platform? The ghost didn't lead us there for no reason! That combination of stars on the stone... I'm sure it's the key to this door in the library!",
+   "fr": "Vous vous souvenez de ce frappement au quai ? Le fantôme ne nous a pas conduits là sans raison ! Cette combinaison d'étoiles sur la pierre... Je suis sûr que c'est la clé de cette porte dans la bibliothèque !",
+   "pl": "Pamiętacie tamto pukanie na peronie? Duch nie zaprowadził nas tam bez powodu! Ta kombinacja gwiazd na kamieniu... jestem pewien, to klucz do tych drzwi w bibliotece!",
+   "ru": "Помните тот стук у перрона? Призрак не просто так нас туда водил! Та комбинация звезд на камне... я уверен, это ключ к этой двери в библиотеке!",
+   "uk": "Пам'ятаєте той стукіт біля перону? Привид не просто так нас туди водив! Та комбінація зірок на камені... я впевнений, це ключ до цих дверей у бібліотеці!"
+  },
+  "hint_44_c": {
+   "ar": "اذهبوا إلى الرصيف، واحفظوا شكل النجوم على الحائط. بعد ذلك، عودوا إلى المكتبة ورتبوا الألواح على الباب تماماً كما هو شكل النجوم هناك. النجمة العلوية بالباب هي المركز. وبعد ذلك، اسحبوا المقبض.",
+   "ar_kw": "اذْهَبْ إِلَى المِنَصَّةِ وَتَذَكَّرْ نَمَطَ النُّجُومِ عَلَى الجِدَارِ. ثُمَّ عُدْ إِلَى المَكْتَبَة وَرَتِّب الصَّفَائِح عَلَى البَاب لِتُطَابِقَ نَمَطَ النُّجُومِ تَمَاما. النَّجْمَة العُلْوِيَّة عَلَى البَابِ هِيَ المَرْكَز. بَعْدَ ذَلِكَ اسْحَبِ المِقْبَض.",
+   "en": "Go to the platform and remember the star pattern on the wall. Then, return to the library and arrange the plates on the door to match the exact pattern of the stars. The top star on the door is the center. After that, pull the handle.",
+   "fr": "Allez au quai et souvenez-vous du motif d'étoiles sur le mur. Ensuite, retournez à la bibliothèque et disposez les plaques sur la porte pour correspondre au motif exact des étoiles. L'étoile supérieure sur la porte est le centre. Après cela, tirez la poignée.",
+   "pl": "Idźcie na peron i zapamiętajcie wzór z gwiazd na ścianie. Następnie wróćcie do biblioteki i ustawcie płyty na drzwiach dokładnie tak, jak ułożone są tamte gwiazdy. Górna gwiazda na drzwiach jest środkiem. A potem pociągnijcie za klamkę.",
+   "ru": "Идите к перрону, запомните узор из звезд на стене. Потом вернитесь в библиотеку и выставьте пластины на двери точно так же, как расположены звезды там. Верхняя звезда на двери — это центр. А потом тяните за ручку.",
+   "uk": "Ідіть до перону, запам'ятайте візерунок із зірок на стіні. Потім поверніться до бібліотеки та виставте пластини на дверях точно так само, як розташовані зірки там. Верхня зірка на дверях — це центр. А потім потягніть за ручку."
+  },
+  "hint_49_b": {
+   "ar": "الألعاب العظيمة تبدأ دائماً بإشعال النار المقدسة. هذه تقليد قديم لمدرستنا.",
+   "ar_kw": "الأَلْعَابُ العَظِيمَةُ تَبْدَأُ دَائِمًا بِإِشْعَال الشُّعْلَة المُقَدَّسَة. إِنَّهُ تَقْلِيدٌ قَدِيمٌ لِمَدْرَسَتِنا.",
+   "en": "The Great Games always begin with the lighting of the sacred flame. It's an ancient tradition of our school.",
+   "fr": "Les Grands Jeux commencent toujours par l'allumage de la flamme sacrée. C'est une tradition ancienne de notre école.",
+   "pl": "Wielkie Igrzyska zawsze zaczynają się od rozpalenia świętego ognia. To starożytna tradycja naszej szkoły.",
+   "ru": "Великие Игры всегда начинаются с зажжения священного огня. Это древняя традиция нашей школы",
+   "uk": "Великі Ігри завжди починаються із запалення священного вогню. Це стародавня традиція нашої школи."
+  },
+  "hint_49_c": {
+   "ar": "لبدء الألعاب، افعلوا التالي: بواسطة العصا، خذوا شرارة من المدفأة وأشعلوا بها كأس الوِحدة. هيا نفذ.",
+   "ar_kw": "لِبَدْءِ الأَلْعَاب، افْعَل التَّالي: اسْتَخْدِمْ عَصَاكَ لِأَخْذِ شَرَارَةٍ مِنَ المِدْفَأَة وَأَشْعِلْ بِهَا كَأْسَ الوَحْدَة. تَابِع.",
+   "en": "To start the Games, do the following: use your wand to take a spark from the fireplace and light the Goblet of Unity with it. Proceed.",
+   "fr": "Pour commencer les Jeux, faites ce qui suit : utilisez votre baguette pour prendre une étincelle de la cheminée et allumez la Coupe de l'Unité avec. Procédez.",
+   "pl": "Aby rozpocząć Igrzyska, zróbcie to: za pomocą różdżki weźcie iskrę z kominka i zapalcie nią Czaszę Jedności. Działajcie.",
+   "ru": "Чтобы начать Игры, сделайте следующее: возьмите палочкой искру из камина и зажгите ею Чашу Единства. Действуйте",
+   "uk": "Щоб почати Ігри, зробіть наступне: візьміть паличкою іскру з каміна і запаліть нею Чашу Єдності. Дійте."
+  },
+  "hint_50_b": {
+   "ar": "السهم على الأرض هو قفلكم. و مفاتيحه موجودة على اللوحات. سوف تريكم بأي ترتيب و اتجاه يجب أن تستخدموا سحر عصاكم.",
+   "ar_kw": "السَّهْمُ المَوْجُودُ عَلَى الأَرْضِ هُوَ القِفْل، وَالمَفَاتِيحُ مَوْجُودَة عَلَى اللَّوْحَات. سَتُرِيكَ التَّرْتِيبَ وَالاتِّجَاهَ الَّذِي يَجِبُ أَنْ تُوَجِّهَ بِهِ سِحْرَ عَصَاكَ.",
+   "en": "The arrow on the floor is your lock, and the keys are on the portraits. They will show you the order and direction you need to point your wand's magic.",
+   "fr": "La flèche sur le sol est votre serrure, et les clés sont sur les portraits. Ils vous montreront l'ordre et la direction dans lesquels vous devez pointer la magie de votre baguette.",
+   "pl": "Strzałka na podłodze to wasz zamek. A klucze do niego są na portretach. Pokażą wam, w jakiej kolejności i w którą stronę należy skierować magię swojej różdżki.",
+   "ru": "Стрелка на полу — это ваш замок. А ключи к нему — на портретах. Они покажут, в каком порядке и в какую сторону нужно направить магию вашей палочки.",
+   "uk": "Стрілка на підлозі — це ваш замок. А ключі до нього — на портретах. Вони покажуть, в якому порядку і в яку сторону потрібно направити магію вашої палички."
+  },
+  "hint_50_c": {
+   "ar": "لفتح الباب، حركوا العصا على السهم الموجود على الأرض من طرف إلى طرف بالتسلسل التالي: يمين. يسار. يمين. يسار. واخيرا يمين.",
+   "ar_kw": "لِفَتْحِ البَابِ، حَرِّكْ عَصَاكَ عَلَى طُولِ السَّهْمِ المَوْجُود عَلَى الأَرْض مِنْ طَرَف إِلَى طَرَف بِهَذَا التَّسَلْسُل: يَمِين. يَسَار. يَمِين. يَسَار. ثُمَّ إِلَى اليَمِينِ مَرَّةً أُخْرَى.",
+   "en": "To open the door, move your wand along the arrow on the floor from end to end in this sequence: Right. Left. Right. Left. And to the right again.",
+   "fr": "Pour ouvrir la porte, déplacez votre baguette le long de la flèche sur le sol d'un bout à l'autre dans cette séquence : Droite. Gauche. Droite. Gauche. Et vers la droite à nouveau.",
+   "pl": "Aby otworzyć drzwi, przesuńcie różdżką po strzałce na podłodze od końca do końca w następującej kolejności: W prawo. W lewo. W prawo. W lewo. I jeszcze raz w prawo.",
+   "ru": "Чтобы открыть дверь, проведите палочкой по стрелке на полу от края до края в следующей последовательности: Вправо. Влево. Вправо. Влево. И снова вправо.",
+   "uk": "Щоб відчинити двері, проведіть паличкою по стрілці на підлозі від краю до краю в такій послідовності: Вправо. Вліво. Вправо. Вліво. І знову вправо."
+  },
+  "hint_51_b": {
+   "ar": "البلورات... يجب تَذكر ألوانها.",
+   "ar_kw": "البَلُّورَات... عَلَيْكَ أَنْ تَتَذَكَّرَ أَلْوَانَهَا.",
+   "en": "Crystals... You need to remember their colors.",
+   "fr": "Les cristaux... Vous devez vous souvenir de leurs couleurs.",
+   "pl": "Kryształy... Ich kolory trzeba zapamiętać.",
+   "ru": "Кристаллы... Их цвета нужно запоминать.",
+   "uk": "Кристали... Їхні кольори потрібно запам'ятовувати."
+  },
+  "hint_51_c": {
+   "ar": "ضعوا البلورات في أماكنها. بعد ذلك، أزيلوا واحداً تلو الآخر، بالتسلسل اللوني الذي يشير إليه العقل.",
+   "ar_kw": "ضَعِ البَلُّورَاتِ فِي أَمَاكِنِهَا. ثُمَّ أَزِلْهَا وَاحِدَةً تِلْوَ الأُخْرَى، بِاتِّبَاع تَسَلْسُلِ الأَلْوَانِ الَّذِي يُظْهِرُهُ الدِّمَاغ.",
+   "en": "Place the crystals in their spots. Then, remove them one by one, following the color sequence shown by the brain.",
+   "fr": "Placez les cristaux à leur place. Ensuite, retirez-les un par un, en suivant la séquence de couleurs indiquée par le cerveau.",
+   "pl": "Ustawcie kryształy na swoich miejscach. Następnie usuwajcie je jeden po drugim, w kolejności kolorów wskazanej przez mózg.",
+   "ru": "Установите кристаллы на свои места. Потом убирайте их один за одним, в той цветовой последовательности, которую указывает мозг.",
+   "uk": "Встановіть кристали на свої місця. Потім прибирайте їх один за одним, у тій колірній послідовності, яку вказує мозок."
+  },
+  "hint_56_b": {
+   "ar": "هل وجدتم اللاعب كاي؟",
+   "ar_kw": "هَلْ وَجَدْتَ اللَّاعِبَ كَاي؟",
+   "en": "Did you find the player Kai?",
+   "fr": "Avez-vous trouvé le joueur Kai ?",
+   "pl": "Czy znaleźliście gracza Kaia?",
+   "ru": "Вы нашли игрока Кая?",
+   "uk": "Ви знайшли гравця Кая?"
+  },
+  "hint_5_b": {
+   "ar": "الزجاج الملون في العلية ليس مجرد زخرفة، بل هو وصفة. يحتوي على خمسة عناصر بألوان مختلفة، تمامًا مثل المفاتيح الخمسة الملونة على القفل.",
+   "ar_kw": "الزُّجَاجُ المُلَوَّن فِي غُرْفَة السَّطْح لَيْسَت مُجَرَّدَ زِينَة. إِنَّهَا وَصْفَة. تَحْتَوِي عَلَى خَمْسَةِ عَنَاصِر بِأَلْوَانٍ مُخْتَلِفَة، تَمَامًا مِثْلَ المَفَاتِيحِ الخَمْسَة المُلَوَّنَة عَلَى القُفْل.",
+   "en": "The stained glass in the attic is not just a decoration. It's a recipe. It has five items of different colors, just like the five colored switches on the lock.",
+   "fr": "",
+   "pl": "",
+   "ru": "Витраж в мансарде — это не просто украшение. Это рецепт. В нем пять предметов разных цветов, как и пять разноцветных переключателей на замке.",
+   "uk": ""
+  },
+  "hint_5_c": {
+   "ar": "لتكتمل التعويذة، يجب عليك محاذاة رموز المفاتيح. اضبط المفتاح الأحمر على الوردة، والأصفر على الشمس، والبني على القارب، والأزرق على الموجة، والأخضر على الشجرة.",
+   "ar_kw": "حَتَّى يَتَنَاغَمَ السِّحْر، يَجِبُ أَنْ تُطَابِقَ الرُّمُوزَ عَلَى المَفَاتِيح. اضْبِط المِفْتَاحَ الأَحْمَرَ عَلَى الوَرْدَة، وَالأَصْفَرَ عَلَى الشَّمْس، وَالبُنِّيَّ عَلَى القَارِب، وَالأَزْرَقَ عَلَى المَوْجَة، وَالأَخْضَرَ عَلَى الشَّجَرَة.",
+   "en": "For the magic to align, you must match the symbols on the switches. Set the red switch to the Rose, the yellow to the Sun, the brown to the Boat, the blue to the Wave, and the green to the Tree.",
+   "fr": "",
+   "pl": "",
+   "ru": "Чтобы магия сработала, нужно выровнять символы переключателей. Установите красный переключатель на Розу, желтый на Солнце, коричневый на Лодку, голубой на Волну и зеленый на Дерево.",
+   "uk": ""
+  },
+  "hint_5_z": {
+   "ar": "",
+   "ar_kw": "",
+   "en": "",
+   "fr": "",
+   "pl": "",
+   "ru": "hint_2_z",
+   "uk": ""
+  },
+  "hint_6_b": {
+   "ar": "لا داعي للتجول بلا هدف. لقد طلبت منكم متابعة الخريطة. الأضواء الصفراء النابضة هي أهدافكم. اذهبوا إليها.",
+   "ar_kw": "لَا حَاجَةَ لِأَنْ تَتَجَوَّلَ بِلَا هَدَف. لَقَدْ أَخْبَرْتُكَ أَنْ تَتَّبِعَ الخَرِيطَة. الأَضْوَاءُ الصَّفْرَاءُ النَّابِضَةُ هِيَ أَهْدَافُك. اذْهَبْ إِلَيْهَا.",
+   "en": "You don't need to wander blindly. I told you to follow the map. The pulsating yellow lights are your targets. Go to them.",
+   "fr": "Vous n'avez pas besoin d'errer à l'aveuglette. Je vous ai dit de suivre la carte. Les lumières jaunes pulsantes sont vos cibles. Allez vers elles.",
+   "pl": "Nie musicie błądzić na oślep. Mówiłam wam, żebyście patrzyli na mapę. Pulsujące żółte światła to wasze cele. Idźcie do nich.",
+   "ru": "Не нужно блуждать вслепую. Я же говорила вам следить за картой. Пульсирующие желтые огни — это и есть ваши цели. Идите к ним",
+   "uk": "Не потрібно блукати наосліп. Я ж казала вам стежити за мапою. Пульсуючі жовті вогні — це і є ваші цілі. Ідіть до них."
+  },
+  "hint_6_c": {
+   "ar": "اسمعوا جيدًا، لن أعيد الكلام. الأعلام توجد: في الغابة مع الذئب الوحيد، وفي خزنة الطماع \"ذو اليد الذهبية\"، وعلى رف الأمتعة للشاعر سيلفستر. الآن أنتم تعرفون كل شيء!",
+   "ar_kw": "اسْتَمِعْ جَيِّدا، لَنْ أُكَرِّرَ كَلَامِي. الأَعْلَامُ مَوْجُودَة: فِي الغَابَة مَع الذِّئْبِ الوَحِيد، وَفِي خَزْنَةِ جَامِعِ الذَّهَب الجَشِع، وَعَلَى رَفِّ أَمْتِعَة الشَّاعِر سِيلْفِسْتَر. الآنَ أَصْبَحْتَ تَعْرِفُ كُلَّ شَيْء!",
+   "en": "Listen carefully, I will not repeat myself. The flags are located: in the forest with the lonely wolf, in the greedy Gold-Grabber's safe, and on poet Sylvester's luggage rack. Now you know everything!",
+   "fr": "Écoutez attentivement, je ne le répéterai pas. Les drapeaux se trouvent : dans la forêt avec le loup solitaire, dans le coffre de l'avide Gold-Grabber, et sur le porte-bagages du poète Sylvester. Maintenant, vous savez tout !",
+   "pl": "Słuchajcie uważnie, nie będę powtarzać. Flagi znajdują się: w lesie u samotnego wilka, w sejfie u chciwego Złotograbcy oraz na stojaku z walizkami poety Sylwestra. Teraz wiecie już wszystko!",
+   "ru": "Слушайте внимательно, повторять не буду. Флаги находятся: в лесу у одинокого волка, в сейфе у жадного Златохвата и на стойке с чемоданами поэта Сильвестра. Теперь вы всё знаете!",
+   "uk": "Слухайте уважно, повторювати не буду. Прапори знаходяться: у лісі в самотнього вовка, у сейфі в жадібного Золотохвата і на стійці з валізами поета Сильвестра. Тепер ви все знаєте!"
+  },
+  "hint_7_a": {
+   "ar": "عودوا لاحقاً واتركوني وشأني مع الصمت الذي كسرتوه.",
+   "ar_kw": "عُدْ لَاحِقًا وَاتْرُكْنِي لِلصَّمْتِ الَّذِي أَفْسَدْتَهُ.",
+   "en": "Come back later and leave me to the silence that you have disturbed.",
+   "fr": "Revenez plus tard et laissez-moi avec le silence que vous avez troublé.",
+   "pl": "Wróćcie później i zostawcie mnie w spokoju z ciszą, którą naruszyliście.",
+   "ru": "Приходите позже и оставьте меня наедине с тишиной, которую вы нарушили.",
+   "uk": "Приходьте пізніше і залиште мене наодинці з тишею, яку ви порушили."
+  },
+  "hint_7_b": {
+   "ar": "هذا الظلام... إنه خانق. فقط الترتيب الصحيح للضوء يمكن تبديده لفترة وجيزة. المسوا الأزرار لإشعال شرارة... بالترتيب الصحيح.",
+   "ar_kw": "هَذَا الظَّلَام... إِنَّهُ خَانِق. فَقَط التَّرْتِيبُ الصَّحِيحُ لِلضَّوْءِ يُمْكِنُهُ تَبْدِيدُهُ لِلَحَظَات. الْمِسِ الأَزْرَارَ لِإِشْعَالِ شَرَارَة... بِالتَّسَلْسُلِ الصَّحِيح.",
+   "en": "This darkness… it’s crushing. Only the correct order of light can briefly dispel it. Touch the buttons to ignite a spark… in the right sequence.",
+   "fr": "Cette obscurité... elle est écrasante. Seul l'ordre correct de la lumière peut la dissiper brièvement. Touchez les boutons pour allumer une étincelle... dans la bonne séquence.",
+   "pl": "Ta ciemność... ona przytłacza. Tylko właściwa kolejność świateł może ją na chwilę rozwiać. Dotknijcie przycisków, aby zapalić iskrę... we właściwej kolejności.",
+   "ru": "Эта тьма... она давит. Лишь правильный порядок света может ненадолго ее развеять. Коснитесь кнопок, чтобы зажечь искру... в нужной последовательности",
+   "uk": "Ця темрява… вона тисне. Лише правильний порядок світла може ненадовго її розвіяти. Торкніться кнопок, щоб запалити іскру... у потрібній послідовності."
+  },
+  "hint_7_c": {
+   "ar": "أولاً، يجب أن يكون هناك ضوء... ضوء صحيح ومنسق. وفقط في أشعته، دون تركه، ستتمكنون من تجميع الخطوط المتفرقة من ماضيي.",
+   "ar_kw": "أَوَّلًا، يَجِبُ أَنْ يَكُونَ هُنَاكَ نُورٌ... نُورٌ صَحِيح وَمُنَظَّم. وَفَقَطْ دَاخِل أَشِعَّتِه، دُونَ أَنْ تَتْرُكَه، سَتَتَمَكَّنُ مِنْ جَمْعِ الخُطُوطِ المُبَعْثَرَةِ مِنْ مَاضِيِّ.",
+   "en": "First, there must be light... a correct, orderly light. And only in its rays, without letting it go, will you be able to piece together the scattered lines of my past.",
+   "fr": "D'abord, il doit y avoir de la lumière... une lumière correcte et ordonnée. Et ce n'est que dans ses rayons, sans la lâcher, que vous pourrez reconstituer les lignes éparses de mon passé.",
+   "pl": "Najpierw musi być światło... właściwe, harmonijne światło. I tylko w jego promieniach, nie puszczając go, będziecie w stanie zebrać w całość rozproszone linie mojej przeszłości.",
+   "ru": "Сначала должен быть свет... правильный, стройный свет. И только в его лучах, не отпуская его, вы сможете собрать воедино разрозненные линии моего прошлого",
+   "uk": "Спершу має бути світло... правильне, струнке світло. І тільки в його променях, не відпускаючи його, ви зможете зібрати докупи розрізнені лінії мого минулого."
+  },
+  "hint_7_d": {
+   "ar": "إذا كنتم مصرين على إنهاء هذا...\n\nأولاً، أشعلوا الضوء بالضغط على الأزرار الأربعة بالترتيب الصحيح. ثم، دون تركها، اسحبوا الأذرع الجانبية حتى تتشكل الخطوط خلفي في نمط. إذا تركتم الأزرار، سيتحول كل شيء إلى اللون الأحمر وسيتعين عليكم البدء من جديد. الضوء والنمط معاً سيفتحان المخزن السري.",
+   "ar_kw": "إِذَا كُنْتَ مُصِرًّا جِدًّا عَلَى إِنْهَاءِ هَذا...\n\nأَوَّلًا، قُمْ بِإِضَاءَةِ الشَّاشَة بِالضَّغْطِ عَلَى الأَزْرَار الأَرْبَعَة بِالتَّرْتِيب الصَّحِيح. ثُمَّ، دُونَ أَنْ تَتْرُكَها، حَرِّك الرَّافِعَاِ عَلَى الجَانِبِ حَتَّى تُشَكِّلَ الخُطُوط خَلْفِي نَمَطًا مُعَيَّنا. إِذَا تَرَكْتَ الأَزْرَار، سَيَتَحَوَّلُ كُلُّ شَيْءٍ إِلَى اللَّوْنِ الأَحْمَر، وَسَيَتَوَجَّبُ عَلَيْكَ أَنْ تَبْدَأَ مِنْ جَدِيد. الضَّوْءُ وَالنَّمَطُ مَعًا سَيَفْتَحَانِ المَخْبَأ.",
+   "en": "If you are so determined to end this...\n\nFirst, light up the display by pressing the four buttons in the correct order. Then, without letting them go, slide the levers on the side so that the stripes behind me form a pattern. If you release the buttons, everything will turn red and you will have to start over. The light and the pattern together will open the cache.",
+   "fr": "Si vous êtes si déterminés à en finir...\n\n\nD'abord, allumez l'affichage en appuyant sur les quatre boutons dans le bon ordre. Ensuite, sans les lâcher, faites glisser les leviers sur le côté pour que les bandes derrière moi forment un motif. Si vous relâchez les boutons, tout deviendra rouge et vous devrez recommencer. La lumière et le motif ensemble ouvriront la cachette.",
+   "pl": "Skoro tak bardzo chcecie to skończyć...\n\nNajpierw zapalcie światło, naciskając cztery przyciski we właściwej kolejności. Następnie, nie puszczając ich, wysuńcie dźwignie z boku, tak aby paski za moimi plecami ułożyły się w wzór. Jeśli puścicie przyciski, wszystko stanie się czerwone i trzeba będzie zacząć od nowa. Światło i wzór razem otworzą skrytkę.",
+   "ru": "Если вы так хотите это закончить... Сначала зажгите свет, нажав на четыре кнопки в правильном порядке. Затем, не отпуская их, выдвиньте рычажки сбоку, чтобы полосы за моей спиной сложились в рисунок. Отпустите кнопки, все станет красным и нужно будет начинать сначала. Свет и рисунок вместе откроют тайник",
+   "uk": "Якщо ви так хочете це закінчити...\n\nСпершу засвітіть світло, натиснувши чотири кнопки у правильному порядку. Потім, не відпускаючи їх, висуньте важелі збоку, щоб смуги за моєю спиною склалися у візерунок. Якщо відпустите кнопки, все стане червоним і доведеться починати спочатку. Світло і візерунок разом відкриють схованку."
+  },
+  "hint_7_z": {
+   "ar": "(تنهيدة ثقيلة) هل أنتم هنا بعد؟ اللغز قد حُل. والعلم أصبح بحوزتكم. لا يوجد شيء آخر هنا. سواي. ومن الأفضل ألا تلمسوني.",
+   "ar_kw": "(تَنَهُّدٌ ثَقِيل) مَا زِلْتَ هُنَا؟ اللُّغْزُ قَدْ حُلَّ. لَدَيْكَ العَلَم. لَا يُوجَد شَيْءٌ آخَرُ هُنا. بِاسْتِثْنَائِي أَنَا. وَمِن الأَفْضَلِ أَلَّا تَلْمِسَنِي",
+   "en": "(Heavy sigh) You're still here? The puzzle is solved. You have the flag. There's nothing else here. Except for me. And you'd better not touch me.",
+   "fr": "(Profond soupir) Vous êtes encore là ? L'énigme est résolue. Vous avez le drapeau. Il n'y a rien d'autre ici. À part moi. Et vous feriez mieux de ne pas me toucher.",
+   "pl": "(Ciężkie westchnienie) Nadal tu jesteście? Zagadka jest rozwiązana. Macie flagę. Nie ma tu już nic więcej. Oprócz mnie. A mnie lepiej nie dotykać.",
+   "ru": "(Тяжелый вздох) Вы все еще здесь? Загадка решена. Флаг у вас. Больше здесь ничего нет. Кроме меня. А меня лучше не трогать",
+   "uk": "(Важке зітхання) Ви все ще тут? Загадка розгадана. Прапор у вас. Більше тут нічого немає. Крім мене. А мене краще не чіпати."
+  },
+  "hint_9_a": {
+   "ar": "ششش... الغابة لا تزال نائمة. القمر لم يجمع قوته بعد. عودوا عندما يحل الظلام.",
+   "ar_kw": "ششش... الغَابَةُ مَا زَالَتْ نَائِمَة. القَمَرُ لَمْ يَجْمَعْ قُوَّتَهُ بَعْد. عُدْ عِنْدَمَا يَشْتَدُّ الغَسَق.",
+   "en": "Shhh... The forest is still slumbering. The moon has not yet gathered its strength. Return when dusk deepens.",
+   "fr": "Chut... La forêt sommeille encore. La lune n'a pas encore rassemblé ses forces. Revenez quand le crépuscule s'épaissit.",
+   "pl": "Ciszej... Las jeszcze drzemie. Księżyc nie zebrał jeszcze swojej mocy. Wróćcie, gdy zapadnie zmierzch.",
+   "ru": "Тише... Лес еще дремлет. Луна не набрала свою силу. Приходите, когда сгустятся сумерки.",
+   "uk": "Тихіше... Ліс ще дрімає. Місяць не набрав своєї сили. Приходьте, коли згустяться сутінки."
+  },
+  "hint_9_b": {
+   "ar": "كل شيء يبدأ بالقمر. إنه مصدر النور والحزن. ابحثوا عن الوضعية التي تستيقظ فيها قوته.",
+   "ar_kw": "كُلُّ شَيْءٍ يَبْدَأُ بِالقَمَر. إِنَّهُ مَصْدَرُ الضَّوْءِ وَالحُزْن. ابْحَثْ عَن الوَضْعِيَّةِ الَّتِي تَسْتَيْقِظُ فِيهَا قُوَّتُه.",
+   "en": "Everything begins with the moon. It is the source of light and sorrow. Find the position in which its power awakens.",
+   "fr": "Tout commence avec la lune. Elle est la source de lumière et de tristesse. Trouvez la position dans laquelle son pouvoir s'éveille.",
+   "pl": "Wszystko zaczyna się od księżyca. Jest on źródłem światła i smutku. Znajdźcie pozycję, w której obudzi się jego moc.",
+   "ru": "Все начинается с луны. Она — источник света и печали. Найдите положение, в котором ее сила пробудится",
+   "uk": "Усе починається з місяця. Він — джерело світла і печалі. Знайдіть положення, в якому його сила прокинеться."
+  },
+  "hint_9_c": {
+   "ar": "النور يجب أن يتدفق كالنهر. الشجرة في هذه الغابة ليست عقبة، بل هي موصل للنور.",
+   "ar_kw": "يَجِبُ أَنْ يَتَدَفَّقَ الضَّوْءُ كَالنَّهْر. الشَّجَرَةُ فِي هَذِهِ الغَابَة لَيْسَتْ عَائِقا، بَلْ مُوَصِّلًا لِلضَّوْء.",
+   "en": "The light must flow like a river. A tree in this forest is not an obstacle, but a conductor of light.",
+   "fr": "La lumière doit couler comme une rivière. Un arbre dans cette forêt n'est pas un obstacle, mais un conducteur de lumière.",
+   "pl": "Światło musi płynąć jak rzeka. Drzewo w tym lesie nie jest przeszkodą, a przewodnikiem światła.",
+   "ru": "Свет должен течь, как река. Дерево в этом лесу — не помеха, а проводник света",
+   "uk": "Світло має текти, як ріка. Дерево в цьому лісі — не перешкода, а провідник світла."
+  },
+  "hint_9_d": {
+   "ar": "عندما تكشف السماء عن سرها، يجب أن تكون نظرة الذئب موجهة نحوها. يجب أن يرى والده.",
+   "ar_kw": "عِنْدَمَا تَكْشِفُ السَّمَاءُ سِرَّها، يَجِبُ أَنْ يُثَبِّتَ الذِّئْبُ نَظَرَهُ عَلَيْه. يَجِبُ أَنْ يَرَى وَالِدَه.",
+   "en": "When the sky reveals its secret, the wolf's gaze must be fixed upon it. He must see his father.",
+   "fr": "Quand le ciel révèle son secret, le regard du loup doit être fixé sur lui. Il doit voir son père.",
+   "pl": "Kiedy niebo ujawni swój sekret, wzrok wilka musi być skierowany na nie. Musi zobaczyć swojego ojca.",
+   "ru": "Когда небо покажет свой секрет, взгляд волка должен быть устремлен к нему. Он должен увидеть своего отца",
+   "uk": "Коли небо покаже свій секрет, погляд вовка має бути спрямований на нього. Він має побачити свого батька."
+  },
+  "hint_9_e": {
+   "ar": "أولاً، أديروا القمر حتى يضيء. مع الإمساك به، وجهوا الشعاع من السحابة اليمنى إلى قمة الشجرة. سينعكس الضوء على السحابة اليسرى.",
+   "ar_kw": "أَوَّلًا، أَدِرِ القَمَرَ حَتَّى يَتَوَهَّج. وَبَيْنَمَا تُبْقِيهِ كَذَلِك، وَجِّهْ الشُّعَاعَ مِنَ السَّحَابَة اليُمْنَى إِلَى أَعْلَى الشَّجَرَة. سَيَنْعَكِسُ الضَّوْءُ إِلَى السَّحَابَةِ اليُسْرَى.",
+   "en": "First, turn the moon until it glows. While holding it, aim the beam from the right cloud at the top of the tree. The light will reflect onto the left cloud.",
+   "fr": "D'abord, tournez la lune jusqu'à ce qu'elle brille. Tout en la tenant, dirigez le rayon du nuage de droite vers le sommet de l'arbre. La lumière se reflétera sur le nuage de gauche.",
+   "pl": "Najpierw obróćcie księżyc, aż zacznie świecić. Trzymając go, skierujcie promień z prawej chmury na wierzchołek drzewa. Światło odbije się na lewej chmurze.",
+   "ru": "Сначала поверните луну, пока она не засияет. Удерживая ее, направьте луч из правого облака на верхушку дерева. Свет отразится на левое облако",
+   "uk": "Спершу поверніть місяць, поки він не засяє. Утримуючи його, направте промінь з правої хмари на верхівку дерева. Світло відіб’ється на ліву хмару."
+  },
+  "hint_9_f": {
+   "ar": "عندما يضيء السحاب الأيسر، ادفعوا السحابة الكبيرة جانباً. سيكون لديكم ثانيتان فقط. خلال هذا الوقت، أمسكوا كل شيء آخر، وأديروا الذئب ليواجه الصورة الظلية المضيئة في السماء.",
+   "ar_kw": "عِنْدَمَا تُضِيءُ السَّحَابَةُ اليُسْرَى، حَرِّك السَّحَابَةَ الكَبِيرَةَ إِلَى الجَانِب. سَيَكُونُ لَدَيْكَ ثَانِيَتَانِ فَقَطْ. خِلَالَ ذَلِكَ الوَقْتِ، وَبَيْنَمَا تُبْقِي كُلَّ شَيْءٍ ثَابِتا، أَدِرِ الذِّئْبَ لِيُوَاجِهَ الظِّلَّ المُتَوَهِّجَ فِي السَّمَاء.",
+   "en": "When the left cloud lights up, slide the large cloud to the side. You will have only two seconds. During that time, while holding everything else, turn the wolf to face the glowing silhouette in the sky.",
+   "fr": "Quand le nuage de gauche s'allume, glissez le grand nuage sur le côté. Vous n'aurez que deux secondes. Pendant ce temps, tout en tenant tout le reste, tournez le loup pour qu'il fasse face à la silhouette brillante dans le ciel.",
+   "pl": "Gdy w lewej chmurze pojawi się światło, odsuńcie dużą chmurę na bok. Będziecie mieli tylko dwie sekundy. W tym czasie, trzymając resztę, obróćcie wilka twarzą do świecącej sylwetki na niebie.",
+   "ru": "Когда в левом облаке будет свет, отодвиньте большое облако в сторону. У вас будет всего две секунды. За это время, удерживая все остальное, поверните волка лицом к светящемуся силуэту в небе.",
+   "uk": "Коли в лівій хмарі з'явиться світло, відсуньте велику хмару вбік. У вас буде всього дві секунди. За цей час, утримуючи все інше, поверніть вовка обличчям до сяючого силуету в небі."
+  },
+  "hint_9_z": {
+   "ar": "تم الأمر. لقد رأى الذئب ما كان يبحث عنه. هذه الغابة لم تعد بحاجة إلى أي شيء منكم.",
+   "ar_kw": "لَقَد انْتَهَى الأَمْر. الذِّئْبُ رَأَى مَا كَانَ يَبْحَثُ عَنْه. هَذِهِ الغَابَة لَمْ تَعُدْ بِحَاجَةٍ إِلَى أَيِّ شَيْءٍ مِنْك.",
+   "en": "The job is done. The wolf has seen what he was looking for. This forest no longer needs anything from you.",
+   "fr": "Le travail est fait. Le loup a vu ce qu'il cherchait. Cette forêt n'a plus besoin de rien de votre part.",
+   "pl": "Sprawa załatwiona. Wilk zobaczył to, czego szukał. Ten las nie potrzebuje od was już niczego więcej.",
+   "ru": "Дело сделано. Волк увидел то, что искал. Больше этому лесу от вас ничего не нужно.",
+   "uk": "Справу зроблено. Вовк побачив те, що шукав. Більше цьому лісу від вас нічого не потрібно."
+  }
+ }
+}

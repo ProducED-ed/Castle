@@ -201,6 +201,93 @@ LANG_SUFFIXES = {
     6: 'pl'
 }
 
+# ---------- Чат гейммастера: какие подсказки запросил игрок ----------
+#
+# Зачем: оператор слышит из-за двери, что «что-то сказали», но какую именно
+# подсказку получила команда — не знает. В логе это есть, но лог смотрят не в
+# игре. Пульт теперь показывает поток: кто говорил, что за подсказка и её текст.
+#
+# Тексты не хранятся ни в прошивках, ни в .wav-именах — первоисточник это
+# Google-таблица, из неё файл собирает tools/export_hint_texts.py. Читаем его
+# ОДИН РАЗ при старте: чтение с диска в цикле разбора serial недопустимо.
+HINT_TEXTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hint_texts.json')
+hint_texts = {}     # id → {ru, en, ar, …}
+hint_speakers = {}  # id → «Борис (кузнец)»
+esp32_hint_ids = {} # устройство → [id по порядку «Playing Hint N»]
+
+def load_hint_texts():
+    global hint_texts, hint_speakers, esp32_hint_ids
+    try:
+        with open(HINT_TEXTS_FILE, encoding='utf-8') as f:
+            data = json.load(f)
+        hint_texts = data.get('texts', {})
+        hint_speakers = data.get('speakers', {})
+        esp32_hint_ids = data.get('esp32', {})
+        logger.info(f"CHAT: тексты подсказок загружены ({len(hint_texts)} шт.)")
+    except Exception as e:
+        # Без текстов чат работает — показывает только id. Это лучше, чем
+        # уронить сервер из-за файла с репликами.
+        logger.warning(f"CHAT: тексты подсказок не загружены ({e}) — в чате будут только id")
+
+# Последние записи чата. Живут НА СЕРВЕРЕ, а не в браузере: перезагрузка
+# страницы не должна стирать историю (жалоба ровно про это). Чистится только
+# на старте и рестарте — то есть чат всегда про текущую игру.
+chat_log = []
+CHAT_LOG_MAX = 200
+
+
+def chat_push(hint_id, fallback_speaker=None):
+    """Добавить подсказку в чат гейммастера и разослать пультам.
+
+    Язык берём тот, на котором идёт игра: оператор должен видеть ровно то, что
+    услышала команда."""
+    try:
+        suffix = LANG_SUFFIXES.get(language, 'ru')
+        text = (hint_texts.get(hint_id) or {}).get(suffix, '')
+        if not text and suffix != 'ru':
+            text = (hint_texts.get(hint_id) or {}).get('ru', '')
+        entry = {
+            't': datetime.now().strftime('%H:%M:%S'),
+            'who': hint_speakers.get(hint_id) or fallback_speaker or '—',
+            'id': hint_id,
+            'text': text,
+        }
+        chat_log.append(entry)
+        if len(chat_log) > CHAT_LOG_MAX:
+            del chat_log[0:len(chat_log) - CHAT_LOG_MAX]
+        socketio.emit('chat_entry', entry, to=None)
+    except Exception as e:
+        logger.error(f"CHAT: не смог добавить {hint_id}: {e}")
+
+
+def chat_clear(reason=''):
+    chat_log.clear()
+    socketio.emit('chat_clear', {'reason': reason}, to=None)
+
+
+# «Train: Playing Hint 3 (RU)» — так о своих подсказках отчитываются все четыре
+# ESP32. Номер там внутренний, id подсказки устройство не знает, поэтому связь
+# восстанавливается таблицей esp32 из hint_texts.json.
+_ESP32_HINT_RE = re.compile(r'(Train|Wolf|Chest|Safe)\s*:\s*Playing Hint\s+(\d+)', re.I)
+_ESP32_CHAT_NAMES = {'train': 'train', 'wolf': 'wolf', 'chest': 'chest', 'safe': 'safe'}
+
+
+def chat_push_from_esp32_log(msg):
+    """Если строка лога ESP32 — про подсказку, положить её в чат."""
+    m = _ESP32_HINT_RE.search(msg or '')
+    if not m:
+        return
+    dev = _ESP32_CHAT_NAMES.get(m.group(1).lower())
+    idx = int(m.group(2))
+    ids = esp32_hint_ids.get(dev or '', [])
+    if 0 <= idx < len(ids):
+        chat_push(ids[idx])
+    else:
+        # Номер вне таблицы — всё равно показываем факт, без текста: пусть
+        # оператор видит событие, а расхождение всплывёт в чате явно.
+        chat_push(f'{dev}_hint_{idx}', fallback_speaker=dev)
+
+
 def scale_vol(ui_vol):
     """Переводит шкалу пульта 0-20 в физическую шкалу DFPlayer 0-30"""
     return int((float(ui_vol) / 20.0) * 30)
@@ -3243,6 +3330,7 @@ def tech_jump_basket():
     
     # Подготавливаем интерфейс
     socklist.clear()
+    chat_clear('start')   # чат гейммастера — про текущую игру, не про предыдущую
     socklist.append('start_game')
     socklist.append('active_basket')
     socketio.emit('level', 'start_game', to=None)
@@ -4449,6 +4537,9 @@ def handle_connect():
     # logger.debug(f"New client connected ({request.sid}). Sending full state history ({len(socklist)} items).")
     for i in socklist:
         socketio.emit('level', i, to=request.sid)
+    # Чат гейммастера: отдаём всю историю текущей игры. Именно поэтому она
+    # хранится на сервере — F5 в браузере не должен стирать чат.
+    socketio.emit('chat_history', chat_log, to=request.sid)
     # Отправляем текущий язык новому клиенту, чтобы пульт показал выбранный язык
     lang_map = {1: 'russian', 2: 'english', 3: 'arabian', 4: 'french', 5: 'ukrainian', 6: 'polish'}
     if language in lang_map:
@@ -5594,6 +5685,7 @@ def log_event():
     
     # Логируем в формате: RECEIVED [ESP32 Log - <device_name>]: <message>
     logging.info(f'RECEIVED [ESP32 Log - {device_name}]: {message}')
+    chat_push_from_esp32_log(message)   # чат гейммастера
     
     return jsonify({"status": "success"}), 200
 
@@ -5621,6 +5713,7 @@ def handle_data():
         # DEBUG для всех остальных (рутинные ready/playing-сообщения, не для скан-листа).
         if 'log' in data:
              msg = str(data.get('log', ''))
+             chat_push_from_esp32_log(msg)   # чат гейммастера: подсказки внешних устройств
              important = any(kw in msg for kw in ('FALLBACK', 'ERROR', 'ALERT', 'ВНИМАНИЕ', 'Error', 'fail', 'Fail', 'DIAG'))
              if important:
                  logging.info(f"RECEIVED [ESP32 Log]: {msg}")
@@ -5964,6 +6057,7 @@ def tmr(res):
          star = 0
          rateTime = ''
          hintCount=0
+         chat_clear('restart')   # новая игра — новый чат
          starts = 2
          name=""
          flagS = 0
@@ -9203,6 +9297,7 @@ def serial():
                                  
                              hintCount += 1
                              play_localized_audio(flag)
+                             chat_push(flag)   # чат гейммастера
 
               eventlet.sleep(0.1)
           except Exception as e:
@@ -9607,6 +9702,7 @@ if __name__ == '__main__':
         socketio.start_background_task(target=serial)
         socketio.start_background_task(target=timer)
         socketio.start_background_task(target=system_status_loop) # Технический пульт: статусы устройств
+        load_hint_texts()   # тексты подсказок для чата гейммастера
         socketio.start_background_task(target=story_queue_worker)  # Очередь историй Mine Door/тролль (2026-07-10)
         socketio.start_background_task(target=_clear_stale_diag_on_boot)  # Снять зависшую диагностику с ESP32
         socketio.start_background_task(target=_apply_mono_on_boot)  # MONO v2: поднять pulse mono-sink по pref (2026-07-14)

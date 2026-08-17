@@ -33,6 +33,9 @@ SERVER_FILES = {
     "castle_config.py": "castle_config.py",
     "castle_setup.py": "castle_setup.py",
     "hue_lights.py": "hue_lights.py",
+    # Тексты подсказок для чата гейммастера: одинаковы на всех замках,
+    # собираются из Google-таблицы скриптом tools/export_hint_texts.py.
+    "hint_texts.json": "hint_texts.json",
     "Tech.html": "templates/Tech.html",
     "Front.html": "templates/Front.html",
     "scripts.js": "static/scripts.js",
