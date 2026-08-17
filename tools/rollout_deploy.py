@@ -29,7 +29,10 @@ def scp_files(castle, pairs, tries=3):
     import time
     failed = []
     for local, remote_dir in pairs:
-        base = ["scp", "-o", "ConnectTimeout=20",
+        # -p обязателен: без него файл получает время копирования, и проверка
+        # «прошита ли плата этим файлом» начинает врать на всех платах сразу —
+        # даже там, где содержимое в плате уже лежит. Сохраняем дату сборки.
+        base = ["scp", "-p", "-o", "ConnectTimeout=20",
                 "-o", "UserKnownHostsFile=" + os.path.expanduser("~/.ssh/clc_known_hosts"),
                 "-o", "StrictHostKeyChecking=accept-new"]
         if castle.get("auth") == "key":

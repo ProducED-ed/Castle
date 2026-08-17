@@ -97,17 +97,19 @@ def collect(castle):
     quoted = " ".join(f"'{REMOTE_ROOT}/{f}'" for f in files)
     cmd = (f"md5sum {quoted} 2>/dev/null; echo '---FLASH---'; "
            f"cat '{REMOTE_ROOT}/flash_stats.json' 2>/dev/null; echo; echo '---MTIME---'; "
-           f"stat -c '%n %Y' {quoted} 2>/dev/null")
+           f"stat -c '%n %Y' {quoted} 2>/dev/null; echo '---TZ---'; date +%z")
     raw = ssh_run(castle, cmd)
     if raw is None:
         return None
-    md5s, flash, mtimes = {}, {}, {}
+    md5s, flash, mtimes, tz = {}, {}, {}, 0
     section = "md5"
     for line in raw.splitlines():
         if line.startswith("---FLASH---"):
             section = "flash"; continue
         if line.startswith("---MTIME---"):
             section = "mtime"; continue
+        if line.startswith("---TZ---"):
+            section = "tz"; continue
         if section == "md5" and line.strip():
             h, _, path = line.partition("  ")
             md5s[path.replace(REMOTE_ROOT + "/", "")] = h
@@ -119,19 +121,39 @@ def collect(castle):
         elif section == "mtime" and line.strip():
             path, _, ts = line.rpartition(" ")
             mtimes[path.replace(REMOTE_ROOT + "/", "")] = int(ts)
-    return {"md5": md5s, "flash": flash, "mtime": mtimes}
+        elif section == "tz" and line.strip():
+            # Вид +0300 → секунды. Часовой пояс замка нужен, чтобы разобрать
+            # даты из flash_stats.json: они записаны по его местному времени.
+            raw = line.strip()
+            try:
+                sign = -1 if raw[0] == "-" else 1
+                tz = sign * (int(raw[1:3]) * 3600 + int(raw[3:5]) * 60)
+            except (ValueError, IndexError):
+                tz = 0
+    return {"md5": md5s, "flash": flash, "mtime": mtimes, "tz": tz}
 
 
-def flash_is_stale(flash_str, file_mtime):
-    """Файл прошивки новее того, что реально залито в плату?"""
+def flash_is_stale(flash_str, file_mtime, tz_offset_sec):
+    """Файл прошивки новее того, что реально залито в плату?
+
+    Две ловушки, обе стоили ложных тревог 17.08.2026:
+
+    1. Время файла должно быть временем СБОРКИ, а не копирования — иначе после
+       раскатки «не прошиты» показываются все платы сразу, включая те, чьё
+       содержимое в плате уже лежит. За это отвечает `scp -p` в rollout_deploy.
+    2. Дата в flash_stats.json записана по МЕСТНОМУ времени замка (замки в MSK),
+       а время файла абсолютное. Наш VPS живёт по UTC, поэтому наивный разбор
+       строки давал разъезд в три часа. Смещение спрашиваем у самого замка."""
     if not flash_str or not file_mtime:
         return None
+    import calendar
     import datetime
     try:
         flashed = datetime.datetime.strptime(flash_str, "%d.%m.%Y %H:%M")
     except ValueError:
         return None
-    return flashed.timestamp() < file_mtime - 60  # минута форы на копирование
+    flashed_epoch = calendar.timegm(flashed.timetuple()) - tz_offset_sec
+    return flashed_epoch < file_mtime - 60  # минута форы на копирование
 
 
 def report(castle, snap):
@@ -158,7 +180,7 @@ def report(castle, snap):
             behind_files.append(f"прошивка {board}")
             continue
         # Файл тот же — но прошита ли им плата?
-        if flash_is_stale(snap["flash"].get(board), snap["mtime"].get(remote)):
+        if flash_is_stale(snap["flash"].get(board), snap["mtime"].get(remote), snap.get("tz", 0)):
             not_flashed.append(board)
 
     if not behind_files and not not_flashed and not missing:
