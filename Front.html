@@ -638,14 +638,23 @@
                    страницы уезжает вместе с ней.
                    Пока чат закрыт, колонка не занимает места вообще (display:none
                    у #chat_wrap), и сетка использует всю ширину. */
-                @media (min-width: 992px) {
+                /* Порог 1200, а не 992: у iPad Pro в портрете ровно 1024, и на
+                   992 планшет попадал в ПК-раскладку. Всё, что уже планшет —
+                   получает чат сверху. */
+                @media (min-width: 1200px) {
                     #pult_row { display: flex; align-items: flex-start; }
                     #pult_row.chat-open #chat_wrap {
                         display: block; flex: 0 0 330px; width: 330px;
                         margin: 0 0 0 14px; padding: 0;
+                        /* Липкая колонка: при прокрутке страницы чат остаётся на
+                           виду, а не уезжает вверх вместе с первым экраном. */
+                        /* 62px, а не 0: кнопки Settings/Hints лежат в
+                           фиксированном блоке таймера и занимают 18–51 px,
+                           при top:10 чат заезжал под них. */
+                        position: sticky; top: 62px; align-self: flex-start;
                     }
                     #pult_row.chat-open #game {
-                        flex: 1 1 auto; max-width: none; margin-left: 14px; margin-right: 0;
+                        flex: 1 1 auto; max-width: none; margin-left: 14px; margin-right: 14px;
                     }
                     #pult_row.chat-open #chat_panel { height: 78vh; margin: 0; }
                     #pult_row.chat-open #chat_body { max-height: none; }
