@@ -248,6 +248,9 @@
                           </div> </div> 
                            <!--основной класс pusher здесь находятся наши блоки с содержимым из уровней и игр-->
                           <div class="pusher">
+                        <!-- Ряд «чат + блоки квеста». На ПК это две колонки,
+                             на узком экране — чат сверху, сетка под ним. -->
+                        <div id="pult_row">
                         <!-- ЧАТ ГЕЙММАСТЕРА: что услышала команда — персонаж, id
                              подсказки и её текст на языке игры. История живёт на
                              сервере, поэтому F5 её не стирает; чистится на Start
@@ -586,6 +589,7 @@
                             </div>
                             <br>
 							</div>
+                        </div><!-- /pult_row -->
 							</div>
             <br>
             
@@ -624,7 +628,28 @@
                    Ширину и центрирование берёт у Semantic-контейнера, поэтому
                    ровно совпадает с сеткой; на узком экране сетка складывается
                    в одну колонку и чат сам оказывается над «Central Hall». */
-                #chat_wrap { padding: 0; }
+                /* Узкий экран (планшет, телефон) — чат сверху над блоками.
+                   Отступ ровно как просил Эдуард. */
+                #chat_wrap { padding: 0px 0 14px; display: none; }
+                #pult_row.chat-open #chat_wrap { display: block; }
+
+                /* ПК: чат — ЛЕВАЯ КОЛОНКА рядом с сеткой блоков.
+                   Не sticky и не fixed — обычный поток, поэтому при прокрутке
+                   страницы уезжает вместе с ней.
+                   Пока чат закрыт, колонка не занимает места вообще (display:none
+                   у #chat_wrap), и сетка использует всю ширину. */
+                @media (min-width: 992px) {
+                    #pult_row { display: flex; align-items: flex-start; }
+                    #pult_row.chat-open #chat_wrap {
+                        display: block; flex: 0 0 330px; width: 330px;
+                        margin: 0 0 0 14px; padding: 0;
+                    }
+                    #pult_row.chat-open #game {
+                        flex: 1 1 auto; max-width: none; margin-left: 14px; margin-right: 0;
+                    }
+                    #pult_row.chat-open #chat_panel { height: 78vh; margin: 0; }
+                    #pult_row.chat-open #chat_body { max-height: none; }
+                }
                 #chat_panel {
                     display: none; flex-direction: column;
                     margin: 0 0 14px 0;

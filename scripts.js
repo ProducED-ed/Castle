@@ -2330,8 +2330,15 @@ $(document).ready(function() {
         }
     }
 
+    function chatSetOpen(open) {
+        $('#chat_panel').toggleClass('open', open);
+        // Класс на ряду: пока чат закрыт, левая колонка не занимает места и
+        // сетка блоков использует всю ширину.
+        $('#pult_row').toggleClass('chat-open', open);
+    }
+
     $('#chat_toggle').click(function() {
-        $('#chat_panel').toggleClass('open');
+        chatSetOpen(!$('#chat_panel').hasClass('open'));
         if ($('#chat_panel').hasClass('open')) {
             chatUnseen = 0;
             var box = document.getElementById('chat_body');
@@ -2340,7 +2347,7 @@ $(document).ready(function() {
         chatBadge();
     });
     $('#chat_close').click(function() {
-        $('#chat_panel').removeClass('open');
+        chatSetOpen(false);
         chatBadge();
     });
 
