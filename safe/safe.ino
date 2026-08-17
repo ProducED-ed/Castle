@@ -154,6 +154,29 @@ IPAddress subnet(255, 255, 255, 0);
 const char* externalApi = "http://192.168.4.1:3000/api";
 
 WebServer server(80);
+// --- Чат гейммастера: единственное исключение из выключенного логирования ---
+//
+// Сейфу нужно сообщать серверу, какую подсказку он сыграл, иначе на пульте в
+// чате подсказок сейф молчит (жалоба Эдуарда 17.08.2026). Общее HTTP-логирование
+// возвращать НЕЛЬЗЯ: 58 мест, многие в горячих путях, и именно они в мае роняли
+// чип по watchdog. Поэтому здесь только ЗАПОМИНАЕМ номер, а отправляем из
+// начала loop() — когда нет ни событий плеера, ни обработки /data.
+int pendingHintLog = -1;
+
+void postPendingHintLog() {
+  if (pendingHintLog < 0) return;
+  int n = pendingHintLog;
+  pendingHintLog = -1;                       // снимаем ДО отправки: неудачный
+  if (WiFi.status() != WL_CONNECTED) return; // POST не должен копить попытки
+  HTTPClient http;
+  http.setConnectTimeout(600);
+  http.setTimeout(800);   // сейф важнее лога: не ждём сервер дольше секунды
+  http.begin("http://192.168.4.1:3000/api");
+  http.addHeader("Content-Type", "application/json");
+  http.POST(String("{\"log\":\"Safe: Playing Hint ") + n + " (chat)\"}");
+  http.end();
+}
+
 void sendLogToServer(String payload) {
   // 2026-05-25 fix v3: HTTP logging ПОЛНОСТЬЮ отключён.
   //
@@ -169,6 +192,10 @@ void sendLogToServer(String payload) {
   // Если на проде логи нужны — подключи USB-TTL к Safe ESP32.
   Serial.print("[SAFE-LOG] ");
   Serial.println(payload);
+  // Ловим номер подсказки из уже существующих 24 вызовов вида
+  // «Safe: Playing Hint 2 (FR)» — так не пришлось трогать ни один call site.
+  int p = payload.indexOf("Playing Hint ");
+  if (p >= 0) pendingHintLog = payload.substring(p + 13).toInt();
 }
 
 // --- Прототипы функций ---
@@ -462,6 +489,7 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   server.handleClient();
+  postPendingHintLog();   // отчёт о подсказке — вне горячих путей, см. функцию
 
   // === DIAG MODE: ранний выход, игнорируем игровую логику ===
   if (diagModeActive) {
