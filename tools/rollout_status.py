@@ -33,9 +33,6 @@ SERVER_FILES = {
     "castle_config.py": "castle_config.py",
     "castle_setup.py": "castle_setup.py",
     "hue_lights.py": "hue_lights.py",
-    # Тексты подсказок для чата гейммастера: одинаковы на всех замках,
-    # собираются из Google-таблицы скриптом tools/export_hint_texts.py.
-    "hint_texts.json": "hint_texts.json",
     "Tech.html": "templates/Tech.html",
     "Front.html": "templates/Front.html",
     "scripts.js": "static/scripts.js",
@@ -53,6 +50,15 @@ BOARDS = {
     "chest": ("chest/chest.ino.bin", "Sketches/chest/chest.ino.bin"),
     "safe": ("safe/safe.ino.bin", "Sketches/safe/safe.ino.bin"),
     "wolf": ("wolf/wolf.ino.bin", "Sketches/wolf/wolf.ino.bin"),
+}
+
+# Файлы, которые у каждого замка СВОИ и которые раскатка не трогает.
+# Тексты реплик правятся под конкретного клиента (формулировки могут
+# отличаться), поэтому копия в репозитории — не хозяин, а эталон для нового
+# замка. Расхождение здесь не ошибка, и сверка показывает его отдельной
+# строкой, а не в списке «отстало».
+PER_CASTLE_FILES = {
+    "hint_texts.json": "hint_texts.json",
 }
 
 REMOTE_ROOT = "/home/pi/New"
@@ -96,7 +102,8 @@ def ssh_run(castle, command, timeout=45, tries=3):
 
 def collect(castle):
     """Снимок замка: md5 всех интересных файлов + flash_stats + даты файлов прошивок."""
-    files = list(SERVER_FILES.values()) + [remote for _, remote in BOARDS.values()]
+    files = (list(SERVER_FILES.values()) + list(PER_CASTLE_FILES.values())
+             + [remote for _, remote in BOARDS.values()])
     quoted = " ".join(f"'{REMOTE_ROOT}/{f}'" for f in files)
     cmd = (f"md5sum {quoted} 2>/dev/null; echo '---FLASH---'; "
            f"cat '{REMOTE_ROOT}/flash_stats.json' 2>/dev/null; echo; echo '---MTIME---'; "
@@ -186,8 +193,22 @@ def report(castle, snap):
         if flash_is_stale(snap["flash"].get(board), snap["mtime"].get(remote), snap.get("tz", 0)):
             not_flashed.append(board)
 
+    # Свои файлы замка — информационно. «Отличается» здесь означает «правили под
+    # клиента», а не «забыли обновить».
+    own = []
+    for rel, remote in PER_CASTLE_FILES.items():
+        theirs = snap["md5"].get(remote)
+        if theirs is None:
+            own.append(f"{rel}: НЕТ на замке")
+        elif theirs != local_md5(rel):
+            own.append(f"{rel}: своя версия (отличается от эталона)")
+        else:
+            own.append(f"{rel}: совпадает с эталоном")
+
     if not behind_files and not not_flashed and not missing:
         print("    ✅ всё совпадает с мастером и прошито")
+    for line in own:
+        print(f"    📝 {line}")
     if behind_files:
         print("    ⬇ НЕ ВЫЛОЖЕНО (файл у нас новее):")
         for f in behind_files:

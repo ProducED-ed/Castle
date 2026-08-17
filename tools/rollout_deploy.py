@@ -6,11 +6,17 @@
 
     python3 tools/rollout_deploy.py CLC3            # выложить всё
     python3 tools/rollout_deploy.py CLC3 --check    # только сверить, не копировать
+    python3 tools/rollout_deploy.py CLC3 --texts    # ДОПОЛНИТЕЛЬНО заменить тексты реплик
 
 Замок ищется по подстроке имени в ~/.clc_castles.json (тот же конфиг, что у
-rollout_status.py). Клиентский `castle_config.json` НЕ трогается: в нём вся
-разница между замками, и затереть его мастером — как раз то, ради чего всё
-это затевалось.
+rollout_status.py).
+
+НЕ трогаются файлы, которые у каждого замка свои:
+  * `castle_config.json` — калибровка серво, раскладка хаба, имя квеста;
+  * `hint_texts.json` — тексты реплик. У клиентов формулировки могут
+    отличаться, копия в репозитории — эталон для нового замка, а не хозяин.
+    Заменить осознанно — флаг --texts.
+Затереть их мастером — ровно то, ради чего всё это затевалось.
 """
 
 import os
@@ -18,8 +24,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from rollout_status import (BOARDS, CONFIG, REMOTE_ROOT, SERVER_FILES,  # noqa: E402
-                            collect, local_md5, ssh_run)
+from rollout_status import (BOARDS, CONFIG, PER_CASTLE_FILES, REMOTE_ROOT,  # noqa: E402
+                            SERVER_FILES, collect, local_md5, ssh_run)
 
 import json  # noqa: E402
 
@@ -59,6 +65,7 @@ def main():
         sys.exit(__doc__)
     needle = sys.argv[1].lower()
     check_only = "--check" in sys.argv
+    with_texts = "--texts" in sys.argv
 
     castles = [c for c in json.load(open(CONFIG))["castles"] if needle in c["name"].lower()]
     if len(castles) != 1:
@@ -89,8 +96,15 @@ def main():
         pairs = []
         for rel, remote in SERVER_FILES.items():
             pairs.append((os.path.join(repo, rel), f"{REMOTE_ROOT}/{remote}"))
+        if with_texts:
+            for rel, remote in PER_CASTLE_FILES.items():
+                pairs.append((os.path.join(repo, rel), f"{REMOTE_ROOT}/{remote}"))
         failed = scp_files(castle, pairs)
         print("   " + ("выложено" if not failed else f"НЕ доехали: {failed}"))
+        if with_texts:
+            print("   + тексты реплик заменены эталонными (--texts)")
+        else:
+            print("   тексты реплик НЕ тронуты (нужно — флаг --texts)")
 
         # 3. Прошивки — .ino и бинарник ПАРОЙ, каждый файл отдельным вызовом.
         #    Маска вида «*.hex *.bin» на ESP32-папках раскрывалась в пустоту и
@@ -116,6 +130,9 @@ def main():
         if local_md5(rel) != snap["md5"].get(remote):
             bad.append(rel)
     print("   " + ("✅ всё совпадает" if not bad else "❌ расходятся: " + ", ".join(bad)))
+    for rel, remote in PER_CASTLE_FILES.items():
+        same = local_md5(rel) == snap["md5"].get(remote)
+        print(f"   📝 {rel}: " + ("совпадает с эталоном" if same else "своя версия замка"))
 
     # 5. Синтаксис прямо на замке: там свой python (3.9 против нашего 3.12).
     out = ssh_run(castle, f"cd {REMOTE_ROOT} && python3 -m py_compile "
