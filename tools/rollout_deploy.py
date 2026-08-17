@@ -7,6 +7,7 @@
     python3 tools/rollout_deploy.py CLC3            # выложить всё
     python3 tools/rollout_deploy.py CLC3 --check    # только сверить, не копировать
     python3 tools/rollout_deploy.py CLC3 --texts    # ДОПОЛНИТЕЛЬНО заменить тексты реплик
+    python3 tools/rollout_deploy.py CLC3 --restart  # и перезапустить сервер после выкладки
 
 Замок ищется по подстроке имени в ~/.clc_castles.json (тот же конфиг, что у
 rollout_status.py).
@@ -60,12 +61,41 @@ def scp_files(castle, pairs, tries=3):
     return failed
 
 
+def restart_server(castle):
+    """Перезапуск сервера отдельным вызовом, а не в цепочке.
+
+    17.08.2026: рестарт был сцеплен через && с проверками, ssh порвался, повтор
+    дал второй рестарт — и юнит завис в stop-sigterm. Причина: сервер не
+    реагирует на SIGTERM, его перехватывает eventlet-хаб, systemd ждёт свои 90
+    секунд. Поэтому здесь: одна команда на рестарт, потом проверка состояния, и
+    если юнит застрял — добиваем SIGKILL. При Restart=always служба поднимается
+    сама за пять секунд."""
+    import time
+    print("\n6. Перезапуск сервера")
+    ssh_run(castle, "sudo systemctl restart castleserver", timeout=30, tries=1)
+    time.sleep(20)
+    state = (ssh_run(castle, "systemctl show castleserver -p SubState --value") or "").strip()
+    if state in ("stop-sigterm", "stop", "final-sigterm"):
+        print(f"   юнит застрял в {state} (SIGTERM игнорируется) — добиваю")
+        ssh_run(castle, "sudo systemctl kill -s SIGKILL castleserver")
+        time.sleep(12)
+    active = (ssh_run(castle, "systemctl is-active castleserver") or "").strip()
+    print(f"   служба: {active or 'НЕ ОТВЕЧАЕТ'}")
+    out = ssh_run(castle, "tail -c 4000 /home/pi/New/logs/castle.log | strings | "
+                          "grep -aE 'CONFIG: загружен|CHAT: тексты|MEGA BOOT WATCHDOG|Traceback' | tail -4")
+    for line in (out or "").splitlines():
+        print("   " + line.strip())
+    http = ssh_run(castle, "curl -s -o /dev/null -m 5 -w '%{http_code}' http://localhost:3000/")
+    print(f"   пульт отвечает: HTTP {(http or '—').strip()}")
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     needle = sys.argv[1].lower()
     check_only = "--check" in sys.argv
     with_texts = "--texts" in sys.argv
+    with_restart = "--restart" in sys.argv
 
     castles = [c for c in json.load(open(CONFIG))["castles"] if needle in c["name"].lower()]
     if len(castles) != 1:
@@ -140,7 +170,11 @@ def main():
                           f"&& echo OK")
     print("\n5. Компиляция на замке: " + ("OK" if out and "OK" in out else "ОШИБКА"))
 
-    print("\nДальше руками: sudo systemctl restart castleserver, потом прошивки с /tech.")
+    if with_restart:
+        restart_server(castle)
+    else:
+        print("\nДальше руками: sudo systemctl restart castleserver, потом прошивки с /tech.")
+        print("Либо тот же вызов с флагом --restart.")
 
 
 if __name__ == "__main__":
