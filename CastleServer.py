@@ -4162,6 +4162,27 @@ def setup_workbench_test(data):
     socketio.emit('setup_workbench_result', {'ok': True, 'stage': 'sent', 'mode': mode})
 
 
+ROOM_LIGHT_MODES = ('uv', 'light', 'off')
+
+
+@socketio.on('setup_room_light')
+def setup_room_light(data):
+    """Тест света первой комнаты: ультрафиолет и обычное освещение.
+
+    Оба выхода на главной плате, в игре включаются в разных сценах (УФ — на
+    часах, обычный — на стартовой двери), поэтому проверить их поштучно можно
+    было только проходя сценарий. Во время игры режим не включаем: он гасит
+    один свет, чтобы включить другой."""
+    mode = (data or {}).get('mode')
+    if mode not in ROOM_LIGHT_MODES:
+        return
+    if _setup_busy() and mode != 'off':
+        return _setup_denied('setup_room_light_result')
+    serial_write_queue.put(f'roomtest_{mode}')
+    logger.info(f"SETUP: свет первой комнаты -> {mode}")
+    socketio.emit('setup_room_light_result', {'ok': True, 'stage': 'sent', 'mode': mode})
+
+
 BRAIN_TEST_MODES = ('reeds', 'all', 'off') + tuple(f'g{i}' for i in range(1, 9))
 
 
@@ -7026,6 +7047,13 @@ def serial():
                        elif len(parts) == 2:
                            socketio.emit('setup_workbench_result',
                                          {'ok': True, 'stage': 'active', 'mode': parts[1]})
+
+                   # Тест света первой комнаты: плата подтверждает, что режим
+                   # применён именно у неё, а не «команда ушла в пустоту».
+                   if isinstance(flag, str) and flag.startswith('roomtest:'):
+                       socketio.emit('setup_room_light_result',
+                                     {'ok': True, 'stage': 'active',
+                                      'mode': flag.split(':', 1)[1]})
 
                    # Диагностика Комнаты Мозга. Живёт в прошивке главной платы,
                    # сюда приходят её ответы: brtest:reed:<1..4>:<0|1> — кристалл

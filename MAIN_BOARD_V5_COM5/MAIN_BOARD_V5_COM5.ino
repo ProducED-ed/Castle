@@ -708,6 +708,35 @@ bool handleBrTestCmd(const String &buff) {
   return true;  // своя команда, но незнакомая — молча съедаем
 }
 
+// ---------- Тест света первой комнаты (шаг «Первого запуска») ----------
+//
+// В комнате два независимых выхода: обычное освещение (HallLight, пин 37) и
+// ультрафиолет (UfHallLight, A5). Монтажник должен проверить каждый отдельно,
+// не проходя сценарий: до сих пор УФ загорался только на часах, а обычный свет
+// на стартовой двери — то есть проверить их можно было лишь по ходу игры.
+//
+// Кнопка включает свой выход и ГАСИТ другой: в игре они взаимоисключающие
+// (на часах УФ включается, обычный гаснет), и если жечь оба сразу, глазом не
+// разобрать, какой из них работает.
+bool handleRoomLightCmd(const String &buff) {
+  if (!buff.startsWith("roomtest_")) return false;
+  String mode = buff.substring(9);
+  if (mode == "uv") {
+    digitalWrite(UfHallLight, HIGH);
+    digitalWrite(HallLight, LOW);
+  } else if (mode == "light") {
+    digitalWrite(HallLight, HIGH);
+    digitalWrite(UfHallLight, LOW);
+  } else {
+    digitalWrite(HallLight, LOW);
+    digitalWrite(UfHallLight, LOW);
+    mode = "off";
+  }
+  Serial.print(F("roomtest:"));
+  Serial.println(mode);
+  return true;
+}
+
 // --- НОВАЯ СИСТЕМА УМНЫХ ПОДСКАЗОК ---
 int hintSteps[20] = { 0 };
 unsigned long hintTimes[20] = { 0 };
@@ -1517,6 +1546,7 @@ void PowerOn() {
     if (handleBoyTest(buff)) continue;
     if (handleMonCmd(buff)) continue;
     if (handleBrTestCmd(buff)) continue;
+    if (handleRoomLightCmd(buff)) continue;
 
     // Сначала проверяем приоритетные команды через indexOf для надежности
     if (buff.indexOf("restart") != -1) {
@@ -7388,6 +7418,7 @@ void RestOn() {
     if (handleBoyTest(buff)) continue;
     if (handleMonCmd(buff)) continue;
     if (handleBrTestCmd(buff)) continue;
+    if (handleRoomLightCmd(buff)) continue;
 
     if (buff.indexOf("restart") != -1) {
       SendRestartToAll();

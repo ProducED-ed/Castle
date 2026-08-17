@@ -1198,9 +1198,30 @@
                     <div id="setup-servo-msg" style="margin-top:8px;"></div>
                 </div>
 
-                <!-- ---- Шаг 6: верстак Мастерской ---- -->
+                <!-- ---- Шаг 6: свет первой комнаты ---- -->
                 <div class="ui inverted segment">
                     <h4><span class="setup-step">6</span>
+                        <span data-i18n="setup_room_title">Свет первой комнаты</span></h4>
+                    <div class="setup-note" data-i18n="setup_room_hint">
+                        Два независимых выхода: обычное освещение и ультрафиолет. В игре они включаются в разных сценах — УФ на часах, обычный на стартовой двери, — поэтому проверить их поштучно можно было только проходя сценарий. Кнопка включает свой свет и гасит другой: в игре они взаимоисключающие, а вместе глазом не разобрать, какой из них работает.
+                    </div>
+                    <div class="setup-toolbar">
+                        <button class="ui small button" id="setup-room-light" onclick="setupRoomLight('light')">
+                            <i class="lightbulb outline icon"></i> <span data-i18n="setup_room_light">Обычный свет</span>
+                        </button>
+                        <button class="ui small button" id="setup-room-uv" onclick="setupRoomLight('uv')">
+                            <i class="magic icon"></i> <span data-i18n="setup_room_uv">Ультрафиолет</span>
+                        </button>
+                        <button class="ui small button" id="setup-room-off" onclick="setupRoomLight('off')">
+                            <i class="power off icon"></i> <span data-i18n="setup_room_off">Выключить</span>
+                        </button>
+                    </div>
+                    <div id="setup-room-msg" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ---- Шаг 6: верстак Мастерской ---- -->
+                <div class="ui inverted segment">
+                    <h4><span class="setup-step">7</span>
                         <span data-i18n="setup_wb_title">Верстак Мастерской: герконы и светодиоды</span></h4>
                     <div class="setup-note" data-i18n="setup_wb_hint">
                         Включите тест и по очереди замкните каждый геркон верстака. Должен загораться светодиод РЯДОМ с ним. Если светится чужой — поменяйте местами провода светодиодов или герконов, это сборка, а не код. Плашки герконов ниже показывают, какой геркон замкнут прямо сейчас.
@@ -1225,7 +1246,7 @@
 
                 <!-- ---- Шаг 7: Комната Мозга ---- -->
                 <div class="ui inverted segment">
-                    <h4><span class="setup-step">7</span>
+                    <h4><span class="setup-step">8</span>
                         <span data-i18n="setup_br_title">Комната Мозга: кристаллы и подсветка</span></h4>
                     <div class="setup-note" data-i18n="setup_br_hint">
                         Гнёзда кристаллов снаружи одинаковые, и при монтаже одинаково легко перепутать провода герконов и порядок групп на ленте. «Тест кристаллов» связывает пару: поставьте кристалл в гнездо — под ним должна загореться группа своего цвета, а плашка ниже показать тот же номер. Загорелась чужая группа — переставлены провода, это сборка, а не код.
@@ -1251,7 +1272,7 @@
 
                 <!-- ---- Шаг 8: чек-лист приёмки ---- -->
                 <div class="ui inverted segment">
-                    <h4><span class="setup-step">8</span>
+                    <h4><span class="setup-step">9</span>
                         <span data-i18n="setup_chk_title">Чек-лист приёмки</span>
                         <span class="setup-badge" id="setup-chk-badge"></span></h4>
                     <div class="setup-note" data-i18n="setup_chk_hint">
@@ -1678,6 +1699,14 @@
                 setup_wb_sent: "Команда отправлена…",
                 setup_wb_active: "Мастерская в режиме теста — смотрите на верстак.",
                 setup_wb_stopped: "Тест выключен, лента верстака возвращена игре.",
+                setup_room_title: "Свет первой комнаты",
+                setup_room_hint: "Два независимых выхода: обычное освещение и ультрафиолет. В игре они включаются в разных сценах — УФ на часах, обычный на стартовой двери, — поэтому проверить их поштучно можно было только проходя сценарий. Кнопка включает свой свет и гасит другой: в игре они взаимоисключающие, а вместе глазом не разобрать, какой из них работает.",
+                setup_room_light: "Обычный свет",
+                setup_room_uv: "Ультрафиолет",
+                setup_room_off: "Выключить",
+                setup_room_sent: "Команда отправлена…",
+                setup_room_on: "Плата включила свет — смотрите на комнату.",
+                setup_room_stopped: "Свет выключен.",
                 setup_br_title: "Комната Мозга: кристаллы и подсветка",
                 setup_br_hint: "Гнёзда кристаллов снаружи одинаковые, и при монтаже одинаково легко перепутать провода герконов и порядок групп на ленте. «Тест кристаллов» связывает пару: поставьте кристалл в гнездо — под ним должна загореться группа своего цвета, а плашка ниже показать тот же номер. Загорелась чужая группа — переставлены провода, это сборка, а не код.",
                 setup_br_start: "Тест кристаллов",
@@ -2065,6 +2094,14 @@
                 setup_wb_sent: "Command sent…",
                 setup_wb_active: "Workshop is in test mode — look at the bench.",
                 setup_wb_stopped: "Test stopped, the bench strip is back to the game.",
+                setup_room_title: "First room lighting",
+                setup_room_hint: "Two independent outputs: normal lighting and UV. In the game they come on in different scenes — UV at the clock, normal at the start door — so checking them one by one used to require playing through. Each button turns its own light on and the other off: in the game they are mutually exclusive, and with both lit you cannot tell which one works.",
+                setup_room_light: "Normal light",
+                setup_room_uv: "UV light",
+                setup_room_off: "Off",
+                setup_room_sent: "Command sent…",
+                setup_room_on: "The board switched the light on — look at the room.",
+                setup_room_stopped: "Light switched off.",
                 setup_br_title: "Brain Room: crystals and lighting",
                 setup_br_hint: "The crystal sockets look identical from outside, and during assembly it is equally easy to swap the reed wires and the order of LED groups. \"Crystal test\" links the pair: put a crystal into a socket — the group underneath must light up in its own colour and the chip below must show the same number. A different group lighting up means the wires are swapped: assembly, not code.",
                 setup_br_start: "Crystal test",
@@ -4812,6 +4849,30 @@
         socket.on('setup_workbench_event', function(d) {
             wbState[d.reed] = d.state;
             setupWbRender();
+        });
+
+        // ---- Свет первой комнаты: обычный и ультрафиолет ----
+        function setupRoomLight(mode) {
+            $('#setup-room-light, #setup-room-uv').removeClass('green');
+            if (mode !== 'off') $('#setup-room-' + mode).addClass('green');
+            setupMsg('#setup-room-msg', T('setup_room_sent'), 'warn');
+            socket.emit('setup_room_light', { mode: mode });
+        }
+
+        socket.on('setup_room_light_result', function(d) {
+            if (d.reason === 'game_running') {
+                setupMsg('#setup-room-msg', T('setup_locked'), 'bad');
+                return;
+            }
+            // stage 'active' — плата отчиталась, что выход переключён именно у неё.
+            if (d.stage === 'active') {
+                if (d.mode === 'off') $('#setup-room-light, #setup-room-uv').removeClass('green');
+                else $('#setup-room-light, #setup-room-uv').removeClass('green')
+                         .filter('#setup-room-' + d.mode).addClass('green');
+                setupMsg('#setup-room-msg',
+                         d.mode === 'off' ? T('setup_room_stopped') : T('setup_room_on'),
+                         d.mode === 'off' ? 'warn' : 'ok');
+            }
         });
 
         // ---- Комната Мозга: кристаллы и группы подсветки ----
