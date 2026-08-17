@@ -2330,11 +2330,20 @@ $(document).ready(function() {
         }
     }
 
+    // Открыт чат или свёрнут — помним между перезагрузками страницы. Оператор
+    // держит пульт открытым всю игру и обновляет его при любой заминке; каждый
+    // раз заново раскрывать чат — лишний повод про него забыть.
+    // Хранится в браузере, а не на сервере: это настройка рабочего места
+    // (на планшете гейммастера может быть иначе, чем на его же ноутбуке),
+    // а не состояние квеста.
+    var CHAT_OPEN_KEY = 'clcChatOpen';
+
     function chatSetOpen(open) {
         $('#chat_panel').toggleClass('open', open);
         // Класс на ряду: пока чат закрыт, левая колонка не занимает места и
         // сетка блоков использует всю ширину.
         $('#pult_row').toggleClass('chat-open', open);
+        try { localStorage.setItem(CHAT_OPEN_KEY, open ? '1' : '0'); } catch (e) {}
     }
 
     $('#chat_toggle').click(function() {
@@ -2374,4 +2383,13 @@ $(document).ready(function() {
         chatUnseen = 0;
         chatBadge();
     });
+
+    // Восстанавливаем состояние, с которым оператор оставил пульт.
+    try {
+        if (localStorage.getItem(CHAT_OPEN_KEY) === '1') {
+            chatSetOpen(true);
+            chatUnseen = 0;
+            chatBadge();
+        }
+    } catch (e) {}
 });

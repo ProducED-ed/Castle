@@ -36,12 +36,12 @@
  },
  "speakers": {
   "dragon_crystal": {
-   "ar": "التنين سيغنوس",
+   "ar": "التنين سيغنس",
    "en": "Signus the Dragon",
    "fr": "Le Dragon Signus",
    "pl": "Smok Signus",
    "ru": "Дракон Сигнус",
-   "uk": "Дракон Сігнус"
+   "uk": "Дракон Сигнус"
   },
   "hint_10": {
    "ar": "الأستاذ",
@@ -100,12 +100,12 @@
    "uk": "Лицар"
   },
   "hint_2": {
-   "ar": "التنين سيغنوس",
+   "ar": "التنين سيغنس",
    "en": "Signus the Dragon",
    "fr": "Le Dragon Signus",
    "pl": "Smok Signus",
    "ru": "Дракон Сигнус",
-   "uk": "Дракон Сігнус"
+   "uk": "Дракон Сигнус"
   },
   "hint_23": {
    "ar": "الغوبلن المصرفي",
@@ -116,7 +116,7 @@
    "uk": "Гоблін-банкір"
   },
   "hint_26": {
-   "ar": "الترول",
+   "ar": "الغول",
    "en": "Troll",
    "fr": "Troll",
    "pl": "Troll",
@@ -143,7 +143,7 @@
    "ar": "بوريس (الحداد)",
    "en": "Boris (blacksmith)",
    "fr": "Boris (le forgeron)",
-   "pl": "Boris (kowal)",
+   "pl": "Borys (kowal)",
    "ru": "Борис (кузнец)",
    "uk": "Борис (коваль)"
   },
@@ -172,44 +172,44 @@
    "uk": "Студент"
   },
   "hint_49": {
-   "ar": "المدير",
-   "en": "Headmaster",
-   "fr": "Directeur",
-   "pl": "Dyrektor",
-   "ru": "Директор",
-   "uk": "Директор"
+   "ar": "مدير المدرسة",
+   "en": "School Director",
+   "fr": "Directeur de l'école",
+   "pl": "Dyrektor szkoły",
+   "ru": "Директор школы",
+   "uk": "Директор школи"
   },
   "hint_5": {
-   "ar": "التنين سيغنوس",
+   "ar": "التنين سيغنس",
    "en": "Signus the Dragon",
    "fr": "Le Dragon Signus",
    "pl": "Smok Signus",
    "ru": "Дракон Сигнус",
-   "uk": "Дракон Сігнус"
+   "uk": "Дракон Сигнус"
   },
   "hint_50": {
-   "ar": "المدير",
-   "en": "Headmaster",
-   "fr": "Directeur",
-   "pl": "Dyrektor",
-   "ru": "Директор",
-   "uk": "Директор"
+   "ar": "مدير المدرسة",
+   "en": "School Director",
+   "fr": "Directeur de l'école",
+   "pl": "Dyrektor szkoły",
+   "ru": "Директор школы",
+   "uk": "Директор школи"
   },
   "hint_51": {
-   "ar": "المدير",
-   "en": "Headmaster",
-   "fr": "Directeur",
-   "pl": "Dyrektor",
-   "ru": "Директор",
-   "uk": "Директор"
+   "ar": "مدير المدرسة",
+   "en": "School Director",
+   "fr": "Directeur de l'école",
+   "pl": "Dyrektor szkoły",
+   "ru": "Директор школы",
+   "uk": "Директор школи"
   },
   "hint_56": {
-   "ar": "المدير",
-   "en": "Headmaster",
-   "fr": "Directeur",
-   "pl": "Dyrektor",
-   "ru": "Директор",
-   "uk": "Директор"
+   "ar": "مدير المدرسة",
+   "en": "School Director",
+   "fr": "Directeur de l'école",
+   "pl": "Dyrektor szkoły",
+   "ru": "Директор школы",
+   "uk": "Директор школи"
   },
   "hint_6": {
    "ar": "الأستاذ",
