@@ -248,6 +248,25 @@
                           </div> </div> 
                            <!--основной класс pusher здесь находятся наши блоки с содержимым из уровней и игр-->
                           <div class="pusher">
+                        <!-- ЧАТ ГЕЙММАСТЕРА: что услышала команда — персонаж, id
+                             подсказки и её текст на языке игры. История живёт на
+                             сервере, поэтому F5 её не стирает; чистится на Start
+                             и Restart.
+                             Стоит В ПОТОКЕ над блоками квеста: открывается —
+                             сдвигает их вниз, а не накрывает. На узком экране
+                             сетка складывается в одну колонку, и чат сам
+                             оказывается наверху, над «Central Hall». -->
+                        <div class="ui container" id="chat_wrap">
+                            <div id="chat_panel">
+                                <div id="chat_panel_head">
+                                    <span>Player hints</span>
+                                    <span id="chat_close" title="Collapse">✕</span>
+                                </div>
+                                <div id="chat_body">
+                                    <div id="chat_empty">No hints requested yet</div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="ui four column stackable grid  container " id="game">
                             <!--у нас будет сетка из 4 колонок отпимально использовать максимум 4 иначе потом все будет слишком мелко-->
                             <div class="column  left1 ">
@@ -597,31 +616,20 @@
               </div>
             </div>
 
-            <!-- ЧАТ ГЕЙММАСТЕРА.
-                 Что услышала команда: персонаж, id подсказки и её текст на том
-                 языке, на котором идёт игра. История живёт на сервере, поэтому
-                 F5 её не стирает; чистится на Start и Restart. -->
-            <div id="chat_panel">
-                <div id="chat_panel_head">
-                    <span>Player hints</span>
-                    <span id="chat_close" title="Collapse">✕</span>
-                </div>
-                <div id="chat_body">
-                    <div id="chat_empty">No hints requested yet</div>
-                </div>
-            </div>
             <style>
-                /* Панель висит НАД пультом и ничего в нём не сдвигает.
-                   Высота задана явно: по содержимому она вырождалась в узкую
-                   полосу под кнопками, когда подсказок ещё нет.
-                   z-index выше меню и боковой панели Semantic (у них до 106). */
+                /* Чат стоит В ПОТОКЕ над сеткой блоков квеста: открывается —
+                   сдвигает пульт вниз, закрывается — сетка возвращается на
+                   место. Оверлеем он накрывал колонку турнира, а на планшете
+                   и телефоне закрывал пол-экрана.
+                   Ширину и центрирование берёт у Semantic-контейнера, поэтому
+                   ровно совпадает с сеткой; на узком экране сетка складывается
+                   в одну колонку и чат сам оказывается над «Central Hall». */
+                #chat_wrap { padding: 0; }
                 #chat_panel {
-                    display: none; position: fixed; right: 18px; top: 64px; z-index: 1000;
-                    width: 440px; max-width: calc(100vw - 36px);
-                    height: 70vh; max-height: 640px;
-                    background: #1b1c1d; border: 1px solid #444; border-radius: 10px;
-                    box-shadow: 0 14px 40px rgba(0,0,0,.75); color: #eee;
-                    flex-direction: column; overflow: hidden;
+                    display: none; flex-direction: column;
+                    margin: 0 0 14px 0;
+                    background: #1b1c1d; border: 1px solid #555; border-radius: 10px;
+                    color: #eee; overflow: hidden;
                 }
                 #chat_panel.open { display: flex; }
                 #chat_panel_head {
@@ -631,7 +639,10 @@
                 }
                 #chat_close { cursor: pointer; color: #999; padding: 0 4px; }
                 #chat_close:hover { color: #fff; }
-                #chat_body { flex: 1 1 auto; overflow-y: auto; padding: 10px 14px; }
+                /* Пустой чат не должен занимать пол-экрана, а полный — уезжать
+                   за край: отсюда минимум и максимум с прокруткой внутри. */
+                #chat_body { flex: 1 1 auto; overflow-y: auto; padding: 10px 14px;
+                             min-height: 90px; max-height: 40vh; }
                 #chat_empty { padding: 10px 0; color: #888; font-size: 13px; }
                 #chat_panel_head { flex: 0 0 auto; }
                 .chat-msg { margin-bottom: 12px; line-height: 1.45; }
