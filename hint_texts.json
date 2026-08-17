@@ -35,77 +35,206 @@
   ]
  },
  "speakers": {
-  "hint_10_b": "Профессор",
-  "hint_10_c": "Профессор",
-  "hint_11_b": "Профессор",
-  "hint_11_c": "Профессор",
-  "hint_11_z": "Профессор",
-  "hint_14_b": "Гном",
-  "hint_14_c": "Гном",
-  "hint_14_z": "Гном",
-  "hint_15_a": "Поезд",
-  "hint_15_b": "Поезд",
-  "hint_15_c": "Поезд",
-  "hint_15_d": "Поезд",
-  "hint_15_e": "Поезд",
-  "hint_16_c": "Поезд",
-  "hint_16_d": "Поезд",
-  "hint_16_z": "Поезд",
-  "hint_17_c": "Ведьма",
-  "hint_17_d": "Ведьма",
-  "hint_17_z": "Ведьма",
-  "hint_19_c": "Рыцарь",
-  "hint_19_d": "Рыцарь",
-  "hint_19_z": "Рыцарь",
-  "hint_23_b": "Гоблин-банкир",
-  "hint_23_c": "Гоблин-банкир",
-  "hint_23_z": "Гоблин-банкир",
-  "hint_26_b": "Тролль",
-  "hint_26_c": "Тролль",
-  "hint_26_z": "Тролль",
-  "hint_28_a": "Сейф",
-  "hint_28_b": "Сейф",
-  "hint_28_c": "Сейф",
-  "hint_28_z": "Сейф",
-  "hint_2_b": "Дракон Сигнус",
-  "hint_2_c": "Дракон Сигнус",
-  "hint_2_z": "Дракон Сигнус",
-  "hint_32_b": "Борис (кузнец)",
-  "hint_32_c": "Борис (кузнец)",
-  "hint_32_d": "Борис (кузнец)",
-  "hint_32_e": "Борис (кузнец)",
-  "hint_32_z": "Борис (кузнец)",
-  "hint_37_b": "Студент",
-  "hint_37_c": "Студент",
-  "hint_38_b": "Студент",
-  "hint_3_b": "Студент",
-  "hint_3_c": "Студент",
-  "hint_44_b": "Студент",
-  "hint_44_c": "Студент",
-  "hint_49_b": "Директор",
-  "hint_49_c": "Директор",
-  "hint_50_b": "Директор",
-  "hint_50_c": "Директор",
-  "hint_51_b": "Директор",
-  "hint_51_c": "Директор",
-  "hint_56_b": "Директор",
-  "hint_5_b": "Дракон Сигнус",
-  "hint_5_c": "Дракон Сигнус",
-  "hint_5_z": "Дракон Сигнус",
-  "hint_6_b": "Профессор",
-  "hint_6_c": "Профессор",
-  "hint_7_a": "Чемоданы",
-  "hint_7_b": "Чемоданы",
-  "hint_7_c": "Чемоданы",
-  "hint_7_d": "Чемоданы",
-  "hint_7_z": "Чемоданы",
-  "hint_9_a": "Волк",
-  "hint_9_b": "Волк",
-  "hint_9_c": "Волк",
-  "hint_9_d": "Волк",
-  "hint_9_e": "Волк",
-  "hint_9_f": "Волк",
-  "hint_9_z": "Волк"
+  "dragon_crystal": {
+   "ar": "التنين سيغنوس",
+   "en": "Signus the Dragon",
+   "fr": "Le Dragon Signus",
+   "pl": "Smok Signus",
+   "ru": "Дракон Сигнус",
+   "uk": "Дракон Сігнус"
+  },
+  "hint_10": {
+   "ar": "الأستاذ",
+   "en": "Professor",
+   "fr": "Professeur",
+   "pl": "Profesor",
+   "ru": "Профессор",
+   "uk": "Професор"
+  },
+  "hint_11": {
+   "ar": "الأستاذ",
+   "en": "Professor",
+   "fr": "Professeur",
+   "pl": "Profesor",
+   "ru": "Профессор",
+   "uk": "Професор"
+  },
+  "hint_14": {
+   "ar": "القزم",
+   "en": "Dwarf",
+   "fr": "Nain",
+   "pl": "Krasnal",
+   "ru": "Гном",
+   "uk": "Гном"
+  },
+  "hint_15": {
+   "ar": "القطار",
+   "en": "Train",
+   "fr": "Train",
+   "pl": "Pociąg",
+   "ru": "Поезд",
+   "uk": "Поїзд"
+  },
+  "hint_16": {
+   "ar": "القطار",
+   "en": "Train",
+   "fr": "Train",
+   "pl": "Pociąg",
+   "ru": "Поезд",
+   "uk": "Поїзд"
+  },
+  "hint_17": {
+   "ar": "الساحرة",
+   "en": "Witch",
+   "fr": "Sorcière",
+   "pl": "Wiedźma",
+   "ru": "Ведьма",
+   "uk": "Відьма"
+  },
+  "hint_19": {
+   "ar": "الفارس",
+   "en": "Knight",
+   "fr": "Chevalier",
+   "pl": "Rycerz",
+   "ru": "Рыцарь",
+   "uk": "Лицар"
+  },
+  "hint_2": {
+   "ar": "التنين سيغنوس",
+   "en": "Signus the Dragon",
+   "fr": "Le Dragon Signus",
+   "pl": "Smok Signus",
+   "ru": "Дракон Сигнус",
+   "uk": "Дракон Сігнус"
+  },
+  "hint_23": {
+   "ar": "الغوبلن المصرفي",
+   "en": "Goblin banker",
+   "fr": "Gobelin banquier",
+   "pl": "Goblin bankier",
+   "ru": "Гоблин-банкир",
+   "uk": "Гоблін-банкір"
+  },
+  "hint_26": {
+   "ar": "الترول",
+   "en": "Troll",
+   "fr": "Troll",
+   "pl": "Troll",
+   "ru": "Тролль",
+   "uk": "Троль"
+  },
+  "hint_28": {
+   "ar": "الخزنة",
+   "en": "Safe",
+   "fr": "Coffre-fort",
+   "pl": "Sejf",
+   "ru": "Сейф",
+   "uk": "Сейф"
+  },
+  "hint_3": {
+   "ar": "الطالب",
+   "en": "Student",
+   "fr": "Étudiant",
+   "pl": "Student",
+   "ru": "Студент",
+   "uk": "Студент"
+  },
+  "hint_32": {
+   "ar": "بوريس (الحداد)",
+   "en": "Boris (blacksmith)",
+   "fr": "Boris (le forgeron)",
+   "pl": "Boris (kowal)",
+   "ru": "Борис (кузнец)",
+   "uk": "Борис (коваль)"
+  },
+  "hint_37": {
+   "ar": "الطالب",
+   "en": "Student",
+   "fr": "Étudiant",
+   "pl": "Student",
+   "ru": "Студент",
+   "uk": "Студент"
+  },
+  "hint_38": {
+   "ar": "الطالب",
+   "en": "Student",
+   "fr": "Étudiant",
+   "pl": "Student",
+   "ru": "Студент",
+   "uk": "Студент"
+  },
+  "hint_44": {
+   "ar": "الطالب",
+   "en": "Student",
+   "fr": "Étudiant",
+   "pl": "Student",
+   "ru": "Студент",
+   "uk": "Студент"
+  },
+  "hint_49": {
+   "ar": "المدير",
+   "en": "Headmaster",
+   "fr": "Directeur",
+   "pl": "Dyrektor",
+   "ru": "Директор",
+   "uk": "Директор"
+  },
+  "hint_5": {
+   "ar": "التنين سيغنوس",
+   "en": "Signus the Dragon",
+   "fr": "Le Dragon Signus",
+   "pl": "Smok Signus",
+   "ru": "Дракон Сигнус",
+   "uk": "Дракон Сігнус"
+  },
+  "hint_50": {
+   "ar": "المدير",
+   "en": "Headmaster",
+   "fr": "Directeur",
+   "pl": "Dyrektor",
+   "ru": "Директор",
+   "uk": "Директор"
+  },
+  "hint_51": {
+   "ar": "المدير",
+   "en": "Headmaster",
+   "fr": "Directeur",
+   "pl": "Dyrektor",
+   "ru": "Директор",
+   "uk": "Директор"
+  },
+  "hint_56": {
+   "ar": "المدير",
+   "en": "Headmaster",
+   "fr": "Directeur",
+   "pl": "Dyrektor",
+   "ru": "Директор",
+   "uk": "Директор"
+  },
+  "hint_6": {
+   "ar": "الأستاذ",
+   "en": "Professor",
+   "fr": "Professeur",
+   "pl": "Profesor",
+   "ru": "Профессор",
+   "uk": "Професор"
+  },
+  "hint_7": {
+   "ar": "الحقائب",
+   "en": "Suitcases",
+   "fr": "Valises",
+   "pl": "Walizki",
+   "ru": "Чемоданы",
+   "uk": "Валізи"
+  },
+  "hint_9": {
+   "ar": "الذئب",
+   "en": "Wolf",
+   "fr": "Loup",
+   "pl": "Wilk",
+   "ru": "Волк",
+   "uk": "Вовк"
+  }
  },
  "texts": {
   "hint_10_b": {

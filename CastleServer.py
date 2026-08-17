@@ -236,11 +236,25 @@ chat_log = []
 CHAT_LOG_MAX = 200
 
 
+def chat_speaker(hint_id, suffix):
+    """Имя персонажа на языке игры.
+
+    Ищем сначала точный id, потом префикс до последнего подчёркивания: так имя
+    находится даже у реплики, которой в таблице ещё нет (например hint_3_z —
+    её текста нет, а Студент всё равно должен подписаться)."""
+    entry = hint_speakers.get(hint_id) or hint_speakers.get(hint_id.rsplit('_', 1)[0])
+    if not entry:
+        return None
+    if isinstance(entry, str):
+        return entry          # старый формат файла: одно имя на все языки
+    return entry.get(suffix) or entry.get('ru')
+
+
 def chat_push(hint_id, fallback_speaker=None):
     """Добавить подсказку в чат гейммастера и разослать пультам.
 
-    Язык берём тот, на котором идёт игра: оператор должен видеть ровно то, что
-    услышала команда."""
+    Язык берём тот, на котором идёт игра — и для текста, и для имени
+    персонажа: оператор должен видеть ровно то, что услышала команда."""
     try:
         suffix = LANG_SUFFIXES.get(language, 'ru')
         text = (hint_texts.get(hint_id) or {}).get(suffix, '')
@@ -248,7 +262,7 @@ def chat_push(hint_id, fallback_speaker=None):
             text = (hint_texts.get(hint_id) or {}).get('ru', '')
         entry = {
             't': datetime.now().strftime('%H:%M:%S'),
-            'who': hint_speakers.get(hint_id) or fallback_speaker or '—',
+            'who': chat_speaker(hint_id, suffix) or fallback_speaker or '—',
             'id': hint_id,
             'text': text,
         }

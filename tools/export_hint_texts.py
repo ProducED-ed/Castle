@@ -12,7 +12,7 @@
 
 Что внутри файла:
     texts    id → {ru, en, ar, ar_kw, fr, uk, pl}
-    speakers префикс id → кто это говорит (для строки «Борис: hint_32_d»)
+    speakers префикс id → имена персонажа по языкам (для строки «Борис: hint_32_d»)
     esp32    устройство → список id по порядку «Playing Hint N» в его прошивке
 """
 
@@ -29,37 +29,69 @@ OUT = os.path.join(REPO, "hint_texts.json")
 # Polish идёт раньше Ukranian, здесь наоборот — проверено по шапке.
 COLUMNS = ["ru", "en", "uk", "pl", "fr", "ar", "ar_kw"]
 
-# Кто произносит подсказку. Ключ — префикс id до последнего подчёркивания.
-# Группировка взята из прошивки главной платы (массивы *Hints[]) и из того,
-# какому устройству принадлежит этап. Имена правятся здесь — это единственное
-# место, откуда их берёт пульт.
+# Кто произносит подсказку — на всех языках квеста. Ключ: либо полный id, либо
+# префикс до последнего подчёркивания. Группировка взята из прошивки главной
+# платы (массивы *Hints[]) и из того, какому устройству принадлежит этап.
+#
+# Имена правятся ЗДЕСЬ — это единственное место, откуда их берёт пульт. Оператор
+# видит имя на том языке, на котором идёт игра: русское имя рядом с французским
+# текстом смотрелось нелепо.
+#
+# ⚠ Русский и английский — проверены. Французский, украинский, польский и
+# арабский переведены механически и ждут глаза локализатора: имена персонажей
+# в озвучке могут звучать иначе.
 SPEAKERS = {
-    "dragon_crystal": "Дракон Сигнус",
-    "hint_2": "Дракон Сигнус",
-    "hint_5": "Дракон Сигнус",
-    "hint_3": "Студент",
-    "hint_37": "Студент",
-    "hint_38": "Студент",
-    "hint_44": "Студент",
-    "hint_6": "Профессор",
-    "hint_10": "Профессор",
-    "hint_11": "Профессор",
-    "hint_14": "Гном",
-    "hint_17": "Ведьма",
-    "hint_19": "Рыцарь",
-    "hint_23": "Гоблин-банкир",
-    "hint_26": "Тролль",
-    "hint_32": "Борис (кузнец)",
-    "hint_49": "Директор",
-    "hint_50": "Директор",
-    "hint_51": "Директор",
-    "hint_56": "Директор",
+    "dragon_crystal": {"ru": "Дракон Сигнус", "en": "Signus the Dragon", "fr": "Le Dragon Signus",
+                       "uk": "Дракон Сігнус", "pl": "Smok Signus", "ar": "التنين سيغنوس"},
+    "hint_2":  {"ru": "Дракон Сигнус", "en": "Signus the Dragon", "fr": "Le Dragon Signus",
+                "uk": "Дракон Сігнус", "pl": "Smok Signus", "ar": "التنين سيغنوس"},
+    "hint_5":  {"ru": "Дракон Сигнус", "en": "Signus the Dragon", "fr": "Le Dragon Signus",
+                "uk": "Дракон Сігнус", "pl": "Smok Signus", "ar": "التنين سيغنوس"},
+    "hint_3":  {"ru": "Студент", "en": "Student", "fr": "Étudiant",
+                "uk": "Студент", "pl": "Student", "ar": "الطالب"},
+    "hint_37": {"ru": "Студент", "en": "Student", "fr": "Étudiant",
+                "uk": "Студент", "pl": "Student", "ar": "الطالب"},
+    "hint_38": {"ru": "Студент", "en": "Student", "fr": "Étudiant",
+                "uk": "Студент", "pl": "Student", "ar": "الطالب"},
+    "hint_44": {"ru": "Студент", "en": "Student", "fr": "Étudiant",
+                "uk": "Студент", "pl": "Student", "ar": "الطالب"},
+    "hint_6":  {"ru": "Профессор", "en": "Professor", "fr": "Professeur",
+                "uk": "Професор", "pl": "Profesor", "ar": "الأستاذ"},
+    "hint_10": {"ru": "Профессор", "en": "Professor", "fr": "Professeur",
+                "uk": "Професор", "pl": "Profesor", "ar": "الأستاذ"},
+    "hint_11": {"ru": "Профессор", "en": "Professor", "fr": "Professeur",
+                "uk": "Професор", "pl": "Profesor", "ar": "الأستاذ"},
+    "hint_14": {"ru": "Гном", "en": "Dwarf", "fr": "Nain",
+                "uk": "Гном", "pl": "Krasnal", "ar": "القزم"},
+    "hint_17": {"ru": "Ведьма", "en": "Witch", "fr": "Sorcière",
+                "uk": "Відьма", "pl": "Wiedźma", "ar": "الساحرة"},
+    "hint_19": {"ru": "Рыцарь", "en": "Knight", "fr": "Chevalier",
+                "uk": "Лицар", "pl": "Rycerz", "ar": "الفارس"},
+    "hint_23": {"ru": "Гоблин-банкир", "en": "Goblin banker", "fr": "Gobelin banquier",
+                "uk": "Гоблін-банкір", "pl": "Goblin bankier", "ar": "الغوبلن المصرفي"},
+    "hint_26": {"ru": "Тролль", "en": "Troll", "fr": "Troll",
+                "uk": "Троль", "pl": "Troll", "ar": "الترول"},
+    "hint_32": {"ru": "Борис (кузнец)", "en": "Boris (blacksmith)", "fr": "Boris (le forgeron)",
+                "uk": "Борис (коваль)", "pl": "Boris (kowal)", "ar": "بوريس (الحداد)"},
+    "hint_49": {"ru": "Директор", "en": "Headmaster", "fr": "Directeur",
+                "uk": "Директор", "pl": "Dyrektor", "ar": "المدير"},
+    "hint_50": {"ru": "Директор", "en": "Headmaster", "fr": "Directeur",
+                "uk": "Директор", "pl": "Dyrektor", "ar": "المدير"},
+    "hint_51": {"ru": "Директор", "en": "Headmaster", "fr": "Directeur",
+                "uk": "Директор", "pl": "Dyrektor", "ar": "المدير"},
+    "hint_56": {"ru": "Директор", "en": "Headmaster", "fr": "Directeur",
+                "uk": "Директор", "pl": "Dyrektor", "ar": "المدير"},
     # Этапы на внешних ESP32
-    "hint_15": "Поезд",
-    "hint_16": "Поезд",
-    "hint_9": "Волк",
-    "hint_7": "Чемоданы",
-    "hint_28": "Сейф",
+    "hint_15": {"ru": "Поезд", "en": "Train", "fr": "Train",
+                "uk": "Поїзд", "pl": "Pociąg", "ar": "القطار"},
+    "hint_16": {"ru": "Поезд", "en": "Train", "fr": "Train",
+                "uk": "Поїзд", "pl": "Pociąg", "ar": "القطار"},
+    "hint_9":  {"ru": "Волк", "en": "Wolf", "fr": "Loup",
+                "uk": "Вовк", "pl": "Wilk", "ar": "الذئب"},
+    "hint_7":  {"ru": "Чемоданы", "en": "Suitcases", "fr": "Valises",
+                "uk": "Валізи", "pl": "Walizki", "ar": "الحقائب"},
+    "hint_28": {"ru": "Сейф", "en": "Safe", "fr": "Coffre-fort",
+                "uk": "Сейф", "pl": "Sejf", "ar": "الخزنة"},
 }
 
 # Соответствие «Playing Hint N» из логов ESP32 → id подсказки.
@@ -75,13 +107,6 @@ ESP32_HINTS = {
     "chest": ["hint_7_a", "hint_7_b", "hint_7_c", "hint_7_d", "hint_7_z"],
     "safe": ["hint_28_a", "hint_28_b", "hint_28_c", "hint_28_z"],
 }
-
-
-def speaker_for(hint_id):
-    if hint_id in SPEAKERS:
-        return SPEAKERS[hint_id]
-    prefix = hint_id.rsplit("_", 1)[0]
-    return SPEAKERS.get(prefix, "—")
 
 
 def main():
@@ -121,7 +146,10 @@ def main():
     data = {
         "_комментарий": ("Выгружено из Google-таблицы скриптом tools/export_hint_texts.py. "
                          "Руками не править: правится таблица, потом прогон скрипта."),
-        "speakers": {hid: speaker_for(hid) for hid in sorted(texts)},
+        # Ключи — префиксы и полные id, значения — имена по языкам. Сервер ищет
+        # сначала точный id, потом префикс: так имя находится даже у реплики,
+        # которой ещё нет в таблице.
+        "speakers": SPEAKERS,
         "esp32": ESP32_HINTS,
         "texts": texts,
     }
@@ -132,7 +160,8 @@ def main():
     print(f"  подсказок: {len(texts)}, размер: {os.path.getsize(OUT) // 1024} КБ")
     if latin_fix:
         print(f"  ⚠ id с кириллицей в таблице (починены при выгрузке): {latin_fix}")
-    no_speaker = [h for h in texts if speaker_for(h) == "—"]
+    no_speaker = [h for h in texts
+                  if h not in SPEAKERS and h.rsplit("_", 1)[0] not in SPEAKERS]
     if no_speaker:
         print(f"  ⚠ без персонажа (допиши в SPEAKERS): {no_speaker}")
     missing = [h for d in ESP32_HINTS.values() for h in d if h not in texts]
