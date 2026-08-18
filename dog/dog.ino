@@ -862,6 +862,23 @@ void loop() {
     }
     lastFlagSensorState = currentFlagSensorState;
   }
+  // Геркон капсулы (дверь башни) в журнал. Он решает три вещи: усыпить собаку
+  // при закрытой двери, засчитать этап и подтолкнуть дверь замком раз в 5 секунд.
+  // При этом в логах его не было видно вообще, и жалоба «дверь не открылась»
+  // требовала гадания: то ли геркон не видит, то ли логика не сработала.
+  // 18.08.2026, CLC4: закрыли дверь — собака не уснула, дверь не толкнулась.
+  {
+    static bool capsulePrev = false;
+    static bool capsuleInit = false;
+    bool capsuleClosed = (digitalRead(CAPSULE_REED_PIN) == LOW);
+    if (!capsuleInit || capsuleClosed != capsulePrev) {
+      capsuleInit = true;
+      capsulePrev = capsuleClosed;
+      sendLog(capsuleClosed ? "capsule reed: CLOSED (дверь закрыта)"
+                            : "capsule reed: OPEN (дверь открыта)");
+    }
+  }
+
   // Гасим БЕЗУСЛОВНО, в любом состоянии квеста: соленоид под током дольше
   // полусекунды — сгоревший соленоид.
   if (cagePultOpenActive && (currentMillis - cagePultOpenTime >= CAGE_LOCK_PULT_OPEN_DURATION)) {
@@ -1026,7 +1043,18 @@ void loop() {
           digitalWrite(LED_STRIP_PIN, !digitalRead(LED_STRIP_PIN));
         }
         if (periodicFastSpinSoundActive && (currentMillis - lastFastSpinStorySoundTime >= 12000)) {
+          // 18.08.2026: фразы всего три, и random спокойно выдавал одну и ту же
+          // дважды подряд — со стороны это слышится как «реплика прозвучала
+          // два раза», хотя это две разные подряд идущие фразы. Раньше вторую
+          // глушила проверка занятости канала на сервере; после перевода историй
+          // Цербера в очередь она честно доигрывает обе.
+          // Не повторяем предыдущую: выбираем из оставшихся двух.
+          static int lastStoryIndex = -1;
           int randomIndex = random(NUM_STORY_SOUNDS);
+          if (randomIndex == lastStoryIndex) {
+            randomIndex = (randomIndex + 1 + random(NUM_STORY_SOUNDS - 1)) % NUM_STORY_SOUNDS;
+          }
+          lastStoryIndex = randomIndex;
           char buffer[MAX_UART_MESSAGE_LENGTH];
           strcpy_P(buffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[randomIndex])));
           Serial.println(buffer);
