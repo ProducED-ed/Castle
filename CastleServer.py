@@ -490,12 +490,35 @@ castle_cfg = CastleConfig(CASTLE_CONFIG_PATH)
 # а не вперемешку 'root' из хелперов CastleServer и 'hue_lights' из модуля).
 hue_logger = logging.getLogger("hue_lights")
 
+# HUE: последнее состояние света, выставленное сценарием. Нужно чтобы снятие
+# с паузы ВОЗВРАЩАЛО освещение текущего этапа, а не гасило его — пауза/плей
+# становятся прозрачными для света. Формат:
+#   ('group',  on, bri_pct)  — вся группа
+#   ('single', bri_pct, index) — только одна лампа, остальные off
+hue_last_state = None
+
 def hue_light_async(on, bri_pct=100):
     """Fire-and-forget: свет вкл на яркости bri_pct% (on=True) или выкл (on=False).
     Молча ничего не делает если фича выключена или бридж не спарен."""
+    global hue_last_state
+    hue_last_state = ('group', bool(on), int(bri_pct))
     if not hue.is_enabled() or not hue.is_paired():
         return
     eventlet.spawn_n(lambda: hue.set_light(on, bri_pct))
+
+def hue_restore_last_async():
+    """Вернуть свет в состояние текущего этапа (используется при снятии с паузы).
+    Если сценарий ещё ничего не выставлял — лампы не трогаем."""
+    st = hue_last_state
+    if not st:
+        hue_logger.info("HUE: снятие с паузы — состояние этапа неизвестно, свет не трогаем")
+        return
+    if st[0] == 'single':
+        hue_logger.info(f"HUE: снятие с паузы — возвращаем 1 лампу {st[1]}% (index {st[2]})")
+        hue_single_lamp_async(st[1], st[2])
+    else:
+        hue_logger.info(f"HUE: снятие с паузы — возвращаем группу on={st[1]} {st[2]}%")
+        hue_light_async(st[1], st[2])
 
 def hue_plug_async(on):
     """Fire-and-forget: умная розетка Hue вкл/выкл.
@@ -511,6 +534,8 @@ def hue_plug_async(on):
 def hue_single_lamp_async(bri_pct=100, index=0):
     """Fire-and-forget: включить ТОЛЬКО одну лампу группы (по индексу) на bri_pct%,
     ОСТАЛЬНЫЕ лампы группы выключить. Для сцены «горит только 1 лампа»."""
+    global hue_last_state
+    hue_last_state = ('single', int(bri_pct), int(index))
     if not hue.is_enabled() or not hue.is_paired():
         return
     def _go():
@@ -541,6 +566,7 @@ def hue_flags_lightshow_async():
     if not hue.is_enabled() or not hue.is_paired():
         return
     def _show():
+        global hue_last_state
         ids = hue.get_group_light_ids()
         if not ids:
             return
@@ -558,6 +584,7 @@ def hue_flags_lightshow_async():
         # финал: вернуть лампы в нейтральный белый 40%
         for lid in ids:
             hue.set_light_color(lid, 0, 0, 40, transition_ms=600)
+        hue_last_state = ('group', True, 40)  # чтобы пауза после шоу вернула этот же свет
         hue_logger.info("HUE: светомузыка завершена (fon7 закончился)")
     eventlet.spawn_n(_show)
 
@@ -6023,7 +6050,7 @@ def tmr(res):
                   ch.unpause() 
               #----отправим на клиента
               socketio.emit('level', 'start_game',to=None)
-              hue_light_async(False)  # HUE: гасим все лампы на старте квеста
+              hue_restore_last_async()  # HUE: снятие с паузы — возвращаем свет текущего этапа
               logger.debug("State changed: Game unpaused.")
         #----если была в рестарте       
         if go == 3 and starts==3:
