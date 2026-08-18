@@ -5298,7 +5298,9 @@ def Remote(check):
              # FIX: Воспроизводим key_finish и story_21 как при обычном прохождении
              send_esp32_command(ESP32_API_TRAIN_URL, "key_finish")
              play_effect(dog_lock)
-             play_localized_audio("story_21")
+             # 2026-08-18: и на скипе тоже через очередь — оператор жмёт кнопку,
+             # когда в комнате может звучать чужой рассказ.
+             story_audio_queue.append({'story': "story_21"})
              eventlet.sleep(1) 
              name = "story_2"
         if check == 'cat':
@@ -6696,6 +6698,15 @@ def story_queue_worker():
             if after and go == 1:
                 logger.info(f"STORY QUEUE: '{item['story']}' доиграла → открываю этап ({after})")
                 serial_write_queue.put(after)
+            # 2026-08-18: то же самое, но питоновским колбэком — нужно там, где
+            # после истории надо не команду в Serial послать, а что-то сделать
+            # на сервере (разблокировать карту, активировать этап).
+            after_call = item.get('after_call')
+            if after_call and go == 1:
+                try:
+                    after_call()
+                except Exception as e:
+                    logger.error(f"STORY QUEUE: ошибка в after_call для '{item['story']}': {e}")
         eventlet.sleep(0.2)
 
 def play_background_music(music_file, volume_file='1.txt', loops=-1):
@@ -8291,24 +8302,25 @@ def serial():
                               # Добавляем фиксированную задержку 2 секунды
                               eventlet.sleep(2.0)
      
+                              # 2026-08-18: вступление этапа Цербера тоже через очередь.
+                              # Было: story_13 игралась немедленно, дальше цикл
+                              # while story_busy() ЗДЕСЬ ЖЕ — то есть чтение Serial
+                              # стояло все 12 секунд; а story_19 при уже сыгранной
+                              # story_13 стартовала поверх чужого рассказа.
+                              # Очередь держит порядок 13 → 19, ждёт освобождения
+                              # канала и ничего не блокирует.
                               if story13Flag == 0:
                                    story13Flag = 1
-                                   play_localized_audio("story_13")
-     
-                                   while story_busy()==True and go == 1: 
-                                        eventlet.sleep(0.1)
+                                   story_audio_queue.append({'story': "story_13"})
 
-                              play_localized_audio("story_19")
-
-                              # ФИКС: фоновый поток — Serial не блокируется пока играет story.
-                              # Бутылки и другие события обрабатываются мгновенно.
                               def _after_story_19():
-                                  while story_busy() and go == 1:
-                                      eventlet.sleep(0.1)
                                   send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
                                   socketio.emit('level', 'active_dog', to=None)
                                   socklist.append('active_dog')
-                              socketio.start_background_task(_after_story_19)
+                              # after_call срабатывает, когда очередь ДОИГРАЛА story_19.
+                              # Раньше фоновый поток ждал сам и мог принять конец
+                              # предыдущей истории за конец story_19.
+                              story_audio_queue.append({'story': "story_19", 'after_call': _after_story_19})
 
                          if flag=="dog_sleep":
                               dog_growl.stop()
@@ -8336,16 +8348,25 @@ def serial():
                                   #while effects_are_busy() and go == 1: 
                                   #    eventlet.sleep(0.1)
 
-                                  play_localized_audio("story_21")
+                                  # 2026-08-18: тоже через очередь — победа Цербера
+                                  # часто совпадает с рассказом соседнего этапа.
+                                  story_audio_queue.append({'story': "story_21"})
 
+                         # 2026-08-18: истории Цербера уходят в общую очередь.
+                         # Раньше они звучали немедленно и рубили чужой рассказ:
+                         # 18.08 11:26:51 началась story_14_a Сов (18.3 с), а в
+                         # 11:26:57 её оборвала story_20_a — игрок не дослушал
+                         # ни ту, ни другую. Очередь ждёт, пока канал историй
+                         # освободится, и не блокирует чтение Serial (в отличие
+                         # от while story_busy() прямо в этом цикле).
                          if flag=="story_20_a":
-                              play_localized_audio("story_20_a")
+                              story_audio_queue.append({'story': "story_20_a"})
 
                          if flag=="story_20_b":
-                              play_localized_audio("story_20_b")
+                              story_audio_queue.append({'story': "story_20_b"})
 
                          if flag=="story_20_c":
-                              play_localized_audio("story_20_c")
+                              story_audio_queue.append({'story': "story_20_c"})
 
                          if flag=="story_22_a":
                               # 1. Ждем, пока канал освободится
