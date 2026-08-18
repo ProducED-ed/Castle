@@ -5314,8 +5314,9 @@ def Remote(check):
              play_effect(door_witch) # 1. Воспроизводим звук открытия
              send_esp32_command(ESP32_API_TRAIN_URL, "fish_open") # 2. Гасим LED рыбы (24) на карте
              eventlet.sleep(1) 
-             # 3. Воспроизводим историю (ОПТИМИЗИРОВАНО)
-             play_localized_audio("story_17")
+             # 3. Воспроизводим историю (2026-08-18: через очередь — оператор
+             #    жмёт скип, когда в комнате может звучать чужой рассказ)
+             story_audio_queue.append({'story': "story_17"})
 
              # 4. Активируем следующий этап
              socketio.emit('level', 'active_open_potions_stash',to=None) #
@@ -5367,10 +5368,8 @@ def Remote(check):
                   eventlet.sleep(1.0)
                   if story13Flag == 0:
                        story13Flag = 1
-                       play_localized_audio("story_13")
-                       while story_busy()==True and go == 1:
-                            eventlet.sleep(0.1)
-                  play_localized_audio("story_14_a")
+                       story_audio_queue.append({'story': "story_13"})
+                  story_audio_queue.append({'story': "story_14_a"})
         if check == 'owls':
              #-----отправка клиенту 
              socketio.emit('level', 'owls',to=None)
@@ -5387,8 +5386,7 @@ def Remote(check):
              # FIX: Сначала owl_open (очищает ClickLeds радугу), потом owl_finish (гасит ActiveLeds)
              send_esp32_command(ESP32_API_TRAIN_URL, "owl_open")
              send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
-             # ОПТИМИЗИРОВАНО
-             play_localized_audio("story_14_b")
+             story_audio_queue.append({'story': "story_14_b"})
 
              eventlet.sleep(1)
         if check == 'projector':
@@ -8126,24 +8124,20 @@ def serial():
                                   #while effects_are_busy() and go == 1: 
                                       #eventlet.sleep(0.1)
                                   eventlet.sleep(2.0)
+                                  # 2026-08-18: истории Сов — через очередь, как у Цербера.
+                                  # Прямой вызов рубил чужой рассказ, а while story_busy()
+                                  # здесь же останавливал чтение Serial на всю его длину.
                                   if story13Flag == 0:
                                        story13Flag = 1
-                                       play_localized_audio("story_13")
-         
-                                       while story_busy()==True and go == 1: 
-                                            eventlet.sleep(0.1)
-                                       
-                                  play_localized_audio("story_14_a")
+                                       story_audio_queue.append({'story': "story_13"})
 
-                                  # ФИКС: фоновый поток — Serial не блокируется пока играет story.
-                                  # Бутылки и другие события обрабатываются мгновенно.
                                   def _after_story_14a():
-                                      while story_busy() and go == 1:
-                                          eventlet.sleep(0.1)
                                       send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks")
                                       socketio.emit('level', 'active_owls', to=None)
                                       socklist.append('active_owls')
-                                  socketio.start_background_task(_after_story_14a)
+                                  # after_call — вместо фонового потока, который ждал канал сам
+                                  # и мог принять конец предыдущей истории за конец story_14_a.
+                                  story_audio_queue.append({'story': "story_14_a", 'after_call': _after_story_14a})
 
                          if flag=="owl_flew":
                               # [FIX] Защита от дребезга звука (0.5 сек)
@@ -8172,7 +8166,7 @@ def serial():
                                   socketio.emit('level', 'owl_flew_4', to=None)
                                   socklist.append(f'owl_flew_4')
                                   send_esp32_command(ESP32_API_TRAIN_URL, "owl_finish")
-                                  play_localized_audio("story_14_b")
+                                  story_audio_queue.append({'story': "story_14_b"})
 
                          if flag=="door_witch":
                               #----играем эффект 
@@ -8185,14 +8179,15 @@ def serial():
                               #while effects_are_busy() and go == 1: 
                               #    eventlet.sleep(0.1)
                               eventlet.sleep(2.0)
+                              # 2026-08-18: истории Ведьмы — через очередь.
+                              # Активация этапа НИЖЕ намеренно оставлена немедленной:
+                              # она и раньше не ждала окончания story_17, менять
+                              # момент разблокировки игры этой правкой не надо.
                               if story13Flag == 0:
                                    story13Flag = 1
-                                   play_localized_audio("story_13")
-     
-                                   while story_busy()==True and go == 1: 
-                                        eventlet.sleep(0.1)     
+                                   story_audio_queue.append({'story': "story_13"})
 
-                              play_localized_audio("story_17")
+                              story_audio_queue.append({'story': "story_17"})
 
                               send_esp32_command(ESP32_API_TRAIN_URL, "map_enable_clicks") # Включаем клики обратно
                               #----активируем игру
@@ -8261,12 +8256,11 @@ def serial():
 
                               # FIX: Выносим ожидание в фоновый поток, чтобы не блокировать serial-цикл
                               def _after_four_bottle():
+                                  # ждём тишины эффектов (звон бутылок), потом в очередь —
+                                  # она сама дождётся, если в этот момент звучит чужая история
                                   while effects_are_busy() and go == 1: 
                                       eventlet.sleep(0.1)
-                                  #------играем голос    
-                                  play_localized_audio("story_18")
-                                  while story_busy()==True and go == 1: 
-                                      eventlet.sleep(0.1)    
+                                  story_audio_queue.append({'story': "story_18"})
                               socketio.start_background_task(_after_four_bottle)
                               #----активируем игру с метлой
                          #------сделали ошибку с бутылкой     
