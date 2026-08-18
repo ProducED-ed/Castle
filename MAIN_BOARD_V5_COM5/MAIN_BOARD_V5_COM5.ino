@@ -968,14 +968,31 @@ void setup() {
   mySerialBuffer.reserve(256);
   mainSerialBuffer.reserve(256);
   // ----------------------------------------------------
+  // Таймаут чтения строки от башен: 10 → 100 мс.
+  //
+  // 18.08.2026, CLC4: до половины строк от башен приходили обрубками
+  // (galet_of, gale5, galet_offHȱ_off). Башни говорят на 9600, один символ
+  // это ~1 мс, а readStringUntil('\n') сдавался через 10 — то есть примерно
+  // после десяти символов. «galet_off» с переводом строки ровно десять и есть:
+  // монетка, успеет строка дойти или нет.
+  //
+  // Раньше это не проявлялось: цикл платы шёл 1,4 мс, каждый опрос расширителя
+  // спал миллисекунду, и читатель приходил к буферу С ОПОЗДАНИЕМ — строка уже
+  // лежала целиком. Ускорение опроса расширителя (200 мкс вместо 1 мс) убрало
+  // эту задержку и вскрыло мину: читатель стал приходить мгновенно.
+  //
+  // 100 мс — двойной запас на самую длинную строку башни (~48 символов ≈ 50 мс).
+  // Ждать столько цикл НЕ будет: readStringUntil возвращается сразу по '\n',
+  // таймаут это потолок на случай оборванной строки, а не постоянная плата.
+  const unsigned long TOWER_READ_TIMEOUT_MS = 100;
   Serial1.begin(9600);  // front left
-  Serial1.setTimeout(10);
+  Serial1.setTimeout(TOWER_READ_TIMEOUT_MS);
   Serial2.begin(9600);  // front right
-  Serial2.setTimeout(10);
+  Serial2.setTimeout(TOWER_READ_TIMEOUT_MS);
   Serial3.begin(9600);  // rear right
-  Serial3.setTimeout(10);
+  Serial3.setTimeout(TOWER_READ_TIMEOUT_MS);
   mySerial.begin(9600);  // rear left
-  mySerial.setTimeout(10);
+  mySerial.setTimeout(TOWER_READ_TIMEOUT_MS);
 
   strip1.begin();
   strip1.setBrightness(100);
