@@ -2833,7 +2833,10 @@
                 ['cmd_grp_game', ['start', 'game', 'ready', 'restart', 'skip', 'open_door', 'firework', 'day_on', 'day_off']],
                 ['cmd_grp_lang', ['language_1', 'language_2', 'language_3', 'language_4', 'language_5', 'language_6']],
                 ['cmd_grp_vol', ['volume_up', 'volume_down']],
-                ['cmd_grp_other', ['confirm_suitcase_end']],
+                // Режим сложности — как у Волка. На сервере эти команды были
+                // разрешены с 14.08, а кнопок на пульте не появилось: список
+                // кнопок и белый список сервера правятся в разных местах.
+                ['cmd_grp_other', ['chest_mode_easy', 'chest_mode_normal', 'confirm_suitcase_end']],
             ],
             safe: [
                 ['cmd_grp_game', ['start', 'game', 'ready', 'restart', 'skip', 'open_door', 'day_on', 'day_off']],
