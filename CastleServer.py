@@ -6763,6 +6763,21 @@ def check_story_and_fade_up():
 # Когда мы в последний раз напомнили плате, что ничего не звучит.
 _sound_idle_resent_at = 0.0
 
+# Сколько ближайших soundoff — страховочные, то есть их не надо писать в INFO.
+# Считаем отдельно, а не кладём признак в очередь: очередь читают ПЯТЬ мест, и
+# любой не-строковый элемент в одном из них дал бы str.encode(кортеж) и падение
+# цикла Serial. Строка уходит на плату как обычно, меняется только уровень лога.
+_quiet_soundoff_pending = 0
+
+
+def _take_quiet_soundoff(message):
+    """Эта отправка soundoff — страховочная? Если да, гасим её в журнале."""
+    global _quiet_soundoff_pending
+    if message == 'soundoff' and _quiet_soundoff_pending > 0:
+        _quiet_soundoff_pending -= 1
+        return True
+    return False
+
 
 def resend_sound_idle_state():
     """Повторяем главной плате «тишина», пока канал историй свободен.
@@ -6789,6 +6804,8 @@ def resend_sound_idle_state():
     if now - _sound_idle_resent_at < 20:
         return
     _sound_idle_resent_at = now
+    global _quiet_soundoff_pending
+    _quiet_soundoff_pending += 1   # эта отправка — в DEBUG, см. _take_quiet_soundoff
     serial_write_queue.put('soundoff')
 
 
@@ -9487,7 +9504,7 @@ def process_serial_queue():
         description = EVENT_DESCRIPTIONS.get(message_to_send, '-')
         tag = get_device_tag(message_to_send)
         # Периодический heartbeat-запрос — на DEBUG, чтобы не засорял INFO-лог.
-        if message_to_send == 'check_towers':
+        if message_to_send == 'check_towers' or _take_quiet_soundoff(message_to_send):
             logging.debug(f'SENT {tag}: {description} (RAW: {message_to_send})')
         else:
             logging.info(f'SENT {tag}: {description} (RAW: {message_to_send})')
