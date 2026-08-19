@@ -2275,12 +2275,29 @@ def _tail_state(raw):
     return None
 
 
+def _digit_hint(raw):
+    """Единственная цифра 1-5 в строке — это номер устройства, и он решающий.
+
+    Без неё «flag4_gn» одинаково близок ко всем четырём флагам (отличие в
+    цифре — один символ) и отбрасывается, хотя четвёрка в строке видна
+    глазами. Цифра также означает, что речь о НУМЕРОВАННОМ устройстве:
+    galet1…galet5 — отдельные команды, поэтому центральный галетник из
+    строки с цифрой не восстанавливаем никогда.
+    """
+    digits = [c for c in raw if c in "12345"]
+    return digits[0] if len(digits) == 1 else None
+
+
 def recover_sensor_line(raw):
     """Битая строка датчика → что это было. None, если догадка неоднозначна."""
     if not raw or raw in SENSOR_STATE_LINES:
         return None                      # целая строка — восстанавливать нечего
-    if raw.startswith("log:") or raw.startswith("sens:"):
-        return None                      # логи и монитор не трогаем
+    if raw.startswith("log:"):
+        return None                      # логи не трогаем
+    # Строка монитора: сама по себе не команда, но в неё вклеивается чужая —
+    # «sens:tb38:1flag2_off». Достать целую команду из склейки можно,
+    # гадать по расстоянию на таких строках нельзя.
+    monitor_line = raw.startswith("sens:")
     # Живые команды не трогаем НИКОГДА. Здесь легко подорваться: башни шлют
     # galet1_off … galet5_off — это отдельные галетники, а от «galet_off» они
     # отличаются одним символом. Без этой проверки восстановитель переписал бы
@@ -2289,12 +2306,17 @@ def recover_sensor_line(raw):
         return None
 
     state = _tail_state(raw)
+    digit = _digit_hint(raw)
 
     def unique(found, need_tail=True):
         if need_tail:
             if state is None:
                 return None
             found = [c for c in found if c.endswith("_" + state)]
+            if digit is not None:
+                # Цифра в строке — значит устройство нумерованное: флаг с этим
+                # номером и ничего из безномерных галетников.
+                found = [c for c in found if c.startswith("flag" + digit)]
         if len(found) == 1:
             return found[0]
         if len(found) > 1:
@@ -2304,7 +2326,7 @@ def recover_sensor_line(raw):
     # 1. Обрыв хвоста — главный вид порчи: строка не дочиталась. Годится только
     #    начало от шести символов, иначе «galet_o» одинаково подходит и к _on,
     #    и к _off, а «fla» — вообще ко всему.
-    if len(raw) >= 6:
+    if len(raw) >= 6 and not monitor_line:
         got = unique([c for c in SENSOR_STATE_LINES if c.startswith(raw)])
         if got:
             return got
@@ -2319,6 +2341,8 @@ def recover_sensor_line(raw):
 
     # 3. Побитая середина: близко ровно к одному кандидату. Битая цифра флага
     #    даёт одинаковое расстояние до всех четырёх — и молчание.
+    if monitor_line:
+        return None
     return unique([c for c in SENSOR_STATE_LINES if _edit_distance(raw, c) <= 2])
 
 

@@ -83,6 +83,26 @@ const char *const STORY_SOUNDS[] PROGMEM = {
 };
 const int NUM_STORY_SOUNDS = 3;
 
+// 18.08.2026. Фраз всего три, и random спокойно выдаёт одну и ту же дважды
+// подряд — со стороны это слышится как «реплика прозвучала два раза». Раньше
+// вторую глушила проверка занятости канала на сервере; после перевода историй
+// Цербера в очередь она честно доигрывает обе.
+//
+// Выбор ОБЯЗАН быть в одном месте: первую фразу произносит начало быстрого
+// вращения, повторы — таймер на 12 с, и пока память о прошлой фразе была
+// только у таймера, пара «первая + первый повтор» совпадала. Ровно это видно
+// в журнале CLC4 за 18.08: story_20_c в 19:40:02 и он же в 19:40:13.
+int8_t lastStoryIndex = -1;
+
+int pickStoryIndex() {
+  int idx = random(NUM_STORY_SOUNDS);
+  if (idx == lastStoryIndex) {
+    idx = (idx + 1 + random(NUM_STORY_SOUNDS - 1)) % NUM_STORY_SOUNDS;
+  }
+  lastStoryIndex = idx;
+  return idx;
+}
+
 // --- SOSTOYANIYA KVESTA ---
 enum QuestState {
   STATE_WAITING_FOR_START,
@@ -988,7 +1008,7 @@ void loop() {
             periodicFastSpinSoundActive = true;
             lastFastSpinStorySoundTime = currentMillis;
             Serial.println((__FlashStringHelper *)MSG_GROWL);
-            int firstRandomIndex = random(NUM_STORY_SOUNDS);
+            int firstRandomIndex = pickStoryIndex();
             char firstBuffer[MAX_UART_MESSAGE_LENGTH];
             strcpy_P(firstBuffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[firstRandomIndex])));
             vibroPulseState = true;
@@ -1048,13 +1068,7 @@ void loop() {
           // два раза», хотя это две разные подряд идущие фразы. Раньше вторую
           // глушила проверка занятости канала на сервере; после перевода историй
           // Цербера в очередь она честно доигрывает обе.
-          // Не повторяем предыдущую: выбираем из оставшихся двух.
-          static int lastStoryIndex = -1;
-          int randomIndex = random(NUM_STORY_SOUNDS);
-          if (randomIndex == lastStoryIndex) {
-            randomIndex = (randomIndex + 1 + random(NUM_STORY_SOUNDS - 1)) % NUM_STORY_SOUNDS;
-          }
-          lastStoryIndex = randomIndex;
+          int randomIndex = pickStoryIndex();
           char buffer[MAX_UART_MESSAGE_LENGTH];
           strcpy_P(buffer, (PGM_P)pgm_read_word(&(STORY_SOUNDS[randomIndex])));
           Serial.println(buffer);
