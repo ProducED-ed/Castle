@@ -5422,6 +5422,10 @@ def Remote(check):
                  eventlet.sleep(0.1)
 
              # 4. Активируем ESP32 и Train
+             # Режим сложности — прямо перед запуском этапа: если ESP32
+             # перезагрузилась уже ПОСЛЕ старта квеста, старт её не поймал.
+             _push_wolf_mode()
+             _push_chest_mode()
              send_esp32_command(ESP32_API_WOLF_URL, "game")
              send_esp32_command(ESP32_API_SUITCASE_URL, "game")
              send_esp32_command(ESP32_API_SAFE_URL, "game")
@@ -6286,6 +6290,15 @@ def tmr(res):
              send_esp32_command(ESP32_API_TRAIN_URL, f"set_level_{scale_vol(trainLevel)}")
              send_esp32_command(ESP32_API_SUITCASE_URL, f"set_level_{scale_vol(suitcaseLevel)}")
              send_esp32_command(ESP32_API_SAFE_URL, f"set_level_{scale_vol(safeLevel)}")
+             # Досылаем режимы сложности Волка и Чемоданов. ESP32 держат их
+             # только в оперативной памяти и забывают при любой перезагрузке, а
+             # тумблер на пульте после этого продолжает показывать «включено».
+             # 19.08.2026 клиент в Канаде прошёл этап Чемоданов в нормальном
+             # режиме при включённом лёгком: тумблер ставили 15.08, за четыре
+             # дня ESP32 успела перезагрузиться, и восстановить режим было
+             # некому — досылка стояла только в прыжке с тех-пульта.
+             _push_wolf_mode()
+             _push_chest_mode()
              logger.info("Start command received")
              #----очищаем историю 
              socklist.clear() 
@@ -8181,6 +8194,10 @@ def serial():
                                       eventlet.sleep(0.1)
                                   
                                   # Активируем следующие этапы
+                                  # Режим сложности — прямо перед запуском этапа,
+                                  # см. комментарий в основном пути активации.
+                                  _push_wolf_mode()
+                                  _push_chest_mode()
                                   send_esp32_command(ESP32_API_WOLF_URL, "game")
                                   send_esp32_command(ESP32_API_SUITCASE_URL, "game")
                                   send_esp32_command(ESP32_API_SAFE_URL, "game")
