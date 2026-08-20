@@ -110,6 +110,16 @@ DEFAULTS = {
         "castle": False,
         "volume": 40,       # проценты
     },
+    # Звуковой тракт. На большинстве замков стоит внешняя USB-аудиокарта, но у
+    # CLC1 (Оман) её нет — играет встроенный выход Raspberry (bcm2835, разъём
+    # 3.5 мм). От этого зависят две вещи: индикатор «USB Audio» на пульте (без
+    # флага он горел бы красным при полностью исправном звуке) и приёмник, поверх
+    # которого поднимается mono-выход.
+    "audio": {
+        "external_card": True,
+        "pulse_sink": ("alsa_output.usb-Solid_State_System_Co._Ltd."
+                       "_USB_PnP_Audio_Device_000000000000-00.analog-stereo"),
+    },
     # Как башня подключена к Pi во время прошивки.
     #   "hub"    — четыре кабеля постоянно сидят в USB-хабе, у каждой башни свой
     #              порт (так собраны CLC1, CLC2, CLC3);
@@ -374,6 +384,16 @@ class CastleConfig:
     def ap_iface(self):
         """Интерфейс точки доступа Castle: wlan0 везде, ap0 на CLC1."""
         return self.data["wifi"].get("ap_iface", "wlan0")
+
+    # ---------- Звук ----------
+    def audio_external_card(self):
+        """Стоит ли внешняя USB-аудиокарта. У CLC1 звук встроенный."""
+        return bool(self.data.get("audio", {}).get("external_card", True))
+
+    def audio_sink(self):
+        """Приёмник PulseAudio, поверх которого поднимается mono-выход."""
+        return (self.data.get("audio", {}).get("pulse_sink")
+                or DEFAULTS["audio"]["pulse_sink"])
 
     def wifi_country(self):
         return self.data["wifi"].get("country", "RU")

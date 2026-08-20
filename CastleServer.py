@@ -816,6 +816,10 @@ chest_easy_mode = _load_chest_easy_preference()
 # во float (0.5/0.5, без клиппинга) и дублирует на оба физических выхода.
 # stream-restore запоминает последний sink потока pygame — после move
 # рестарты сервера сами попадают на нужный sink (имя mono_out стабильно).
+# Историческое имя приёмника USB-карты. Само значение переехало в
+# castle_config.json (audio.pulse_sink): у CLC1 внешней карты нет вовсе,
+# и зашитое здесь имя означало бы попытку переключиться на несуществующее
+# устройство. Константа оставлена как ориентир при чтении логов.
 PULSE_USB_SINK = "alsa_output.usb-Solid_State_System_Co._Ltd._USB_PnP_Audio_Device_000000000000-00.analog-stereo"
 PULSE_MONO_SINK = "mono_out"
 
@@ -844,7 +848,7 @@ def apply_mono_output(enable):
             if PULSE_MONO_SINK not in r.stdout:
                 lr = _pactl('load-module', 'module-remap-sink',
                             f'sink_name={PULSE_MONO_SINK}',
-                            f'master={PULSE_USB_SINK}',
+                            f'master={castle_cfg.audio_sink()}',
                             'channels=1', 'channel_map=mono', 'remix=yes',
                             'sink_properties=device.description=Mono_Out')
                 if lr.returncode != 0:
@@ -854,8 +858,8 @@ def apply_mono_output(enable):
             _pulse_move_quest_streams(PULSE_MONO_SINK)
             logger.info("AUDIO: MONO-выход ВКЛючён (pulse remap-sink, без клиппинга)")
         else:
-            _pactl('set-default-sink', PULSE_USB_SINK)
-            _pulse_move_quest_streams(PULSE_USB_SINK)
+            _pactl('set-default-sink', castle_cfg.audio_sink())
+            _pulse_move_quest_streams(castle_cfg.audio_sink())
             r = _pactl('list', 'short', 'modules')
             for line in r.stdout.strip().split('\n'):
                 if 'module-remap-sink' in line and PULSE_MONO_SINK in line:
@@ -1085,12 +1089,18 @@ def gather_system_status():
         ],
         'hub': [
             ('214b', '7250'),   # Huasheng USB-hub с башнями (CLC3)
+            ('05e3', '0610'),   # Genesys Logic USB2.0 Hub (CLC1 Оман)
         ],
         'mega_main': [
             ('1a86', '7523'),   # CH340 (Mega главная) — одинаково на всех комплектах
         ],
     }
     usb = {k: False for k in usb_targets}
+    # У CLC1 внешней аудиокарты нет вовсе — звук идёт через встроенный выход
+    # Raspberry. Искать её по VID:PID там бессмысленно: индикатор горел бы
+    # красным при полностью исправном звуке. Проверяем звуковую карту как таковую.
+    if not castle_cfg.audio_external_card():
+        usb['audio'] = os.path.exists('/proc/asound/card0')
     try:
         for dev in os.listdir('/sys/bus/usb/devices'):
             if not dev or not dev[0].isdigit():
