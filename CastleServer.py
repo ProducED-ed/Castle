@@ -1518,7 +1518,15 @@ log.setLevel(logging.ERROR)
 # громких местах дуал-моно треков = щелчки/хрип (кейс клиента июль 2026).
 # Теперь mono делается в PulseAudio (remap-sink, float 0.5/0.5 — без клипа),
 # см. apply_mono_output(). Переключение мгновенное, без рестарта.
-pygame.mixer.pre_init(44100, -16, 2, 2048)
+# Частота микшера. Все игровые .wav обязаны быть в ней же: pygame 1.9.6 живёт
+# на SDL 1.2, и файл с ДРУГОЙ частотой он проигрывает не пересчитывая — на
+# скорости микшера. 24000 Гц вместо 44100 звучат ровно в 1,84 раза быстрее
+# (замер CLC3 20.08.2026: трек 14,92 с уложился в 8,12 с). В браузере на ПК тот
+# же файл звучит нормально — он частоту читает из заголовка. Отсюда обманчивая
+# картина «через ПК нормально, через замок ускорено».
+# Приведением файлов занимается _normalize_audio_file().
+AUDIO_TARGET_RATE = 44100
+pygame.mixer.pre_init(AUDIO_TARGET_RATE, -16, 2, 2048)
 pygame.init()
 pygame.mixer.init()
 logger.info(f"AUDIO: pygame.mixer STEREO; mono-выход: {'ON (pulse remap)' if mono_sound_active else 'OFF'}")
@@ -2538,21 +2546,107 @@ def _test_audio_disable():
     return {'restored': restored}
 
 # === 2026-05-27: auto-конвертация WAV к 16-bit PCM ===
-# Helper-функция: сканирует GAME_AUDIO_DIR, конвертит не-16-bit через sox.
-# Вызывается из handle_audio_check (перед проверкой) и при старте сервера.
-# Раньше была отдельная кнопка на /tech, убрали — должно быть автоматически (как WC).
-def _auto_convert_audio_bitdepth(emit_progress=False):
-    """Возвращает dict: {ok, scanned, converted: [{file, from_bits}], skipped, errors: [{file, error}]}"""
-    import wave as wave_module
+# --- Приведение аудио к формату микшера ---------------------------------------
+# Микшер открыт как 16-bit / AUDIO_TARGET_RATE. Файл, не совпадающий с ним,
+# pygame 1.9.6 (SDL 1.2) НЕ пересчитывает: 24-битный он просто не откроет, а с
+# чужой частотой — проиграет на скорости микшера, то есть быстрее или медленнее.
+# Проверять поэтому надо ДВЕ вещи, а не одну: разрядность и частоту.
+# 20.08.2026: до этой правки проверялась только разрядность, и залитый через
+# пульт story_11_fr.wav (24000 Гц) звучал на замке в 1,84 раза быстрее.
+def _wav_probe(path):
+    """(audio_format, ширина отсчёта в байтах, частота) из заголовка WAV.
+
+    Идём по чанкам RIFF, а не по фиксированным смещениям: редакторы кладут перед
+    'fmt ' служебные чанки (LIST, JUNK), и чтение по смещению 20 дало бы мусор.
+    wave.open здесь не годится — он бросает исключение на IEEE-float (fmt=3),
+    из-за чего такие файлы раньше молча оставались неконвертированными.
+    """
+    with open(path, 'rb') as fh:
+        head = fh.read(12)
+        if len(head) < 12 or head[0:4] != b'RIFF' or head[8:12] != b'WAVE':
+            return None, None, None
+        while True:
+            hdr = fh.read(8)
+            if len(hdr) < 8:
+                return None, None, None
+            size = int.from_bytes(hdr[4:8], 'little')
+            if hdr[0:4] == b'fmt ':
+                body = fh.read(16)
+                if len(body) < 16:
+                    return None, None, None
+                return (int.from_bytes(body[0:2], 'little'),        # PCM=1, float=3
+                        int.from_bytes(body[14:16], 'little') // 8,  # байт на отсчёт
+                        int.from_bytes(body[4:8], 'little'))         # частота
+            fh.seek(size + (size & 1), 1)  # чанки выровнены по чётному байту
+
+
+def _audio_defects(path):
+    """Чем файл не подходит микшеру. Пустой список — файл годен как есть."""
+    fmt, sampwidth, rate = _wav_probe(path)
+    if fmt is None:
+        return ['заголовок не читается']
+    bad = []
+    if fmt != 1 or sampwidth != 2:
+        bad.append(f"{sampwidth * 8}-bit" if (fmt == 1 and sampwidth) else f"формат {fmt}")
+    if rate != AUDIO_TARGET_RATE:
+        bad.append(f"{rate} Hz")
+    return bad
+
+
+def _normalize_audio_file(path):
+    """Привести .wav к формату микшера: 16-bit signed PCM, AUDIO_TARGET_RATE.
+
+    Возвращает (changed, defects, error). Файл заменяется только при успешном
+    sox и через os.replace — оборванная конвертация не оставит покалеченный
+    трек на месте рабочего.
+    -G (guard) обязателен: пересчёт частоты даёт выбросы интерполяции выше
+    исходного пика, и без него громкий трек словил бы клиппинг.
+    """
+    import shutil as _sh, subprocess as _sp
+    try:
+        defects = _audio_defects(path)
+    except Exception as e:
+        return False, [], f'header read: {e}'
+    if not defects:
+        return False, [], None
+    if defects == ['заголовок не читается']:
+        return False, defects, 'RIFF/WAVE header not found'
+    if not _sh.which('sox'):
+        return False, defects, 'sox not installed (apt install -y sox)'
+    tmp = path + '.norm.tmp.wav'
+    err = None
+    try:
+        r = _sp.run(['sox', '-G', path, '-b', '16', '-e', 'signed-integer',
+                     '-r', str(AUDIO_TARGET_RATE), tmp],
+                    capture_output=True, timeout=120, text=True)
+        if r.returncode == 0 and os.path.exists(tmp):
+            os.replace(tmp, path)
+            return True, defects, None
+        err = f'sox rc={r.returncode}: {(r.stderr or "")[:200]}'
+    except Exception as e:
+        err = f'sox exception: {e}'
+    if os.path.exists(tmp):
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+    return False, defects, err
+
+
+# Helper-функция: сканирует GAME_AUDIO_DIR и приводит .wav к формату микшера.
+# Вызывается ТОЛЬКО из handle_audio_check — кнопка «Проверить аудио» на /tech.
+# (Прежний комментарий уверял, что ещё и при старте сервера, — вызова там нет.
+# Файлы, залитые мимо пульта, через Samba, лечатся только этой кнопкой.)
+def _auto_convert_audio_format(emit_progress=False):
+    """Возвращает dict: {ok, scanned, converted: [{file, was}], skipped, errors: [{file, error}]}"""
     import shutil as _sh
-    import subprocess as _sp
     if not _sh.which('sox'):
         return {'ok': False, 'error': 'sox not installed (apt install -y sox)',
                 'converted': [], 'errors': [], 'scanned': 0, 'skipped': 0}
     scan_dir = GAME_AUDIO_DIR
     scanned = 0
     converted_list = []
-    skipped_list = []
+    skipped = 0
     errors_list = []
     try:
         files = sorted([f for f in os.listdir(scan_dir) if f.lower().endswith('.wav')])
@@ -2562,54 +2656,33 @@ def _auto_convert_audio_bitdepth(emit_progress=False):
     total = len(files)
     for i, fname in enumerate(files):
         path = os.path.join(scan_dir, fname)
-        # Определяем формат по raw-заголовку WAV (не через wave.open — он бросает
-        # исключение на IEEE-float audioFormat=3 и такие файлы раньше НЕ конвертились).
-        # audioFormat: PCM=1, IEEE float=3, extensible=0xFFFE; bitsPerSample @ 34:36.
-        audio_format = None
-        sampwidth = None  # в байтах
+        scanned += 1
         try:
-            with open(path, 'rb') as fh:
-                raw = fh.read(36)
-            if len(raw) >= 22:
-                audio_format = int.from_bytes(raw[20:22], 'little')
-            if len(raw) >= 36:
-                sampwidth = int.from_bytes(raw[34:36], 'little') // 8
+            defects = _audio_defects(path)
         except Exception as e:
             errors_list.append({'file': fname, 'error': f'header read: {e}'})
             continue
-        scanned += 1
-        # 16-bit PCM уже годен для pygame — пропускаем
-        if audio_format == 1 and sampwidth == 2:
-            skipped_list.append(fname)
+        if not defects:
+            skipped += 1
             continue
-        bits = (sampwidth or 0) * 8
+        was = ', '.join(defects)
         if emit_progress:
             socketio.emit('audio_convert_progress',
-                          {'phase': 'scan', 'current': i+1, 'total': total,
-                           'file': fname, 'bits': bits}, to=None)
-        # sox читает и float (fmt=3), и 24/32-bit PCM → пишем 16-bit signed PCM
-        tmp = path + '.16bit.tmp.wav'
-        try:
-            r = _sp.run(['sox', path, '-b', '16', '-e', 'signed-integer', tmp],
-                        capture_output=True, timeout=60, text=True)
-            if r.returncode == 0 and os.path.exists(tmp):
-                os.replace(tmp, path)
-                converted_list.append({'file': fname, 'from_bits': bits or f'fmt{audio_format}'})
-                logger.info(f"[AUDIO-CONVERT] {fname}: fmt={audio_format} {bits}-bit → 16-bit PCM")
-            else:
-                if os.path.exists(tmp):
-                    try: os.remove(tmp)
-                    except: pass
-                errors_list.append({'file': fname, 'error': f'sox rc={r.returncode}: {r.stderr[:200]}'})
-        except Exception as e:
-            errors_list.append({'file': fname, 'error': f'sox exception: {e}'})
+                          {'phase': 'scan', 'current': i + 1, 'total': total,
+                           'file': fname, 'was': was}, to=None)
+        changed, _, err = _normalize_audio_file(path)
+        if changed:
+            converted_list.append({'file': fname, 'was': was})
+            logger.info(f"[AUDIO-CONVERT] {fname}: {was} → 16-bit PCM {AUDIO_TARGET_RATE} Hz")
+        else:
+            errors_list.append({'file': fname, 'error': err or 'unknown'})
     result = {'ok': True, 'scanned': scanned,
               'converted': converted_list,
-              'skipped': len(skipped_list),
+              'skipped': skipped,
               'errors': errors_list}
     if converted_list or errors_list:
         logger.info(f"[AUDIO-CONVERT] Done: scanned={scanned}, converted={len(converted_list)}, "
-                    f"skipped={len(skipped_list)}, errors={len(errors_list)}")
+                    f"skipped={skipped}, errors={len(errors_list)}")
     return result
 
 @socketio.on('test_audio_set')
@@ -2642,9 +2715,10 @@ def handle_test_audio_set(data):
 # --- ПРОВЕРКА АУДИОФАЙЛОВ (с прогрессом через WebSocket) ---
 # === АУДИО-МЕНЕДЖЕР (2026-07-13, портировано из WC Tech-пульта) ===
 # Список/прослушивание/замена/добавление аудиофайлов через /tech.
-# Замена делает бэкап в audio_backups/, WAV 24/32-bit автоконвертируется
-# в 16-bit (pygame читает только 16-bit PCM), sox -G защищает от клиппинга
-# горячих float-экспортов из Audacity.
+# Замена делает бэкап в audio_backups/, после чего WAV приводится к формату
+# микшера: 16-bit PCM (pygame другого не читает) и AUDIO_TARGET_RATE (иначе
+# трек играет не на своей скорости). sox -G защищает от клиппинга — и горячих
+# float-экспортов из Audacity, и выбросов интерполяции при пересчёте частоты.
 AUDIO_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_MAX_SIZE = 60 * 1024 * 1024  # 60MB на файл
 AUDIO_BACKUP_DIR = os.path.join(AUDIO_DIR, 'audio_backups')
@@ -2701,36 +2775,30 @@ def audio_upload():
     try:
         f.save(target_path)
         logger.info(f"AUDIO-MGR: файл записан: {target} ({size} bytes)")
+        # Приводим к формату микшера СРАЗУ при загрузке: и разрядность, и частоту.
+        # Раньше правилась только разрядность, и файл с чужой частотой уезжал в
+        # игру как есть — на замке он звучал ускоренным, а на ПК нормальным.
         converted = False
+        convert_note = ''
         if target.lower().endswith('.wav'):
             try:
-                import wave as _wave
-                with _wave.open(target_path, 'rb') as w:
-                    sampwidth = w.getsampwidth()  # 2=16bit, 3=24bit, 4=32bit
-                if sampwidth != 2:
-                    import shutil as _sh, subprocess as _sp
-                    if _sh.which('sox'):
-                        tmp = target_path + '.16bit.tmp.wav'
-                        # -G (guard) — авто-подгон уровня против клиппинга
-                        r = _sp.run(['sox', '-G', target_path, '-b', '16', tmp],
-                                    capture_output=True, timeout=60)
-                        if r.returncode == 0 and os.path.exists(tmp):
-                            os.replace(tmp, target_path)
-                            new_size = os.path.getsize(target_path)
-                            logger.info(f"AUDIO-MGR: автоконвертация в 16-bit: {target} "
-                                        f"(был {sampwidth*8}-bit, {size}B -> {new_size}B)")
-                            size = new_size
-                            converted = True
-                        else:
-                            logger.warning(f"AUDIO-MGR: sox conversion failed for {target}: "
-                                           f"rc={r.returncode} stderr={r.stderr[:200]}")
-                    else:
-                        logger.warning(f"AUDIO-MGR: {target} is {sampwidth*8}-bit, sox отсутствует")
+                changed, defects, err = _normalize_audio_file(target_path)
+                if changed:
+                    new_size = os.path.getsize(target_path)
+                    convert_note = ', '.join(defects)
+                    logger.info(f"AUDIO-MGR: приведён к формату микшера: {target} "
+                                f"(было: {convert_note}; {size}B -> {new_size}B)")
+                    size = new_size
+                    converted = True
+                elif err:
+                    logger.warning(f"AUDIO-MGR: не удалось привести {target} "
+                                   f"({', '.join(defects) or '?'}): {err}")
             except Exception as e:
-                logger.warning(f"AUDIO-MGR: WAV bit-depth check failed for {target}: {e}")
+                logger.warning(f"AUDIO-MGR: проверка формата не удалась для {target}: {e}")
         return jsonify({'ok': True, 'name': target, 'size': size,
                         'mtime': int(os.path.getmtime(target_path)),
-                        'converted_to_16bit': converted})
+                        'converted_to_16bit': converted,
+                        'converted_from': convert_note})
     except Exception as e:
         logger.error(f"audio_upload save error: {e}")
         return jsonify({'ok': False, 'error': str(e)}), 500
@@ -2827,7 +2895,7 @@ def handle_audio_check():
         # 2026-05-27: автоконвертация 24/32-bit WAV в 16-bit ДО проверки.
         # Раньше была отдельная кнопка, теперь это часть "Проверить аудио"
         # (как WC делает на upload). Эмитит audio_convert_progress/result в UI.
-        conv_result = _auto_convert_audio_bitdepth(emit_progress=True)
+        conv_result = _auto_convert_audio_format(emit_progress=True)
         socketio.emit('audio_convert_result', conv_result, to=None)
 
         all_suffixes = ['ru', 'en', 'ar', 'fr', 'uk', 'pl']

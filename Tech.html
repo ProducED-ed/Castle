@@ -1363,7 +1363,7 @@
                 btn_audio_convert: "Конвертировать аудио в 16-bit",
                 btn_audio_files: "Файлы аудио",
                 audio_files_title: "Управление аудиофайлами",
-                audio_files_hint: "Замена файла создаёт резервную копию в audio_backups/. Допустимые форматы: mp3, wav, ogg. WAV 24/32-bit конвертируется в 16-bit автоматически.",
+                audio_files_hint: "Замена файла создаёт резервную копию в audio_backups/. Допустимые форматы: mp3, wav, ogg. WAV автоматически приводится к формату микшера: 16-bit, 44100 Гц. Файл с другой частотой без этого звучал бы на замке ускоренным или замедленным.",
                 audio_files_search: "Поиск...",
                 audio_files_refresh: "Обновить",
                 audio_files_now_playing: "Сейчас:",
@@ -1385,7 +1385,7 @@
                 btn_flash: "Прошить",
                 test_audio_label: "Тест. звуки RU",
                 test_audio_status_full: "Игровые звуки (полные)",
-                audio_convert_hint: "Запускать после загрузки новых .wav через Samba (pygame не грузит 24/32-bit)",
+                audio_convert_hint: "Запускать после загрузки новых .wav через Samba (pygame не грузит 24/32-bit и не пересчитывает частоту)",
                 audio_results_title: "Результаты проверки аудиофайлов",
                 audio_checked: "Проверено:", audio_files_word: "файлов",
                 stat_ok: "ОК", stat_missing: "Отсутствуют", stat_broken: "Битые", stat_total: "Всего",
@@ -1758,7 +1758,7 @@
                 btn_audio_convert: "Convert audio to 16-bit",
                 btn_audio_files: "Audio files",
                 audio_files_title: "Audio files manager",
-                audio_files_hint: "Replacing a file creates a backup in audio_backups/. Allowed formats: mp3, wav, ogg. 24/32-bit WAV is auto-converted to 16-bit.",
+                audio_files_hint: "Replacing a file creates a backup in audio_backups/. Allowed formats: mp3, wav, ogg. WAV is auto-converted to the mixer format: 16-bit, 44100 Hz. Without this, a file with a different rate plays too fast or too slow on the castle speakers.",
                 audio_files_search: "Search...",
                 audio_files_refresh: "Refresh",
                 audio_files_now_playing: "Now:",
@@ -1780,7 +1780,7 @@
                 btn_flash: "Flash",
                 test_audio_label: "Test audio RU",
                 test_audio_status_full: "Game audio (full)",
-                audio_convert_hint: "Run after uploading new .wav via Samba (pygame doesn't load 24/32-bit)",
+                audio_convert_hint: "Run after uploading new .wav via Samba (pygame won't load 24/32-bit and won't resample)",
                 audio_results_title: "Audio files check results",
                 audio_checked: "Checked:", audio_files_word: "files",
                 stat_ok: "OK", stat_missing: "Missing", stat_broken: "Broken", stat_total: "Total",
@@ -2656,7 +2656,7 @@
             const errs = data.errors || [];
             if (conv.length) {
                 appendToTerminal(`[AUDIO-CONVERT] Авто-конвертировано в 16-bit: ${conv.length} файлов\n`, '#2ecc71');
-                appendToTerminal('  ' + conv.map(c => `${c.file} (${c.from_bits}→16)`).join(', ') + '\n', '#3498db');
+                appendToTerminal('  ' + conv.map(c => `${c.file} (${c.was} → 44100 Hz/16-bit)`).join(', ') + '\n', '#3498db');
             }
             if (errs.length) {
                 appendToTerminal('  Ошибки конвертации: ' + errs.map(e => `${e.file}: ${e.error}`).join(' | ') + '\n', '#e74c3c');
@@ -3643,7 +3643,7 @@
                     var resp = out.resp || {};
                     if (out.ok && resp.ok) {
                         var msg = T('audio_files_uploaded_ok') + resp.name + ' (' + fmtSize(resp.size) + ')';
-                        if (resp.converted_to_16bit) msg += ' [WAV 16-bit auto]';
+                        if (resp.converted_to_16bit) msg += ' [' + (resp.converted_from || '') + ' \u2192 44100 Hz/16-bit]';
                         $st.css('color', '#2ecc71').text(msg);
                         loadAudioList();
                     } else {
