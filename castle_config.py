@@ -76,6 +76,12 @@ DEFAULTS = {
     "quest_name": "",
     "wifi": {
         "client_iface": "wlan1",
+        # Интерфейс точки доступа Castle. На большинстве замков это встроенный
+        # wlan0, но на CLC1 (Оман) точка поднята на ap0 — и зашитый в коде
+        # wlan0 там означал: индикатор Castle AP всегда красный, а вотчдог
+        # hostapd видел «ноль клиентов» и перезапускал точку на живом замке,
+        # сбрасывая с неё ESP32 и телефон оператора.
+        "ap_iface": "wlan0",
         # Regdomain для wpa_supplicant.conf. Не путать с country_code в
         # hostapd.conf — сеть Castle мы не трогаем вообще.
         "country": "RU",
@@ -364,6 +370,10 @@ class CastleConfig:
     # ---------- WiFi ----------
     def wifi_iface(self):
         return self.data["wifi"].get("client_iface", "wlan1")
+
+    def ap_iface(self):
+        """Интерфейс точки доступа Castle: wlan0 везде, ap0 на CLC1."""
+        return self.data["wifi"].get("ap_iface", "wlan0")
 
     def wifi_country(self):
         return self.data["wifi"].get("country", "RU")

@@ -72,6 +72,21 @@ def local_md5(rel):
     return out.stdout.split()[0] if out.returncode == 0 else None
 
 
+def board_source(castle, board, rel):
+    """Какую прошивку везти этому замку для этой платы.
+
+    Обычно — общий файл из репозитория. Но у CLC1 (Оман) в башне Мастерской
+    стоят СЕРВОПРИВОДЫ вместо светодиодов, и ей идёт своя сборка того же
+    исходника (собирается флагом WORKSHOP_OMAN_SERVOS). Без этой развилки
+    раскатка отвезла бы туда светодиодную версию и молча сломала шлем и метлу,
+    а сверка вечно показывала бы ложное «не выложено».
+
+    Задаётся в ~/.clc_castles.json полем firmware_overrides:
+        "firmware_overrides": {"workshop": "workshop/workshop.clc1-oman.ino.hex"}
+    """
+    return (castle.get("firmware_overrides") or {}).get(board) or rel
+
+
 def ssh_run(castle, command, timeout=45, tries=3):
     """Одна ssh-команда. Возвращает stdout или None, если замок недоступен.
 
@@ -82,6 +97,10 @@ def ssh_run(castle, command, timeout=45, tries=3):
     base = ["ssh", "-o", "ConnectTimeout=15", "-o", "BatchMode=no",
             "-o", "UserKnownHostsFile=" + os.path.expanduser("~/.ssh/clc_known_hosts"),
             "-o", "StrictHostKeyChecking=accept-new"]
+    # Нестандартный порт нужен CLC1: в Омане DPI, и связь идёт не напрямую, а
+    # через обратный SSH-туннель, поднятый самим замком до этого VPS.
+    if castle.get("port"):
+        base += ["-p", str(castle["port"])]
     if castle.get("auth") == "key":
         base += ["-i", os.path.expanduser(castle["key"])]
         argv = base + [f"{castle['user']}@{castle['host']}", command]
@@ -182,6 +201,7 @@ def report(castle, snap):
             behind_files.append(rel)
 
     for board, (rel, remote) in BOARDS.items():
+        rel = board_source(castle, board, rel)
         mine, theirs = local_md5(rel), snap["md5"].get(remote)
         if theirs is None:
             missing.append(remote)

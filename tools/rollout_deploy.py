@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from rollout_status import (BOARDS, CONFIG, PER_CASTLE_FILES, REMOTE_ROOT,  # noqa: E402
+from rollout_status import (BOARDS, CONFIG, PER_CASTLE_FILES, REMOTE_ROOT, board_source,  # noqa: E402
                             SERVER_FILES, collect, local_md5, ssh_run)
 
 import json  # noqa: E402
@@ -42,6 +42,10 @@ def scp_files(castle, pairs, tries=3):
         base = ["scp", "-p", "-o", "ConnectTimeout=20",
                 "-o", "UserKnownHostsFile=" + os.path.expanduser("~/.ssh/clc_known_hosts"),
                 "-o", "StrictHostKeyChecking=accept-new"]
+        # У scp ключ порта заглавный (-P), в отличие от ssh. Нужен для CLC1,
+        # который доступен через обратный туннель на localhost:2222.
+        if castle.get("port"):
+            base += ["-P", str(castle["port"])]
         if castle.get("auth") == "key":
             argv = base + ["-i", os.path.expanduser(castle["key"]), local,
                            f"{castle['user']}@{castle['host']}:{remote_dir}"]
@@ -144,8 +148,18 @@ def main():
         for board, (rel, remote) in BOARDS.items():
             src_dir = os.path.join(repo, os.path.dirname(rel))
             dst_dir = f"{REMOTE_ROOT}/{os.path.dirname(remote)}/"
+            own = board_source(castle, board, rel)
+            if own != rel:
+                # У замка своя сборка этой платы (CLC1: Мастерская с
+                # сервоприводами). Везём ТОЛЬКО её и под штатным именем, иначе
+                # общая версия затрёт клиентскую и сломает железо.
+                pairs.append((os.path.join(repo, own), f"{REMOTE_ROOT}/{remote}"))
+                continue
             for name in sorted(os.listdir(src_dir)):
                 if name.endswith((".ino", ".hex", ".bin")) and "baseline" not in name:
+                    if any(name == os.path.basename(p) for p in
+                           (castle.get("firmware_overrides") or {}).values()):
+                        continue  # чужая клиентская сборка — другим замкам не нужна
                     pairs.append((os.path.join(src_dir, name), dst_dir))
         failed = scp_files(castle, pairs)
         print(f"   файлов: {len(pairs)}, " + ("все доехали" if not failed else f"НЕ доехали: {failed}"))
@@ -156,7 +170,8 @@ def main():
     if snap is None:
         sys.exit("   замок не отвечает")
     bad = []
-    for rel, remote in list(SERVER_FILES.items()) + [(r, rm) for r, rm in BOARDS.values()]:
+    for rel, remote in (list(SERVER_FILES.items())
+                        + [(board_source(castle, b, r), rm) for b, (r, rm) in BOARDS.items()]):
         if local_md5(rel) != snap["md5"].get(remote):
             bad.append(rel)
     print("   " + ("✅ всё совпадает" if not bad else "❌ расходятся: " + ", ".join(bad)))

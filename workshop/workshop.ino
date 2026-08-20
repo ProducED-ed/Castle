@@ -22,8 +22,23 @@
 // --- Конец пинов верстака ---
 
 // --- Пины для сервоприводов ---
-#define HELMET_SERVO_PIN 50  // Пин для сервопривода "шлем"
-#define BROOM_SERVO_PIN 48   // Пин для сервопривода "метла"
+// Шлем и метла. На всех замках это светодиоды, и висят они на пинах 50/48.
+// На CLC1 (Оман) вместо них стоят СЕРВОПРИВОДЫ, и подключены они к пинам 5/3.
+// Это единственное отличие башни Мастерской у CLC1. Держим его развилкой в
+// одном файле, а не отдельной копией: две копии уже разъезжались у главной
+// платы, и каждая правка вносилась дважды.
+// Сборка под Оман: arduino-cli compile ... \
+//   --build-property compiler.cpp.extra_flags=-DWORKSHOP_OMAN_SERVOS=1
+#ifndef WORKSHOP_OMAN_SERVOS
+#define WORKSHOP_OMAN_SERVOS 0
+#endif
+#if WORKSHOP_OMAN_SERVOS
+  #define HELMET_SERVO_PIN 5   // Сервопривод "шлем" (CLC1)
+  #define BROOM_SERVO_PIN 3    // Сервопривод "метла" (CLC1)
+#else
+  #define HELMET_SERVO_PIN 50  // Светодиод "шлем"
+  #define BROOM_SERVO_PIN 48   // Светодиод "метла"
+#endif
 // --- Конец пинов сервоприводов ---
 
 #define GALET_PIN 30           // Галетник солнце
@@ -31,6 +46,11 @@
 
 #include "GyverButton.h"
 #include <Adafruit_NeoPixel.h>
+#if WORKSHOP_OMAN_SERVOS
+#include <Servo.h>
+Servo helmetServo;
+Servo broomServo;
+#endif
 
 // Объект NeoPixel для огня
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS_FIRE, LED_PIN_FIRE, NEO_GRB + NEO_KHZ800);
@@ -208,18 +228,31 @@ void setup() {
   digitalWrite(LED_FLOOR2_PIN, LOW);
   pinMode(ROOF_LIGHT_PIN, OUTPUT);
 
+#if !WORKSHOP_OMAN_SERVOS
   // Настраиваем пины вместо сервоприводов на выход для LED
   pinMode(HELMET_SERVO_PIN, OUTPUT); // Пин 5
   pinMode(BROOM_SERVO_PIN, OUTPUT);  // Пин 3
+#endif
 
   digitalWrite(LOCK_PIN, LOW);
   digitalWrite(LED_FLOOR1_PIN, LOW);
   digitalWrite(LED_FLOOR2_PIN, LOW);
   digitalWrite(ROOF_LIGHT_PIN, LOW);
 
+#if WORKSHOP_OMAN_SERVOS
+  // Сервоприводы в начальное положение (закрыто) и снимаем питание:
+  // под нагрузкой удержания серво гудит и греется.
+  helmetServo.attach(HELMET_SERVO_PIN);
+  broomServo.attach(BROOM_SERVO_PIN);
+  helmetServo.write(140);
+  broomServo.write(140);
+  helmetServo.detach();
+  broomServo.detach();
+#else
   // Гасим светодиоды шлема и метлы на старте
   digitalWrite(HELMET_SERVO_PIN, LOW);
   digitalWrite(BROOM_SERVO_PIN, LOW);
+#endif
 
   butt1.setDebounce(50);
   butt1.setTimeout(200);
@@ -620,8 +653,17 @@ void activateHelmetServo() {
       isCelebrationActive = true;
       celebrationStartTime = millis();
     }
+#if WORKSHOP_OMAN_SERVOS
+    // Поворачиваем сервопривод шлема (открыто)
+    helmetServo.attach(HELMET_SERVO_PIN);
+    delay(10);
+    helmetServo.write(10);
+    delay(500);
+    helmetServo.detach();
+#else
     // Включаем светодиод Шлема на пине 5
     digitalWrite(HELMET_SERVO_PIN, HIGH);
+#endif
     helmetServoActivated = true;
     Serial1.println("helmet");
   }
@@ -634,8 +676,17 @@ void activateBroomServo() {
       isCelebrationActive = true;
       celebrationStartTime = millis();
     }
+#if WORKSHOP_OMAN_SERVOS
+    // Поворачиваем сервопривод метлы (открыто)
+    broomServo.attach(BROOM_SERVO_PIN);
+    delay(10);
+    broomServo.write(10);
+    delay(500);
+    broomServo.detach();
+#else
     // Включаем светодиод Метлы на пине 3
     digitalWrite(BROOM_SERVO_PIN, HIGH);
+#endif
     broomServoActivated = true;
     Serial1.println("broom");
   }
@@ -914,8 +965,20 @@ void handleUartCommands() {
         floorLedsOn = false;
         recurringLockActive = false;
       }
+#if WORKSHOP_OMAN_SERVOS
+      // Сервоприводы в начальное положение (закрыто)
+      helmetServo.attach(HELMET_SERVO_PIN);
+      broomServo.attach(BROOM_SERVO_PIN);
+      delay(10);
+      helmetServo.write(140);
+      broomServo.write(140);
+      delay(500);
+      helmetServo.detach();
+      broomServo.detach();
+#else
       digitalWrite(HELMET_SERVO_PIN, LOW); // Выключаем LED шлема
       digitalWrite(BROOM_SERVO_PIN, LOW);  // Выключаем LED метлы
+#endif
       helmetServoActivated = false;
       broomServoActivated = false;
       gameEnded = false;
@@ -964,8 +1027,20 @@ void handleUartCommands() {
       for (int i = 0; i < NUM_LEDS_WORKBENCH; i++) {
         workbenchLedStates[i] = 0;
       }
+#if WORKSHOP_OMAN_SERVOS
+      // Сервоприводы в начальное положение (закрыто)
+      helmetServo.attach(HELMET_SERVO_PIN);
+      broomServo.attach(BROOM_SERVO_PIN);
+      delay(10);
+      helmetServo.write(140);
+      broomServo.write(140);
+      delay(500);
+      helmetServo.detach();
+      broomServo.detach();
+#else
       digitalWrite(HELMET_SERVO_PIN, LOW); // Выключаем LED шлема
       digitalWrite(BROOM_SERVO_PIN, LOW);  // Выключаем LED метлы
+#endif
       helmetServoActivated = false;
       broomServoActivated = false;
       gameEnded = false;
@@ -973,8 +1048,20 @@ void handleUartCommands() {
       isFirstFire2 = true;
       isFirstFire0 = true;
     } else if (command == "servo") {
+#if WORKSHOP_OMAN_SERVOS
+      // Сервоприводы в начальное положение (закрыто)
+      helmetServo.attach(HELMET_SERVO_PIN);
+      broomServo.attach(BROOM_SERVO_PIN);
+      delay(10);
+      helmetServo.write(140);
+      broomServo.write(140);
+      delay(500);
+      helmetServo.detach();
+      broomServo.detach();
+#else
       digitalWrite(HELMET_SERVO_PIN, LOW); // Выключаем LED шлема
       digitalWrite(BROOM_SERVO_PIN, LOW);  // Выключаем LED метлы
+#endif
       helmetServoActivated = false;
       broomServoActivated = false;
     } else if (command == "helmet") {

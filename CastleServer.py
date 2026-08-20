@@ -1040,8 +1040,9 @@ def gather_system_status():
     # Сети — через /sys и SIOCGIFADDR (без subprocess)
     networks = {'castle_ap': False, 'client_wifi': False, 'tailscale': False, 'internet': False}
 
-    # wlan0 — Castle AP. Должен быть UP и иметь 192.168.4.1
-    up0, ip0 = _iface_state('wlan0')
+    # Castle AP. Должен быть UP и иметь 192.168.4.1. Имя интерфейса берём из
+    # конфига: на CLC1 точка поднята на ap0, а не на встроенном wlan0.
+    up0, ip0 = _iface_state(castle_cfg.ap_iface())
     networks['castle_ap'] = up0 and ip0 == '192.168.4.1'
 
     # wlan1 — клиент любой Wi-Fi сети. UP + IP не link-local
@@ -1281,7 +1282,7 @@ def hostapd_bootstrap_watchdog():
 
     def count_stations():
         try:
-            r = subprocess.run(['sudo', 'iw', 'dev', 'wlan0', 'station', 'dump'],
+            r = subprocess.run(['sudo', 'iw', 'dev', castle_cfg.ap_iface(), 'station', 'dump'],
                                capture_output=True, timeout=3, text=True)
             return r.stdout.count('Station ')
         except Exception:
@@ -1887,7 +1888,7 @@ def apply_internet_sharing(enable):
     Когда OFF: вставляем DROP перед всем остальным.
     Идемпотентно."""
     import subprocess
-    drop_rule = ['FORWARD', '-i', 'wlan0', '-o', 'wlan1', '-j', 'DROP']
+    drop_rule = ['FORWARD', '-i', castle_cfg.ap_iface(), '-o', 'wlan1', '-j', 'DROP']
     try:
         check = subprocess.run(['sudo', 'iptables', '-C'] + drop_rule,
                                capture_output=True, timeout=3)
