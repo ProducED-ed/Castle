@@ -194,6 +194,7 @@ void checkWorkbenchCombinations();
 void checkGameEnd();
 void handleUartCommands();
 void openLock();
+void forceOpenLock();
 void manageLock();
 void CheckState(bool force = false);
 const unsigned long FLAG_RESEND_MS = 5000;
@@ -956,7 +957,7 @@ void handleUartCommands() {
     }
 
     if (command == "workshop") {
-      openLock();
+      forceOpenLock();
       //Serial1.println("door_workshop");
     } else if (command == "open_workshop") {
       helmetServoActivated = false;
@@ -965,7 +966,7 @@ void handleUartCommands() {
       isFirstFire1 = true;
       isFirstFire2 = true;
       isFirstFire0 = true;
-      openLock();
+      forceOpenLock();
     } else if (command == "ready" || command == "start") {
       if (command == "start") {
         hasSentReadyLog = false;
@@ -1128,6 +1129,19 @@ void handleUartCommands() {
   }
 }
 
+// 21.08.2026. openLock() молча НИЧЕГО не делает, если lockOpen уже взведён.
+// Хуже того, повторная пульсация взводится внутри того же условия — то есть при
+// взведённом флаге дверь не открывается вообще, ни разу, и сама уже не
+// починится. Клиент в Канаде поймал это 20.08: дверь по сюжету не открылась,
+// а рестарт открыл — и разница между путями была ровно в одной строке, рестарт
+// сбрасывает флаг перед импульсом. Отмычка (проволока, жмущая на соленоид
+// вручную) тоже открывала, то есть механика была исправна.
+// Здесь делаем то же, что рестарт: открытие обязано бить импульсом ВСЕГДА.
+void forceOpenLock() {
+  lockOpen = false;
+  openLock();
+}
+
 void openLock() {
   if (!lockOpen) {
     digitalWrite(LOCK_PIN, HIGH);
@@ -1142,6 +1156,12 @@ void openLock() {
       recurringLockActive = true;
       lastRecurringLockOpenTime = millis();
     }
+    sendLog("Lock: pulse");
+  } else {
+    // Если эта строка когда-нибудь появится в логе — значит флаг замка снова
+    // застрял и дверь не открылась молча. Без неё отличить «импульс был» от
+    // «импульса не было» по логам невозможно, и разбор упирается в догадки.
+    sendLog("Lock: SKIPPED (already open)");
   }
 }
 
