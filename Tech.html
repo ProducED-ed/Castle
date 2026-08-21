@@ -1631,7 +1631,7 @@
                 setup_hub_unknown: "не опознано",
                 setup_hub_match: "верно",
                 setup_hub_mismatch: "перепутано",
-                setup_hub_swap: "В этом порту стоит другая башня — поменяйте кабели местами.",
+                setup_hub_swap: "В этом порту стоит другая башня, чем записано в настройках замка. Либо поменяйте кабели местами, либо назначьте раскладку вручную ниже — прошивка идёт по настройкам.",
                 setup_hub_identifying: "Опознаю башни, платы при этом перезагружаются…",
                 setup_hub_dog: "Ищу Dog по сигнатуре платы…",
                 setup_hub_not_confirmed: "Раскладка не подтверждена. Пока не подтвердите, прошивка может уйти не в ту башню.",
@@ -2026,7 +2026,7 @@
                 setup_hub_unknown: "not identified",
                 setup_hub_match: "correct",
                 setup_hub_mismatch: "swapped",
-                setup_hub_swap: "A different tower sits in this port — swap the cables.",
+                setup_hub_swap: "A different tower sits in this port than the castle settings say. Either swap the cables or set the mapping manually below — flashing follows the settings.",
                 setup_hub_identifying: "Identifying towers, the boards reboot while this runs…",
                 setup_hub_dog: "Looking for Dog by board signature…",
                 setup_hub_not_confirmed: "Layout is not confirmed. Until you confirm it, firmware may go to the wrong tower.",
@@ -4105,7 +4105,15 @@
             var rows = $('#setup-hub-table').empty();
             var order = ['owls', 'dog', 'workshop', 'basket'];
             order.forEach(function(tower) {
-                var port = standard[tower] || mapping[tower];
+                // Сверяем с раскладкой ЭТОГО замка, а не с эталонной. Раньше
+                // здесь стоял standard[tower] первым — а он заполнен всегда,
+                // так что конфиг замка не использовался никогда. У CLC1, CLC2 и
+                // CLC3 раскладки от эталона отличаются законно, и панель вечно
+                // писала «перепутано» при верно воткнутых кабелях. Хуже того,
+                // оператор «исправлял» по ней конфиг на эталонный — после чего
+                // кнопка прошивки Мастерской пошла бы в башню Корзины.
+                // Проверять надо именно конфиг: им пользуются кнопки прошивки.
+                var port = mapping[tower] || standard[tower];
                 var got = found[port] || '';
                 var verdict, cls;
                 if (!present[port]) {
