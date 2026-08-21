@@ -870,6 +870,17 @@ def apply_mono_output(enable):
         logger.error(f"MONO apply error: {e}")
         return False
 
+def _boycal_on_server_start():
+    """Досылка калибровки серво через 12 с после старта сервера.
+
+    Пауза нужна, чтобы успели подняться serial-поток и сама плата: раньше
+    команда ушла бы в ещё не открытый порт. Если фронт READY придёт сам,
+    подтверждение погасит и эти повторы, и те.
+    """
+    eventlet.sleep(12)
+    send_boy_servo_calibration()
+
+
 def _apply_mono_on_boot():
     """При старте сервера: поднять mono-sink если pref включён.
     Задержка — дать pulse/USB-карте подняться после ребута Pi."""
@@ -4355,14 +4366,51 @@ def setup_ports_reset():
 
 
 # ---------- шаг 5: калибровка серво мальчика ----------
-def send_boy_servo_calibration(values=None):
-    """Отправить калибровку на Mega. Зовётся при каждом хендшейке и с пульта.
+# Подтверждение от платы, что калибровка принята (log:confirm:boycal_ok).
+# Взводится в разборе строк от Mega и гасит повторы ниже.
+_boycal_confirmed = False
+
+
+def send_boy_servo_calibration(values=None, attempts=4, gap=3.0):
+    """Отправить калибровку на Mega и ПОВТОРЯТЬ, пока плата не подтвердит.
 
     Хранится калибровка на Pi, а не в EEPROM платы: тогда прошивка остаётся
-    одна на все замки, а разница между комплектами живёт в конфиге."""
+    одна на все замки, а разница между комплектами живёт в конфиге.
+
+    21.08.2026: раньше команда уходила ОДИН раз и только по фронту
+    QUEST_SYSTEM_READY. Фронт легко пропустить: с отключённым HUPCL рестарт
+    сервера плату не ресетит, и READY заново не печатается — а если Pi
+    перезагрузилась, плата успевает напечатать READY до того, как сервер
+    откроет порт. В обоих случаях калибровка до платы не доезжает, и серво
+    работает на дефолтах прошивки. На CLC1 (Оман) это давало промах примерно
+    на 68 градусов: там серво на 270°, и 170 при диапазоне 500-2500 — совсем
+    не то же самое, что 130 при 544-2400.
+
+    Тот же паттерн, что с режимами сложности и повтором состояния флага:
+    состояние, живущее в оперативной памяти платы, обязано повторяться, а не
+    отправляться однажды.
+    """
+    global _boycal_confirmed
     command = castle_cfg.boy_servo_command(values)
-    serial_write_queue.put(command)
-    logger.info(f"SETUP: калибровка серво → Mega: {command}")
+    _boycal_confirmed = False
+
+    def _worker():
+        for attempt in range(1, attempts + 1):
+            serial_write_queue.put(command)
+            logger.info(f"SETUP: калибровка серво → Mega: {command} "
+                        f"(попытка {attempt} из {attempts})")
+            waited = 0.0
+            while waited < gap:
+                if _boycal_confirmed:
+                    return
+                eventlet.sleep(0.2)
+                waited += 0.2
+        # Плата разбирает boycal только в состояниях покоя (PowerOn/RestOn),
+        # так что во время игры подтверждения не будет — это не поломка.
+        logger.warning("SETUP: плата не подтвердила калибровку серво "
+                       f"после {attempts} попыток (идёт игра — это нормально)")
+
+    socketio.start_background_task(_worker)
     return command
 
 
@@ -7367,6 +7415,7 @@ def serial():
                        logger.info("SETUP: главная плата отчиталась — серво отработал")
                        socketio.emit('setup_servo_result', {'ok': True, 'stage': 'moved'})
                    elif flag == "log:confirm:boycal_ok":
+                       globals()['_boycal_confirmed'] = True
                        logger.info("SETUP: главная плата приняла калибровку серво")
                        socketio.emit('setup_servo_result', {'ok': True, 'stage': 'accepted'})
 
@@ -10066,6 +10115,11 @@ if __name__ == '__main__':
         socketio.start_background_task(target=wlan1_watchdog)  # Авто-восстановление wlan1 если USB-донгл отвалился
         socketio.start_background_task(target=tailscale_watchdog)  # Авто-восстановление Tailscale (logged out / DNS fail)
         socketio.start_background_task(target=mega_boot_watchdog)  # Авто-DTR-reset если Mega молчит после cold-boot
+        # Калибровка серво — не только по фронту QUEST_SYSTEM_READY, но и просто
+        # при старте сервера: плата может быть уже загружена и свой READY
+        # напечатать до того, как мы откроем порт. Повторы внутри сами
+        # замолчат, как только плата подтвердит приём.
+        socketio.start_background_task(_boycal_on_server_start)
         # HUE: прогреваем кэш имён групп, чтобы в логах писать 'Castle', а не id.
         # Ретраи — т.к. wlan1 (сеть клиента) после рестарта поднимается не сразу.
         def _hue_warm_group_cache():
