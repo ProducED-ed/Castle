@@ -822,6 +822,14 @@
                 <button class="ui mini button" onclick="setupMonitorClear()">
                     <span data-i18n="setup_mon_clear">Очистить</span>
                 </button>
+                <!-- 22.08.2026. Замок клетки Цербера отщёлкивался только по
+                     ready/restart и по прохождению игры. Чтобы проверить
+                     конечный геркон платформы, её надо сдвинуть — а для этого
+                     сперва отпустить защёлку. Кнопка даёт ровно импульс на
+                     замок и ничего не скипает. -->
+                <button class="ui mini button" id="btn-open-dog-cage" onclick="techOpenDogCage()">
+                    <span data-i18n="mon_open_dog_cage">Открыть клетку Цербера</span>
+                </button>
                 <span id="setup-mon-count" style="color:#777; font-size:12px;"></span>
             </div>
 
@@ -1663,6 +1671,7 @@
                 setup_mon_hint: "Включите монитор — плата начнёт опрашивать входы и покажет их состояние. Замкните геркон или нажмите кнопку рукой: плашка загорится зелёным. Проходить сценарий не нужно. Работает только когда квест не идёт.",
                 setup_mon_on: "Включить монитор",
                 setup_mon_clear: "Очистить",
+                mon_open_dog_cage: "Открыть клетку Цербера",
                 setup_mon_events: "событий: ",
                 setup_mon_throttled: "(поток слишком плотный, часть строк пропущена)",
                 setup_mon_scope: "Главная плата сообщает о срабатывании датчиков только во время игры. В покое она шлёт лишь служебные строки — они расшифрованы ниже.",
@@ -2058,6 +2067,7 @@
                 setup_mon_hint: "Turn the monitor on — the board starts polling its inputs and shows their state. Close a reed switch or press a button by hand: the chip lights up green. No need to play through the scenario. Works only while no game is running.",
                 setup_mon_on: "Enable monitor",
                 setup_mon_clear: "Clear",
+                mon_open_dog_cage: "Release Cerberus cage",
                 setup_mon_events: "events: ",
                 setup_mon_throttled: "(stream too dense, some lines skipped)",
                 setup_mon_scope: "The main board reports sensor triggers only during a game. At rest it sends service lines only — decoded below.",
@@ -4716,6 +4726,23 @@
             var sec = Math.round((Date.now() - monLastUpdate) / 1000);
             $('#setup-mon-age').text(T('setup_mon_age') + ' ' + sec + ' ' + T('setup_mon_sec'));
         }, 10000);
+
+        // Импульс на замок клетки Цербера. Кнопка блокируется до ответа
+        // сервера — по правилу проекта разблокировка только по событию,
+        // без setTimeout.
+        function techOpenDogCage() {
+            var b = $('#btn-open-dog-cage');
+            if (b.hasClass('disabled')) return;
+            b.addClass('loading disabled');
+            socket.emit('tech_open_dog_cage');
+        }
+        socket.on('tech_open_dog_cage_result', function(d) {
+            $('#btn-open-dog-cage').removeClass('loading disabled');
+            if (!d || !d.ok) {
+                appendToTerminal(T('mon_open_dog_cage') + ': ' +
+                                 ((d && d.reason) || 'error') + '\n', '#e74c3c');
+            }
+        });
 
         function setupMonitorClear() {
             monEvents = 0;
