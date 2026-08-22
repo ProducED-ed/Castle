@@ -335,6 +335,24 @@ void activateEndStage() {
     bool failSkippedSensor = !hasSeenCageSensor;
     bool failDoorOpen = (digitalRead(CAPSULE_REED_PIN) == HIGH);
 
+    // 22.08.2026. Почему этап не засчитан — по логам было не отличить.
+    // Игроки доводят платформу до защёлкивания, а победы нет, и понять причину
+    // можно только с их слов. Между тем геркон скорости и конечный геркон
+    // стоят рядом: последний импульс вращения приходит прямо перед
+    // защёлкиванием, и если он оказался быстрее 2 секунд после предыдущего,
+    // поднимается флаг быстрого вращения — честно доведённый этап уходит в
+    // отказ, замок отпускается и пружина возвращает платформу назад.
+    // Пишем в лог решение и интервал последнего импульса: одна строка вместо
+    // часа догадок.
+    Serial.print(F("log:dog:END fast="));
+    Serial.print(failFastSpin ? 1 : 0);
+    Serial.print(F(" seenCage="));
+    Serial.print(hasSeenCageSensor ? 1 : 0);
+    Serial.print(F(" capsuleOpen="));
+    Serial.print(failDoorOpen ? 1 : 0);
+    Serial.print(F(" lastPulseMs="));
+    Serial.println(millis() - lastCageReedActivationTime);
+
     // ВРЕМЕННО: Убираем проверку на hasSeenCageSensor и failDoorOpen для теста
     // if (failFastSpin || failSkippedSensor || failDoorOpen) {
     if (failFastSpin) {  // Проверяем только быстрое вращение
