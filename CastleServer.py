@@ -4725,29 +4725,6 @@ def _diag_beep_on_change(device, snap):
         logger.warning(f"MON-BEEP: снимок {device} не разобран: {e}")
 
 
-@socketio.on('tech_open_dog_cage')
-def tech_open_dog_cage():
-    """Импульс на замок клетки Цербера с тех-пульта.
-
-    22.08.2026. Прошивка Цербера понимает команду open_cage — её добавляли
-    именно потому, что этот замок нельзя было открыть кнопкой: дверь отпирает
-    open_door, а клетка висит на другом пине и отщёлкивалась только по
-    ready/restart и по прохождению игры. Но до пульта команду так и не довели.
-    Всплыло на разборе CLC3: чтобы проверить конечный геркон платформы, её надо
-    сдвинуть из защёлкнутого положения, а для этого сперва отпустить защёлку —
-    и оказалось, что физически на замке это сделать нечем.
-
-    Путь команды: Pi → главная плата (open_dog_cage) → Цербер (open_cage).
-    """
-    if _setup_busy():
-        socketio.emit('tech_open_dog_cage_result',
-                      {'ok': False, 'reason': 'busy'}, to=request.sid)
-        return
-    serial_write_queue.put('open_dog_cage')
-    logger.info("[CMD] /tech -> Цербер: открыть клетку")
-    socketio.emit('tech_open_dog_cage_result', {'ok': True}, to=request.sid)
-
-
 @socketio.on('sensor_monitor_snapshot')
 def sensor_monitor_snapshot():
     """Полная картина входов одним сообщением.
