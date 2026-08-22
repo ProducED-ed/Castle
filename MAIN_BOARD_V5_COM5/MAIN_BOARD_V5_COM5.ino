@@ -1,4 +1,24 @@
 
+// === ЗАМЕР ДЛИТЕЛЬНОСТИ ФАЗ (2026-08-22) ===
+// Зачем: телеметрия LOOP показала, что цикл главной платы иногда встаёт на
+// секунды — на CLC1 до 6,3 с, на CLC3 до 11,3 с. Пока плата стоит, она не
+// читает команды с Pi, и они теряются: так пропадал restart, из-за чего дверь
+// башни Корзины продолжала толкаться в покое. Какая именно фаза съедает эти
+// секунды — по коду не сходится (OpenAll 600 мс, рассылка по башням 180 мс),
+// поэтому меряем, а не гадаем.
+//
+// Печатаем ТОЛЬКО то, что дольше порога: в норме фазы укладываются в единицы
+// миллисекунд, и лог не засоряется. Строка уходит в logs/castle.log
+// (в journalctl её не видно — там режется всё, что начинается с log:).
+#define PHASE_REPORT_MS 200
+#define PHASE_REPORT(name, t0) do {                                  \
+    unsigned long _d = millis() - (t0);                              \
+    if (_d >= PHASE_REPORT_MS) {                                     \
+      Serial.print(F("log:main:PHASE " name "="));                   \
+      Serial.println(_d);                                            \
+    }                                                                \
+  } while (0)
+
 //-------------------------- библиотеки
 #define crimeDoorPin 38     // геркон на мальчика в тюрьме первая комната
 #define startDoorPin 41     // геркон открытия первой комнаты
@@ -1437,11 +1457,20 @@ void loop() {
 
         if (buff.indexOf("restart") != -1) {
           // Добавляем задержки при рассылке, как в RestOn
+          unsigned long _ph = millis();
+          unsigned long _phAll = _ph;
           SendRestartToAll();
+          PHASE_REPORT("rest_towers", _ph); _ph = millis();
           OpenAll();
+          PHASE_REPORT("rest_doors", _ph); _ph = millis();
+          // NB: этот сброс выбрасывает всё, что Pi успел прислать за время
+          // рассылки и открытия дверей. Если фазы выше окажутся долгими —
+          // здесь и теряются команды.
           while (Serial.available()) Serial.read();
           isRestInitialized = false;
           RestOn();
+          PHASE_REPORT("rest_reston", _ph);
+          PHASE_REPORT("rest_TOTAL", _phAll);
           level = 25;
           break;
         }
@@ -1885,6 +1914,7 @@ void HelpTowersHandler() {
           Serial.println(F("helmet"));
         } else if (serial1Buffer == "story_35") {
           Serial.println(F("story_35"));
+          unsigned long _phItem = millis();
           Serial1.println(F("item_end"));
           Serial2.println(F("item_end"));
           Serial3.println(F("item_end"));
@@ -1908,6 +1938,7 @@ void HelpTowersHandler() {
           memory_Led.show();
           strip1.show();
           strip2.show();
+          PHASE_REPORT("story35_broadcast", _phItem);
           digitalWrite(MansardLight, LOW);
           digitalWrite(LastTowerTopLight, LOW);
           digitalWrite(Fireworks, LOW);
